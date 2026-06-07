@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 from typing import Literal, cast
 
@@ -16,6 +17,17 @@ _cache_lock = threading.Lock()
 _caches: dict[str, GraphAstCache] = {}
 
 
+def count_graph_markdown_files(graph_root: Path) -> int:
+    """Count ``pages/`` and ``journals/`` Markdown files for bootstrap telemetry."""
+    root = graph_root.expanduser().resolve(strict=False)
+    total = 0
+    for subdir in ("pages", "journals"):
+        base = root / subdir
+        if base.is_dir():
+            total += sum(1 for _ in base.rglob("*.md"))
+    return total
+
+
 class GraphAstCache:
     """Thread-safe in-memory graph index for MCP and daemon reads."""
 
@@ -25,13 +37,26 @@ class GraphAstCache:
         self._graph: LogseqGraph | None = None
 
     def bootstrap(self) -> LogseqGraph:
-        """Full vault load on startup (idempotent)."""
+        """Full vault load on first access (idempotent, thread-safe)."""
         with self._lock:
             if self._graph is None:
-                logger.bind(graph=str(self.graph_root)).info(
-                    "Bootstrapping in-memory LogseqGraph AST cache",
-                )
+                markdown_files = count_graph_markdown_files(self.graph_root)
+                logger.bind(
+                    graph=str(self.graph_root),
+                    markdown_files=markdown_files,
+                    phase="start",
+                ).info("AST cache bootstrap started")
+                started = time.perf_counter()
                 self._graph = LogseqGraph.load_directory(self.graph_root)
+                elapsed_s = round(time.perf_counter() - started, 3)
+                page_count = len(self._graph.pages)
+                logger.bind(
+                    graph=str(self.graph_root),
+                    markdown_files=markdown_files,
+                    pages_indexed=page_count,
+                    duration_s=elapsed_s,
+                    phase="complete",
+                ).info("AST cache bootstrap complete")
             return self._graph
 
     def get_graph(self) -> LogseqGraph:
@@ -96,5 +121,6 @@ __all__ = [
     "FileEventKind",
     "GraphAstCache",
     "clear_graph_ast_cache",
+    "count_graph_markdown_files",
     "get_graph_ast_cache",
 ]

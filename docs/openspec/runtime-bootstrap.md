@@ -13,11 +13,11 @@ Matryca Plumber provisions **directories and optional config files** before harv
 | Entry surface | Trigger |
 |---------------|---------|
 | **Maintenance daemon** | `start_daemon_foreground` and `MaintenanceDaemon.run_forever` (before bootstrap harvest) |
-| **MCP stdio** | `app_lifespan` in `src/main.py` (after `load_dotenv`, before graph hygiene sweeps) |
+| **MCP stdio** | `app_lifespan` in `src/main.py` — **light** bootstrap only (`eager_graph=False`); AST loads on first graph tool call |
 | **CLI** | `cli.main` immediately after `reload_plumber_dotenv()` |
 | **Sovereign UI** | FastAPI lifespan on server start; `POST /api/config`; `POST /api/daemon/start`; `GET /api/preflight` |
 
-When a valid graph is configured, bootstrap also **bootstraps the in-memory `LogseqGraph` cache** and loads **Telos / AI Constraints** from the identity config page if present ([`identity-config.md`](identity-config.md)).
+When a valid graph is configured, **daemon / CLI / UI** also **bootstraps the in-memory `LogseqGraph` cache** and loads **Telos / AI Constraints** from the identity config page if present ([`identity-config.md`](identity-config.md)). **MCP stdio** defers AST parsing until the first tool that needs the graph (lazy load) so MCP hosts (e.g. Hermes Agent) complete `initialize` / `tools/list` in seconds; see [`../integrations/hermes-agent.md`](../integrations/hermes-agent.md).
 
 If `LOGSEQ_GRAPH_PATH` is unset or invalid, only **log directories** are ensured.
 

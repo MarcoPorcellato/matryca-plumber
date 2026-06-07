@@ -110,8 +110,18 @@ def prepare_matryca_runtime(
     *,
     graph_root: Path | None = None,
     wiki_config: MatrycaWikiConfig | None = None,
+    eager_graph: bool = True,
 ) -> None:
-    """Provision logs, L1 memory, graph cache dirs, and optional wiki config before work."""
+    """Provision logs, L1 memory, graph cache dirs, and optional wiki config before work.
+
+    Args:
+        graph_root: Resolved Logseq vault root (``pages/`` parent), or ``None``.
+        wiki_config: Optional wiki orchestration config.
+        eager_graph: When ``True`` (daemon, CLI, UI), load the in-memory AST index and
+            identity config immediately. When ``False`` (MCP stdio lifespan), defer
+            heavy graph parsing until the first tool call that needs the graph — so
+            MCP ``initialize`` / ``tools/list`` complete in seconds.
+    """
     ensure_plumber_log_directories()
     if graph_root is None:
         return
@@ -124,12 +134,16 @@ def prepare_matryca_runtime(
     ensure_graph_runtime_directories(graph_root, templates_subdir=cfg.templates_subdir)
     ensure_matryca_wiki_config_file(graph_root, l1_dir=l1_dir)
     from ..daemon import register_daemon_post_write_hooks
+
+    register_daemon_post_write_hooks(graph_root)
+    if not eager_graph:
+        return
+
     from ..daemon.ast_cache import get_graph_ast_cache
     from ..daemon.config_layer import get_identity_store
 
     get_graph_ast_cache(graph_root).bootstrap()
     get_identity_store(graph_root).reload_if_stale(force=True)
-    register_daemon_post_write_hooks(graph_root)
 
 
 def try_prepare_matryca_runtime_from_env() -> None:

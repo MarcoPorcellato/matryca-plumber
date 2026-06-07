@@ -41,7 +41,12 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[AppContext]:
     if graph_path:
         resolved_root = resolved_graph_root(graph_path)
         os.chdir(str(resolved_root))
-    prepare_matryca_runtime(graph_root=resolved_root, wiki_config=wiki_config)
+    # Lazy AST: handshake must not block on full-vault parse (Hermes connect_timeout).
+    prepare_matryca_runtime(
+        graph_root=resolved_root,
+        wiki_config=wiki_config,
+        eager_graph=False,
+    )
     if resolved_root is not None:
         swept = await asyncio.to_thread(sweep_dangling_atomic_tmp_files, str(resolved_root))
         if swept:

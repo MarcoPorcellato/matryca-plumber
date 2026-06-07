@@ -4,13 +4,27 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.daemon.ast_cache import clear_graph_ast_cache, get_graph_ast_cache
+from src.daemon.ast_cache import (
+    clear_graph_ast_cache,
+    count_graph_markdown_files,
+    get_graph_ast_cache,
+)
 
 
 def _write_page(pages: Path, name: str, body: str) -> Path:
     path = pages / name
     path.write_text(body, encoding="utf-8")
     return path
+
+
+def test_count_graph_markdown_files(tmp_path: Path) -> None:
+    pages = tmp_path / "pages"
+    journals = tmp_path / "journals"
+    pages.mkdir()
+    journals.mkdir()
+    (pages / "a.md").write_text("- a\n", encoding="utf-8")
+    (journals / "2026_06_07.md").write_text("- j\n", encoding="utf-8")
+    assert count_graph_markdown_files(tmp_path) == 2
 
 
 def test_ast_cache_delta_reload_updates_uuid_lookup(tmp_path: Path) -> None:

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hermes Agent MCP integration** — [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) with verified host config, troubleshooting, and `tests/test_hermes_mcp_handshake.py` (stdio `tools/list` within 30 s on a fixture vault).
+
+### Changed
+
+- **Lazy AST bootstrap for MCP stdio** — `prepare_matryca_runtime(..., eager_graph=False)` in MCP lifespan defers `LogseqGraph.load_directory` until the first graph tool call; daemon/CLI/UI remain eager. Structured stderr telemetry: `AST cache bootstrap started|complete` with `markdown_files`, `duration_s`, `pages_indexed`.
+
 ### Fixed
 
 - **GitHub traffic badges** — README Shields.io endpoints now read badge JSON from the `metrics` branch (`raw.githubusercontent.com/.../metrics/metrics/...`); `metrics-saver` publishes a metrics-only orphan branch via `METRICS_TOKEN` instead of bloating the branch with the full repo tree.

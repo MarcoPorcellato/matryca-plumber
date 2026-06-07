@@ -334,6 +334,7 @@ make perf
 | [`llms.txt`](llms.txt) / [`.well-known/llms.txt`](.well-known/llms.txt) | Agent execution guide (PyPI `uvx`, verified commands). |
 | [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md) | `llms.txt` contract, anti-patterns, maintainer checklist. |
 | [`docs/openspec/llm-os-instructions.md`](docs/openspec/llm-os-instructions.md) | Two-tier LLM OS, Soft Gate, `bootstrap_status`, Safe-Sync. |
+| [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) | Hermes Agent MCP setup, lazy AST handshake, verified config. |
 | [`docs/PROJECT_DIARY.md`](docs/PROJECT_DIARY.md) | Maintainer log, phase history, crushed bottlenecks. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, `uv` commands, `make check` standards. |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting and `.env` hardening controls. |

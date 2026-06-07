@@ -159,7 +159,7 @@ After `make install`, validate changes the way operators run the **Agentic OS** 
 
 Ensure your repo **`.env`** includes the Ironclad security block from **`.env.example`** (at minimum `MATRYCA_MCP_ENABLED=true` if you use MCP hosts). See [`SECURITY.md`](SECURITY.md) for the full matrix.
 
-**Optional MCP stdio** — set `MATRYCA_MCP_ENABLED=true` before invoking bare `matryca-plumber` (stdio MCP is off by default). Reach for a live MCP host only when you touch `mcp_server.py`, tool schemas, or host-specific serialization. Most graph and daemon behavior is proven faster with **`make test` / `make check`** plus the loop above — without wiring Claude Desktop.
+**Optional MCP stdio** — set `MATRYCA_MCP_ENABLED=true` before invoking bare `matryca-plumber` (stdio MCP is off by default). Supported MCP hosts include **Claude Desktop**, **Cursor**, and **[Hermes Agent](docs/integrations/hermes-agent.md)** (`~/.hermes/config.yaml`). Reach for a live MCP host only when you touch `mcp_server.py`, tool schemas, or host-specific serialization. Most graph and daemon behavior is proven faster with **`make test` / `make check`** plus the loop above — without wiring an external MCP host.
 
 6. List Make targets:
 

@@ -37,11 +37,11 @@ Matryca Plumber ships several **defense-in-depth** controls you should configure
 
 **Dependency updates:** Transitive security fixes land via `uv.lock` (for example `aiohttp` ≥3.14.0 in v1.9.2). Dependabot PRs may trigger [`.github/workflows/dependabot-uv-fix.yml`](.github/workflows/dependabot-uv-fix.yml) to regenerate the lockfile on the PR branch.
 
-**Recommended local setup:** loopback UI only, set `MATRYCA_UI_TOKEN` on shared machines (or `MATRYCA_UI_REQUIRE_EXPLICIT_TOKEN=true`), enable `MATRYCA_MCP_ENABLED=true` only on machines where you trust the MCP host (Cursor/Claude Desktop — full graph read/write, no stdio authentication), test graphs via `LOGSEQ_GRAPH_PATH` clones, and never commit `.env`.
+**Recommended local setup:** loopback UI only, set `MATRYCA_UI_TOKEN` on shared machines (or `MATRYCA_UI_REQUIRE_EXPLICIT_TOKEN=true`), enable `MATRYCA_MCP_ENABLED=true` only on machines where you trust the MCP host ([Hermes Agent](docs/integrations/hermes-agent.md), Cursor, Claude Desktop — full graph read/write, no stdio authentication), test graphs via `LOGSEQ_GRAPH_PATH` clones, and never commit `.env`.
 
 ### MCP trust boundary
 
-The optional FastMCP stdio sidecar (`matryca-plumber` with no CLI arguments when `MATRYCA_MCP_ENABLED=true`) exposes the same mutation tools as the daemon. The MCP **host process** is the security boundary: treat it like shell access to your graph directory. Do not enable MCP when the host may run untrusted extensions or shared automation.
+The optional FastMCP stdio sidecar (`matryca-plumber` with no CLI arguments when `MATRYCA_MCP_ENABLED=true`) exposes the same mutation tools as the daemon. The MCP **host process** is the security boundary: treat it like shell access to your graph directory. This applies equally to **Hermes Agent** (stdio subprocess under `~/.hermes/config.yaml`), **Cursor**, and **Claude Desktop**. Do not enable MCP when the host may run untrusted extensions or shared automation.
 
 ## Non-goals
 

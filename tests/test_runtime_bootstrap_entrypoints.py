@@ -64,8 +64,15 @@ async def test_mcp_lifespan_calls_prepare_before_yield(
     monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
     calls: list[dict[str, object]] = []
 
-    def _prepare(*, graph_root: Path | None, wiki_config: object) -> None:
-        calls.append({"graph_root": graph_root, "wiki_config": wiki_config})
+    def _prepare(
+        *,
+        graph_root: Path | None,
+        wiki_config: object,
+        eager_graph: bool = True,
+    ) -> None:
+        calls.append(
+            {"graph_root": graph_root, "wiki_config": wiki_config, "eager_graph": eager_graph},
+        )
 
     monkeypatch.setattr("src.main.prepare_matryca_runtime", _prepare)
     monkeypatch.setattr("src.main.sweep_dangling_atomic_tmp_files", lambda _p: 0)
@@ -77,6 +84,7 @@ async def test_mcp_lifespan_calls_prepare_before_yield(
     graph_root = calls[0]["graph_root"]
     assert isinstance(graph_root, Path)
     assert graph_root.resolve() == graph.resolve()
+    assert calls[0]["eager_graph"] is False
 
 
 def test_start_daemon_foreground_calls_prepare(

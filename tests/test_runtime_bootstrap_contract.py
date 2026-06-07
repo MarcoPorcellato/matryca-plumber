@@ -143,6 +143,32 @@ def test_prepare_matryca_runtime_provisions_documented_artifacts(
     assert (graph / "matryca-wiki.yml").is_file()
 
 
+def test_prepare_matryca_runtime_lazy_skips_ast_bootstrap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    bootstrap_calls: list[Path] = []
+
+    def _bootstrap(self: object) -> object:
+        bootstrap_calls.append(graph)
+        raise AssertionError("bootstrap should not run when eager_graph=False")
+
+    monkeypatch.setattr(
+        "src.daemon.ast_cache.GraphAstCache.bootstrap",
+        _bootstrap,
+    )
+
+    prepare_matryca_runtime(
+        graph_root=graph,
+        wiki_config=MatrycaWikiConfig(),
+        eager_graph=False,
+    )
+
+    assert bootstrap_calls == []
+    assert (graph / "matryca-wiki.yml").is_file()
+
+
 def test_prepare_does_not_create_lazy_runtime_ledgers(tmp_path: Path) -> None:
     graph = _minimal_graph(tmp_path)
     prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
