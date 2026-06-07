@@ -164,13 +164,22 @@ Implementation: `src/agent/mcp_server.py` (`register_mcp_tools`).
 
 ### Configuration guidance for operators
 
-| Scenario | `command` | `connect_timeout` |
-|----------|-----------|-------------------|
-| End users / PyPI | `uvx` + `args: [matryca-plumber]` | 120–360 s by vault size |
-| Developers | `.venv/bin/matryca-plumber` | 180–360 s typical |
-| Small test vault (<100 pages) | either | 60–120 s may suffice |
+**Do not confuse handshake timeout with tool timeout.**
 
-Document a rule of thumb: **`connect_timeout` ≥ (pages + journals) × ~0.2 s** on OrbStack/Mac mounts, measure once per vault.
+| Setting | What it covers | Recommended |
+|---------|----------------|-------------|
+| **`connect_timeout`** | Hermes **handshake** only: subprocess spawn, MCP `initialize`, `tools/list` | **60–120 s** (lazy AST — vault size does not affect handshake) |
+| **`timeout`** | Each **tool call** after connect | **300 s** default; raise for large vaults on the **first** graph tool (cold AST parse) |
+
+| Scenario | `command` | `connect_timeout` | `timeout` (first graph tool) |
+|----------|-----------|---------------------|------------------------------|
+| End users / PyPI | `uvx` + `args: [matryca-plumber]` | 120 s | 300 s+; scale with vault |
+| Developers | `.venv/bin/matryca-plumber` | 120 s | same |
+| Small test vault (<100 pages) | either | 60 s | 120 s often enough |
+
+**Tool-timeout rule of thumb (not `connect_timeout`):** on OrbStack/Mac mounts, budget **`timeout` ≥ (pages + journals) × ~0.2 s** for the first graph-mutating or graph-reading tool after connect. Measure once per vault; subsequent calls reuse the in-memory AST cache.
+
+**No AST required for:** `read_graph_data` / `bootstrap_status`, `read_graph_data` / `memory` — safe to call immediately after handshake.
 
 ### Code / architecture (implemented)
 

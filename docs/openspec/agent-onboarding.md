@@ -58,6 +58,17 @@ Host pattern (Cursor / Claude Desktop):
 }
 ```
 
+### Hermes Agent (v1.9.6+)
+
+Hermes spawns the same stdio MCP server via `~/.hermes/config.yaml`. Prerequisites:
+
+1. Install the **host** MCP client: `uv pip install -e ".[mcp]"` inside `~/.hermes/hermes-agent`.
+2. Set `MATRYCA_MCP_ENABLED=true` and `LOGSEQ_GRAPH_PATH` in the server's `env` block.
+3. **`connect_timeout`** (handshake): **60–120 s** — covers `initialize` + `tools/list` only. MCP lifespan uses **lazy AST** (`eager_graph=False`); it does not parse the full vault before the handshake.
+4. **`timeout`** (per tool): raise for large vaults on the **first** graph tool call (cold AST load). `bootstrap_status` and `memory` reads do not trigger AST bootstrap.
+
+Verified guide: [`../integrations/hermes-agent.md`](../integrations/hermes-agent.md). Integration test: `tests/test_hermes_mcp_handshake.py`.
+
 ---
 
 ## LLM OS contract (Tier-2 agents)

@@ -43,6 +43,8 @@ def test_provision_matryca_l1_sibling_creates_next_to_vault(
         "src.utils.provision_l1.load_matryca_wiki_config",
         lambda: MatrycaWikiConfig(),
     )
+    # Repo ``.env`` must not override explicit test env (``reload_plumber_dotenv`` loads git root).
+    monkeypatch.setattr("src.utils.provision_l1.reload_plumber_dotenv", lambda **_kw: None)
 
     l1_dir = provision_matryca_l1_sibling(graph_root=graph, repo_root=tmp_path)
 

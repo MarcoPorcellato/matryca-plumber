@@ -10,6 +10,7 @@ Trimmed behavioral specs aligned with [MehmetGoekce/llm-wiki](https://github.com
 |----------|--------|
 | [`live-telemetry-ui.md`](live-telemetry-ui.md) | v1.9.3 Sovereign UI: 5s polling, daemon heartbeat, API token overlay, `daemon_pid` auto-unfreeze. |
 | [`agent-onboarding.md`](agent-onboarding.md) | v1.9.2 `llms.txt` / `.well-known/llms.txt`, PyPI `uvx` contract, agent anti-patterns. |
+| [`../integrations/hermes-agent.md`](../integrations/hermes-agent.md) | v1.9.6 Hermes Agent MCP: lazy AST handshake, `connect_timeout` vs tool `timeout`, verified config. |
 | [`llm-os-instructions.md`](llm-os-instructions.md) | Two-tier LLM OS, Master Index Soft Gate, `bootstrap_status`, Safe-Sync, v2.0 SQLite migration trigger. |
 | [`link-verification.md`](link-verification.md) | v1.9 zero-LLM URL/asset hygiene, `.matryca_link_registry.json`, `dead-link::` / `missing-asset::`. |
 | [`agent-dx.md`](agent-dx.md) | v1.9 CLI `--json`, `context load`, `read subtree`, Journey Log (single cumulative bullet per day). |

@@ -89,7 +89,9 @@ Always **parse JSON from stdout** when using `--json`. Never hand-parse raw `pag
 
 ### 2.2 MCP (FastMCP **stdio** — NOT HTTP port 8080)
 
-MCP is a **stdio** sidecar: the host (Cursor, Claude Desktop, etc.) spawns `matryca-plumber` and talks JSON-RPC over stdin/stdout. There is **no** `mcp --port` flag in the v1.9 line.
+MCP is a **stdio** sidecar: the host (Cursor, Claude Desktop, **Hermes Agent**, etc.) spawns `matryca-plumber` and talks JSON-RPC over stdin/stdout. There is **no** `mcp --port` flag in the v1.9 line.
+
+**Lazy AST handshake (v1.9.6+):** MCP lifespan defers full-vault AST parsing until the **first graph tool call**. `initialize` + `tools/list` complete in seconds; `read_graph_data` / `target_type=bootstrap_status` and `target_type=memory` do **not** require the AST index.
 
 **Requirements:**
 1. `LOGSEQ_GRAPH_PATH` set to the vault root.
@@ -113,6 +115,30 @@ MCP is a **stdio** sidecar: the host (Cursor, Claude Desktop, etc.) spawns `matr
 
 With no CLI subcommand and MCP enabled, `uvx matryca-plumber` starts the **stdio** MCP server.  
 For interactive graph work without MCP, prefer the CLI in section 2.1.
+
+#### Hermes Agent (`~/.hermes/config.yaml`)
+
+Hermes requires the host MCP client extra: `cd ~/.hermes/hermes-agent && uv pip install -e ".[mcp]"`.
+
+```yaml
+mcp_servers:
+  matryca-plumber:
+    command: uvx
+    args: [matryca-plumber]
+    env:
+      MATRYCA_MCP_ENABLED: "true"
+      LOGSEQ_GRAPH_PATH: /absolute/path/to/vault
+    enabled: true
+    connect_timeout: 120   # handshake (initialize + tools/list) — not vault parse time
+    timeout: 300           # per tool call; first graph tool pays AST load on large vaults
+```
+
+| Setting | Purpose |
+|---------|---------|
+| `connect_timeout` | Hermes **handshake** only (`initialize`, `tools/list`). **60–120 s** is enough with lazy AST. |
+| `timeout` | Each **tool invocation**. Raise for large vaults on the **first** graph read/search (AST cold start). Rule of thumb: `(pages + journals) × ~0.2 s` on slow mounts — measure once. |
+
+Full guide: `docs/integrations/hermes-agent.md` · stderr telemetry: `AST cache bootstrap started|complete` in `~/.hermes/logs/mcp-stderr.log`.
 
 ### 2.3 Diagnostics & audit (no `doctor` command)
 
@@ -187,6 +213,7 @@ For **today's journal page** as `read page`, use the **exact Logseq page title**
 * LLM OS contract (two-tier, Soft Gate, Safe-Sync): `SYSTEM_PROMPT.md` § "LLM OS"
 * Agent DX spec (CLI JSON, Journey Log — one cumulative `- 🤖 Matryca Activity` bullet per day in the daemon journal): `docs/openspec/agent-dx.md`
 * Security (MCP gate, graph allowlist, CLI redaction): `SECURITY.md`
+* Hermes Agent MCP (lazy handshake, timeouts): `docs/integrations/hermes-agent.md`
 
 ---
 
