@@ -104,7 +104,7 @@ Properties are inserted at the correct **+2 indent** under the parent bullet (sa
   id:: bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
 ```
 
-Writes use `atomic_write_bytes_if_unchanged` with Phase-1 `baseline_mtime` — identical OCC contract as cognitive lint ([`ARCHITECTURE.md`](../ARCHITECTURE.md#optimistic-concurrency-control-occ)).
+Writes use `atomic_write_bytes_if_unchanged` with Phase-1 `baseline_mtime` (`st_mtime_ns`, integer) — identical OCC contract as cognitive lint ([`ARCHITECTURE.md`](../ARCHITECTURE.md#optimistic-concurrency-control-occ)).
 
 ---
 

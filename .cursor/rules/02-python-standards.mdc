@@ -13,7 +13,7 @@ globs: "*.py"
 - **Validation:** use **Pydantic** models for config, JSON payloads, and boundaries.
 
 ## Concurrency and I/O (File System Safety)
-- **Optimistic Concurrency:** Matryca runs in the background. Before overwriting any `.md` file, you MUST check if the file's `mtime` has changed since it was read. Use `atomic_write_bytes_if_unchanged` to prevent data loss if the user is typing in Logseq.
+- **Optimistic Concurrency:** Matryca runs in the background. Before overwriting any `.md` file, you MUST check if the file's `st_mtime_ns` has changed since it was read. Use `atomic_write_bytes_if_unchanged` to prevent data loss if the user is typing in Logseq.
 - **Zero-Byte / Ghost Files:** Always implement early-exit guards for empty or whitespace-only files to prevent crashes.
 
 ## Observability

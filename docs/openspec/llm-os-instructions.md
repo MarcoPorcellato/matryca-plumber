@@ -6,7 +6,7 @@ Matryca Plumber implements a **dual-LLM** stack:
 
 | Tier | Runtime | Role |
 |------|---------|------|
-| **Tier 1 — Gardener** | `MaintenanceDaemon` Phase 1 | Catalog harvest → `master_catalog.json` + `[[Matryca Master Index]]` |
+| **Tier 1 — Gardener** | `MaintenanceDaemon` Phase 1 | Catalog harvest → `master_catalog.json` + `[[Matryca Master Index]]` (OCC compile; graceful skip on drift) |
 | **Tier 2 — Cognitive Agent** | MCP / CLI agents | User-facing reads/writes via `graph_dispatch` |
 
 Repo **L1 memory** (`matryca-l1/*.md`) is session deploy rules — not the Gardener.

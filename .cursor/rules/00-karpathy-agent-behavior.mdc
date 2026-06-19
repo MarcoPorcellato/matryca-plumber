@@ -21,7 +21,7 @@ Before executing any task, generating code, or modifying files, you MUST adhere 
 
 ## 3. Surgical Changes (No Drive-by Rewrites)
 - **Touch only what you must.** Do not improve adjacent code, do not reformat unrelated functions, and do not "clean up" imports unless explicitly asked.
-- **Optimistic Concurrency risk:** We rely on strict `mtime` file locking. Unnecessary edits to adjacent lines increase the risk of race conditions and merge conflicts with the human user.
+- **Optimistic Concurrency risk:** We rely on strict `st_mtime_ns` file locking. Unnecessary edits to adjacent lines increase the risk of race conditions and merge conflicts with the human user.
 - Match the existing style exactly. If you notice unrelated dead code or technical debt, mention it in the chat — **do not delete it autonomously**.
 
 ## 4. Goal-Driven Execution (Verify via Terminal)

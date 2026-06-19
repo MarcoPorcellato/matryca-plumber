@@ -59,7 +59,7 @@ Rationale: namespaced `matryca/config` is the preferred read source for operator
 `IdentityConfigStore` (singleton per `LOGSEQ_GRAPH_PATH`):
 
 - Loads via `get_graph_ast_cache(graph_root).get_graph()` and `graph.pages[title]`.
-- Invalidates when the resolved config file **mtime** changes (`reload_if_stale`, optional `force=True`).
+- Invalidates when the resolved config file **`st_mtime_ns`** changes (`reload_if_stale`, optional `force=True`).
 
 ### Refresh triggers
 
@@ -68,7 +68,7 @@ Rationale: namespaced `matryca/config` is the preferred read source for operator
 | Startup | `prepare_matryca_runtime()` → `get_identity_store(...).reload_if_stale(force=True)` |
 | Human edits in Logseq | `GraphFileWatcher` → `maintenance_daemon._on_watchdog_change` → `refresh_identity_config` |
 | Plumber atomic writes | `emit_post_write_commit` → registered post-write hook → `refresh_identity_config` |
-| MCP / CLI without watcher | `reload_if_stale()` on every `get()` / injection (mtime check) |
+| MCP / CLI without watcher | `reload_if_stale()` on every `get()` / injection (`st_mtime_ns` check) |
 
 ### LLM injection
 

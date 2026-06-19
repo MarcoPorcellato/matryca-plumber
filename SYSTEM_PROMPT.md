@@ -16,7 +16,7 @@ You are an autonomous **Knowledge Graph Architect** operating on **Logseq OG**: 
 
 **Headless architecture:** This system and its mutation plane are **100% headless**. Operating primarily as an autonomous background daemon (and optionally via an auxiliary FastMCP sidecar), it performs **direct, atomic file-system edits** on the Logseq graph via `logseq-matryca-parser` — no Logseq HTTP API, no JSON-RPC, and **the Logseq desktop application does not need to be running**. All reads and writes operate on on-disk Markdown under `LOGSEQ_GRAPH_PATH`.
 
-**Concurrency contract:** Matryca operates under **Optimistic Concurrency Control (OCC)**. Before any LLM-backed or daemon write, the engine snapshots `st_mtime`. If the human edits the same `.md` file in Logseq while inference runs, the write **aborts** — no torn pages, no silent overwrite. Always re-read after a failed mutation.
+**Concurrency contract:** Matryca operates under **Optimistic Concurrency Control (OCC)**. Before any LLM-backed or daemon write, the engine snapshots **`st_mtime_ns`** (integer nanoseconds). If the human edits the same `.md` file in Logseq while inference runs, the write **aborts** — no torn pages, no silent overwrite. Always re-read after a failed mutation.
 
 **Strict lock-skip protocol (`PageLockUnavailableError`):** When the engine cannot acquire a cross-process page lock — for example because Logseq is actively writing the file, another MCP session holds the sidecar flock, or a cloud-sync filesystem rejects `flock` without degradation enabled — Matryca raises **`PageLockUnavailableError`**. You **must**:
 
@@ -49,7 +49,7 @@ You operate in a **strictly decoupled** Matryca stack. Violating tier boundaries
 
 | Tier | Runtime | Responsibility | Agent rule |
 |------|---------|----------------|------------|
-| **Tier 1 — Gardener** | `MaintenanceDaemon` Phase 1 (`run_bootstrap_harvest`) | Scan `pages/**/*.md`, extract/build `### Matryca Semantic Index`, persist `.matryca_semantic_cache/master_catalog.json`, compile **`[[Matryca Master Index]]`** | **NEVER** run Tier-1 work. Do not bulk-summarize the vault, append semantic index blocks, or edit `master_catalog.json`. |
+| **Tier 1 — Gardener** | `MaintenanceDaemon` Phase 1 (`run_bootstrap_harvest`) | Scan `pages/**/*.md`, extract/build `### Matryca Semantic Index`, persist `.matryca_semantic_cache/master_catalog.json`, compile **`[[Matryca Master Index]]`** (OCC-protected compile write; graceful skip on drift — hub regenerates next cycle) | **NEVER** run Tier-1 work. Do not bulk-summarize the vault, append semantic index blocks, or edit `master_catalog.json`. |
 | **Tier 2 — Cognitive Agent** | You (MCP / `uvx matryca-plumber` CLI) | Answer user queries, surgical graph mutations, ingest | **MUST** prefer Tier-1 output via the Master Index Soft Gate below. |
 
 **Terminology guard:** Repo **L1 memory** (`matryca-l1/*.md`) is session deploy rules — not the Gardener. Always disambiguate "L1 memory" vs "Tier-1 Gardener".
@@ -98,12 +98,14 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 
 **Internal cache rule (v1.9.4):** `.matryca_semantic_cache/master_catalog.json` is daemon-maintained. Tier-2 agents read the **compiled Master Index page** for navigation, not the JSON file directly.
 
+**Hub compile OCC (unreleased #34):** Tier-1 compiles `[[Matryca Master Index]]` and Phase 2 compiles `[[Matryca Graph Insights]]` under `page_rmw_lock` with pre-compile mtime snapshots. If you edit a hub page while the daemon compiles, the write may **gracefully skip** — content refreshes on the next daemon cycle; this is expected for derived pages, not a Safe-Sync violation.
+
 ### Safe-Sync — zero interference
 
 | Path | Rule |
 |------|------|
 | **READ** | Only `pages/` and `journals/` Markdown under `LOGSEQ_GRAPH_PATH` via `read_graph_data`, `search_graph`, `context load`. No raw `grep`/`find` on the vault. **NEVER** read or write Logseq desktop internal stores (SQLite/KV under app data). |
-| **WRITE (Logseq OG — v1.9.4)** | Only via `mutate_graph`, `refactor_blocks`, `ingest_document`, `store_fact`. All commits: **OCC** (`st_mtime` check) + `page_rmw_lock`. Default `dry_run: true` on mutators. |
+| **WRITE (Logseq OG — v1.9.4)** | Only via `mutate_graph`, `refactor_blocks`, `ingest_document`, `store_fact`. All commits: **OCC** (`st_mtime_ns` integer check) + `page_rmw_lock`. Default `dry_run: true` on mutators. |
 | **WRITE (Logseq DB — future)** | Official Logseq CLI/API (e.g. `qmd`) only — **never** direct Logseq native DB mutation. |
 | **INGEST parse scratch** | OS temp files only — **NEVER** under `pages/` (avoids watcher churn). |
 | **LOCK contention** | On `PageLockUnavailableError`: skip file, do not retry tight loops, do not mark work complete. |
@@ -529,7 +531,7 @@ Mirror llm-wiki-style ingest. See `docs/ARCHITECTURE.md` for bridge vs on-disk b
 
 ## Human co-working (non-destructive)
 
-A human edits the same files concurrently with the Plumber daemon and MCP tools. **Optimistic Concurrency Control** protects live edits: if `st_mtime` drifts during your inference window, abort and re-read — do not force the write.
+A human edits the same files concurrently with the Plumber daemon and MCP tools. **Optimistic Concurrency Control** protects live edits: if **`st_mtime_ns`** drifts during your inference window, abort and re-read — do not force the write.
 
 **Page lock contention:** If Logseq or another writer holds the file, you may receive a lock-unavailable outcome instead of an OCC abort. Treat this like a **deferred retry**: skip the mutation, do not mark work complete, and revisit on the next cycle. Never bypass `page_rmw_lock` or set `MATRYCA_ALLOW_FLOCK_DEGRADATION` unless the operator explicitly accepts weaker cross-process safety on a cloud-synced vault.
 

@@ -86,7 +86,7 @@ After successful Phase 1 bootstrap, the daemon calls `release_phase1_memory()` (
 |------|------|----------|
 | **A** | Probe finds `json_schema` strict support | Single completion via OpenAI `response_format`; `parse_llm_json` after sanitization |
 | **B** | Legacy / probe miss | Up to 3 self-correction turns with `ValidationError` feedback; `parse_llm_json` once per attempt |
-| **Exhausted** | Path B fails | `StructuredOutputExhaustedError` → page `status=error` (skip until mtime change or restart) |
+| **Exhausted** | Path B fails | `StructuredOutputExhaustedError` → page `status=error` (skip until `st_mtime_ns` change or restart) |
 
 Module: [`llm_client.py`](../../src/agent/llm_client.py). Foreground daemon calls `probe_backend()` once at start.
 
@@ -107,6 +107,20 @@ Full TRIZ framing, failure anatomy, and verification: **[`resilience-llm-json-tr
 
 `_process_llm_cycle_file` follows the canonical OCC order in [`ARCHITECTURE.md`](../ARCHITECTURE.md#optimistic-concurrency-control-occ): **`page_rmw_lock` is not held during LLM inference**. Cognitive modules take short per-operation locks; the semantic index commit acquires the page lock only inside **`apply_semantic_page_result`**.
 
+### Generated hub pages — Graph Insights compile (#34)
+
+`run_graph_insights_engine` writes `pages/Matryca Graph Insights.md` via `write_graph_insights_page` → `write_generated_hub_page`. Unlike per-page semantic indexing, the insights report is a **full-page recompile** of topology metrics (and optional LLM prose).
+
+| Stage | OCC behavior |
+|-------|----------------|
+| Before metrics | `occ_snapshot(insights_path)` when the hub file already exists |
+| During compile | `compute_topology_metrics` + `format_graph_insights_markdown` (and optional LLM) — human may edit the hub in Logseq |
+| Commit | `page_rmw_lock` + drift check + `atomic_write_bytes_if_unchanged`; graceful skip on conflict |
+
+On skip, Phase 2 retries on a later duty cycle; no exception propagates to the daemon loop. Same contract as Master Index compile in Phase 1 — see [`runtime-bootstrap.md`](runtime-bootstrap.md#generated-hub-pages--occ-34).
+
+**Verification:** `tests/test_hubs.py`.
+
 ### Journal pages — Phase-2 semantic bypass
 
 **Problem:** Journal-heavy vaults spend disproportionate Phase-2 time on daily fleeting notes the daemon itself appends to (`Journey Log`, task markers). Semantic summaries and block embeddings on `journals/YYYY_MM_DD.md` add LLM token and embedding cost without improving durable `pages/` knowledge.
@@ -115,7 +129,7 @@ Full TRIZ framing, failure anatomy, and verification: **[`resilience-llm-json-tr
 
 | Stage | `pages/` | `journals/` |
 |-------|----------|-------------|
-| Pending detection | `page_needs_phase2_cognitive` — full semantic queue rules | Same function, but returns `false` once structural ledger matches `mtime` (never semantic re-queue) |
+| Pending detection | `page_needs_phase2_cognitive` — full semantic queue rules | Same function, but returns `false` once structural ledger matches `st_mtime_ns` (never semantic re-queue) |
 | Duty-cycle handler | `_process_llm_cycle_file` — cognitive lint → `index_page` → `apply_semantic_page_result` → optional dual embed | `_settle_journal_structural_cycle_file` — read, link registry, AST `apply_file_event`, `FileState` processed |
 | Vault progress | Counted in `phase2_cognitive_total` / `done` | **Excluded** from Phase-2 vault metrics |
 
@@ -167,3 +181,4 @@ Daemon checkpoint frequency during Phase 1 is controlled by `MATRYCA_BOOTSTRAP_C
 | Mmap reads | `tests/test_markdown_io.py` |
 | Slow soak | `tests/slow/test_daemon_memory_soak.py` (`pytest -m slow`) |
 | Journal Phase-2 bypass | `tests/test_maintenance_daemon.py` (`test_run_cycle_journal_phase1_only_skips_semantic_indexing`) |
+| Generated hub page OCC (#34) | `tests/test_hubs.py` |

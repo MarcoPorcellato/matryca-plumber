@@ -10,6 +10,43 @@ Entries are chronological (**newest first** within each major release block). Wh
 
 ---
 
+## [2026-06-19] Unreleased — Nanosecond OCC parity (#38) + graceful shutdown logging (#44)
+
+### Context
+
+Audit issues [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38) and [#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44) closed the v1.9.10 concurrency wrap-up: floating-point `st_mtime` and truncated-second catalog rows could disagree with OCC drift detection (`needs_refresh` vs `file_mtime_drifted`), and graceful daemon teardown swallowed flush failures via `contextlib.suppress`.
+
+### Shipped
+
+1. **Nanosecond parity (#38)** — `read_file_mtime()` / `occ_snapshot()` capture `st_mtime_ns` as `int`; `OCCSnapshot.baseline_mtime`, `CatalogEntry.last_mtime`, and `FileState.mtime` are nanosecond-precision; `file_mtime_drifted()` uses exact integer compare; `normalize_stored_mtime_ns()` upgrades legacy second-scale JSON on load; catalog merge-on-save normalizes before `last_mtime` comparison.
+2. **Link verification OCC (#45, bundled)** — `link_verification.py` uses `file_mtime_drifted()` instead of raw `!=` on float mtimes.
+3. **Graceful shutdown logging (#44)** — `_finalize_graceful_shutdown` wraps `MasterCatalog.save()` and `save_daemon_state()` in `try`/`except` with `logger.exception` so zip-rotated Loguru logs retain full stack traces on post-mortem.
+
+**Suite:** 730 tests green · mypy strict · ruff clean.
+
+---
+
+## [2026-06-19] Unreleased — Generated hub page OCC (#34)
+
+### Context
+
+Audit issue [#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34) flagged the last **compile-and-flush** writers in the graph layer: `write_master_index_page` and `write_graph_insights_page` called `atomic_write_bytes` without `page_rmw_lock` or pre-compile OCC. In a two-layer concurrency model (serialization + lost-update detection), that was a data-loss vector when humans edited hub pages during daemon compile.
+
+Hub pages are **derived projections** (catalog → Master Index; topology metrics → Graph Insights), not authoritative source pages. A failed compile write is not a daemon fault — the next bootstrap or Phase 2 cycle regenerates the artifact.
+
+### Shipped (PR [#87](https://github.com/MarcoPorcellato/matryca-plumber/pull/87))
+
+1. **`write_generated_hub_page`** — shared helper in `src/graph/generated_hub_write.py`: `occ_snapshot` before compile (caller), `page_rmw_lock`, `atomic_write_bytes_if_unchanged`, **graceful skip** (INFO log, `written=False`, no exception) on drift.
+2. **Master Index** — `write_master_index_page` captures baseline before `build_master_index_markdown`.
+3. **Graph Insights** — `run_graph_insights_engine` captures baseline before `compute_topology_metrics`; `write_graph_insights_page` accepts optional `baseline_mtime`.
+4. **Tests** — `tests/test_hubs.py` concurrent-edit abort coverage for both writers.
+
+**Suite:** 733 tests green · mypy strict · ruff clean.
+
+**Related (in review):** [#40](https://github.com/MarcoPorcellato/matryca-plumber/issues/40) / PR [#86](https://github.com/MarcoPorcellato/matryca-plumber/pull/86) — `json_flock` parity with `page_rmw_lock` via `src/utils/platform_lock.py`.
+
+---
+
 ## [2026-06-19] v1.10.5 — Logseq Matryca Parser 1.3.1 alignment
 
 ### Context
@@ -88,7 +125,7 @@ Two v1.9.x perfection-track items closed without a parser semver bump: eliminate
 ### Shipped
 
 1. **Mypy strictness (#60)** — Removed all 11 `# type: ignore` comments under `src/`; replaced with `typing.cast()`, `isinstance()` narrowing, `Path()` coercion, a `_FilesystemObserver` Protocol (`file_watcher.py`), and lambda key functions. `uv run mypy src tests` passes with `strict = true` and **zero** production suppressions.
-2. **Journal Phase-2 skip** — Files under `journals/` still enter the duty cycle for **Phase-1 structural settle** (AST cache `apply_file_event`, link-registry merge, OCC `mtime` ledger via `_settle_journal_structural_cycle_file`) but **bypass** cognitive lint, `index_page`, semantic index writes, and dual embeddings. `page_needs_phase2_cognitive` never re-queues settled journals for semantic work; vault progress metrics exclude `journals/` from the Phase-2 denominator.
+2. **Journal Phase-2 skip** — Files under `journals/` still enter the duty cycle for **Phase-1 structural settle** (AST cache `apply_file_event`, link-registry merge, OCC `st_mtime_ns` ledger via `_settle_journal_structural_cycle_file`) but **bypass** cognitive lint, `index_page`, semantic index writes, and dual embeddings. `page_needs_phase2_cognitive` never re-queues settled journals for semantic work; vault progress metrics exclude `journals/` from the Phase-2 denominator.
 
 **Suite:** 712+ tests green · mypy strict (no `src/` ignores) · ruff clean.
 
@@ -296,7 +333,7 @@ Master architecture RFC **Phase 1:** operator **role and durable rules** live on
 
 **Phase 1 — persona**
 
-1. **`src/daemon/config_layer.py`** — Parse Telos/Constraints from `LogseqPage.root_nodes`; `IdentityConfigStore` with mtime invalidation; `inject_identity_into_system_prompt` / `append_identity_to_mcp_payload`.
+1. **`src/daemon/config_layer.py`** — Parse Telos/Constraints from `LogseqPage.root_nodes`; `IdentityConfigStore` with `st_mtime_ns` invalidation; `inject_identity_into_system_prompt` / `append_identity_to_mcp_payload`.
 2. **Reactive stack** — `file_watcher.py`, `ast_cache.py`, `post_write_hooks.py`, `git_audit.py` (robot commits per file after Plumber writes).
 3. **`store_fact` MCP tool** — `src/agent/memory_tools.py`; writes always target `pages/matryca-config.md`.
 4. **OpenSpec** — [`docs/openspec/identity-config.md`](openspec/identity-config.md).
@@ -426,7 +463,7 @@ This sprint hardens the **operational glue** between the three runtime surfaces 
 
 5. **Sovereign UI daemon launch false negative** — `_verify_daemon_launch()` in `ui_server.py` previously treated **exit code 0** from the detached launcher as failure. The worker intentionally exits after spawning the foreground daemon; success is confirmed by a **live PID** in `.matryca_plumber_daemon.pid` (`is_plumber_process`), not by the launcher process staying alive.
 
-6. **OCC ordering refinement** — `occ_snapshot()` is captured **before** page reads and LLM work; `occ_verify_before_write()` runs **before** `page_rmw_lock`; mtime is re-checked **inside** the lock; `atomic_write_bytes_if_unchanged()` guards the final commit. Cognitive lint paths re-baseline after Plumber’s own intermediate writes to avoid false conflicts on multi-step applies.
+6. **OCC ordering refinement** — `occ_snapshot()` captures **`st_mtime_ns`** **before** page reads and LLM work; `occ_verify_before_write()` runs **before** `page_rmw_lock`; mtime is re-checked **inside** the lock; `atomic_write_bytes_if_unchanged()` guards the final commit. Cognitive lint paths re-baseline after Plumber’s own intermediate writes to avoid false conflicts on multi-step applies.
 
 7. **Atomic `.env` persistence** — Settings drawer saves use `_atomic_write_text` (temp + `fsync` + `os.replace`) so partial writes cannot tear Plumber configuration during 1 Hz operator edits.
 
@@ -468,7 +505,7 @@ Real graphs exposed bugs generic Markdown tools never see: ghost duplicate pages
 
 ### Victories shipped
 
-- **OCC** — `occ_snapshot` → inference → `atomic_write_bytes_if_unchanged` with `file_mtime_drifted` aborts.
+- **OCC** — `occ_snapshot` (`st_mtime_ns`) → inference → `atomic_write_bytes_if_unchanged` with `file_mtime_drifted` aborts.
 - **`page_path.py`** — `/` → `___` + percent-encode reserved characters.
 - **`page_properties.py`** — true line-0 frontmatter vs +2-indent block properties.
 - **Alias index** — case-insensitive resolution; exclude `logseq/bak/`, `.recycle/`, `.git`.

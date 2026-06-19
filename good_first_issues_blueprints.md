@@ -1,12 +1,19 @@
 # Good First Issues — Contributor Blueprints
 
-**Updated v1.10.5 backlog hygiene** — six open issues tagged [`good first issue`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) + [`help wanted`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22help+wanted%22) on GitHub (#45, #53, #56, #69, #71, [#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85)). Welcome comments are already posted on each issue thread.
+**Updated v1.10.5 backlog hygiene** — five open issues tagged [`good first issue`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) + [`help wanted`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22help+wanted%22) on GitHub (#53, #56, #69, #71, [#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85)). Welcome comments are already posted on each issue thread.
 
-**Before opening a PR:** read [`CONTRIBUTING.md`](CONTRIBUTING.md), run `make check`, and reference the issue number in your PR title (e.g. `fix(link): use file_mtime_drifted in link_verification (#45)`).
+**Shipped (remove from backlog):** [#45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45) — `file_mtime_drifted()` in link verification (bundled with nanosecond OCC #38).
+
+**Before opening a PR:** read [`CONTRIBUTING.md`](CONTRIBUTING.md), run `make check`, and reference the issue number in your PR title (e.g. `perf(daemon): dedup page read in cognitive lint (#53)`).
 
 ---
 
-## Issue #45 — [Bug] link_verification compares mtime with `!=` instead of `file_mtime_drifted`
+## Issue #45 — [Bug] link_verification compares mtime with `!=` instead of `file_mtime_drifted` — SHIPPED
+
+**Status:** Fixed in nanosecond OCC parity ([#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38)) — `link_verification.py` now calls `file_mtime_drifted()` inside the `page_rmw_lock` block. Close [#45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45) when the PR merges.
+
+<details>
+<summary>Original contributor guide (archived)</summary>
 
 **Difficulty:** 2/10 · [GitHub #45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45)
 
@@ -29,6 +36,8 @@
 > ```
 >
 > A one-line surgical change is perfect — no drive-by refactors needed. Comment here when you pick this up so we don't duplicate effort. Welcome aboard!
+
+</details>
 
 ---
 

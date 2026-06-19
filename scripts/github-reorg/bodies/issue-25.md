@@ -4,7 +4,7 @@
 
 | Task | Evidence |
 |------|----------|
-| Classic Logseq: append `.md` + OCC (`st_mtime`) | `src/graph/markdown_blocks.py` (`OCCSnapshot`), `src/graph/page_write_lock.py` (`fcntl.flock`) |
+| Classic Logseq: append `.md` + OCC (`st_mtime_ns`) | `src/graph/markdown_blocks.py` (`OCCSnapshot`), `src/graph/page_write_lock.py` (`fcntl.flock`) |
 | Mutators only via MCP/CLI graph tools | `graph_dispatch.py` — `mutate_graph`, `ingest_document`, etc. |
 | Safe-Sync documented | `SYSTEM_PROMPT.md` § Safe-Sync, `docs/ARCHITECTURE.md`, `docs/openspec/llm-os-instructions.md`, `README.md` |
 

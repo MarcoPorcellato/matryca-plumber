@@ -5,7 +5,7 @@ globs: "src/**/*.py"
 
 ## Direct File I/O (The Plumber Way)
 - Most operations in Matryca Plumber are performed by directly reading/writing the local `.md` files in the graph directory.
-- **Never** use the HTTP API for background linting, semantic indexing, or graph analysis. Rely on the local file system using proper parsing, UTF-8 encoding, and optimistic concurrency (mtime checks).
+- **Never** use the HTTP API for background linting, semantic indexing, or graph analysis. Rely on the local file system using proper parsing, UTF-8 encoding, and optimistic concurrency (`st_mtime_ns` integer checks).
 
 ## The Local HTTP API (Future/Active Agent Bridge)
 - If building live interactive tools (e.g., MCP endpoints) that require Logseq to be running, use the Local HTTP API: `http://localhost:12315`.

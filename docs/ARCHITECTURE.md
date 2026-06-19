@@ -50,7 +50,7 @@ flowchart TB
   Locks --> Vault
 ```
 
-**Quality bar:** **720+** pytest targets passing (70% coverage gate on `src`), **Mypy strict** on `src` and `tests` with **zero `# type: ignore` in `src/`** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60)), Ruff lint/format clean via `make check`; local iteration via `make test-fast` (`NUM_WORKERS` default `4`, no coverage, skips `tests/slow/`); slow perf tests via `make perf` (`pytest -m slow`).
+**Quality bar:** **733+** pytest targets passing (70% coverage gate on `src`), **Mypy strict** on `src` and `tests` with **zero `# type: ignore` in `src/`** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60)), Ruff lint/format clean via `make check`; local iteration via `make test-fast` (`NUM_WORKERS` default `4`, no coverage, skips `tests/slow/`); slow perf tests via `make perf` (`pytest -m slow`).
 
 **v1.8 focus:** Run indefinitely on a **16 GB CPU-only laptop** with **≤10k pages** — KV-cache-aligned prompts, bounded RAM, cooperative bootstrap I/O. See [Edge computing & performance (v1.8)](#edge-computing--performance-v18).
 
@@ -69,6 +69,8 @@ flowchart TB
 **v1.10.3 focus:** **Sovereign UI resilience & LLM contract hardening** — config/graph-path saves offloaded from the FastAPI event loop (`asyncio.to_thread`); rotating Loguru at UI startup; Pydantic `extra="forbid"` on plumber/outline structured models; recursive OpenAI strict JSON Schema generation; adaptive `max_tokens` / `max_completion_tokens`; flock sidecar files created as `0o600`. Spec: [`openspec/live-telemetry-ui.md`](openspec/live-telemetry-ui.md#v1103-non-blocking-config-saves), [`resilience-llm-json-triz.md`](resilience-llm-json-triz.md).
 
 **v1.10.5 focus:** **Logseq Matryca Parser 1.3.1 alignment** — minimum dependency `logseq-matryca-parser>=1.3.1`; root-level public API imports; AST cache bootstrap telemetry via `discover_graph_files`; inherits parser graph parity (YAML frontmatter, case-insensitive page routing, asset extraction, round-trip fixes from 1.2.x).
+
+**Unreleased focus (v1.9.10 track):** **Nanosecond OCC parity ([#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38))** — integer `st_mtime_ns` across OCC, daemon ledger, and catalog `last_mtime`; legacy second-scale JSON normalizes on load. **Graceful shutdown logging ([#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44))** — `_finalize_graceful_shutdown` logs catalog/checkpoint flush failures with `logger.exception` (no silent `suppress`). **Generated hub page OCC ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34))** — `write_generated_hub_page`: pre-compile `occ_snapshot`, `page_rmw_lock`, `atomic_write_bytes_if_unchanged`, graceful skip on drift. See [Optimistic concurrency control (OCC)](#optimistic-concurrency-control-occ).
 
 **v1.10.4 focus:** **Dependency maintenance** — GitHub Actions toolchain refresh (`actions/checkout@v7`, `dependency-review-action@v5`, `astral-sh/setup-uv@v8.2.0`); Sovereign UI frontend npm patch/minor bumps; Dependabot weekly groups for `github-actions` and `frontend-npm`.
 
@@ -386,12 +388,12 @@ Local LLM inference is **slow** (seconds to minutes). Logseq users keep editing 
 | Layer | Mechanism | Prevents |
 |-------|-----------|----------|
 | **Serialization** | `page_rmw_lock(path)` — in-process `threading.Lock` registry + cross-process `fcntl.flock` sidecar | Torn interleaved RMW from daemon + MCP + second daemon |
-| **Lost-update detection** | `baseline_mtime` via `st_mtime` — snapshot → work → verify → atomic commit | Stale LLM output overwriting fresher human bytes |
+| **Lost-update detection** | `baseline_mtime` via `st_mtime_ns` (integer nanoseconds) — snapshot → work → verify → atomic commit | Stale LLM output overwriting fresher human bytes |
 
 ### OCC lifecycle (canonical order)
 
-1. **`occ_snapshot(page_path)`** — capture `baseline_mtime` **before** reading content or calling the LLM (Phase 1).
-2. **Inference / payload assembly** — human may edit in Logseq; `st_mtime` advances.
+1. **`occ_snapshot(page_path)`** — capture `baseline_mtime` (`st_mtime_ns`) **before** reading content or calling the LLM (Phase 1).
+2. **Inference / payload assembly** — human may edit in Logseq; `st_mtime_ns` advances.
 3. **`occ_verify_before_write(path, baseline_mtime)`** — fast reject **before** acquiring `page_rmw_lock` when already stale.
 4. **`with page_rmw_lock(path):`** — enter exclusive RMW scope.
 5. **Re-read** page bytes; **`file_mtime_drifted()`** again inside the lock.
@@ -399,7 +401,18 @@ Local LLM inference is **slow** (seconds to minutes). Logseq users keep editing 
 
 Cognitive modules (`apply_semantic_page_result`, `property_hygiene`, `auto_split`, `append_page_alias_line`, …) thread `baseline_mtime` through this gate. After Plumber’s **own** intermediate write in the same request, callers may **`OCCSnapshot.refresh_after_own_write()`** to re-baseline multi-step edits.
 
+**Nanosecond precision ([#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38)):** All OCC and freshness paths use **`st_mtime_ns`** as exact integers — `read_file_mtime()`, `OCCSnapshot.baseline_mtime`, `FileState.mtime`, and `CatalogEntry.last_mtime`. Legacy JSON checkpoints that stored Unix **seconds** upgrade via `normalize_stored_mtime_ns()` on load. `file_mtime_drifted()` compares integers directly (no `math.isclose`). `needs_refresh()` and catalog merge-on-save compare full nanoseconds, not truncated seconds.
+
 **Bootstrap harvest (v1.10.0 — #37):** Phase-1 `harvest_page_into_catalog` calls `_append_minimal_semantic_index` after LLM inference. When OCC aborts (mtime drift or failed `atomic_write_bytes_if_unchanged`), the catalog **must not** upsert a summary absent from the `.md` body — the harvest returns `pending_llm` and retries on a later scan. See [`docs/openspec/runtime-bootstrap.md`](openspec/runtime-bootstrap.md#master-catalog-persistence-v1100).
+
+**Generated hub pages ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34)):** `pages/Matryca Master Index.md` and `pages/Matryca Graph Insights.md` are **daemon-compiled projections** of catalog/metrics state — not user-authored source of truth. Writers delegate to `write_generated_hub_page` (`src/graph/generated_hub_write.py`):
+
+1. **`occ_snapshot(path)` before compile** — `write_master_index_page` and `run_graph_insights_engine` capture baseline **before** markdown generation (metrics/topology work for Graph Insights).
+2. **`with page_rmw_lock(path):`** — same cross-process serialization as cognitive writes.
+3. **`file_mtime_drifted` + `atomic_write_bytes_if_unchanged`** — abort if the human edited the hub during compile.
+4. **Graceful skip** — on drift or commit failure, log at INFO and return `written=False` **without raising**; the next bootstrap (`CompileIndex`) or Phase 2 insights duty cycle regenerates the page.
+
+Tier-2 agents may briefly read stale hub content during a skip window; that is acceptable for derived artifacts. Hub titles are excluded from Phase-2 cognitive lint (`MATRYCA_GENERATED_PAGE_TITLES`). Blueprint: same contract as `src/agent/ingestion.py` `_append_markdown_page`. Tests: `tests/test_hubs.py`.
 
 **Phase 2 daemon (`_process_llm_cycle_file`):** For **`pages/`** only (not `journals/`), the maintenance daemon does **not** hold `page_rmw_lock` during cognitive lint or `index_page` LLM inference. It snapshots mtime, reads content, runs modules and the LLM (each cognitive write acquires its own short lock scope), re-checks drift, then commits only inside **`apply_semantic_page_result`** — matching the sequence diagram below. Journal paths delegate to `_settle_journal_structural_cycle_file` before any LLM work. Holding the page lock across multi-minute inference would block Logseq saves and other writers without adding OCC value.
 
@@ -543,6 +556,7 @@ Unless **`MATRYCA_DEBUG=true`**, UUIDs and payload-like markers are redacted bef
 | Graph UTF-8 reads | `read_graph_file_text()` — CI `sandbox-read-check` blocks raw `Path.read_text()` in graph/agent/rag (v1.9.9) |
 | Bounded JSON sidecars | `read_bounded_json()` + `MATRYCA_JSON_MAX_BYTES` on catalog/registry/daemon/cache loaders (v1.9.9) |
 | JSON sidecar flock + atomic save | `cross_process_json_flock` + `atomic_write_bytes` on master catalog ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35), [#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)), link registry ([#41](https://github.com/MarcoPorcellato/matryca-plumber/issues/41)); harvest catalog/page parity on OCC abort ([#37](https://github.com/MarcoPorcellato/matryca-plumber/issues/37)) — v1.10.0 |
+| Generated hub page writes | `write_generated_hub_page` — `page_rmw_lock` + pre-compile OCC + graceful skip on drift ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34)) — unreleased |
 | Link registry tamper | `link_verification` validates registry `page_relpath` and asset refs before read (v1.9.9) |
 | LLM debug NDJSON | `agent_debug_log` path allowlist + secret redaction when `MATRYCA_LLM_DEBUG_*` enabled (v1.9.9) |
 | Credential leakage into graph | `quality_gate.outline_security_violations` |
@@ -555,7 +569,7 @@ Unless **`MATRYCA_DEBUG=true`**, UUIDs and payload-like markers are redacted bef
 | MCP stdio exposure | `MATRYCA_MCP_ENABLED` gate in `plumber_entry.py` (default off) |
 | MCP error leakage | `mcp_tool_guard._public_tool_error_message` unless `MATRYCA_DEBUG` |
 | Daemon exclusivity | `.matryca_plumber_daemon.lock` (POSIX flock / Windows `msvcrt`); PID sidecar published at lock acquisition; CI `# sandbox-read-ok` allowlist for pid/lock reads only |
-| Ledger durability | `save_daemon_state` tmp + fsync + replace + `.bak` + `json_flock`; master catalog merge-on-save + flock load (v1.10.0) |
+| Ledger durability | `save_daemon_state` tmp + fsync + replace + `.bak` + `json_flock`; master catalog merge-on-save + flock load (v1.10.0); graceful shutdown flush failures logged with `logger.exception` ([#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44)) |
 
 ### JSON sidecar concurrency (v1.10.0)
 
@@ -563,7 +577,7 @@ Graph-local JSON checkpoints share **`cross_process_json_flock`** sidecars and *
 
 | Sidecar | Load | Save |
 |---------|------|------|
-| **`master_catalog.json`** | `load_master_catalog` under flock ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)) | Merge-on-save by `last_mtime` ([#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)); `save(replace=True)` after prune |
+| **`master_catalog.json`** | `load_master_catalog` under flock ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)) | Merge-on-save by `last_mtime` (nanoseconds, [#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)); `save(replace=True)` after prune |
 | **`.matryca_link_registry.json`** | `_load_registry_unlocked` under flock | `atomic_write_bytes` in `_save_registry_unlocked` ([#41](https://github.com/MarcoPorcellato/matryca-plumber/issues/41)) |
 | **`backlink_counts.json`** | flock + bounded read | flock + atomic write (reference pattern) |
 
@@ -910,6 +924,9 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | `src/agent/graph_dispatch.py` | Headless writes, OCC-aware block resolution |
 | `src/graph/page_write_lock.py` | Per-page RMW lock + LRU registry |
 | `src/graph/markdown_blocks.py` | `atomic_write_bytes*`, OCC helpers |
+| `src/graph/generated_hub_write.py` | OCC-safe compile writes for Master Index / Graph Insights hub pages |
+| `src/graph/master_catalog.py` | Catalog persistence, `write_master_index_page` |
+| `src/graph/insights_engine.py` | Topology metrics, `write_graph_insights_page` |
 | `src/agent/mcp_server.py` | `@mcp.tool()` handlers |
 | `src/agent/ingestion.py` | `ingest_document` / `process_ingestion` |
 | `src/agent/memory_tools.py` | `store_fact` |
@@ -948,6 +965,9 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | **1.10.3** | UI/LLM hardening | Non-blocking Sovereign UI config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` |
 | **1.10.5** | Parser 1.3.1 alignment | `logseq-matryca-parser>=1.3.1`; root public API imports; AST cache `discover_graph_files`; graph parity 1.2.x inherited |
 | **1.10.4** | CI/deps maintenance | GitHub Actions toolchain refresh; Sovereign UI frontend npm bumps; Dependabot weekly groups |
+| **Unreleased** | Nanosecond OCC (#38) | Integer `st_mtime_ns` across OCC, daemon ledger, catalog `last_mtime`; `normalize_stored_mtime_ns` on legacy JSON |
+| **Unreleased** | Graceful shutdown (#44) | `_finalize_graceful_shutdown` — `logger.exception` on catalog/checkpoint flush failure |
+| **Unreleased** | Hub page OCC (#34) | Generated hub compile writes under `page_rmw_lock` + pre-compile OCC; graceful skip on drift |
 | **Unreleased** | Master RFC Phases 1–3 | Identity + ingest + optional dual embedding (`docs/openspec/identity-config.md`, `ingest.md`, `dual-embedding.md`) |
 
 ---

@@ -70,7 +70,7 @@ or `memory_path` in `matryca-wiki.yml`. Bootstrap will create that path and seed
 | Directory / file | Purpose |
 |------------------|---------|
 | `.matryca_semantic_cache/` | Working cache root — excluded from alias/catalog page scans |
-| `.matryca_semantic_cache/master_catalog.json` | Phase 1 catalog rows (summaries, tags, mtimes) |
+| `.matryca_semantic_cache/master_catalog.json` | Phase 1 catalog rows (summaries, tags, `last_mtime` in nanoseconds) |
 | `.matryca_semantic_cache/backlink_counts.json` | Persisted incoming wikilink counts (v1.8 — avoids full-graph rescans) |
 | `.matryca_semantic_cache/semantic_clusters.json` | Louvain neighborhoods for Phase 2 cluster cycles |
 | `.matryca_semantic_cache/*.json` (hash names) | Per-operation semantic inference cache (TTL); **not** deleted when reserved files above are present |
@@ -112,13 +112,48 @@ This follows *create on first meaningful write* for stateful JSON so checkpoints
 | Operation | Contract |
 |-----------|----------|
 | **Load** | `load_master_catalog` / `_load_catalog_payload_from_disk` read under `cross_process_json_flock` ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)); `.bak` restore and quarantine also under flock |
-| **Save (default)** | `MasterCatalog.save()` reloads disk rows under flock and **merge-on-save** by `last_mtime` ([#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)) — daemon Phase-2 sync, harvest CLI, and graceful shutdown no longer clobber concurrent writers |
+| **Save (default)** | `MasterCatalog.save()` reloads disk rows under flock and **merge-on-save** by `last_mtime` (nanoseconds, [#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)) — daemon Phase-2 sync, harvest CLI, and graceful shutdown no longer clobber concurrent writers |
 | **Save (prune)** | `save(replace=True)` after `prune_missing_pages()` — intentional full replace of stale ghost rows |
 | **Remove during harvest** | `catalog.remove()` queues `_pending_removals` applied on next merge save |
 
 **Bootstrap harvest (#37):** After LLM inference, `_append_minimal_semantic_index` returns `bool`. Catalog upsert runs only when the semantic index block was written (or header already present). OCC abort → `pending_llm` status, no catalog/page drift; page retries on next incremental harvest.
 
 **Operator invariant:** Tier-2 agents read the compiled **`[[Matryca Master Index]]`** page — not the JSON file directly ([`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md)).
+
+**Nanosecond freshness ([#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38)):** `CatalogEntry.last_mtime` and `needs_refresh()` use full `st_mtime_ns` integers. Legacy catalogs that stored Unix seconds upgrade via `normalize_stored_mtime_ns()` on load.
+
+---
+
+## Graceful daemon shutdown ([#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44))
+
+**Module:** [`src/agent/maintenance_daemon.py`](../../src/agent/maintenance_daemon.py) — `_finalize_graceful_shutdown`
+
+| Step | Contract |
+|------|----------|
+| **In-flight writes** | `_wait_for_inflight_writes()` drains Phase-2 commits before flush |
+| **Catalog flush** | `load_master_catalog(...).save()` inside `try`/`except`; success → INFO; failure → `logger.exception` (full stack in zip-rotated Loguru) |
+| **Checkpoint** | `save_daemon_state(...)` with the same `logger.exception` contract |
+| **Cleanup** | Stop file watcher, remove PID, release process lock, clear page locks, sweep lock sidecars |
+
+Failures during shutdown must **never** be swallowed silently — operators need post-mortem traces when a graph stops with a half-flushed catalog.
+
+---
+
+## Generated hub pages — OCC (#34)
+
+**Pages:** `pages/Matryca Master Index.md` (Phase 1 bootstrap), `pages/Matryca Graph Insights.md` (Phase 2 duty cycle)  
+**Module:** [`src/graph/generated_hub_write.py`](../../src/graph/generated_hub_write.py)
+
+| Step | Contract |
+|------|----------|
+| **Pre-compile snapshot** | `occ_snapshot(path)` before markdown generation (`write_master_index_page`, `run_graph_insights_engine`) |
+| **Write** | `with page_rmw_lock(path):` → drift check → `atomic_write_bytes_if_unchanged` (existing file) or `atomic_write_bytes` (create) |
+| **Drift / OCC abort** | Log graceful skip at INFO; return `written=False`; **do not raise** — next bootstrap or Phase 2 insights pass retries |
+| **Lint exclusion** | Hub titles in `MATRYCA_GENERATED_PAGE_TITLES` — Phase-2 cognitive lint does not mutate daemon-compiled hubs |
+
+**Rationale:** Human edits to a hub during compile must not be silently overwritten. Because content is recomputable from catalog/metrics, skipping one write cycle is cheaper than bubbling errors through `run_bootstrap_harvest` or `run_graph_insights_engine`.
+
+**Verification:** `tests/test_hubs.py` — symbiotic concurrent edit during compile preserves user bytes.
 
 ---
 

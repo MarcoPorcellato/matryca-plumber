@@ -23,7 +23,7 @@ Runtime selection: `MATRYCA_STORAGE_MODE=markdown|database` (with folder auto-de
 - **Logseq OG:** graph content remains Markdown on disk; Matryca is the mutation plane.
 - **Shadow DB (v2.0):** `shadow.sqlite` is a **daemon-owned read cache**, not a system of record — see Epic #20 and [`docs/openspec/llm-os-instructions.md`](docs/openspec/llm-os-instructions.md) § v2.0 migration trigger.
 - **Block-shaped thinking:** outliner blocks, nesting, `id::` — not flat blobs.
-- **Strict OCC:** Phase-1 `st_mtime` snapshot + Phase-2 verify for all mutators.
+- **Strict OCC:** Phase-1 `st_mtime_ns` snapshot + Phase-2 verify for all mutators.
 
 ### Sub-tasks
 

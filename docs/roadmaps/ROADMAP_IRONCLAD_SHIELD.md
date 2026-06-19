@@ -7,7 +7,10 @@ Actionable checklist for global fence scanning, transactional writes, and genera
 - [x] **Transactional atomic file swap** — `atomic_write_bytes` / `atomic_write_file` in `src/graph/markdown_blocks.py` (temp in target dir, flush + `os.fsync`, `os.replace`).
 - [x] **Upgrade mutating tools** — Replace ad-hoc temp writes with `atomic_write_bytes` in `property_line_edit.py`, `tag_unify.py`, `reparent_blocks.py`, `split_large_blocks.py`, `journal_task_scan.py` (and aligned helpers in `flashcards.py`, `moc_page.py`).
 - [x] **Link registry atomic save (v1.10.0 — #41)** — `_save_registry_unlocked` in `link_verification.py` uses `atomic_write_bytes` under existing `cross_process_json_flock`.
-- [x] **Master catalog flock + merge-on-save (v1.10.0 — #35, #36)** — `load_master_catalog` reads under flock; `MasterCatalog.save()` merge-on-save by `last_mtime`.
+- [x] **Master catalog flock + merge-on-save (v1.10.0 — #35, #36)** — `load_master_catalog` reads under flock; `MasterCatalog.save()` merge-on-save by `last_mtime` (nanoseconds).
+- [x] **Nanosecond OCC parity (v1.9.10 — #38)** — `st_mtime_ns` integers across OCC, daemon ledger, catalog; `normalize_stored_mtime_ns` on legacy JSON.
+- [x] **Graceful shutdown logging (v1.9.10 — #44)** — `_finalize_graceful_shutdown` uses `logger.exception` on catalog/checkpoint flush failure.
+- [x] **Link verification OCC guard (#45)** — `file_mtime_drifted()` instead of raw float `!=`.
 - [x] **Harvest catalog/page parity (v1.10.0 — #37)** — Bootstrap skips catalog upsert when semantic index append OCC-aborts.
 - [x] **Flock sidecar permissions (v1.10.3)** — `json_flock`, page RMW locks, and daemon process lock files created as `0o600` (CodeQL `py/overly-permissive-file`).
 - [x] **Generational mtime cache** — `src/graph/generational_cache.py` for `build_alias_index` and BM25/keyword corpus in `local_query.py`; MCP uses cached alias build.

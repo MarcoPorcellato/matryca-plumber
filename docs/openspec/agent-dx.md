@@ -145,7 +145,7 @@ After each maintenance **duty cycle** with activity, the daemon **upserts one cu
 
 **Write path:** `upsert_matryca_activity_block` under `page_rmw_lock` + atomic replace (same OCC stack as property edits). After a successful write, the daemon records today's journal in file state so `list_pending_files` does not re-queue it.
 
-**Indexing policy (shipped):** Daily journal files under `journals/` receive **Phase-1 structural settle** only (AST cache refresh, link registry, OCC `mtime` ledger) during duty cycles — **no** Phase-2 semantic LLM indexing or dual embeddings. This keeps Journey Log and operator fleeting notes from consuming local inference budget. Spec: [`llm-performance.md`](llm-performance.md#journal-pages--phase-2-semantic-bypass).
+**Indexing policy (shipped):** Daily journal files under `journals/` receive **Phase-1 structural settle** only (AST cache refresh, link registry, OCC `st_mtime_ns` ledger) during duty cycles — **no** Phase-2 semantic LLM indexing or dual embeddings. This keeps Journey Log and operator fleeting notes from consuming local inference budget. Spec: [`llm-performance.md`](llm-performance.md#journal-pages--phase-2-semantic-bypass).
 
 **Inspiration:** [LogseqBrain](https://github.com/jame581/LogseqBrain) journal auditing — implemented with Matryca's lock + AST stack to avoid data loss.
 
@@ -215,7 +215,7 @@ Global: **`--json`** on any subcommand.
 
 - [x] No auxiliary databases — stdout/Journal are views; Markdown remains source of truth
 - [x] Block-shaped thinking — subtree and flags anchor on `id::`
-- [x] Strict OCC — journal upsert + hygiene properties use `page_rmw_lock` + mtime gates
+- [x] Strict OCC — journal upsert + hygiene properties use `page_rmw_lock` + `st_mtime_ns` gates
 - [x] AST parity — journal sections and properties respect Logseq indentation rules
 
 ---

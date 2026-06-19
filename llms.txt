@@ -180,13 +180,14 @@ Spec: `docs/openspec/agent-ax-robustness.md`
 
 ### 2.4 Security & Sandbox (v1.9.9+)
 
-Graph reads and writes stay inside **`LOGSEQ_GRAPH_PATH`**. v1.9.9 adds defense-in-depth beyond MCP title normalization; **v1.9.13 (Enterprise Resilience)** hardens parsing and RAG boundaries — TOCTOU-safe bounded JSON reads, `templates_subdir` traversal rejection, namespace-aware semantic cache keys, subtree heading fences (token-efficient excerpts), and string-aware LLM JSON recovery so braces inside string values do not truncate payloads. **v1.9.14** adds journal-aware Phase 2 clustering (daily notes no longer inflate `[unclustered]` or cluster-focus prompts) and skips entity-consolidation LLM turns for journal/date wikilink pairs. **v1.9.15** bypasses Phase-2 semantic indexing and dual embeddings for `journals/` pages (Phase-1 AST cache, link registry, and OCC `mtime` ledger still run). **v1.10.0** adds flock-protected master catalog I/O (merge-on-save), atomic link registry writes, and harvest catalog/page parity on OCC abort. **v1.10.3** tightens flock sidecar file mode to `0o600`, offloads Sovereign UI config saves from the HTTP event loop, and enforces strict Pydantic LLM/outline contracts (`extra="forbid"`, recursive OpenAI strict JSON schemas). **v1.10.5** raises **`logseq-matryca-parser`** to **1.3.1** (YAML frontmatter, case-insensitive graph routing, asset extraction, root public API exports).
+Graph reads and writes stay inside **`LOGSEQ_GRAPH_PATH`**. v1.9.9 adds defense-in-depth beyond MCP title normalization; **v1.9.13 (Enterprise Resilience)** hardens parsing and RAG boundaries — TOCTOU-safe bounded JSON reads, `templates_subdir` traversal rejection, namespace-aware semantic cache keys, subtree heading fences (token-efficient excerpts), and string-aware LLM JSON recovery so braces inside string values do not truncate payloads. **v1.9.14** adds journal-aware Phase 2 clustering (daily notes no longer inflate `[unclustered]` or cluster-focus prompts) and skips entity-consolidation LLM turns for journal/date wikilink pairs. **v1.9.15** bypasses Phase-2 semantic indexing and dual embeddings for `journals/` pages (Phase-1 AST cache, link registry, and OCC `st_mtime_ns` ledger still run). **v1.10.0** adds flock-protected master catalog I/O (merge-on-save), atomic link registry writes, and harvest catalog/page parity on OCC abort. **v1.10.3** tightens flock sidecar file mode to `0o600`, offloads Sovereign UI config saves from the HTTP event loop, and enforces strict Pydantic LLM/outline contracts (`extra="forbid"`, recursive OpenAI strict JSON schemas). **v1.10.5** raises **`logseq-matryca-parser`** to **1.3.1** (YAML frontmatter, case-insensitive graph routing, asset extraction, root public API exports). **[Unreleased] #34** — daemon-compiled hub pages (`Matryca Master Index`, `Matryca Graph Insights`) use pre-compile `occ_snapshot`, `page_rmw_lock`, and graceful skip on drift. **[Unreleased] #38** — integer **`st_mtime_ns`** across OCC, daemon ledger, and catalog `last_mtime` (no float drift). **[Unreleased] #44** — graceful shutdown logs catalog/checkpoint flush failures with `logger.exception`.
 
 | Control | Operator note |
 |---------|----------------|
 | Path sandbox | `read_graph_file_text()` on graph paths; `../` and symlink escape → `PathTraversalSecurityError` |
 | Link registry | Tampered `.matryca_link_registry.json` paths are rejected before read |
 | JSON size cap | `MATRYCA_JSON_MAX_BYTES` (default 64 MiB) on catalog/registry/daemon/cache loaders |
+| Generated hub pages | Master Index / Graph Insights compile under OCC; human edit during compile → graceful skip, not silent overwrite ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34)) |
 | UI token | Set `MATRYCA_UI_TOKEN` on shared hosts; `.env.example` templates `MATRYCA_UI_REQUIRE_EXPLICIT_TOKEN=true` |
 | Debug NDJSON | `MATRYCA_LLM_DEBUG_LOG_PATH` must lie under allowed roots; secrets redacted when enabled |
 
@@ -287,7 +288,6 @@ https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%2
 
 | Issue | Difficulty | Scope |
 |-------|------------|-------|
-| [#45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45) | 2/10 | OCC `file_mtime_drifted` in link verification |
 | [#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85) | 2/10 | `BootstrapHarvestStatus` Literal dedup (slice of #62) |
 | [#53](https://github.com/MarcoPorcellato/matryca-plumber/issues/53) | 3/10 | Dedup page read in Phase-2 cognitive lint |
 | [#56](https://github.com/MarcoPorcellato/matryca-plumber/issues/56) | 3/10 | Defer mmap decode on regex harvest path |
@@ -305,7 +305,7 @@ Matryca Plumber implements a **dual-LLM** system. You are almost certainly **Tie
 
 | Tier | Role | Your action |
 |------|------|-------------|
-| **Tier 1 — Gardener** | Daemon Phase 1 harvest (`matryca plumber start`) | **NEVER impersonate.** Do not run harvest, rewrite `### Matryca Semantic Index` blocks, or edit `master_catalog.json`. |
+| **Tier 1 — Gardener** | Daemon Phase 1 harvest (`matryca plumber start`) | **NEVER impersonate.** Do not run harvest, rewrite `### Matryca Semantic Index` blocks, or edit `master_catalog.json`. Tier-1 compiles hub pages under OCC — if you edit a hub during compile, the daemon may skip one write and refresh next cycle. |
 | **Tier 2 — Cognitive Agent** | You (MCP / CLI) | **MUST** follow the Master Index Soft Gate and Safe-Sync rules in [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) § "LLM OS". |
 
 **Before any `search_graph` or targeted `read_graph_data` on L2 wiki pages:**

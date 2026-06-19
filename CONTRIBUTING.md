@@ -52,8 +52,8 @@ Humans and the Plumber daemon edit the **same** `.md` files concurrently. Local 
 
 **Rule:** Before reading page content for any mutation path, capture a **Phase-1 snapshot**:
 
-1. Record `st_mtime` via `read_file_mtime()` / `OCCSnapshot.capture()` in `src/graph/markdown_blocks.py`.
-2. Hold that `baseline_mtime` for the entire inference or edit assembly window.
+1. Record **`st_mtime_ns`** (integer nanoseconds) via `read_file_mtime()` / `OCCSnapshot.capture()` in `src/graph/markdown_blocks.py`.
+2. Hold that `baseline_mtime` (`int`) for the entire inference or edit assembly window.
 
 **No contributor may write to the filesystem on a mutation path without first establishing this baseline.**
 
@@ -62,8 +62,10 @@ Humans and the Plumber daemon edit the **same** `.md` files concurrently. Local 
 **Rule:** Immediately before committing bytes to disk, run **Phase-2 verification**:
 
 1. Call `occ_verify_before_write()` or commit through `atomic_write_bytes_if_unchanged()`.
-2. If `file_mtime_drifted()` is true (the user edited in Logseq during inference), **abort the write** — return `False`, log the skip, and preserve the human's changes.
+2. If `file_mtime_drifted()` is true (on-disk `st_mtime_ns` differs from the Phase-1 snapshot), **abort the write** — return `False`, log the skip, and preserve the human's changes.
 3. Only when mtime still matches, commit via temp file → `fsync` → `os.replace` under `page_rmw_lock`.
+
+**Legacy checkpoints:** JSON sidecars written before v1.9.10 may store Unix **seconds** in `mtime` / `last_mtime`. Load paths call `normalize_stored_mtime_ns()` so in-memory values are always nanoseconds before compare or merge.
 
 **Do not** hold `page_rmw_lock` across LLM inference. Phase 2 daemon flow (`_process_llm_cycle_file`): snapshot → read → cognitive lint / `index_page` (no page lock) → drift check → `apply_semantic_page_result` (lock only for the atomic write). See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#optimistic-concurrency-control-occ).
 
@@ -224,7 +226,7 @@ That means, in order:
 1. **Ruff** — lint clean (`make ci` also runs `format-check` without mutating the tree)
 2. **Mypy** — strict type-check on `src/` and `tests/` (**zero `# type: ignore` in `src/`** — see [Strict typing](#strict-typing-zero-mypy-suppressions-in-src))
 3. **Sandbox read gate** — `make sandbox-read-check` (no new `Path.read_text()` bypasses in graph/agent/rag; daemon pid/lock reads need `# sandbox-read-ok`)
-4. **Pytest** — full suite via `make test-full` / `make test` (**720+** targets on `main`; slow tests excluded unless you run `make perf`). Use **`make test-fast`** during iteration (`NUM_WORKERS` default `4`, no coverage).
+4. **Pytest** — full suite via `make test-full` / `make test` (**733+** targets on `main`; slow tests excluded unless you run `make perf`). Use **`make test-fast`** during iteration (`NUM_WORKERS` default `4`, no coverage).
 
 GitHub Actions on pushes and pull requests to **`main`** runs **`make ci`** (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)): `uv sync`, frontend `npm ci` + `npm run build`, then `make ci`. **Any failing test blocks merge.**
 
@@ -236,7 +238,7 @@ When you add, rename, or remove **CLI subcommands or flags** that external agent
 
 1. Verify commands with `LOGSEQ_GRAPH_PATH` set and `uvx matryca-plumber …`.
 2. Update **[`llms.txt`](llms.txt)** and **[`.well-known/llms.txt`](.well-known/llms.txt)** in the **same PR** (byte-identical).
-3. Cross-check [`docs/openspec/agent-dx.md`](docs/openspec/agent-dx.md), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md), and [`docs/openspec/security-sandbox.md`](docs/openspec/security-sandbox.md) when graph read paths or JSON sidecars change.
+3. Cross-check [`docs/openspec/agent-dx.md`](docs/openspec/agent-dx.md), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md), [`docs/openspec/runtime-bootstrap.md`](docs/openspec/runtime-bootstrap.md), and [`docs/openspec/security-sandbox.md`](docs/openspec/security-sandbox.md) when graph read paths, JSON sidecars, or hub page write contracts change.
 
 Patch releases should ship after agent-surface changes so PyPI `uvx` consumers receive accurate instructions.
 

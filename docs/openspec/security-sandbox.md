@@ -39,13 +39,17 @@ Beyond size bounds, hot sidecars use **`cross_process_json_flock`** so readers n
 
 | File | v1.10.0 behavior |
 |------|------------------|
-| `.matryca_semantic_cache/master_catalog.json` | Load + backup refresh under flock ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)); `save()` merge-on-save by `last_mtime` ([#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)) |
+| `.matryca_semantic_cache/master_catalog.json` | Load + backup refresh under flock ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)); `save()` merge-on-save by `last_mtime` (nanoseconds, [#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)) |
 | `.matryca_link_registry.json` | Save via `atomic_write_bytes` ([#41](https://github.com/MarcoPorcellato/matryca-plumber/issues/41)) |
 | `.matryca_daemon_state.json` | Already flock + atomic replace (pre-existing) |
 
 Bootstrap harvest skips catalog upsert when semantic index append OCC-aborts ([#37](https://github.com/MarcoPorcellato/matryca-plumber/issues/37)) so catalog rows cannot claim summaries absent from page bodies.
 
+**Generated hub pages ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34)):** `Matryca Master Index` and `Matryca Graph Insights` compile writes use `write_generated_hub_page` — pre-compile `occ_snapshot`, `page_rmw_lock`, `atomic_write_bytes_if_unchanged`, graceful skip on drift (derived pages; daemon regenerates on next cycle). See [`runtime-bootstrap.md`](runtime-bootstrap.md#generated-hub-pages--occ-34).
+
 **v1.10.3 sidecar permissions:** flock sidecar files (`*.flock`, page RMW locks, daemon process lock) are created with mode **`0o600`** so other OS users cannot read lock metadata on shared hosts.
+
+**Nanosecond OCC ([#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38)):** OCC snapshots and catalog `last_mtime` use integer `st_mtime_ns`; legacy second-scale JSON normalizes on load via `normalize_stored_mtime_ns()`.
 
 See [`runtime-bootstrap.md`](runtime-bootstrap.md#master-catalog-persistence-v1100) and [`ARCHITECTURE.md`](../ARCHITECTURE.md).
 

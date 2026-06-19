@@ -5,7 +5,7 @@
 [![PyPI Downloads](https://img.shields.io/pypi/dm/matryca-plumber.svg)](https://pypi.org/project/matryca-plumber/)
 [![GitHub release](https://img.shields.io/github/v/release/MarcoPorcellato/matryca-plumber?display_name=tag)](https://github.com/MarcoPorcellato/matryca-plumber/releases)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue?logo=python&logoColor=white)](https://github.com/MarcoPorcellato/matryca-plumber/blob/main/pyproject.toml#L10)
-[![Tests](https://img.shields.io/badge/tests-725%2B%20passing-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-733%2B%20passing-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A570%25-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/blob/main/pyproject.toml#L138)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -45,7 +45,7 @@
 |---------|-----------------|----------------------------|----------------------|
 | Local-only | Yes — vault stays on disk | Typically cloud-backed | Mixed (local + cloud options) |
 | No API Key required | Yes — local LLM endpoint | Usually requires provider API key | Often requires API key |
-| OCC Safety (no corruption) | Yes — `st_mtime` + page locks | No comparable write guard | No standard OCC layer |
+| OCC Safety (no corruption) | Yes — `st_mtime_ns` (integer) + page locks | No comparable write guard | No standard OCC layer |
 | MCP Support | Yes — FastMCP stdio tools | No | Varies by plugin |
 
 *Matryca Plumber targets Logseq OG (Markdown on disk); Obsidian comparisons refer to common community plugins, not a single product.*
@@ -259,7 +259,7 @@ Matryca Plumber provisions missing runtime files automatically where possible (r
 
 * 🤖 **100% Local-First & Headless:** No Logseq HTTP API required. It edits the `.md` files directly using atomic file I/O.
 * 📐 **Exact Logseq AST Compliance:** True line-0 page frontmatter, block properties at +2 indent, and exact namespace encoding. Other tools break your graph; Matryca Plumber keeps it pristine.
-* 🔐 **Optimistic Concurrency Control:** It snapshots `st_mtime` before inference and acquires the page lock **only for the write**. If you edited in Logseq while the model was thinking, the commit aborts. **No silent data loss** — and Logseq can still save during long local runs.
+* 🔐 **Optimistic Concurrency Control:** It snapshots **`st_mtime_ns`** (integer nanoseconds) before inference and acquires the page lock **only for the write**. If you edited in Logseq while the model was thinking, the commit aborts. **No silent data loss** — and Logseq can still save during long local runs.
 * 🪟 **Windows, macOS & Linux Support:** Runs safely in the background everywhere using a robust cross-platform lock (`.matryca_plumber_daemon.lock`).
 * ⚡ **Context Acceleration Shield:** Shrinks megabyte-class pages to Phase 1 summaries or semantic skeletons before they reach the local LLM — essential on CPU-only hardware.
 * 🛡️ **TRIZ-governed LLM resilience:** Caps completion tokens, first-delimiter balanced JSON extraction (objects and arrays), string-aware trailing trim, prose sanitization on compression/history paths, stateless ontology reports, and an 8k block-catalog cap on semantic index prompts — see [`docs/resilience-llm-json-triz.md`](docs/resilience-llm-json-triz.md).
@@ -270,10 +270,13 @@ Matryca Plumber provisions missing runtime files automatically where possible (r
 * 🧠 **LLM OS (v1.9.5):** Two-tier agent discipline, `bootstrap_status` semaphore, Master Index Soft Gate — [`docs/openspec/llm-os-instructions.md`](docs/openspec/llm-os-instructions.md).
 * ⚡ **Live telemetry (v1.9.3):** 5s Sovereign UI updates, thread-safe daemon heartbeat, API token overlay from ops log — [`docs/openspec/live-telemetry-ui.md`](docs/openspec/live-telemetry-ui.md).
 * 🛡️ **Enterprise Resilience (v1.9.13):** Vault Sandbox traversal blocked; TOCTOU-safe bounded JSON; namespace-aware semantic cache; exact embedding dedup; subtree heading fences; string-aware LLM JSON recovery; self-healing vector store and daemon state; truthful `plumber stop` exit codes — [`CHANGELOG.md`](CHANGELOG.md) · [`docs/resilience-llm-json-triz.md`](docs/resilience-llm-json-triz.md).
-* 🧹 **Contributor onboarding:** [good first issues on GitHub](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (#45, #53, #56, #69, #71, #85) with welcome comments and verify steps — maintainer blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md).
+* 🧹 **Contributor onboarding:** [good first issues on GitHub](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (#53, #56, #69, #71, #85) with welcome comments and verify steps — maintainer blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md).
 * 🔬 **Type safety & token efficiency (v1.9.15):** strict mypy with zero production suppressions (#60); journal pages bypass Phase-2 semantic indexing and dual embeddings while Phase-1 AST/OCC still runs — [`CHANGELOG.md`](CHANGELOG.md).
 * 🗄️ **Catalog integrity & OSS maturity (v1.10.0):** flock-protected master catalog, atomic link registry, harvest OCC catalog guard (#35–#37, #41); PR template, CodeQL, frontend ESLint in CI — [`CHANGELOG.md`](CHANGELOG.md) · [`SUPPORT.md`](SUPPORT.md).
 * 🔱 **Parser alignment (v1.10.5):** `logseq-matryca-parser` **1.3.1** — YAML frontmatter, case-insensitive routing, asset extraction, root public API; import cleanup — [`CHANGELOG.md`](CHANGELOG.md).
+* 🔒 **Hub page OCC ([Unreleased] #34):** daemon-compiled `Matryca Master Index` and `Matryca Graph Insights` use pre-compile `occ_snapshot`, `page_rmw_lock`, and graceful skip on drift — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#optimistic-concurrency-control-occ) · [`CHANGELOG.md`](CHANGELOG.md).
+* ⏱️ **Nanosecond OCC parity ([Unreleased] #38):** integer `st_mtime_ns` across OCC, daemon ledger, and catalog `last_mtime`; no float drift — [`CHANGELOG.md`](CHANGELOG.md).
+* 🛑 **Graceful shutdown logging ([Unreleased] #44):** daemon teardown logs catalog/checkpoint flush failures with full stack traces — [`CHANGELOG.md`](CHANGELOG.md).
 * 📦 **Dependency maintenance (v1.10.4):** CI Actions toolchain refresh, Sovereign UI frontend npm bumps, Dependabot weekly groups — [`CHANGELOG.md`](CHANGELOG.md).
 * ⚙️ **Infrastructure hardening (v1.10.3):** non-blocking Sovereign UI config saves, strict LLM/outline Pydantic contracts, recursive OpenAI strict JSON schemas, adaptive token caps, rotating UI logs, flock sidecars `0o600` — [`CHANGELOG.md`](CHANGELOG.md) · [`docs/openspec/live-telemetry-ui.md`](docs/openspec/live-telemetry-ui.md).
 * 🖥️ **Sovereign UI reliability (v1.9.11):** Settings save and **Start Engine** stay responsive on large vaults (lazy bootstrap); pre-flight `warn` is advisory — [`docs/openspec/runtime-bootstrap.md`](docs/openspec/runtime-bootstrap.md).

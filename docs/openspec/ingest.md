@@ -40,7 +40,7 @@ Successful responses receive the **MCP identity footer** like other tools (excep
 | 4. UUID stamp | Recursive copy of each `LogseqNode` with new `properties["id"]`, `uuid`, `source_uuid`, `synthetic_id=False` (`model_validate` — no in-place mutation of frozen nodes). |
 | 5. Serialize | `logseq_markdown.serialize_logseq_page` → child lines indented +2 spaces under a container bullet. |
 | 6. Wrap | `- Ingested: **{source_name}**` with section `id:: {uuid}`. |
-| 7. Write (order) | Ingest destination → `LOG` → `GLOSSARY` (if terms found). Each step: `page_rmw_lock` → OCC mtime → `atomic_write_bytes_if_unchanged` → `emit_post_write_commit`. |
+| 7. Write (order) | Ingest destination → `LOG` → `GLOSSARY` (if terms found). Each step: `page_rmw_lock` → OCC `st_mtime_ns` → `atomic_write_bytes_if_unchanged` → `emit_post_write_commit`. |
 
 New ingest destination pages are stamped with **`made-by:: matryca plumber v…`** via `stamp_plumber_authored_page` when the file is created empty.
 

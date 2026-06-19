@@ -18,13 +18,17 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 - Agent surface: [`llms.txt`](llms.txt), [`.well-known/llms.txt`](.well-known/llms.txt), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md)
 - Operator workflow in [CONTRIBUTING.md](CONTRIBUTING.md) — Discussions for RFCs, issues for trackable work
 - “Test vault first” guidance in README (clone graph before pointing at production)
-- Good-first issues live on GitHub — [open `good first issue` label](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (#45, #53, #56, #69, #71, #85); maintainer blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md)
+- Good-first issues live on GitHub — [open `good first issue` label](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (#53, #56, #69, #71, #85); maintainer blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md)
 
 ### Tech debt & integrity (prerequisite for v2.0)
 
 **[v1.9.10 — Concurrency & Data Integrity](https://github.com/MarcoPorcellato/matryca-plumber/milestone/6)** ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34)–[#45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45))
 
-- OCC gaps on hub pages, `json_flock` parity with `page_rmw_lock`
+- ~~OCC gaps on hub pages~~ — **in review ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34), PR [#87](https://github.com/MarcoPorcellato/matryca-plumber/pull/87)):** `write_generated_hub_page` — pre-compile OCC, graceful skip on drift
+- ~~Nanosecond OCC parity~~ — **done ([#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38)):** integer `st_mtime_ns` across OCC, daemon ledger, catalog `last_mtime`; `normalize_stored_mtime_ns` on legacy JSON
+- ~~Graceful shutdown logging~~ — **done ([#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44)):** `_finalize_graceful_shutdown` — `logger.exception` on catalog/checkpoint flush failure
+- ~~Link verification float mtime~~ — **done ([#45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45)):** `file_mtime_drifted()` in link verification rewrite path
+- ~~`json_flock` parity with `page_rmw_lock`~~ — **in review ([#40](https://github.com/MarcoPorcellato/matryca-plumber/issues/40), PR [#86](https://github.com/MarcoPorcellato/matryca-plumber/pull/86)):** shared `src/utils/platform_lock.py`
 - ~~Atomic JSON writes for link registry and daemon state~~ — **done (v1.10.0):** link registry `atomic_write_bytes` ([#41](https://github.com/MarcoPorcellato/matryca-plumber/issues/41)); daemon state already atomic
 - ~~Catalog cache coherence under concurrent disk writers~~ — **done (v1.10.0):** master catalog load flock ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)), merge-on-save ([#36](https://github.com/MarcoPorcellato/matryca-plumber/issues/36)), harvest catalog/page drift guard on OCC abort ([#37](https://github.com/MarcoPorcellato/matryca-plumber/issues/37))
 
@@ -96,8 +100,9 @@ Not backlog — context for where we are today:
 | v1.9.15 | Mypy strict `#60` (zero `src/` ignores); journal Phase-2 semantic bypass with Phase-1 AST/OCC preserved (712+ tests) |
 | v1.10.0 | Catalog/registry integrity (#35–#37, #41); OSS/GitHub hygiene (PR template, CodeQL, frontend ESLint); `make test-fast` local gate; dependency advisory bumps (720+ tests) |
 | v1.10.3 | Sovereign UI non-blocking config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` (725+ tests) |
-| v1.10.5 | `logseq-matryca-parser` 1.3.1 alignment; root public API imports; AST cache `discover_graph_files` (725+ tests) |
+| v1.10.5 | `logseq-matryca-parser` 1.3.1 alignment; root public API imports; AST cache `discover_graph_files` (733+ tests) |
 | v1.10.4 | CI Actions toolchain (`checkout@v7`, `dependency-review-action@v5`, `setup-uv@v8.2.0`); Sovereign UI frontend npm bumps; Dependabot weekly groups (725+ tests) |
+| *Unreleased* | Hub page OCC (#34, PR [#87](https://github.com/MarcoPorcellato/matryca-plumber/pull/87)); `json_flock` parity (#40, PR [#86](https://github.com/MarcoPorcellato/matryca-plumber/pull/86)) |
 
 ---
 
