@@ -21,6 +21,7 @@ from src.graph.link_verification import (
 )
 
 BLOCK = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+_BASELINE_MTIME_NS = 1_000_000_000
 
 
 @pytest.fixture
@@ -80,6 +81,68 @@ def test_merge_registry_and_flag_asset(
     assert flagged
     text = page.read_text(encoding="utf-8")
     assert "missing-asset:: true" in text
+
+
+def test_flag_block_proceeds_when_mtime_unchanged_ns(
+    graph_with_page: tuple[Path, Path],
+) -> None:
+    """OCC guard must not abort when on-disk st_mtime_ns matches the snapshot."""
+    root, _page = graph_with_page
+
+    with (
+        patch(
+            "src.graph.link_verification.occ_snapshot",
+            return_value=_BASELINE_MTIME_NS,
+        ),
+        patch("src.graph.link_verification.occ_verify_before_write", return_value=True),
+        patch(
+            "src.graph.markdown_blocks.read_file_mtime",
+            return_value=_BASELINE_MTIME_NS,
+        ),
+        patch(
+            "src.graph.link_verification.atomic_write_bytes_if_unchanged", return_value=True
+        ) as write_mock,
+    ):
+        flagged = flag_block_hygiene_property(
+            root,
+            "pages/demo.md",
+            BLOCK,
+            "missing-asset",
+        )
+
+    assert flagged
+    write_mock.assert_called_once()
+
+
+def test_flag_block_aborts_on_one_nanosecond_mtime_drift(
+    graph_with_page: tuple[Path, Path],
+) -> None:
+    """Any st_mtime_ns change, even 1 ns, must abort the hygiene write."""
+    root, _page = graph_with_page
+
+    with (
+        patch(
+            "src.graph.link_verification.occ_snapshot",
+            return_value=_BASELINE_MTIME_NS,
+        ),
+        patch("src.graph.link_verification.occ_verify_before_write", return_value=True),
+        patch(
+            "src.graph.markdown_blocks.read_file_mtime",
+            return_value=_BASELINE_MTIME_NS + 1,
+        ),
+        patch(
+            "src.graph.link_verification.atomic_write_bytes_if_unchanged", return_value=True
+        ) as write_mock,
+    ):
+        flagged = flag_block_hygiene_property(
+            root,
+            "pages/demo.md",
+            BLOCK,
+            "missing-asset",
+        )
+
+    assert not flagged
+    write_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
