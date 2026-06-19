@@ -35,7 +35,7 @@ def test_collect_snapshot_reflects_updated_daemon_state(graph_root: Path) -> Non
     state = DaemonState(
         files={
             str(alpha_path.resolve()): FileState(
-                mtime=alpha_path.stat().st_mtime,
+                mtime=alpha_path.stat().st_mtime_ns,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -73,7 +73,7 @@ def test_collect_snapshot_uses_checkpoint_processed_count_despite_mtime_drift(
 ) -> None:
     path = graph_root / "pages" / "Drift.md"
     path.write_text("- drift\n", encoding="utf-8")
-    stored_mtime = path.stat().st_mtime - 3600.0
+    stored_mtime = path.stat().st_mtime_ns - 3_600_000_000_000
     state = DaemonState(
         status="running",
         files={

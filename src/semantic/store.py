@@ -20,17 +20,17 @@ BLOCK_VECTORS_VERSION = 1
 
 _lock = threading.Lock()
 _loaded: dict[str, BlockVectorStore] = {}
-_disk_mtimes: dict[str, float] = {}
+_disk_mtimes: dict[str, int] = {}
 
 
 def _graph_cache_key(graph_root: Path) -> str:
     return str(graph_root.expanduser().resolve(strict=False))
 
 
-def _block_vectors_mtime(path: Path) -> float:
+def _block_vectors_mtime(path: Path) -> int:
     if not path.is_file():
-        return 0.0
-    return path.stat().st_mtime
+        return 0
+    return path.stat().st_mtime_ns
 
 
 def _semantic_search_max_candidates() -> int:

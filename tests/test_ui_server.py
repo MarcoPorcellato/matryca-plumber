@@ -52,7 +52,7 @@ def test_get_state_returns_daemon_checkpoint(
         session_completion_tokens=25,
         files={
             str(page.resolve()): FileState(
-                mtime=page.stat().st_mtime,
+                mtime=page.stat().st_mtime_ns,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),

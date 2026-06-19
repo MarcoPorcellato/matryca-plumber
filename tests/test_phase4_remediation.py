@@ -109,7 +109,7 @@ def test_normalize_daemon_state_file_keys_migrates_absolute_paths(graph_root: Pa
     state = DaemonState(
         files={
             absolute: FileState(
-                mtime=page.stat().st_mtime,
+                mtime=page.stat().st_mtime_ns,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -136,7 +136,7 @@ def test_normalize_daemon_state_file_keys_logs_dropped_invalid_key(
     state = DaemonState(
         files={
             "/totally/outside/graph.md": FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -153,7 +153,7 @@ def test_save_daemon_state_persists_relative_file_keys(graph_root: Path) -> None
     state = DaemonState(
         files={
             graph_relative_path_key(page, graph_root): FileState(
-                mtime=page.stat().st_mtime,
+                mtime=page.stat().st_mtime_ns,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),

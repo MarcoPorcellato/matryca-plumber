@@ -208,7 +208,7 @@ def test_daemon_state_roundtrip(graph_root: Path, monkeypatch: pytest.MonkeyPatc
     state = DaemonState(
         files={
             page_key: FileState(
-                mtime=123.0,
+                mtime=123_000_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -221,7 +221,7 @@ def test_daemon_state_roundtrip(graph_root: Path, monkeypatch: pytest.MonkeyPatc
     assert loaded.model == "qwen-test"
     assert loaded.status == "idle"
     assert page_key in loaded.files
-    assert loaded.files[page_key].mtime == 123.0
+    assert loaded.files[page_key].mtime == 123_000_000_000_000
 
 
 def test_save_daemon_state_persists_block_ref_error_text(graph_root: Path) -> None:
@@ -235,7 +235,7 @@ def test_save_daemon_state_persists_block_ref_error_text(graph_root: Path) -> No
     state = DaemonState(
         files={
             page_key: FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="skipped",
                 error=error_msg,
@@ -261,7 +261,7 @@ def test_save_daemon_state_is_atomic_under_concurrent_reads(graph_root: Path) ->
         session_completion_tokens=5,
         files={
             page_key: FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -367,7 +367,7 @@ def test_maintenance_daemon_processes_pending_page(graph_root: Path, tmp_path: P
 
 def test_pending_detection_skips_processed_mtime(graph_root: Path) -> None:
     path = _write_page(graph_root, "Beta", "- content\n")
-    mtime = path.stat().st_mtime
+    mtime = path.stat().st_mtime_ns
     state = DaemonState(
         files={
             str(path.resolve()): FileState(
@@ -391,7 +391,7 @@ def test_pending_detection_after_file_change(graph_root: Path) -> None:
     state = DaemonState(
         files={
             key: FileState(
-                mtime=0.0,
+                mtime=0,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -403,7 +403,7 @@ def test_pending_detection_after_file_change(graph_root: Path) -> None:
 
 def test_pending_detection_skips_error_with_stable_mtime(graph_root: Path) -> None:
     path = _write_page(graph_root, "ErrorBackoff", "- broken\n")
-    mtime = path.stat().st_mtime
+    mtime = path.stat().st_mtime_ns
     key = graph_relative_path_key(path, graph_root)
     state = DaemonState(
         files={
@@ -420,7 +420,7 @@ def test_pending_detection_skips_error_with_stable_mtime(graph_root: Path) -> No
 
 def test_clear_phase1_error_backoff_requeues_stable_error_files(graph_root: Path) -> None:
     path = _write_page(graph_root, "ErrorRetryOnRestart", "- broken\n")
-    mtime = path.stat().st_mtime
+    mtime = path.stat().st_mtime_ns
     key = graph_relative_path_key(path, graph_root)
     state = DaemonState(
         files={
@@ -444,7 +444,7 @@ def test_pending_detection_requeues_error_after_edit(graph_root: Path) -> None:
     state = DaemonState(
         files={
             key: FileState(
-                mtime=0.0,
+                mtime=0,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="error",
                 error="LLM timeout",
@@ -1017,12 +1017,12 @@ def test_prune_stale_daemon_file_entries_removes_ghosts(graph_root: Path) -> Non
     state = DaemonState(
         files={
             live_key: FileState(
-                mtime=live.stat().st_mtime,
+                mtime=live.stat().st_mtime_ns,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
             ghost_key: FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
@@ -1799,7 +1799,7 @@ def test_phase2_requeues_semantic_index_skipped_pages(graph_root: Path) -> None:
         bootstrap_complete=True,
         files={
             key: FileState(
-                mtime=path.stat().st_mtime,
+                mtime=path.stat().st_mtime_ns,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="skipped",
             ),
@@ -2019,7 +2019,7 @@ def test_page_needs_phase2_cognitive_journal_settles_without_semantic_requeue(
         bootstrap_complete=True,
         files={
             journal_key: FileState(
-                mtime=journal_path.stat().st_mtime,
+                mtime=journal_path.stat().st_mtime_ns,
                 processed_at="2026-06-10T00:00:00+00:00",
                 status="processed",
             ),

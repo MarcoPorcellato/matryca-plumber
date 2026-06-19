@@ -141,14 +141,14 @@ class IdentityConfigStore:
         self.graph_root = graph_root.expanduser().resolve(strict=False)
         self._lock = threading.RLock()
         self._config = IdentityConfig(telos="", constraints="", source_page=None)
-        self._source_mtime: float | None = None
+        self._source_mtime: int | None = None
 
-    def _config_file_mtime(self) -> float | None:
+    def _config_file_mtime(self) -> int | None:
         path = resolve_identity_config_path(self.graph_root, for_write=False)
         if not path.is_file():
             return None
         try:
-            return path.stat().st_mtime
+            return path.stat().st_mtime_ns
         except OSError:
             return None
 

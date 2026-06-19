@@ -355,7 +355,7 @@ def _headless_append_child(
         ):
             raise OCCConflictError(
                 path,
-                baseline_mtime=baseline_mtime or 0.0,
+                baseline_mtime=baseline_mtime or 0,
                 current_mtime=read_file_mtime(path),
             )
         if occ is not None:
@@ -479,7 +479,7 @@ def _headless_write_outline_empty_page(
             ):
                 raise OCCConflictError(
                     page_path,
-                    baseline_mtime=baseline_mtime or 0.0,
+                    baseline_mtime=baseline_mtime or 0,
                     current_mtime=read_file_mtime(page_path),
                 )
             if occ is not None:

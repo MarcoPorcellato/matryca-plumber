@@ -141,7 +141,7 @@ def edit_block_property_lines(
     use_regex: bool = False,
     replace_all: bool = False,
     case_sensitive: bool = True,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
 ) -> PropertyLineEditOutcome:
     """Edit only ``key::`` property lines for the block identified by ``id::``."""
     root = Path(graph_root).expanduser().resolve(strict=False)
@@ -434,7 +434,7 @@ def append_page_alias_line(
     alias: str,
     *,
     dry_run: bool = True,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
 ) -> PageAliasAppendResult:
     """Append ``alias`` to the first ``alias::`` line, or add a new line at EOF (idempotent).
 

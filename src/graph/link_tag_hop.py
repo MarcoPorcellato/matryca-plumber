@@ -283,16 +283,16 @@ def format_hub_orphan_markdown(
         return "# Structural hubs / orphans\n\n(No pages under `pages/`.)"
 
     paths = {p.stem: p for p in _iter_page_files(root)}
-    mtimes: dict[str, float] = {}
+    mtimes: dict[str, int] = {}
     for stem, path in paths.items():
         try:
-            mtimes[stem] = path.stat().st_mtime
+            mtimes[stem] = path.stat().st_mtime_ns
         except OSError:
-            mtimes[stem] = 0.0
+            mtimes[stem] = 0
 
     ranked = sorted(deg.items(), key=lambda kv: (-kv[1], kv[0]))
     hubs = ranked[:hub_limit]
-    orphans = sorted(deg.items(), key=lambda kv: (kv[1], -mtimes.get(kv[0], 0.0)))[:orphan_limit]
+    orphans = sorted(deg.items(), key=lambda kv: (kv[1], -mtimes.get(kv[0], 0)))[:orphan_limit]
 
     lines = [
         "# Structural hubs / orphans",

@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Nanosecond OCC parity (#38)** — `read_file_mtime` / `occ_snapshot` and all freshness checks use `st_mtime_ns` (integer); `CatalogEntry.last_mtime`, `OCCSnapshot.baseline_mtime`, and daemon `FileState.mtime` are nanosecond-precision; legacy second-scale JSON values normalize on load.
+- **Graceful shutdown logging (#44)** — `_finalize_graceful_shutdown` wraps catalog flush and daemon checkpoint save in `try`/`except` with `logger.exception` for post-mortem stack traces instead of silent `suppress`.
 - **Hub page OCC (#34)** — `write_master_index_page` and `write_graph_insights_page` use `page_rmw_lock`, pre-compile `occ_snapshot`, and `atomic_write_bytes_if_unchanged`; concurrent edits during compile log a graceful skip (derived pages regenerate on the next daemon cycle).
 
 ### Changed
+
+- **Documentation sync (hub page OCC #34)** — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`ROADMAP.md`](ROADMAP.md), [`docs/PROJECT_DIARY.md`](docs/PROJECT_DIARY.md), [`docs/openspec/runtime-bootstrap.md`](docs/openspec/runtime-bootstrap.md), [`docs/openspec/llm-performance.md`](docs/openspec/llm-performance.md), [`docs/openspec/security-sandbox.md`](docs/openspec/security-sandbox.md), [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md), [`llms.txt`](llms.txt) / [`.well-known/llms.txt`](.well-known/llms.txt), and [`README.md`](README.md) aligned with generated hub page OCC and graceful skip semantics.
 
 - **GitHub backlog hygiene** — Closed shipped audit issues #35, #36, #37, #41, #67, #68, #70; tagged six good-first issues (#45, #53, #56, #69, #71, #85) with `good first issue` + `help wanted` and welcome comments; opened [#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85) for `BootstrapHarvestStatus` Literal dedup (slice of #62). Docs: [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`ROADMAP.md`](ROADMAP.md).
 - **`llms.txt` contributor discovery** — Good-first issue filter and scoped task table for agents asking how to contribute to the codebase (`llms.txt`, `.well-known/llms.txt`).

@@ -27,12 +27,12 @@ def test_phase1_files_fallback() -> None:
         bootstrap_complete=False,
         files={
             "a.md": FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),
             "b.md": FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="pending",
             ),
@@ -96,7 +96,7 @@ def test_legacy_checkpoint_vault_fallback() -> None:
         phase2_llm_turns=2,
         files={
             "x.md": FileState(
-                mtime=1.0,
+                mtime=1_000_000_000,
                 processed_at="2026-01-01T00:00:00+00:00",
                 status="processed",
             ),

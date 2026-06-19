@@ -33,13 +33,13 @@ def collect_dashboard_stats(graph_root: str | Path) -> DashboardStats:
     paths = _iter_page_files(root)
 
     id_tally = 0
-    newest: float | None = None
+    newest: int | None = None
     for path in paths:
         try:
             st = path.stat()
         except OSError:
             continue
-        newest = st.st_mtime if newest is None else max(newest, st.st_mtime)
+        newest = st.st_mtime_ns if newest is None else max(newest, st.st_mtime_ns)
 
     from ..daemon.ast_cache import get_graph_ast_cache
 
@@ -53,7 +53,10 @@ def collect_dashboard_stats(graph_root: str | Path) -> DashboardStats:
 
     newest_iso: str | None = None
     if newest is not None:
-        newest_iso = datetime.fromtimestamp(newest, tz=UTC).strftime("%Y-%m-%dT%H:%MZ")
+        newest_iso = datetime.fromtimestamp(
+            newest / 1_000_000_000,
+            tz=UTC,
+        ).strftime("%Y-%m-%dT%H:%MZ")
 
     return DashboardStats(
         graph_root=str(root),

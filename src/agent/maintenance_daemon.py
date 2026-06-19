@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import math
 import os
 import re
 import shutil
@@ -61,6 +60,7 @@ from ..graph.markdown_blocks import (
     bullet_indent_unit,
     file_mtime_drifted,
     locate_block_by_uuid,
+    normalize_stored_mtime_ns,
     occ_snapshot,
     occ_verify_before_write,
     read_file_mtime,
@@ -310,7 +310,7 @@ FileStatus = Literal["processed", "skipped", "error", "pending", "lock_backoff"]
 class FileState:
     """Processing record for one markdown file."""
 
-    mtime: float
+    mtime: int
     processed_at: str
     status: FileStatus = "processed"
     error: str | None = None
@@ -446,7 +446,7 @@ class DaemonState:
                 backoff_until = rec.get("lock_backoff_until")
                 backoff_seconds = rec.get("lock_backoff_seconds")
                 files[str(path)] = FileState(
-                    mtime=float(rec.get("mtime", 0.0)),
+                    mtime=normalize_stored_mtime_ns(float(rec.get("mtime", 0))),
                     processed_at=str(rec.get("processed_at", "")),
                     status=cast(FileStatus, str(rec.get("status", "processed"))),
                     error=rec.get("error") if rec.get("error") is not None else None,
@@ -561,7 +561,7 @@ def _record_page_lock_backoff(
     state: DaemonState,
     *,
     key: str,
-    mtime: float,
+    mtime: int,
     message: str,
     prior: FileState | None,
 ) -> None:
@@ -1417,7 +1417,7 @@ def apply_semantic_page_result(
     backpropagate: bool = False,
     alias_index: AliasIndex | None = None,
     disable_semantic_corrections: bool = True,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
 ) -> CorrectionOutcome:
     """Lint blocks surgically, then append the semantic index (one locked transaction)."""
     from loguru import logger
@@ -1727,12 +1727,9 @@ class ScanMetrics:
         return round(100.0 * self.processed / self.total, 1)
 
 
-def _mtime_matches(stored: float, current: float) -> bool:
+def _mtime_matches(stored: int, current: int) -> bool:
     """Return whether a checkpoint mtime still matches the on-disk value."""
-    if stored == current:
-        return True
-    # JSON checkpoint round-trip can shave sub-microsecond float precision.
-    return math.isclose(stored, current, rel_tol=0.0, abs_tol=1e-6)
+    return stored == current
 
 
 def _read_page_content(path: Path, graph_root: Path) -> str:
@@ -1768,7 +1765,7 @@ def page_needs_phase2_cognitive(
 
     if is_journal_page_path(graph_root, path):
         _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime
+        mtime = path.stat().st_mtime_ns
         if rec is None:
             return True
         if not _mtime_matches(rec.mtime, mtime):
@@ -1780,7 +1777,7 @@ def page_needs_phase2_cognitive(
         return False
 
     _key, rec = _lookup_file_state(graph_root, state, path)
-    mtime = path.stat().st_mtime
+    mtime = path.stat().st_mtime_ns
     if rec is None:
         return True
     if not _mtime_matches(rec.mtime, mtime):
@@ -1813,7 +1810,7 @@ def compute_phase2_progress_metrics(
             continue
         total += 1
         _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime if path.is_file() else 0.0
+        mtime = path.stat().st_mtime_ns if path.is_file() else 0
         if rec is not None and _mtime_matches(rec.mtime, mtime) and rec.status == "processed":
             cognitive_done += 1
         elif page_needs_phase2_cognitive(graph_root, path, state):
@@ -1830,7 +1827,7 @@ def compute_scan_metrics(graph_root: Path, state: DaemonState) -> ScanMetrics:
     pending = 0
     for path in files:
         _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime if path.is_file() else 0.0
+        mtime = path.stat().st_mtime_ns if path.is_file() else 0
         if rec is not None and _mtime_matches(rec.mtime, mtime):
             if rec.status == "processed":
                 processed += 1
@@ -1871,7 +1868,7 @@ def list_pending_files(
                 pending.append(path)
             continue
         _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime
+        mtime = path.stat().st_mtime_ns
         if rec is not None and _mtime_matches(rec.mtime, mtime):
             if rec.status in settled_statuses:
                 continue
@@ -2073,14 +2070,21 @@ class MaintenanceDaemon:
         """Flush ledger telemetry and release daemon resources after the loop exits."""
         self._wait_for_inflight_writes()
 
-        with contextlib.suppress(Exception):
+        try:
             load_master_catalog(self.graph_root).save()
+            logger.info("Graceful shutdown state flushed successfully.")
+        except Exception:
+            logger.exception("CRITICAL: Failed to flush state during graceful shutdown!")
 
         checkpoint = state or load_daemon_state(self.graph_root)
         checkpoint.status = "stopped"
         self._sync_live_telemetry(checkpoint)
-        with contextlib.suppress(Exception):
+        try:
             save_daemon_state(self.graph_root, checkpoint)
+        except Exception:
+            logger.exception(
+                "CRITICAL: Failed to save daemon checkpoint during graceful shutdown!",
+            )
 
         self._stop_file_watcher()
         remove_pid_file(self.graph_root)
@@ -2302,7 +2306,7 @@ class MaintenanceDaemon:
         """Upsert catalog row from on-disk semantic index immediately after a page write."""
         try:
             new_text = read_graph_file_text(path, self.graph_root, errors="replace")
-            mtime = int(path.stat().st_mtime)
+            mtime = path.stat().st_mtime_ns
         except OSError as exc:
             self.token_logger.log_structural_lint_warning(
                 target_file=path,
@@ -2488,7 +2492,7 @@ class MaintenanceDaemon:
         """Settle a pending page without LLM tokens (quarantine, cache, empty)."""
         key = _daemon_file_key(self.graph_root, path)
         try:
-            mtime = path.stat().st_mtime
+            mtime = path.stat().st_mtime_ns
         except OSError:
             return False
 
@@ -2541,7 +2545,7 @@ class MaintenanceDaemon:
     ) -> bool:
         """Phase-1 structural settle for ``journals/`` pages (no semantic LLM or embeddings)."""
         key = _daemon_file_key(self.graph_root, path)
-        mtime = path.stat().st_mtime
+        mtime = path.stat().st_mtime_ns
         state.last_file = sanitize_for_console(key)
         if cluster_id is not None:
             state.phase2_cluster_file_in_flight = True
@@ -2555,7 +2559,7 @@ class MaintenanceDaemon:
                         merge_page_links_into_registry(self.graph_root, path, content)
             get_graph_ast_cache(self.graph_root).apply_file_event(path, "modified")
             state.files[key] = FileState(
-                mtime=path.stat().st_mtime,
+                mtime=path.stat().st_mtime_ns,
                 processed_at=datetime.now(tz=UTC).isoformat(),
                 status="processed",
             )
@@ -2590,7 +2594,7 @@ class MaintenanceDaemon:
                 cluster_id=cluster_id,
             )
         key = _daemon_file_key(self.graph_root, path)
-        mtime = path.stat().st_mtime
+        mtime = path.stat().st_mtime_ns
         title = _page_title_from_path(self.graph_root, path)
         state.last_file = sanitize_for_console(key)
         if cluster_id is not None:
@@ -2707,7 +2711,7 @@ class MaintenanceDaemon:
                 )
                 return llm_called_from_usage or llm_called_from_logger
             state.files[key] = FileState(
-                mtime=path.stat().st_mtime,
+                mtime=path.stat().st_mtime_ns,
                 processed_at=datetime.now(tz=UTC).isoformat(),
                 status="processed",
             )
@@ -2787,7 +2791,7 @@ class MaintenanceDaemon:
         *,
         path: Path,
         key: str,
-        mtime: float,
+        mtime: int,
         message: str,
         malformed_refs: list[str],
         state: DaemonState,
@@ -2807,7 +2811,7 @@ class MaintenanceDaemon:
                 message=f"Warning injection failed for {rel_path}: {inj_exc}",
                 malformed_refs=malformed_refs,
             )
-        recorded_mtime = path.stat().st_mtime if path.is_file() else mtime
+        recorded_mtime = path.stat().st_mtime_ns if path.is_file() else mtime
         state.files[key] = FileState(
             mtime=recorded_mtime,
             processed_at=datetime.now(tz=UTC).isoformat(),
@@ -2822,7 +2826,7 @@ class MaintenanceDaemon:
             return False
         key = _daemon_file_key(self.graph_root, path)
         state.files[key] = FileState(
-            mtime=path.stat().st_mtime,
+            mtime=path.stat().st_mtime_ns,
             processed_at=datetime.now(tz=UTC).isoformat(),
             status="skipped",
         )

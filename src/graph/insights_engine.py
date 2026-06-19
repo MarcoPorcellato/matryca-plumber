@@ -355,7 +355,7 @@ def write_graph_insights_page(
     graph_root: Path,
     markdown: str,
     *,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
 ) -> Path:
     """Write Graph Insights hub page with OCC; pass ``baseline_mtime`` before compile."""
     path = graph_safe_page_path(graph_root, GRAPH_INSIGHTS_TITLE)

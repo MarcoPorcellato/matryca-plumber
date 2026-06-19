@@ -30,7 +30,7 @@ def write_generated_hub_page(
     page_title: str,
     markdown: str,
     *,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
     robot_commit_summary: str,
 ) -> GeneratedHubWriteResult:
     """Write a compiled hub page under ``page_rmw_lock`` with OCC guards.

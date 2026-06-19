@@ -135,7 +135,7 @@ def _append_minimal_semantic_index(
     page_path: Path,
     summary: BootstrapSummaryResult,
     *,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
 ) -> bool:
     if baseline_mtime is None and page_path.is_file():
         baseline_mtime = read_file_mtime(page_path)
@@ -204,7 +204,7 @@ def harvest_page_into_catalog(
         return "missing", True, False
 
     try:
-        mtime = int(page_path.stat().st_mtime)
+        mtime = page_path.stat().st_mtime_ns
     except OSError as exc:
         return f"error:{exc}", False, False
 
@@ -271,7 +271,7 @@ def harvest_page_into_catalog(
         summary=summary_result.summary,
         tags=summary_result.suggested_tags,
         domain=domain,
-        mtime=int(page_path.stat().st_mtime),
+        mtime=page_path.stat().st_mtime_ns,
         orphan=orphan,
     )
     catalog.upsert(title, entry)

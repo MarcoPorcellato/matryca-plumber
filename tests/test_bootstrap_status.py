@@ -60,7 +60,7 @@ def test_collect_bootstrap_status_green_when_catalog_complete(
         "- # Alpha\n- ### Matryca Semantic Index\n- summary:: Alpha page summary\n",
         encoding="utf-8",
     )
-    mtime = int(page_path.stat().st_mtime_ns // 1_000_000_000)
+    mtime = page_path.stat().st_mtime_ns
     catalog = MasterCatalog(graph_root=tmp_path)
     catalog.upsert(
         "Alpha",

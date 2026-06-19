@@ -28,10 +28,10 @@ from .markdown_blocks import (
     atomic_write_bytes_if_unchanged,
     block_property_insert_index,
     bullet_indent_unit,
+    file_mtime_drifted,
     locate_block_by_uuid,
     occ_snapshot,
     occ_verify_before_write,
-    read_file_mtime,
     strip_lines_for_match,
 )
 from .mldoc_properties import parse_logseq_property_line
@@ -559,7 +559,7 @@ def _mutate_block_hygiene_property(
         return False
 
     with page_rmw_lock(page_path):
-        if read_file_mtime(page_path) != baseline_mtime:
+        if file_mtime_drifted(page_path, baseline_mtime):
             return False
         raw = read_graph_file_text(page_path, graph_root, errors="replace")
         lines = raw.splitlines(keepends=True)

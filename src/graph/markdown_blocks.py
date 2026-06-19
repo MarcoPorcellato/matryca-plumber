@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 import os
 import re
 import tempfile
@@ -142,16 +141,27 @@ def bullet_indent_unit(lines: list[str], bullet_idx: int) -> str:
     return "  "
 
 
-def read_file_mtime(file_path: str | Path) -> float | None:
-    """Return ``st_mtime`` for ``file_path``, or ``None`` when the path is unreadable."""
+_MAX_LEGACY_UNIX_SECONDS = 2_000_000_000  # values at or below are catalog/daemon second precision
+
+
+def normalize_stored_mtime_ns(value: int | float) -> int:
+    """Convert legacy second-precision mtimes to nanoseconds."""
+    iv = int(value)
+    if 0 < iv <= _MAX_LEGACY_UNIX_SECONDS:
+        return iv * 1_000_000_000
+    return iv
+
+
+def read_file_mtime(file_path: str | Path) -> int | None:
+    """Return ``st_mtime_ns`` for ``file_path``, or ``None`` when the path is unreadable."""
     try:
-        return Path(file_path).stat().st_mtime
+        return Path(file_path).stat().st_mtime_ns
     except OSError:
         return None
 
 
-def occ_snapshot(file_path: str | Path) -> float | None:
-    """Phase 1: capture ``st_mtime`` before expensive work (LLM inference)."""
+def occ_snapshot(file_path: str | Path) -> int | None:
+    """Phase 1: capture ``st_mtime_ns`` before expensive work (LLM inference)."""
     return read_file_mtime(file_path)
 
 
@@ -162,8 +172,8 @@ class OCCConflictError(Exception):
         self,
         file_path: str | Path,
         *,
-        baseline_mtime: float,
-        current_mtime: float | None,
+        baseline_mtime: int,
+        current_mtime: int | None,
     ) -> None:
         self.file_path = Path(file_path)
         self.baseline_mtime = baseline_mtime
@@ -179,7 +189,7 @@ class OCCSnapshot:
     """Phase-1 mtime snapshot for two-phase optimistic concurrency control."""
 
     file_path: Path
-    baseline_mtime: float
+    baseline_mtime: int
 
     @classmethod
     def capture(cls, file_path: str | Path) -> OCCSnapshot | None:
@@ -200,7 +210,7 @@ class OCCSnapshot:
 
 def occ_verify_before_write(
     file_path: str | Path,
-    baseline_mtime: float,
+    baseline_mtime: int,
     *,
     raise_on_conflict: bool = False,
 ) -> bool:
@@ -216,12 +226,12 @@ def occ_verify_before_write(
     return True
 
 
-def file_mtime_drifted(file_path: str | Path, baseline_mtime: float) -> bool:
+def file_mtime_drifted(file_path: str | Path, baseline_mtime: int) -> bool:
     """Return whether on-disk mtime differs from ``baseline_mtime`` (user edit during inference)."""
     current = read_file_mtime(file_path)
     if current is None:
         return True
-    return not math.isclose(baseline_mtime, current, rel_tol=0.0, abs_tol=1e-6)
+    return baseline_mtime != current
 
 
 def atomic_write_bytes_if_unchanged(
@@ -229,7 +239,7 @@ def atomic_write_bytes_if_unchanged(
     data: bytes,
     *,
     graph_root: str | Path,
-    baseline_mtime: float,
+    baseline_mtime: int,
     validate_block_refs: bool = True,
     robot_commit_summary: str | None = None,
 ) -> bool:
@@ -256,7 +266,7 @@ def atomic_write_bytes(
     *,
     graph_root: str | Path,
     validate_block_refs: bool = True,
-    baseline_mtime: float | None = None,
+    baseline_mtime: int | None = None,
     robot_commit_summary: str | None = None,
 ) -> None:
     """Write ``data`` to ``file_path`` via temp file, ``fsync``, and atomic ``os.replace``.
@@ -419,6 +429,7 @@ __all__ = [
     "iter_graph_markdown_files",
     "locate_block_by_uuid",
     "occ_snapshot",
+    "normalize_stored_mtime_ns",
     "occ_verify_before_write",
     "read_file_mtime",
     "read_page_lines",

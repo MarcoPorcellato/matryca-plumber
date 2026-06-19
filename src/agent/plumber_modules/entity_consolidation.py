@@ -47,7 +47,7 @@ def run_entity_consolidation(
         if should_skip_entity_overlap_pair(graph_root, page_title, target):
             continue
 
-        baselines: dict[str, float | None] = {}
+        baselines: dict[str, int | None] = {}
         for candidate in (page_title, target):
             try:
                 candidate_path = graph_safe_page_path(graph_root, candidate)

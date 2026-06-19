@@ -18,7 +18,7 @@ from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 from .alias_index import build_alias_index, iter_alias_source_paths, page_title_from_path
 from .generated_hub_write import write_generated_hub_page
 from .json_flock import cross_process_json_flock
-from .markdown_blocks import atomic_write_bytes, occ_snapshot
+from .markdown_blocks import atomic_write_bytes, normalize_stored_mtime_ns, occ_snapshot
 from .markdown_io import MmapTextView, read_graph_page_text
 from .path_sandbox import read_graph_file_text
 
@@ -52,7 +52,7 @@ class CatalogEntry:
     summary: str = ""
     domain: str = ""
     tags: list[str] = field(default_factory=list)
-    last_mtime: int = 0
+    last_mtime: int = 0  # nanoseconds since epoch (``st_mtime_ns``)
     orphan: bool = False
 
     def to_json(self) -> dict[str, Any]:
@@ -72,7 +72,7 @@ class CatalogEntry:
             summary=str(payload.get("summary", "")),
             domain=str(payload.get("domain", "")),
             tags=tags,
-            last_mtime=int(payload.get("last_mtime", 0)),
+            last_mtime=normalize_stored_mtime_ns(int(payload.get("last_mtime", 0))),
             orphan=bool(payload.get("orphan", False)),
         )
 
@@ -221,7 +221,7 @@ class MasterCatalog:
             entry = self.pages.get(page_title)
             if entry is None:
                 return True
-            return int(mtime_ns // 1_000_000_000) != entry.last_mtime
+            return mtime_ns != normalize_stored_mtime_ns(entry.last_mtime)
 
     def prune_missing_pages(self) -> int:
         """Drop catalog rows and alias mappings for deleted markdown files."""
@@ -268,7 +268,8 @@ def _merge_catalog_page_deltas(
     merged = dict(disk_pages)
     for title, entry in pending.items():
         existing = merged.get(title)
-        if existing is None or entry.last_mtime >= existing.last_mtime:
+        pending_mtime = normalize_stored_mtime_ns(entry.last_mtime)
+        if existing is None or pending_mtime >= normalize_stored_mtime_ns(existing.last_mtime):
             merged[title] = entry
     return merged
 
@@ -453,14 +454,13 @@ def entry_from_page_path(graph_root: Path, page_path: Path) -> CatalogEntry | No
     try:
         content = read_graph_page_text(page_path, graph_root, errors="replace")
         mtime_ns = page_path.stat().st_mtime_ns
-        mtime = int(mtime_ns // 1_000_000_000)
     except OSError:
         return None
 
     extracted = extract_catalog_fields_from_content(content)
     if extracted is None:
         return None
-    extracted.last_mtime = mtime
+    extracted.last_mtime = mtime_ns
     return extracted
 
 

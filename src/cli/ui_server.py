@@ -91,7 +91,7 @@ _FRONTEND_SRC = _FRONTEND_ROOT / "src"
 class FileStateResponse(BaseModel):
     """On-disk processing record for one markdown file."""
 
-    mtime: float
+    mtime: int
     processed_at: str
     status: FileStatus
     error: str | None = None
@@ -1017,20 +1017,20 @@ async def stop_daemon_endpoint(_: None = Depends(_require_ui_token)) -> DaemonCo
     return _daemon_control_response(result)
 
 
-def _frontend_source_mtime() -> float:
+def _frontend_source_mtime() -> int:
     if not _FRONTEND_SRC.is_dir():
-        return 0.0
+        return 0
     return max(
-        (path.stat().st_mtime for path in _FRONTEND_SRC.rglob("*") if path.is_file()),
-        default=0.0,
+        (path.stat().st_mtime_ns for path in _FRONTEND_SRC.rglob("*") if path.is_file()),
+        default=0,
     )
 
 
-def _frontend_dist_mtime() -> float:
+def _frontend_dist_mtime() -> int:
     index_html = _FRONTEND_DIST / "index.html"
     if not index_html.is_file():
-        return 0.0
-    return index_html.stat().st_mtime
+        return 0
+    return index_html.stat().st_mtime_ns
 
 
 def _ensure_frontend_built() -> None:

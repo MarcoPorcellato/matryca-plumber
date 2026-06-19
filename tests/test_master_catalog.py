@@ -111,7 +111,7 @@ def test_catalog_entry_roundtrip() -> None:
         summary="One sentence.",
         domain="area",
         tags=["foo", "bar"],
-        last_mtime=123,
+        last_mtime=123_000_000_000_000,
         orphan=True,
     )
     payload = entry.to_json()
@@ -119,7 +119,7 @@ def test_catalog_entry_roundtrip() -> None:
     assert restored.summary == "One sentence."
     assert restored.domain == "area"
     assert restored.tags == ["foo", "bar"]
-    assert restored.last_mtime == 123
+    assert restored.last_mtime == 123_000_000_000_000
     assert restored.orphan is True
 
 
@@ -511,7 +511,7 @@ def test_incremental_refresh_only_touches_stale_pages(graph_root: Path) -> None:
     catalog = load_master_catalog(graph_root, force_reload=True)
     assert catalog.pages["Changed"].summary == "Changed summary."
     assert catalog.pages["Stable"].summary == "Stable summary."
-    assert catalog.pages["Stable"].last_mtime == int(indexed.stat().st_mtime)
+    assert catalog.pages["Stable"].last_mtime == indexed.stat().st_mtime_ns
 
 
 def test_compute_topology_metrics_orphans_and_clusters(graph_root: Path) -> None:
