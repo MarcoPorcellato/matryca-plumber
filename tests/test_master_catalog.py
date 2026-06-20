@@ -382,6 +382,45 @@ def test_needs_refresh_detects_mtime_drift(graph_root: Path) -> None:
     assert catalog.needs_refresh("Fresh", path.stat().st_mtime_ns) is True
 
 
+def test_needs_refresh_accepts_legacy_second_mtime(graph_root: Path) -> None:
+    path = _write_page(graph_root, "Fresh", _indexed_body())
+    mtime_ns = path.stat().st_mtime_ns
+    catalog = load_master_catalog(graph_root)
+    catalog.upsert(
+        "Fresh",
+        CatalogEntry(
+            summary="Old",
+            domain="",
+            tags=[],
+            last_mtime=int(mtime_ns // 1_000_000_000),
+            orphan=False,
+        ),
+    )
+    assert catalog.needs_refresh("Fresh", mtime_ns) is False
+
+
+def test_needs_refresh_detects_same_second_nanosecond_drift(
+    graph_root: Path,
+) -> None:
+    path = _write_page(graph_root, "Fresh", _indexed_body())
+    mtime_ns = path.stat().st_mtime_ns
+    same_second_drift = mtime_ns - 1 if mtime_ns % 1_000_000_000 else mtime_ns + 1
+    catalog = load_master_catalog(graph_root)
+    catalog.upsert(
+        "Fresh",
+        CatalogEntry(
+            summary="Fresh",
+            domain="",
+            tags=[],
+            last_mtime=mtime_ns,
+            orphan=False,
+        ),
+    )
+    assert same_second_drift // 1_000_000_000 == mtime_ns // 1_000_000_000
+    assert catalog.needs_refresh("Fresh", mtime_ns) is False
+    assert catalog.needs_refresh("Fresh", same_second_drift) is True
+
+
 def test_build_master_index_groups_by_domain_with_collapsed(graph_root: Path) -> None:
     catalog = MasterCatalog(graph_root=graph_root)
     catalog.upsert(
@@ -511,7 +550,7 @@ def test_incremental_refresh_only_touches_stale_pages(graph_root: Path) -> None:
     catalog = load_master_catalog(graph_root, force_reload=True)
     assert catalog.pages["Changed"].summary == "Changed summary."
     assert catalog.pages["Stable"].summary == "Stable summary."
-    assert catalog.pages["Stable"].last_mtime == int(indexed.stat().st_mtime)
+    assert catalog.pages["Stable"].last_mtime == indexed.stat().st_mtime_ns
 
 
 def test_compute_topology_metrics_orphans_and_clusters(graph_root: Path) -> None:

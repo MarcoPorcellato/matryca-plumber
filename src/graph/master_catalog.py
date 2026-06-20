@@ -24,6 +24,7 @@ from .path_sandbox import read_graph_file_text
 
 CATALOG_FILENAME = "master_catalog.json"
 CATALOG_VERSION = 1
+LEGACY_SECONDS_MTIME_CUTOFF = 10_000_000_000
 SEMANTIC_INDEX_HEADING = "### Matryca Semantic Index"
 SEMANTIC_INDEX_HEADER = f"- {SEMANTIC_INDEX_HEADING}"
 MASTER_INDEX_PAGE_TITLE = "Matryca Master Index"
@@ -43,6 +44,19 @@ _catalog_mtime_ns: dict[str, int] = {}
 
 class CatalogLoadError(OSError):
     """Raised when ``master_catalog.json`` cannot be read and no safe cache exists."""
+
+
+def normalize_stored_mtime_ns(stored_mtime: int) -> int:
+    """Return ``last_mtime`` as nanoseconds, accepting legacy second values."""
+    if abs(stored_mtime) < LEGACY_SECONDS_MTIME_CUTOFF:
+        return stored_mtime * 1_000_000_000
+    return stored_mtime
+
+
+def _stored_mtime_matches(stored_mtime: int, mtime_ns: int) -> bool:
+    if abs(stored_mtime) < LEGACY_SECONDS_MTIME_CUTOFF:
+        return int(mtime_ns // 1_000_000_000) == stored_mtime
+    return int(mtime_ns) == stored_mtime
 
 
 @dataclass(slots=True)
@@ -221,7 +235,7 @@ class MasterCatalog:
             entry = self.pages.get(page_title)
             if entry is None:
                 return True
-            return int(mtime_ns // 1_000_000_000) != entry.last_mtime
+            return not _stored_mtime_matches(entry.last_mtime, int(mtime_ns))
 
     def prune_missing_pages(self) -> int:
         """Drop catalog rows and alias mappings for deleted markdown files."""
@@ -268,7 +282,11 @@ def _merge_catalog_page_deltas(
     merged = dict(disk_pages)
     for title, entry in pending.items():
         existing = merged.get(title)
-        if existing is None or entry.last_mtime >= existing.last_mtime:
+        entry_mtime_ns = normalize_stored_mtime_ns(entry.last_mtime)
+        existing_mtime_ns = (
+            normalize_stored_mtime_ns(existing.last_mtime) if existing is not None else None
+        )
+        if existing_mtime_ns is None or entry_mtime_ns >= existing_mtime_ns:
             merged[title] = entry
     return merged
 
@@ -453,14 +471,13 @@ def entry_from_page_path(graph_root: Path, page_path: Path) -> CatalogEntry | No
     try:
         content = read_graph_page_text(page_path, graph_root, errors="replace")
         mtime_ns = page_path.stat().st_mtime_ns
-        mtime = int(mtime_ns // 1_000_000_000)
     except OSError:
         return None
 
     extracted = extract_catalog_fields_from_content(content)
     if extracted is None:
         return None
-    extracted.last_mtime = mtime
+    extracted.last_mtime = int(mtime_ns)
     return extracted
 
 
@@ -593,5 +610,6 @@ __all__ = [
     "load_master_catalog",
     "unload_master_catalog",
     "master_index_page_path",
+    "normalize_stored_mtime_ns",
     "write_master_index_page",
 ]

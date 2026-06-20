@@ -103,6 +103,33 @@ def test_harvest_upserts_catalog_when_semantic_index_append_succeeds(graph_root:
     entry = catalog.get(title)
     assert entry is not None
     assert entry.summary.startswith("Harvested summary for Needs Index")
+    assert entry.last_mtime == page.stat().st_mtime_ns
     assert status == "llm"
     assert changed is True
     assert llm_called is True
+
+
+def test_harvest_regex_path_stores_nanosecond_mtime(graph_root: Path) -> None:
+    pages = graph_root / "pages"
+    pages.mkdir(parents=True)
+    page = pages / "Indexed.md"
+    page.write_text(
+        f"- type:: risorsa\n{SEMANTIC_INDEX_HEADER}\n- summary:: Indexed summary\n",
+        encoding="utf-8",
+    )
+    title = page_title_from_path(graph_root, page)
+    catalog = load_master_catalog(graph_root)
+
+    status, changed, llm_called = harvest_page_into_catalog(
+        graph_root,
+        catalog,
+        page,
+        llm=None,
+    )
+
+    entry = catalog.get(title)
+    assert entry is not None
+    assert entry.last_mtime == page.stat().st_mtime_ns
+    assert status == "regex"
+    assert changed is True
+    assert llm_called is False
