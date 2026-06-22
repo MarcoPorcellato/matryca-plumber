@@ -600,6 +600,45 @@ def test_stop_daemon_removes_stale_pid(graph_root: Path) -> None:
     assert stop_out["code"] == "stale_pid_removed"
 
 
+def test_graceful_shutdown_logs_final_save_errors(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailingCatalog:
+        def save(self) -> None:
+            raise OSError("catalog unavailable")
+
+    logged: list[str] = []
+
+    def fail_save_daemon_state(_graph_root: Path, _state: DaemonState) -> None:
+        raise OSError("state unavailable")
+
+    def capture_exception(message: str, *args: object, **kwargs: object) -> None:
+        _ = (args, kwargs)
+        logged.append(message)
+
+    monkeypatch.setattr(
+        "src.agent.maintenance_daemon.load_master_catalog",
+        lambda _graph_root: FailingCatalog(),
+    )
+    monkeypatch.setattr(
+        "src.agent.maintenance_daemon.save_daemon_state",
+        fail_save_daemon_state,
+    )
+    monkeypatch.setattr(
+        "src.agent.maintenance_daemon.logger.exception",
+        capture_exception,
+    )
+
+    daemon = MaintenanceDaemon(graph_root, llm_client=StubLLM())
+    daemon._finalize_graceful_shutdown(DaemonState())
+
+    assert logged == [
+        "Final master catalog save failed during graceful shutdown",
+        "Final daemon state save failed during graceful shutdown",
+    ]
+
+
 def test_collect_snapshot_reports_metrics(graph_root: Path) -> None:
     _write_page(graph_root, "Snap", "- snap\n")
     snap = collect_snapshot(

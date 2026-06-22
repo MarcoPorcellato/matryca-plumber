@@ -2073,14 +2073,18 @@ class MaintenanceDaemon:
         """Flush ledger telemetry and release daemon resources after the loop exits."""
         self._wait_for_inflight_writes()
 
-        with contextlib.suppress(Exception):
+        try:
             load_master_catalog(self.graph_root).save()
+        except OSError:
+            logger.exception("Final master catalog save failed during graceful shutdown")
 
         checkpoint = state or load_daemon_state(self.graph_root)
         checkpoint.status = "stopped"
         self._sync_live_telemetry(checkpoint)
-        with contextlib.suppress(Exception):
+        try:
             save_daemon_state(self.graph_root, checkpoint)
+        except OSError:
+            logger.exception("Final daemon state save failed during graceful shutdown")
 
         self._stop_file_watcher()
         remove_pid_file(self.graph_root)
