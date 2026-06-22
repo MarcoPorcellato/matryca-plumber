@@ -1,18 +1,116 @@
 # Good First Issues — Contributor Blueprints
 
-**Updated v1.10.6 backlog expansion** — Tier A (#43, #44, #52) tagged and welcomed; #45 retitled (test-only); Tier B created as [#89](https://github.com/MarcoPorcellato/matryca-plumber/issues/89)–[#93](https://github.com/MarcoPorcellato/matryca-plumber/issues/93) via [`scripts/populate_gfi_backlog.sh`](scripts/populate_gfi_backlog.sh).
+**Updated post-#100 merge (2026-06-22)** — #44 shipped via [#100](https://github.com/MarcoPorcellato/matryca-plumber/pull/100) (thanks @gaoflow). Tier C opened [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105); [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38) promoted to `good first issue`.
 
-**Active good-first candidates:** #43, #44, #45 (test-only, in progress), #52, #53, #56, #69, #71, #85, [#89](https://github.com/MarcoPorcellato/matryca-plumber/issues/89), [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90), [#91](https://github.com/MarcoPorcellato/matryca-plumber/issues/91), [#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#93](https://github.com/MarcoPorcellato/matryca-plumber/issues/93). Welcome comments are on each GitHub thread.
+**Active good-first candidates:** #38, #43, #52, #53, #56, #69, #71, #85, [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105). Welcome comments are on each GitHub thread.
 
-**Before opening a PR:** read [`CONTRIBUTING.md`](CONTRIBUTING.md), run `make check`, and reference the issue number in your PR title (e.g. `test(link): nanosecond OCC guards in link_verification (#45)`).
+**Before opening a PR:** read [`CONTRIBUTING.md`](CONTRIBUTING.md), run `make check`, and reference the issue number in your PR title (e.g. `fix(daemon): log SIG handler shutdown telemetry (#101)`).
 
 If a maintainer closes an overarching audit issue while your PR is open, **rebase on `main`** and update tests/docs to match the new architecture (see CONTRIBUTING § Pull request workflow).
 
 ---
 
+## Shipped — Issue #44 (daemon shutdown save logging)
+
+**Difficulty:** 2/10 · Closed via [#100](https://github.com/MarcoPorcellato/matryca-plumber/pull/100) · contributor @gaoflow
+
+**Summary:** `_finalize_graceful_shutdown` now uses `try/except OSError` + `logger.exception` for final catalog and daemon state saves instead of `contextlib.suppress(Exception)`.
+
+**Regression test:** `test_graceful_shutdown_logs_final_save_errors` in `tests/test_maintenance_daemon.py`.
+
+**Follow-up slices:** [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101) (SIG handler token_logger), [#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105) (cleanup-after-failure test).
+
+---
+
+## Tier C — Post-#100 backlog (#101–#105)
+
+| Issue | Summary | Difficulty |
+|-------|---------|------------|
+| [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101) | SIG handler logs `token_logger.log_daemon_shutdown` failures (slice of #44) | 2/10 |
+| [#102](https://github.com/MarcoPorcellato/matryca-plumber/issues/102) | TUI dashboard logs activity tail / state load failures | 2/10 |
+| [#103](https://github.com/MarcoPorcellato/matryca-plumber/issues/103) | `_sync_catalog_after_page_write` uses `st_mtime_ns` not truncated seconds | 2/10 |
+| [#104](https://github.com/MarcoPorcellato/matryca-plumber/issues/104) | `load_semantic_clusters` reads cluster JSON under `cross_process_json_flock` (slice of #42) | 3/10 |
+| [#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105) | Test: shutdown cleanup continues after save failures (test-only, extends #100) | 2/10 |
+
+Promoted: [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38) — `needs_refresh` nanosecond alignment (3/10).
+
+---
+
+## Issue #101 — SIG handler shutdown telemetry (slice of #44)
+
+**Difficulty:** 2/10 · [GitHub #101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)
+
+**Verify:**
+```bash
+uv run pytest tests/test_maintenance_daemon.py -q
+make check
+```
+
+---
+
+## Issue #102 — TUI dashboard suppressed refresh errors
+
+**Difficulty:** 2/10 · [GitHub #102](https://github.com/MarcoPorcellato/matryca-plumber/issues/102)
+
+**Verify:**
+```bash
+uv run pytest tests/test_tui_dashboard.py -q
+make check
+```
+
+---
+
+## Issue #103 — `_sync_catalog_after_page_write` nanosecond mtime
+
+**Difficulty:** 2/10 · [GitHub #103](https://github.com/MarcoPorcellato/matryca-plumber/issues/103)
+
+**Verify:**
+```bash
+uv run pytest tests/test_maintenance_daemon.py tests/test_master_catalog.py -q
+make check
+```
+
+---
+
+## Issue #104 — semantic cluster JSON flock (slice of #42)
+
+**Difficulty:** 3/10 · [GitHub #104](https://github.com/MarcoPorcellato/matryca-plumber/issues/104)
+
+**Verify:**
+```bash
+uv run pytest tests/test_semantic_clustering.py -q
+make check
+```
+
+---
+
+## Issue #105 — shutdown cleanup regression test (test-only)
+
+**Difficulty:** 2/10 · [GitHub #105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105)
+
+**Verify:**
+```bash
+uv run pytest tests/test_maintenance_daemon.py -q
+make check
+```
+
+---
+
+## Issue #38 — `needs_refresh` nanosecond alignment
+
+**Difficulty:** 3/10 · [GitHub #38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38)
+
+**Verify:**
+```bash
+uv run pytest tests/test_master_catalog.py -q
+make check
+```
+
+---
+
 ## In progress — Issue #45 (test-only, nanosecond OCC)
 
-**Difficulty:** 2/10 · [GitHub #45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45)
+**Difficulty:** 2/10 · [GitHub #45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45) — **closed** (tests shipped)
 
 **Title (updated):** `[Test] Add nanosecond OCC regression tests for link_verification`
 
@@ -38,14 +136,13 @@ If a maintainer closes an overarching audit issue while your PR is open, **rebas
 
 ---
 
-## Tier A — Promoted audit issues (#52, #44, #43)
+## Tier A — Promoted audit issues (#52, #43)
 
 Tagged `good first issue` + `help wanted` by `scripts/populate_gfi_backlog.sh`. Full welcome comments are on each GitHub thread.
 
 | Issue | Summary | Difficulty |
 |-------|---------|------------|
 | [#52](https://github.com/MarcoPorcellato/matryca-plumber/issues/52) | `MmapTextView` avoids full `mmap[:]` copy | 2/10 |
-| [#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44) | Daemon shutdown logs flush errors instead of `suppress(Exception)` | 2/10 |
 | [#43](https://github.com/MarcoPorcellato/matryca-plumber/issues/43) | `page_rmw_lock` on `matryca-config.md` seed race | 3/10 |
 
 ---
@@ -286,6 +383,8 @@ Tagged `good first issue` + `help wanted` by `scripts/populate_gfi_backlog.sh`. 
 
 | Issue | Shipped in | Summary |
 |-------|------------|---------|
+| [#44](https://github.com/MarcoPorcellato/matryca-plumber/issues/44) | main (#100, @gaoflow) | Daemon shutdown logs final catalog/state save failures |
+| [#45](https://github.com/MarcoPorcellato/matryca-plumber/issues/45) | v1.9.10 (#38) | Nanosecond OCC tests for link_verification |
 | [#67](https://github.com/MarcoPorcellato/matryca-plumber/issues/67) | v1.9.15 | Journal Phase-2 structural settle — no semantic LLM |
 | [#68](https://github.com/MarcoPorcellato/matryca-plumber/issues/68) | v1.9.14 | Entity consolidation skips journal/date wikilink pairs |
 | [#70](https://github.com/MarcoPorcellato/matryca-plumber/issues/70) | v1.9.15 | Phase-2 progress denominator excludes `journals/` |

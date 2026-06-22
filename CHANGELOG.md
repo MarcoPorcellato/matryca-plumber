@@ -10,7 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Core:** `link_verification` now correctly uses `file_mtime_drifted()` with exact nanosecond precision for OCC checks (thanks to @gaoflow in #88).
-- **Daemon shutdown (#44):** Final catalog and daemon state save failures now log exception details instead of being silently suppressed during graceful shutdown.
+- **Daemon shutdown (#44):** Final catalog and daemon state save failures now log exception details instead of being silently suppressed during graceful shutdown (thanks to @gaoflow in #100).
+
+### Changed
+
+- **Contributor onboarding:** Five new good-first issues ([#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105)) plus promoted [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38); shipped #44 closed via #100 — see [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md).
 
 ## [1.10.6] - 2026-06-19
 
