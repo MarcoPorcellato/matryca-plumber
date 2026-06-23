@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Docs** — GitNexus bug hunt registry: [`docs/quality/BUG_HUNT_2026-06-23.md`](docs/quality/BUG_HUNT_2026-06-23.md) + GitHub backlog [`docs/quality/GITHUB_BUG_BACKLOG.md`](docs/quality/GITHUB_BUG_BACKLOG.md); filed **#113–#119** on GitHub.
 - **Contributor onboarding:** Five new good-first issues ([#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105)) plus promoted [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38); shipped #44 closed via #100 — see [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md).
 
 ## [1.10.6] - 2026-06-19

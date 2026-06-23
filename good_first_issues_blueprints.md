@@ -1,8 +1,8 @@
 # Good First Issues — Contributor Blueprints
 
-**Updated post-#100 merge (2026-06-22)** — #44 shipped via [#100](https://github.com/MarcoPorcellato/matryca-plumber/pull/100) (thanks @gaoflow). Tier C opened [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105); [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38) promoted to `good first issue`.
+**Updated 2026-06-23** — GitNexus hunt filed [#113](https://github.com/MarcoPorcellato/matryca-plumber/issues/113)–[#119](https://github.com/MarcoPorcellato/matryca-plumber/issues/119). Registry: `docs/quality/GITHUB_BUG_BACKLOG.md`.
 
-**Active good-first candidates:** #38, #43, #52, #53, #56, #69, #71, #85, [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105). Welcome comments are on each GitHub thread.
+**Active good-first candidates:** #38, #43, #52, #53, #56, #69, #71, #85, [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#101](https://github.com/MarcoPorcellato/matryca-plumber/issues/101)–[#105](https://github.com/MarcoPorcellato/matryca-plumber/issues/105), **#113, #114, #118**. Welcome comments are on each GitHub thread.
 
 **Before opening a PR:** read [`CONTRIBUTING.md`](CONTRIBUTING.md), run `make check`, and reference the issue number in your PR title (e.g. `fix(daemon): log SIG handler shutdown telemetry (#101)`).
 
@@ -23,6 +23,12 @@ If a maintainer closes an overarching audit issue while your PR is open, **rebas
 ---
 
 ## Tier C — Post-#100 backlog (#101–#105)
+
+| Issue | Summary | Difficulty |
+|-------|---------|------------|
+| [#113](https://github.com/MarcoPorcellato/matryca-plumber/issues/113) | `_count_catalog_summaries` swallows exceptions (GitNexus 2026-06) | 2/10 |
+| [#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114) | Graph Insights LLM silent fallback | 2/10 |
+| [#118](https://github.com/MarcoPorcellato/matryca-plumber/issues/118) | httpx2 / Starlette deprecation in CI | 2/10 |
 
 | Issue | Summary | Difficulty |
 |-------|---------|------------|

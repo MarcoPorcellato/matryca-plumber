@@ -10,6 +10,21 @@ Entries are chronological (**newest first** within each major release block). Wh
 
 ---
 
+## [2026-06-23] Unreleased — GitNexus bug hunt & quality audit
+
+### Context
+
+Systematic bug hunt using GitNexus graph analysis (`check`, `query`, `clusters`, `detect_changes`) cross-checked with runtime gates (pytest, ruff, mypy strict).
+
+### Findings & actions
+
+1. **Flaky test fixed** — `test_compute_semantic_clusters_scales_to_three_thousand_pages` failed intermittently under full-suite load (9.09s vs 8s ceiling); moved to `tests/slow/` with `@pytest.mark.slow` and 15s ceiling. Full report: [`docs/quality/BUG_HUNT_2026-06-23.md`](quality/BUG_HUNT_2026-06-23.md).
+2. **Import cycle resolved (P2)** — `alias_index` ↔ `generational_cache` broken via DI: `is_journal_page_title_in_index(AliasIndex)` in domain; cached facade in `generational_cache`. Runtime verified: `alias_index` loads without pulling `generational_cache`.
+3. **Import cycles remaining** — GitNexus still reports 3 other cycles (control_room TYPE_CHECKING, html false positive, plumber_config lazy); `maintenance_daemon` (3283 LOC) deferred.
+4. **GitHub backlog** — 49 open issues triaged; **#113–#119 filed** from GitNexus hunt — see [`docs/quality/GITHUB_BUG_BACKLOG.md`](quality/GITHUB_BUG_BACKLOG.md).
+
+---
+
 ## [2026-06-19] v1.10.6 — Concurrency integrity (unified flock + hub page OCC)
 
 ### Context
