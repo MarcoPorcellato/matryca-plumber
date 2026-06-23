@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **GitNexus embeddings tooling** — [`scripts/gitnexus-analyze-embeddings.sh`](scripts/gitnexus-analyze-embeddings.sh) + [`scripts/gitnexus-hf-cache.mjs`](scripts/gitnexus-hf-cache.mjs): re-index with semantic vectors when global `gitnexus` is root-owned under `/usr/local` (redirects HuggingFace cache to `~/.cache/huggingface`). [`.gitnexusrc`](.gitnexusrc) enables `embeddings` by default.
 - **v2.0 roadmaps** — Maintainer checklists for Shadow DB ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)) and Nacre-inspired biological memory layer: [`docs/roadmaps/ROADMAP_V2_SHADOW_DB.md`](docs/roadmaps/ROADMAP_V2_SHADOW_DB.md), [`docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md); cross-links in [`ROADMAP.md`](ROADMAP.md) and [`docs/openspec/README.md`](docs/openspec/README.md).
 - **v2.0 shadow schema** — [`src/shadow/schema.py`](src/shadow/schema.py) DDL for Logseq read cache (`pages`, `blocks`, `block_refs`, `blocks_fts`) plus biological memory tables (`memory_nodes` through `memory_snapshots`); `apply_shadow_schema()` helper and [`tests/test_shadow_schema.py`](tests/test_shadow_schema.py).
 - **v2.0 biological memory decay (Epic #99, Phase A)** — [`src/memory/decay.py`](src/memory/decay.py) Ebbinghaus pure math (`calculate_decayed_weight`, `calculate_stability`, `MemoryEdgeState`) ported from Nacre with numerical parity tests in [`tests/test_decay.py`](tests/test_decay.py).
