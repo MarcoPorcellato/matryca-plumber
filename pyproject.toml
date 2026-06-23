@@ -167,3 +167,8 @@ markers = [
     "slow: performance or memory soak tests (excluded from default CI)",
     "integration: subprocess or full-bootstrap tests (skipped by make test-fast)",
 ]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.4.0",
+]
