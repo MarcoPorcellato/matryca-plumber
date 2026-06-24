@@ -31,6 +31,7 @@ from ..graph.alias_index import (
     resolve_canonical_page_title,
 )
 from ..graph.bootstrap_harvest import (
+    BootstrapHarvestStatus,
     run_bootstrap_harvest,
     run_incremental_catalog_refresh,
 )
@@ -319,7 +320,6 @@ class FileState:
     lock_backoff_seconds: float | None = None
 
 
-BootstrapHarvestStatus = Literal["regex", "llm", "skipped", "error"]
 BOOTSTRAP_RECENT_MAX = 30
 
 

@@ -142,72 +142,30 @@ def _block_identity_header_bits(
     return bits
 
 
+def _get_node_attr(node: Any, key: str) -> Any:
+    """Unified accessor for both parsed node objects and dict dumps."""
+    if isinstance(node, dict):
+        return node.get(key)
+    return getattr(node, key, None)
+
+
 def _format_node_markdown(node: Any, depth: int) -> list[str]:
-    """Format a single parsed node subtree as readable Markdown lines."""
+    """Format a parsed node (object or dict dump) as readable Markdown lines."""
     indent = "  " * depth
     lines: list[str] = []
 
-    clean = (getattr(node, "clean_text", None) or "").strip()
-    raw_content = (getattr(node, "content", None) or "").strip()
+    clean = str(_get_node_attr(node, "clean_text") or "").strip()
+    raw_content = str(_get_node_attr(node, "content") or "").strip()
     body = clean if clean else raw_content
 
-    header_bits = _block_identity_header_bits(
-        uuid_val=getattr(node, "uuid", None),
-        source_uuid=getattr(node, "source_uuid", None),
-        synthetic_id=getattr(node, "synthetic_id", None),
-    )
-    task = getattr(node, "task_status", None)
-    if task:
-        header_bits.append(f"task: {task}")
-
-    if header_bits:
-        lines.append(f"{indent}- **Block** ({', '.join(header_bits)})")
-    else:
-        lines.append(f"{indent}- **Block**")
-
-    if body:
-        lines.append(f"{indent}  - **Text:** {body}")
-
-    props = getattr(node, "properties", None) or {}
-    if isinstance(props, dict) and props:
-        prop_lines = [f"{k} → {v}" for k, v in props.items() if k != "id"]
-        if prop_lines:
-            lines.append(f"{indent}  - **Properties:**")
-            for pl in prop_lines:
-                lines.append(f"{indent}    - {pl}")
-
-    wikilinks = getattr(node, "wikilinks", None) or []
-    if wikilinks:
-        lines.append(f"{indent}  - **Wikilinks:** {', '.join(str(w) for w in wikilinks)}")
-
-    block_refs = getattr(node, "block_refs", None) or []
-    if block_refs:
-        lines.append(f"{indent}  - **Block refs:** {', '.join(str(r) for r in block_refs)}")
-
-    children = getattr(node, "children", None) or []
-    for child in children:
-        lines.extend(_format_node_markdown(child, depth + 1))
-
-    return lines
-
-
-def _format_dict_node(node: dict[str, Any], depth: int) -> list[str]:
-    """Format a dumped node dict as Markdown (parallel to :func:`_format_node_markdown`)."""
-    indent = "  " * depth
-    lines: list[str] = []
-
-    clean = str(node.get("clean_text") or "").strip()
-    raw_content = str(node.get("content") or "").strip()
-    body = clean if clean else raw_content
-
-    synthetic_raw = node.get("synthetic_id")
+    synthetic_raw = _get_node_attr(node, "synthetic_id")
     synthetic_id = synthetic_raw if isinstance(synthetic_raw, bool) else None
     header_bits = _block_identity_header_bits(
-        uuid_val=cast(str | None, node.get("uuid")),
-        source_uuid=cast(str | None, node.get("source_uuid")),
+        uuid_val=cast(str | None, _get_node_attr(node, "uuid")),
+        source_uuid=cast(str | None, _get_node_attr(node, "source_uuid")),
         synthetic_id=synthetic_id,
     )
-    task = node.get("task_status")
+    task = _get_node_attr(node, "task_status")
     if task:
         header_bits.append(f"task: {task}")
 
@@ -219,7 +177,7 @@ def _format_dict_node(node: dict[str, Any], depth: int) -> list[str]:
     if body:
         lines.append(f"{indent}  - **Text:** {body}")
 
-    props = node.get("properties") or {}
+    props = _get_node_attr(node, "properties") or {}
     if isinstance(props, dict) and props:
         prop_lines = [f"{k} → {v}" for k, v in props.items() if k != "id"]
         if prop_lines:
@@ -227,23 +185,24 @@ def _format_dict_node(node: dict[str, Any], depth: int) -> list[str]:
             for pl in prop_lines:
                 lines.append(f"{indent}    - {pl}")
 
-    wikilinks = node.get("wikilinks") or []
+    wikilinks = _get_node_attr(node, "wikilinks") or []
     if isinstance(wikilinks, list) and wikilinks:
         lines.append(f"{indent}  - **Wikilinks:** {', '.join(str(w) for w in wikilinks)}")
 
-    block_refs = node.get("block_refs") or []
+    block_refs = _get_node_attr(node, "block_refs") or []
     if isinstance(block_refs, list) and block_refs:
         lines.append(f"{indent}  - **Block refs:** {', '.join(str(r) for r in block_refs)}")
 
-    children = node.get("children") or []
+    children = _get_node_attr(node, "children") or []
     if isinstance(children, list):
         for child in children:
-            if isinstance(child, dict):
-                lines.extend(_format_dict_node(cast(dict[str, Any], child), depth + 1))
-            else:
-                lines.extend(_format_node_markdown(child, depth + 1))
+            lines.extend(_format_node_markdown(child, depth + 1))
 
     return lines
+
+
+# Legacy alias — callers that pass a dict still work via the unified function
+_format_dict_node = _format_node_markdown
 
 
 def _format_parsed_page_markdown(parsed: Any) -> str:

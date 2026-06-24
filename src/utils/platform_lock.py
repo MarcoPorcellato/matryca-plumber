@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
 from collections.abc import Iterator
@@ -195,8 +196,14 @@ def cross_process_sidecar_lock(
         os.close(fd)
 
 
+def flock_available() -> bool:
+    """Return whether OS-level ``fcntl.flock`` is available on this platform."""
+    return _fcntl is not None and sys.platform != "win32"
+
+
 __all__ = [
     "acquire_exclusive_flock",
+    "flock_available",
     "clear_flock_depths",
     "cross_process_sidecar_lock",
     "flock_degradation_allowed",

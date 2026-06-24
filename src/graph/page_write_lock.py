@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 import threading
 import time
 from collections import OrderedDict
@@ -13,8 +12,8 @@ from pathlib import Path
 from loguru import logger
 
 from ..utils.platform_lock import (
-    _fcntl,
     cross_process_sidecar_lock,
+    flock_available,
     probe_exclusive_flock,
 )
 from .io_retry import (
@@ -162,7 +161,7 @@ def sweep_matryca_lock_sidecars(graph_root: str | Path) -> int:
 
 def cross_process_lock_available() -> bool:
     """Return whether OS-level ``flock`` locking is active on this platform."""
-    return _fcntl is not None and sys.platform != "win32"
+    return flock_available()
 
 
 __all__ = [
