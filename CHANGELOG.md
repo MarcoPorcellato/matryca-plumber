@@ -38,6 +38,7 @@
 - **`SemanticRuntimeConfig`** — injectable embedding/hybrid settings for the semantic indexer path.
 
 ### Changed
+- **Tech Debt (#62):** `flock_available()` in `platform_lock.py`; unified `_format_node_markdown` in `matryca_hooks.py`; `BootstrapHarvestStatus` imported from `bootstrap_harvest.py`.
 
 - **Graph → daemon dependency inversion ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134))** — `markdown_blocks.atomic_write_bytes` emits `graph.post_write.emit_page_written`; daemon `post_write_hooks` is a thin adapter; AST refresh registers as a graph-local handler.
 - **Agent → graph moves** — cooperative yield, prompt layout/constraints, cognitive LLM protocols, harvest runtime, and page namespace detection canonical in `src/graph/`; agent modules re-export.
@@ -55,7 +56,6 @@
 - **Repository hygiene (TRIZ separation-in-space)** — vendor graph indexer tooling under gitignored `.local/`; public wrappers `scripts/provision-local-workspace.sh` and `scripts/reindex-code-graph.sh`.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Lock backoff downgrade ([#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132))** — skip re-backoff when file was already `processed`.
 - **TUI daemon state load ([#130](https://github.com/MarcoPorcellato/matryca-plumber/issues/130))** — narrow exception catch + breadcrumb log.
@@ -84,7 +84,6 @@
 - **v2.0 biological memory decay (Epic #99, Phase A)** — [`src/memory/decay.py`](src/memory/decay.py) Ebbinghaus pure math (`calculate_decayed_weight`, `calculate_stability`, `MemoryEdgeState`) ported from Nacre with numerical parity tests in [`tests/test_decay.py`](tests/test_decay.py).
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Import cycle (P2)** — Broke `alias_index` ↔ `generational_cache` runtime cycle: pure `is_journal_page_title_in_index(AliasIndex, …)` in domain layer; cached `is_journal_page_title(graph_root, …)` lives in `generational_cache`; `should_skip_entity_overlap_pair` accepts injected `alias_index`.
 - **Flaky CI test** — 3000-page semantic clustering scale test moved to `tests/slow/` (`@pytest.mark.slow`, 15s ceiling) after intermittent failures under full-suite load (~9s vs 8s threshold); structural assertions unchanged.
@@ -107,7 +106,6 @@
 **Concurrency integrity — unified flock + hub page OCC**
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **JSON sidecar flock parity (#40)** — `cross_process_json_flock` shares `src/utils/platform_lock.py` with page RMW locks: non-blocking acquire with exponential backoff, blocking fallback after NB exhaustion, `MATRYCA_ALLOW_FLOCK_DEGRADATION`, and thread-local reentrancy depth tracking (fixes nested catalog/registry deadlocks and reduces pytest-xdist lock thrashing).
 - **Hub page OCC (#34)** — `write_generated_hub_page` in `src/graph/generated_hub_write.py` wraps Master Index and Graph Insights compiles: pre-compile `occ_snapshot`, `page_rmw_lock`, and `atomic_write_bytes_if_unchanged`; concurrent human edits during compile log a graceful skip (derived pages regenerate on the next daemon cycle).
@@ -156,7 +154,6 @@
 **Fast test gate & CI fixes**
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **CI mypy** — `test_semantic_cache_router` patches `time.time` via dotted module path so strict mypy passes (`attr-defined` clean).
 
@@ -169,7 +166,6 @@
 **Catalog Integrity & OSS Maturity**
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Harvest catalog drift guard (#37)** — `catalog.upsert` runs only when `_append_minimal_semantic_index` confirms the page write (or the header is already present); OCC abort returns `pending_llm` without catalog/page drift.
 - **Link registry atomic save (#41)** — `_save_registry_unlocked` uses `atomic_write_bytes`, matching backlink index and daemon state persistence.
@@ -193,7 +189,6 @@
 **Strict Mypy Compliance & Journal Phase-2 Bypass**
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Mypy strictness (#60)** — Removed all 11 `# type: ignore` suppressions under `src/`; replaced with `cast()`, `isinstance()` narrowing, `Path()` coercion, a `_FilesystemObserver` Protocol, and lambda key functions so strict mypy passes without cheats.
 
@@ -210,7 +205,6 @@
 - **Good First Issues blueprints** — Root [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) with six curated v1.9.x audit issues and copy-paste GitHub contributor guide comments for external onboarding.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **SessionAliasRegistry SLF001** — Centralized upstream private dict access in `safe_update_alias` / `safe_alias_items` helpers (`src/agent/alias_state.py`); `graph_tool_helpers.py` no longer mutates `_alias_to_uuid` directly (#64).
 - **HTTP NoRedirect DRY** — Shared `NoRedirect` handler in `src/utils/network.py` replaces duplicate classes in `preflight.py` and `ui_server.py` (#62).
@@ -227,7 +221,6 @@
 **Enterprise Resilience Update — 12 architectural hardening fixes**
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 #### Security & Sandbox
 
@@ -263,7 +256,6 @@
 **Sovereign UI reliability — large vault operator fixes**
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Sovereign UI reliability** — lazy runtime bootstrap (`eager_graph=False`) on settings save, graph-path save, L1 provision, and **Start Engine** so large vaults no longer hit the 10s fetch timeout; `GET /api/config` reads `LOGSEQ_GRAPH_PATH` from `.env` file values; Settings drawer blocks save until config loads, confirms discard on close, and shows API errors (not `engineError`); pre-flight treats `warn` as non-blocking; modal auto-dismisses when checks pass; graph-path pre-flight surfaces post-save verification failures; graph analytics uses 18s server cache, 60s client timeout, and marks telemetry offline on poll failure.
 
@@ -312,7 +304,6 @@
 - **Chaos-hardened AX tests** — `tests/test_agent_experience_robustness.py` stress-tests path traversal rejection, namespace edge cases, and safe fallback writes for hallucinated LLM targets.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **MCP outline validation** — Automatic type coercion (`int` → `str`) for `heading_level` in `mutate_graph` / `write_outline` payloads; parser echo keys are hoisted from `properties` and stripped before disk write so `heading_level::` never lands in Logseq `.md` files (improves Agent Experience with local LLMs such as Hermes).
 - **MCP write resilience** — `write_outline` / `inject_query` with `Page Title|block` targets perform a safe page-bottom append when the block UUID or `[n]` alias is invalid but the page exists; empty or blockless pages append at EOF; warnings are returned in the JSON payload and logged to stderr.
@@ -334,7 +325,6 @@
 - **Documentation** — `llms.txt`, `.well-known/llms.txt`, ARCHITECTURE, OpenSpec index, and `agent-onboarding.md` aligned with Hermes host config and lazy MCP handshake (v1.9.6).
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **GitHub traffic badges** — README Shields.io endpoints now read badge JSON from the `metrics` branch (`raw.githubusercontent.com/.../metrics/metrics/...`); `metrics-saver` publishes a metrics-only orphan branch via `METRICS_TOKEN` instead of bloating the branch with the full repo tree.
 - **README badges** — Python badge reads `requires-python` from `pyproject.toml` (PyPI `pyversions` showed `missing` without Trove classifiers); coverage anchor and test-count badge aligned with current suite (`640+`, `cov-fail-under=70` at `pyproject.toml` L138).
@@ -377,7 +367,6 @@
 - **Auto-unfreeze** — Sovereign UI detects a live Plumber PID (`daemon_pid` or `running`/`idle` status) and resumes state polling even when started from `matryca plumber start` in another terminal; full logs/analytics still require **Start Engine**.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Thread-safe daemon checkpoints** — Telemetry persistence uses `threading.Lock` plus immutable `DaemonState` JSON snapshots so heartbeat threads never race the main LLM loop during `index_page()`.
 - **Stuck progress bar & pills** — Progress, bootstrap pills, and Phase 2 file pills reach disk on heartbeat and per-file checkpoints instead of appearing only after **Stop Engine**.
@@ -422,7 +411,6 @@
 - **Sovereign UI settings** — Infrastructure drawer exposes `LLM_API_KEY` as **API Token** (password field); persisted to `.env` on save. Required only for cloud OpenAI-compatible endpoints.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Journey log pending leak** — After appending `## 🤖 Matryca Activity` to today's journal, the daemon records `journals/YYYY_MM_DD.md` in file state so `list_pending_files` does not re-queue it on the next cycle (`src/agent/maintenance_daemon.py`).
 - **Link verification hygiene** — Re-check flagged registry entries; GET fallback when HEAD is inconclusive; merge-safe registry persistence; prune removed page links; clear on-graph `dead-link::` / `missing-asset::` on recovery; journey log splits URL vs asset flag counts (`src/graph/link_verification.py`, `src/agent/maintenance_daemon.py`).
@@ -453,7 +441,6 @@
 - **Cursor rule `07-env-example.mdc`** — Agents must update `.env.example` when env vars change; file split into **Operator essentials** vs **Advanced / high impact** sections.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **v1.8 audit (round 4)** — `generate_graph_insights` is stateless so ontology reports do not pollute Ermes history; context-compression summaries are prose-sanitized before persistence; semantic-index block catalogs cap at 8k chars; Phase 2 LLM inference no longer holds `page_rmw_lock` (write-only lock in `apply_semantic_page_result`); `id::` lines are excluded from property-line hygiene so Logseq block UUIDs are never edited as properties.
 - **Gemma JSON degeneration** — Structured LLM completions cap at `MATRYCA_LLM_MAX_COMPLETION_TOKENS` (default 2048); `json_repair` uses balanced-brace extraction (not greedy `{.*}`), strips post-`}` `\n` token loops, and normalizes Gemma `\n  \"key` leakage before indexing Logseq pages.
@@ -472,14 +459,12 @@
 - **README** — Expanded professional badge block at the top (PyPI, GitHub Release, CI quality gates, platform, MCP, Logseq OG, security, contributing, code of conduct).
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **CI** — Pin `astral-sh/setup-uv` to immutable `v8.1.0` (major tag `@v8` was removed in setup-uv v8.0.0).
 
 ## [1.8.3] - 2026-05-29
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **CI** — `ruff format` on `maintenance_daemon.py`; GitHub Actions upgraded to Node 24–compatible action majors (`checkout@v6`, `setup-node@v6`, `setup-uv@v8`).
 
@@ -490,7 +475,6 @@
 - **`logseq-matryca-parser`** — minimum dependency raised to **1.1.1** (latest on PyPI; was `>=0.3.3`).
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Cognitive KV-cache alignment** — `run_cognitive_lint_pipeline` rebuilds `PagePromptSession` after on-disk mutations so semantic index LLM calls no longer use a stale stable prefix.
 - **Master catalog load safety** — transient `OSError` no longer caches an empty catalog that could overwrite `master_catalog.json`; corrupt JSON is quarantined or restored from `.bak`; `save()` is blocked until a successful load.
@@ -507,7 +491,6 @@
 ## [1.8.1] - 2026-05-28
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **CI formatting** — `ruff format` on `page_prompt_session.py`, `process_priority.py`, and `master_catalog.py` so `make ci` passes on `main`.
 
@@ -538,7 +521,6 @@
 - **Structured output** — `InstructorLLMClient` moved to `llm_client.py`; instructor mode carousel replaced by probe-driven Path A/B.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Semantic cache TTL** — no longer deletes the master catalog when purging expired inference cache files.
 
@@ -561,7 +543,6 @@
 - **CI** — single `ci.yml` workflow with `make ci` (`ruff format --check` without mutating the tree); Ruff `ASYNC`/`S`/`PERF`/`RUF`; pytest coverage gate (70% on `src`).
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **`graph_dispatch`** — safe integer parsing for JSON tool options (no bare `ValueError` escapes).
 - **Phase 2 progress bar (Sovereign UI)** — vault-wide and per-cluster progress now share one resolver with the TUI and daemon checkpoints (`progress_*` on `GET /api/state`); persisted `phase2_cognitive_*` counters and in-flight cluster file subtitles so the bar no longer stays at 0% while the engine works.
@@ -588,7 +569,6 @@
 - **`.env.example`** — `MATRYCA_L1_PATH` left commented (sibling `matryca-l1/` via pre-flight); documents log path overrides and runtime layout pointers.
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **Phase 1 catalog pills (empty state)** — pills no longer read only `state.files` during Phase 1 when the daemon has not yet started Phase 2 file checkpoints.
 - **Phase 1 thermal delay** — bootstrap pauses reload `MATRYCA_THERMAL_DELAY_BOOTSTRAP` from `.env` after every catalog LLM turn (Settings Drawer value is honored); cool-down sleeps wake promptly on Stop.
@@ -634,7 +614,6 @@ No user-facing changes (version alignment with PyPI / lockfile).
 ## [1.5.15] - 2026-05-24
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **MCP log bridge** — reset/re-register Loguru MCP telemetry sink after `logger.remove()` (fixes flaky `test_mcp_telemetry` under full pytest collection).
 - **Sovereign UI daemon start** — treat successful detached launcher exit (code 0) as success when a live PID is published.
@@ -655,7 +634,6 @@ No user-facing changes (version alignment with PyPI / lockfile).
 ## [1.5.13] - 2026-05-24
 
 ### Fixed
-- **Tech Debt (#62):** Consolidated `_format_node_markdown` / `_format_dict_node` into a single unified function via `_get_node_attr`; removed duplicate `BootstrapHarvestStatus` Literal from `maintenance_daemon` (now imported from `bootstrap_harvest`); replaced private `_fcntl` import in `page_write_lock` with new public `flock_available()` helper in `platform_lock`.
 
 - **MCP Loguru sink** — thread-safe `enqueue` pickling for telemetry under pytest and multi-threaded hosts.
 
