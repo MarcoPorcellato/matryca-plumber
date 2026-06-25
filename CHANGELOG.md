@@ -24,6 +24,9 @@
 - **[`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md)** — Clean Architecture / Clean Code map for Tier-1, L0, Tier-2 assembly; mermaid + ASCII data-flow diagrams.
 - **`docs/ARCHITECTURE.md`**, **`README.md`**, **`ROADMAP.md`**, **`PROJECT_DIARY.md`** — harmonized for plan v3 and v1.12.0.
 
+### Changed
+- **Tech Debt (#62):** `flock_available()` in `platform_lock.py`; unified `_format_node_markdown` in `matryca_hooks.py`; `BootstrapHarvestStatus` imported from `bootstrap_harvest.py`.
+
 ## [1.11.2] - 2026-06-24
 
 **Graph layer boundary refactor, bounded RAM caches, and OCC nanosecond parity**
@@ -38,8 +41,6 @@
 - **`SemanticRuntimeConfig`** — injectable embedding/hybrid settings for the semantic indexer path.
 
 ### Changed
-- **Tech Debt (#62):** `flock_available()` in `platform_lock.py`; unified `_format_node_markdown` in `matryca_hooks.py`; `BootstrapHarvestStatus` imported from `bootstrap_harvest.py`.
-
 - **Graph → daemon dependency inversion ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134))** — `markdown_blocks.atomic_write_bytes` emits `graph.post_write.emit_page_written`; daemon `post_write_hooks` is a thin adapter; AST refresh registers as a graph-local handler.
 - **Agent → graph moves** — cooperative yield, prompt layout/constraints, cognitive LLM protocols, harvest runtime, and page namespace detection canonical in `src/graph/`; agent modules re-export.
 - **OCC mtime nanoseconds ([#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) partial)** — `occ_snapshot` / `read_file_mtime_ns` / exact `st_mtime_ns` drift checks on page writes (legacy second-resolution snapshots preserved).
