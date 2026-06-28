@@ -6,8 +6,9 @@ import json
 from pathlib import Path
 
 import pytest
-from logseq_matryca_parser.agent_press import XRAY_STATE_FILENAME, SessionAliasRegistry
+from logseq_matryca_parser.agent_press import XRAY_STATE_FILENAME
 from src.agent.alias_state import (
+    SessionAliasRegistry,
     alias_file_path,
     load_alias_registry,
     resolve_pipe_target,
@@ -21,8 +22,7 @@ BLOCK_UUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 def _registry_with(mapping: dict[int, str]) -> SessionAliasRegistry:
     registry = SessionAliasRegistry()
     for alias, block_uuid in mapping.items():
-        registry._alias_to_uuid[alias] = block_uuid  # noqa: SLF001
-        registry._uuid_to_alias[block_uuid] = alias  # noqa: SLF001
+        registry.register_alias(alias, block_uuid)
     return registry
 
 

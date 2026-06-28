@@ -26,6 +26,7 @@
 
 ### Changed
 - **Tech Debt (#62):** `flock_available()` in `platform_lock.py`; unified `_format_node_markdown` in `matryca_hooks.py`; `BootstrapHarvestStatus` imported from `bootstrap_harvest.py`.
+- **Tech Debt (#64):** Added `SessionAliasRegistry.register_alias()` and `alias_items()` public methods in `alias_state.py` subclass; updated `graph_tool_helpers.py` and `tests/test_alias_state.py` to use the subclass — all `# noqa: SLF001` suppressions removed.
 
 ## [1.11.2] - 2026-06-24
 
