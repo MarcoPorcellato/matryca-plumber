@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Added
+
+- **Clean Code & Clean Architecture SSOT** — [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) maps Uncle Bob's dependency rule, SOLID, and Clean Code practices to `src/graph/`, use cases, and adapters; cross-links [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- **Cursor rule `12-clean-code-architecture`** — on-request repo-wide boundaries, `env_parse` DI, graph layer tests; indexed in [`AGENTS.md`](AGENTS.md) and [`.cursorrules`](.cursorrules).
+- **Tier F good-first backlog** — six Clean Code slices ([#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173)); `scripts/populate_gfi_tier_f.sh`; label `clean-code`; blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md).
+
 ## [1.12.0] - 2026-06-24
 
 **Prompt Clean Architecture (plan v3) — Tier-1 DI, L0 write safety, SYSTEM_PROMPT fragment assembly**

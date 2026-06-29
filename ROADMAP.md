@@ -40,6 +40,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 - Operator workflow in [CONTRIBUTING.md](CONTRIBUTING.md) — Discussions for RFCs, issues for trackable work
 - “Test vault first” guidance in README (clone graph before pointing at production)
 - Good-first issues live on GitHub — [open `good first issue` label](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (#38, #43, #52, #53, #56, #69, #71, #85, #90–#92, #125–#129, #143–#152); maintainer blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md)
+- **Tier F Clean Code** — [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md), Cursor rule `12-clean-code-architecture`, issues [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) (label `clean-code`)
 - ~~CI `StarletteDeprecationWarning` in test client~~ — **done (main):** [#118](https://github.com/MarcoPorcellato/matryca-plumber/issues/118) via [#122](https://github.com/MarcoPorcellato/matryca-plumber/pull/122) (@blackwolf225)
 
 ### Tech debt & integrity (prerequisite for v2.0)

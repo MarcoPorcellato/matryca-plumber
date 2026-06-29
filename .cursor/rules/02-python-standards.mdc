@@ -11,6 +11,7 @@ globs: "*.py"
 - **Python:** target **3.12+**.
 - **Types:** annotate public APIs; `mypy` must type-check the package on `--strict` mode.
 - **Validation:** use **Pydantic** models for config, JSON payloads, and boundaries.
+- **Architecture:** layer boundaries and Clean Code checklist — see [`12-clean-code-architecture.mdc`](12-clean-code-architecture.mdc) and [`docs/CLEAN_CODE_ARCHITECTURE.md`](../../docs/CLEAN_CODE_ARCHITECTURE.md).
 
 ## Concurrency and I/O (File System Safety)
 - **Optimistic Concurrency:** Matryca runs in the background. Before overwriting any `.md` file, you MUST check if the file's `mtime` has changed since it was read. Use `atomic_write_bytes_if_unchanged` to prevent data loss if the user is typing in Logseq.

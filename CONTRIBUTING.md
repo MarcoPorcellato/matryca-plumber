@@ -18,7 +18,7 @@ This project exists so humans and **autonomous local systems** can collaborate o
 | **Optional MCP ingress** | `src/agent/mcp_server.py` (`register_mcp_tools`, `@mcp.tool()`) | Thin registration over the same dispatch graph — not a second datastore or write path. Standalone tools: **`store_fact`** (identity), **`ingest_document`** (atomic external Markdown — [`docs/openspec/ingest.md`](docs/openspec/ingest.md)), **`import_tana`** (Tana workspace JSON — [`docs/openspec/tana-import.md`](docs/openspec/tana-import.md)). |
 | **External graph migration** | `src/agent/tana_import.py`, `src/agent/importers/tana/` | Offline Tana JSON → Logseq OG pipeline (streaming parse, OCC writes, dry-run default). |
 
-Deep reference: [`AGENTS.md`](AGENTS.md), [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md) (Clean Architecture for prompts — plan v3), [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/openspec/README.md`](docs/openspec/README.md) (index), [`docs/openspec/llm-performance.md`](docs/openspec/llm-performance.md) (v1.8 edge), [`docs/openspec/link-verification.md`](docs/openspec/link-verification.md) / [`agent-dx.md`](docs/openspec/agent-dx.md) (v1.9), [`docs/openspec/security-sandbox.md`](docs/openspec/security-sandbox.md) (v1.9.9), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md) (v1.9.2 `llms.txt`), [`docs/openspec/live-telemetry-ui.md`](docs/openspec/live-telemetry-ui.md) (v1.9.3 Sovereign UI), [`llms.txt`](llms.txt) (agent execution guide).
+Deep reference: [`AGENTS.md`](AGENTS.md), [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) (Clean Code & Clean Architecture — repo-wide), [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md) (Clean Architecture for prompts — plan v3), [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/openspec/README.md`](docs/openspec/README.md) (index), [`docs/openspec/llm-performance.md`](docs/openspec/llm-performance.md) (v1.8 edge), [`docs/openspec/link-verification.md`](docs/openspec/link-verification.md) / [`agent-dx.md`](docs/openspec/agent-dx.md) (v1.9), [`docs/openspec/security-sandbox.md`](docs/openspec/security-sandbox.md) (v1.9.9), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md) (v1.9.2 `llms.txt`), [`docs/openspec/live-telemetry-ui.md`](docs/openspec/live-telemetry-ui.md) (v1.9.3 Sovereign UI), [`llms.txt`](llms.txt) (agent execution guide).
 
 **Configuration:** [`.env.example`](.env.example) is the operator reference, split into **Operator essentials** (day-one / Settings drawer) and **Advanced / high impact** (mutating lint, MCP, security). Each key documents **Default (code)** and **Template** when they differ. Agents must keep `.env.example` in sync when changing env vars — see [`.cursor/rules/07-env-example.mdc`](.cursor/rules/07-env-example.mdc). `MATRYCA_LM_INSTRUCTOR_*` and `MATRYCA_LLM_PROMPT_CACHE_MODE` are legacy or reserved (not read by runtime). CI: `tests/test_env_example_coverage.py`.
 
@@ -33,6 +33,23 @@ Matryca Plumber is built on three pillars. Every contribution must respect them:
 | **Local-first** | The Logseq graph on disk (`LOGSEQ_GRAPH_PATH`) is the system of record. Reads and writes go through UTF-8 Markdown I/O, `fcntl.flock` RMW locks, and atomic swaps — not a hosted sync service. |
 | **Zero external databases** | No SQLite, Postgres, Redis, or cloud DB as a dependency for core behavior. Ephemeral in-memory indexes and JSON ledgers at the graph root are allowed; the vault itself stays pure Markdown. |
 | **Absolute Logseq AST parity** | Spatial structure comes from **`logseq_matryca_parser`** and bounded helpers in `src/graph/`. Mutations must preserve outliner semantics: nested bullets, property planes, multiline continuations, and fence-protected dead zones. |
+
+---
+
+## Code quality (Clean Code & Clean Architecture)
+
+Matryca applies **Robert C. Martin's** *Clean Architecture* (dependency rule, inward dependencies) and *Clean Code* (SRP, meaningful names, tests as specification) across the codebase — not only the LLM prompt stack.
+
+| Practice | Where it shows up |
+|----------|-------------------|
+| **Dependency Rule** | `src/graph/` must not import `agent` / `daemon` / `rag` — [`tests/test_graph_layer_boundary.py`](tests/test_graph_layer_boundary.py) |
+| **Fat modules, thin edges** | Logic in `src/graph/` and `plumber_modules/`; MCP and CLI handlers delegate |
+| **Config DI** | `utils/env_parse.py`, `PlumberLintConfig`, `load_plumber_lint_config_from_environ(env)` |
+| **Tests as spec** | pytest + `tmp_path` graphs; prompt SHA-256 snapshots; strict mypy on `src/` |
+
+**SSOT:** [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) · prompts: [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md) · Cursor rule: [`.cursor/rules/12-clean-code-architecture.mdc`](.cursor/rules/12-clean-code-architecture.mdc).
+
+**Good first issues (Clean Code — Tier F):** see [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) § Tier F — `env_parse` DRY slices and graph boundary tests (label `clean-code`).
 
 ---
 
@@ -351,11 +368,12 @@ If an overarching audit issue is closed by a maintainer while your PR is open, p
 
 **Templates:** [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) — `feature_request.yml`, `bug_report.yml`, `epic.yml`, `question.yml`.
 
-**Good first issues:** [open issues labeled `good first issue`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) — includes #38, #43, #52, #53, #56, #69, #71, [#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85), [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129), [#143](https://github.com/MarcoPorcellato/matryca-plumber/issues/143)–[#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152). Shipped: #44 ([#100](https://github.com/MarcoPorcellato/matryca-plumber/pull/100), @gaoflow), #45, #89, #93, #101–#105 ([#108](https://github.com/MarcoPorcellato/matryca-plumber/pull/108)–[#112](https://github.com/MarcoPorcellato/matryca-plumber/pull/112), @gaoflow), [#118](https://github.com/MarcoPorcellato/matryca-plumber/issues/118) ([#122](https://github.com/MarcoPorcellato/matryca-plumber/pull/122), @blackwolf225). Maintainer context and verify commands: [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md). Welcome comments are on each GitHub thread.
+**Good first issues:** [open issues labeled `good first issue`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) — includes #38, #43, #52, #53, #56, #69, #71, [#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85), [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129), [#143](https://github.com/MarcoPorcellato/matryca-plumber/issues/143)–[#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152), **Tier F Clean Code** [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173). Shipped: #44 ([#100](https://github.com/MarcoPorcellato/matryca-plumber/pull/100), @gaoflow), #45, #89, #93, #101–#105 ([#108](https://github.com/MarcoPorcellato/matryca-plumber/pull/108)–[#112](https://github.com/MarcoPorcellato/matryca-plumber/pull/112), @gaoflow), [#118](https://github.com/MarcoPorcellato/matryca-plumber/issues/118) ([#122](https://github.com/MarcoPorcellato/matryca-plumber/pull/122), @blackwolf225). Maintainer context and verify commands: [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md). Welcome comments are on each GitHub thread.
 
 | Label | When |
 |-------|------|
 | `good first issue` | Scoped fix, existing tests, no OCC/flock expertise required |
+| `clean-code` | Uncle Bob / SOLID / `env_parse` DRY slice (Tier F) |
 | `help wanted` | Maintainer welcomes external PRs on this issue |
 
 ---

@@ -2,9 +2,9 @@
 
 **Updated post-Tier C merge (2026-06-23)** — #101–#105 shipped via @gaoflow ([#108](https://github.com/MarcoPorcellato/matryca-plumber/pull/108)–[#112](https://github.com/MarcoPorcellato/matryca-plumber/pull/112)); [#118](https://github.com/MarcoPorcellato/matryca-plumber/issues/118) shipped via @blackwolf225 ([#122](https://github.com/MarcoPorcellato/matryca-plumber/pull/122)). **Tier D** [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129) (TUI observability slices + cognitive-module test). **Tier E** [#143](https://github.com/MarcoPorcellato/matryca-plumber/issues/143)–[#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152) (metadata recovery, link-registry, journey-log, and config observability slices).
 
-**Active good-first candidates:** #38, #43, #52, #53, #56, #69, #71, #85, [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#113](https://github.com/MarcoPorcellato/matryca-plumber/issues/113)–[#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114), [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129), [#138](https://github.com/MarcoPorcellato/matryca-plumber/issues/138), [#141](https://github.com/MarcoPorcellato/matryca-plumber/issues/141), [#143](https://github.com/MarcoPorcellato/matryca-plumber/issues/143)–[#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152), [#157](https://github.com/MarcoPorcellato/matryca-plumber/issues/157). Welcome comments are on each GitHub thread.
+**Active good-first candidates:** #38, #43, #52, #53, #56, #69, #71, #85, [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#92](https://github.com/MarcoPorcellato/matryca-plumber/issues/92), [#113](https://github.com/MarcoPorcellato/matryca-plumber/issues/113)–[#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114), [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129), [#138](https://github.com/MarcoPorcellato/matryca-plumber/issues/138), [#141](https://github.com/MarcoPorcellato/matryca-plumber/issues/141), [#143](https://github.com/MarcoPorcellato/matryca-plumber/issues/143)–[#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152), [#157](https://github.com/MarcoPorcellato/matryca-plumber/issues/157), **Tier F** [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173). Welcome comments are on each GitHub thread.
 
-Expert Audit 2026-06 triage: [`docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md`](docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md) · issues [#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132)–[#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139). Repomix audit: [`docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md`](docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md) · [#140](https://github.com/MarcoPorcellato/matryca-plumber/issues/140)–[#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142). Clean Architecture audit (simulated): [`docs/quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md`](docs/quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md) · [#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153)–[#154](https://github.com/MarcoPorcellato/matryca-plumber/issues/154). Claude Architectural audit (2026-06-24): [`docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md) · [#155](https://github.com/MarcoPorcellato/matryca-plumber/issues/155)–[#157](https://github.com/MarcoPorcellato/matryca-plumber/issues/157).
+Expert Audit 2026-06 triage: [`docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md`](docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md) · issues [#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132)–[#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139). Repomix audit: [`docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md`](docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md) · [#140](https://github.com/MarcoPorcellato/matryca-plumber/issues/140)–[#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142). Clean Architecture audit (simulated): [`docs/quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md`](docs/quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md) · [#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153)–[#154](https://github.com/MarcoPorcellato/matryca-plumber/issues/154). Claude Architectural audit (2026-06-24): [`docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md) · [#155](https://github.com/MarcoPorcellato/matryca-plumber/issues/155)–[#157](https://github.com/MarcoPorcellato/matryca-plumber/issues/157). **Tier F Clean Code:** [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) · `scripts/populate_gfi_tier_f.sh`.
 
 **Before opening a PR:** read [`CONTRIBUTING.md`](CONTRIBUTING.md), run `make check`, and reference the issue number in your PR title (e.g. `fix(daemon): log SIG handler shutdown telemetry (#101)`).
 
@@ -511,6 +511,41 @@ make check
 ```
 
 P1 concurrency fixes ([#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132), [#133](https://github.com/MarcoPorcellato/matryca-plumber/issues/133)) and larger performance items ([#135](https://github.com/MarcoPorcellato/matryca-plumber/issues/135), [#136](https://github.com/MarcoPorcellato/matryca-plumber/issues/136)) are maintainer-led — not good-first unless explicitly tagged.
+
+---
+
+## Tier F — Clean Code & Clean Architecture slices
+
+**SSOT:** [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) · **Script:** `bash scripts/populate_gfi_tier_f.sh` (idempotent) · **Label:** `clean-code`
+
+| Issue body | GitHub | Summary | Difficulty |
+|------------|--------|---------|------------|
+| [`158-link-verification-env-parse.md`](docs/quality/issue-bodies/158-link-verification-env-parse.md) | [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168) | `link_verification`: strikes/batch/timeout → `env_parse` | 2/10 |
+| [`159-generational-cache-env-parse.md`](docs/quality/issue-bodies/159-generational-cache-env-parse.md) | [#169](https://github.com/MarcoPorcellato/matryca-plumber/issues/169) | `generational_cache`: `MATRYCA_*` → `env_parse` | 2/10 |
+| [`160-plumber-config-env-int-delegate.md`](docs/quality/issue-bodies/160-plumber-config-env-int-delegate.md) | [#170](https://github.com/MarcoPorcellato/matryca-plumber/issues/170) | `plumber_config._env_int` → `utils.env_parse.env_int` | 2/10 |
+| [`161-graph-boundary-forbid-rag.md`](docs/quality/issue-bodies/161-graph-boundary-forbid-rag.md) | [#171](https://github.com/MarcoPorcellato/matryca-plumber/issues/171) | CI: graph must not import `rag` | 2/10 |
+| [`162-concurrency-probe-env-bool.md`](docs/quality/issue-bodies/162-concurrency-probe-env-bool.md) | [#172](https://github.com/MarcoPorcellato/matryca-plumber/issues/172) | `concurrency_probe`: `env_bool` for flock flag | 1/10 |
+| [`163-env-parse-clamp-contract-tests.md`](docs/quality/issue-bodies/163-env-parse-clamp-contract-tests.md) | [#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) | Parametrized clamp contract tests | 2/10 |
+
+**Parent tracking:** [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57) (env parser DRY) · [#141](https://github.com/MarcoPorcellato/matryca-plumber/issues/141) (`RoutingHint` enum — related Clean Code theme).
+
+**Verify (F1):**
+```bash
+uv run pytest tests/test_link_verification.py tests/test_env_parse.py -q
+make check
+```
+
+**Verify (F2):**
+```bash
+uv run pytest tests/test_generational_cache.py tests/test_env_parse.py -q
+make check
+```
+
+**Verify (F4):**
+```bash
+uv run pytest tests/test_graph_layer_boundary.py -q
+make check
+```
 
 ---
 

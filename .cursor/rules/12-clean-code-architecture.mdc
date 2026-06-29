@@ -1,0 +1,52 @@
+---
+description: Clean Code and Clean Architecture boundaries for Matryca Plumber (Uncle Bob, repo-wide)
+globs: "*.py"
+alwaysApply: false
+---
+
+# Clean Code & Clean Architecture (Matryca Plumber)
+
+Load when editing `src/` structure, module boundaries, config parsing, or contributor-facing refactors.
+
+**SSOT:** [`docs/CLEAN_CODE_ARCHITECTURE.md`](../../docs/CLEAN_CODE_ARCHITECTURE.md). Prompt-specific tiers: [`docs/PROMPT_ARCHITECTURE.md`](../../docs/PROMPT_ARCHITECTURE.md).
+
+**Rule routing:** Complements [`00-karpathy-agent-behavior.mdc`](00-karpathy-agent-behavior.mdc) (minimal diff), [`02-python-standards.mdc`](02-python-standards.mdc), [`04-spatial-parser.mdc`](04-spatial-parser.mdc).
+
+## Dependency Rule (inward only)
+
+- **`src/graph/`** is domain — must **not** import `agent`, `daemon`, or `rag`. CI: `tests/test_graph_layer_boundary.py`.
+- **Surfaces** (MCP, CLI, FastAPI) delegate to `graph_dispatch` / `graph/*` — no second write path.
+- **Tier-1 prompts:** domain `*/prompts.py` imports only `src/agent/prompts/core.py`.
+
+## SOLID (practical)
+
+| Principle | Do |
+|-----------|-----|
+| **SRP** | One reason to change per module; no new inline system strings in `llm_client.py` |
+| **DIP** | Inject config via `PlumberLintConfig` / `load_plumber_lint_config_from_environ(env)`; use `utils/env_parse` in graph code |
+| **ISP** | Prefer narrow protocols (`HarvestLLM`) over fat god-interfaces |
+
+## Clean Code
+
+- **Fat modules, thin edges** — logic in `graph/`, `plumber_modules/`; `@mcp.tool()` and CLI stay delegates.
+- **Meaningful names** — `StrEnum` / `Literal` over magic strings when values cross module boundaries.
+- **Tests as spec** — extend pytest when behavior is non-obvious; no `# type: ignore` in `src/`.
+- **Boy Scout Rule** — within PR scope only: e.g. migrate one stray `os.environ` block to `env_parse` when you already touch the file.
+
+## Config & env
+
+- New `MATRYCA_*` reads in `src/graph/` → use `env_bool` / `env_int` / `env_float` from `src/utils/env_parse.py`.
+- Sync [`.env.example`](../../.env.example) per [`07-env-example.mdc`](07-env-example.mdc).
+
+## v1 — do NOT do in a scoped PR
+
+- Introduce `domain/ports.py` or full hexagonal split (v2 [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)).
+- Refactor entire `graph_dispatch` or `maintenance_daemon` ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59), [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)) unless the issue explicitly scopes a slice.
+- Global `Result[T, E]` error-protocol rewrite.
+
+## Verify
+
+```bash
+uv run pytest tests/test_graph_layer_boundary.py tests/test_env_parse.py -q
+make check
+```

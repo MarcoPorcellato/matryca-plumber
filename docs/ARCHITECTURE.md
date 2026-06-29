@@ -6,7 +6,21 @@
 
 This document is the engineering contract for **Matryca Plumber**: an enterprise-grade, **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees; safety is enforced through **AST parity**, **optimistic concurrency control (OCC)**, **path sandboxing**, and operator-visible **Trust & Safety** tiers.
 
-For the maintainer timeline and crushed bottlenecks, see [`PROJECT_DIARY.md`](PROJECT_DIARY.md). For agent discipline at inference time, see [`SYSTEM_PROMPT.md`](../SYSTEM_PROMPT.md). For **Clean Architecture** boundaries on prompts (Tier-1 / L0 / Tier-2), see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md).
+For the maintainer timeline and crushed bottlenecks, see [`PROJECT_DIARY.md`](PROJECT_DIARY.md). For agent discipline at inference time, see [`SYSTEM_PROMPT.md`](../SYSTEM_PROMPT.md). For **Clean Architecture** boundaries on prompts (Tier-1 / L0 / Tier-2), see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For **repo-wide** Clean Code & Clean Architecture (Uncle Bob, SOLID, layer boundaries), see [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md).
+
+---
+
+## Clean Architecture map (repo-wide)
+
+Matryca maps Robert C. Martin's concentric rings to Python packages. **Dependencies point inward:** frameworks (FastMCP, FastAPI) → adapters (`graph_dispatch`, `mcp_server`, `cli`) → use cases (`maintenance_daemon`, `plumber_modules`) → domain (`src/graph/`, `safety/validators`, `utils/env_parse`) → entities (Logseq blocks, Pydantic lint models).
+
+| Enforcement | Mechanism |
+|-------------|-----------|
+| Graph layer isolation | `tests/test_graph_layer_boundary.py` — no `graph` → `agent` / `daemon` imports |
+| Prompt domain isolation | `tests/test_daemon_prompts.py` — `*/prompts.py` imports only `prompts/core.py` |
+| Fat modules, thin edges | MCP/CLI delegate to `graph_dispatch` / `graph/*` (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)) |
+
+Full contributor SSOT: [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md). Prompt-specific tiers remain in [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). v2 hexagonal split (`MarkdownRepository`, Shadow DB) → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
 
 ---
 

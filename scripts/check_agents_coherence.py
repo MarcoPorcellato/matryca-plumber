@@ -17,6 +17,7 @@ REQUIRED_DOC_PATHS: tuple[str, ...] = (
     "llms.txt",
     ".well-known/llms.txt",
     "CONTRIBUTING.md",
+    "docs/CLEAN_CODE_ARCHITECTURE.md",
     "docs/openspec/agent-onboarding.md",
     "docs/openspec/agent/_assembly_order.txt",
     "docs/openspec/agent/paradigm.md",
