@@ -54,6 +54,10 @@ _Closes when merged with tests green (`make check`) and CHANGELOG updated._
 | `tech-debt` | Refactor, DRY, typing, module split |
 | `v1.9.x` | Pre-v2.0 perfection track |
 | `v2.0` | Shadow DB / Safe-Sync epic |
+| `v2-prep` | Phase 0–1: prerequisites, GraphRepository ports |
+| `v2-alpha` | Phase 2–3: shadow sync, read routing flag |
+| `v2-memory` | Biological memory layer |
+| `v2-safesync` | Logseq DB Safe-Sync write bridge |
 | `audit-2026` | Bulk-created from perfection audit |
 
 Create missing labels via `gh label create` before assigning. Use `scripts/github_audit_tracker.sh` as the canonical bulk importer.
@@ -100,10 +104,12 @@ perf(ast): incremental delete instead of full vault reload (#20)
 ### Branch naming
 
 ```text
-fix/audit-01-link-verification-sandbox
-perf/audit-20-ast-incremental-delete
-chore/audit-31-env-parse-dry
+[v2 Phase 0] v1.9.12 prerequisites for Shadow DB
+[v2] GraphReadPort + MarkdownGraphRepository parity tests
+fix(v2): shadow open_shadow_db connection helper (#NNN)
 ```
+
+v2 phase parents use `[v2 Phase N]`; slices use `[v2]` prefix. Link `Refs #20` on epic and `Fixes #N` on slice issues.
 
 ## Automation scripts
 

@@ -1,8 +1,12 @@
-### Problem / motivation
+## Problem Description
 
 Replace the v1.9.5 read path (`master_catalog.json` + in-memory Okapi BM25) with a relational **Shadow DB** for <50 ms latency and hierarchical queries.
 
-### Current baseline (v1.9.5 — to be replaced)
+## Proposed Architectural Solution
+
+Phases 2–3 of [`ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md).
+
+### Current baseline (v1.12 — to be complemented, not removed until v2.0.0-stable)
 
 | Component | Location |
 |-----------|----------|
@@ -12,16 +16,32 @@ Replace the v1.9.5 read path (`master_catalog.json` + in-memory Okapi BM25) with
 
 ### Tasks
 
-- [ ] Scaffold `shadow.sqlite` schema (pages, blocks, parent-child, block-refs)
-- [ ] Async ingestion from Markdown (Classic Logseq or DB Markdown Mirror)
-- [ ] FTS5 full-text index over block contents
-- [ ] Recursive CTEs (`WITH RECURSIVE`) for sub-tree / thought-chain extraction
-- [ ] Background sync daemon (read-only on source `.md` files)
+- [x] Scaffold `shadow.sqlite` DDL (`pages`, `blocks`, `block_refs`, FTS5) — `src/shadow/schema.py` + `tests/test_shadow_schema.py`
+- [ ] `GraphRepository` routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17)) — Phase 1 prerequisite
+- [ ] `open_shadow_db(graph_root)` connection helper + WAL pragmas
+- [ ] Incremental ingestion from Markdown via `post_write` / watcher (read-only on source `.md`)
+- [ ] FTS5 query helpers + recursive CTEs for subtree / thought-chain reads
+- [ ] Opt-in env `MATRYCA_SHADOW_DB_ENABLED=false` (v2.0.0-alpha)
+- [ ] Sovereign UI shadow sync health (lag, last full sync)
+- [ ] Read routing with BM25/AST **fallback** when shadow disabled or stale
 
 ### Dependencies
 
-- Blocked by #17 (`GraphRepository` abstraction) for clean storage routing
+- **Blocked by** [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) (`GraphRepository`) for clean storage routing
 
-### Related
+## Estimated Impact
 
-Parent epic: #20
+**Alto** — core v2 read performance; alpha ships behind flag only.
+
+## Files Involved
+
+- `src/shadow/` (schema shipped; sync + query modules TBD)
+- `src/graph/post_write.py` (sync hook)
+- `src/agent/graph_dispatch.py` (read routing Phase 3)
+- `tests/test_shadow_*.py`
+
+---
+**Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
+**SSOT:** [`docs/roadmaps/ROADMAP_V2_SHADOW_DB.md`](docs/roadmaps/ROADMAP_V2_SHADOW_DB.md)
+
+_Closes when merged with tests green (`make check`) and CHANGELOG updated._

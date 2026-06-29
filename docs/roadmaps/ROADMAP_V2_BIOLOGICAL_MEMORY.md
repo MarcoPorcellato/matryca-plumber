@@ -1,7 +1,8 @@
 # v2.0 — Biological Memory Layer (Nacre-inspired)
 
-**Status:** planned — schema scaffold in [`src/shadow/schema.py`](../../src/shadow/schema.py); algorithms in [`src/memory/`](../../src/memory/)  
 **Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
+**Status:** planned — schema in [`src/shadow/schema.py`](../../src/shadow/schema.py); decay in [`src/memory/decay.py`](../../src/memory/decay.py)  
+**Preparation index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) · OpenSpec: [`biological-memory.md`](../openspec/biological-memory.md)  
 **Prerequisite:** [`ROADMAP_V2_SHADOW_DB.md`](ROADMAP_V2_SHADOW_DB.md) ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24), [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17))  
 **Inspiration:** [Nacre](https://github.com/marcusschimizzi/nacre) by Marcus Sullivan (Apache-2.0) — port nativo Python, non sidecar Node  
 **RFC:** [Discussion #19](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19)

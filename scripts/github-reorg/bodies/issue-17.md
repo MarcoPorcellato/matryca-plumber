@@ -1,39 +1,42 @@
-### Problem / motivation
+## Problem Description
 
-Logseq is transitioning from flat Markdown files to a structured SQLite database (Logseq DB). Matryca Plumber is still wired to read and mutate raw `.md` strings via file-system I/O, mmap lookups, and AST serialization (`src/graph/markdown_io.py`, `src/graph/page_write_lock.py`).
+Logseq is transitioning from flat Markdown files to a structured SQLite database (Logseq DB). Matryca Plumber is still wired to read and mutate raw `.md` strings via file-system I/O, mmap lookups, and AST serialization (`src/graph/markdown_blocks.py`, `src/graph/page_write_lock.py`).
 
 We need both backends concurrently without breaking MCP/CLI contracts for external agents.
 
-### Proposed solution
+## Proposed Architectural Solution
 
-Apply the **Repository Pattern** to isolate cognitive/hygiene engines from storage:
+Apply the **Repository Pattern** incrementally (Phase 1 of [`ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md)):
 
 | Component | Role |
 |-----------|------|
-| `GraphRepository` (protocol) | `get_block_by_uuid()`, `merge_tags()`, `write_page_properties()`, … |
-| `MarkdownRepository` | Absorb current v1.9.x engine (mmap, `fcntl.flock`, OCC) |
-| `DatabaseRepository` | Logseq DB: read-only SQLite for bootstrap harvest; writes via Logseq Local HTTP API |
+| `GraphReadPort` (`typing.Protocol`) | `search_blocks`, `read_subtree`, `resolve_entity` — read path first |
+| `MarkdownGraphRepository` | Wraps current v1.12 `src/graph/*` + parser — **default adapter** |
+| `ShadowGraphRepository` | Delegates reads to shadow when enabled (Phase 3) |
+| `DatabaseRepository` | Logseq DB: read-only SQLite harvest; writes via Logseq Local HTTP API (Phase 4) |
 
-Runtime selection: `MATRYCA_STORAGE_MODE=markdown|database` (with folder auto-detection).
+Runtime selection (later): `MATRYCA_STORAGE_MODE=markdown|database` with folder auto-detection.
 
-**Baseline to refactor (v1.9.5):** inline I/O in `markdown_io.py`, `master_catalog.py`, `graph_dispatch.py` — no protocol yet.
+**Phase 1 slice order:**
 
-### Paradigm alignment
+1. Define `GraphReadPort` + `MarkdownGraphRepository` with parity tests.
+2. Route one `graph_dispatch` read method through the port (e.g. `search_graph` bm25 or `read_subtree`).
+3. Expand coverage method-by-method — no big-bang rewrite.
 
-- **Logseq OG:** graph content remains Markdown on disk; Matryca is the mutation plane.
-- **Shadow DB (v2.0):** `shadow.sqlite` is a **daemon-owned read cache**, not a system of record — see Epic #20 and [`docs/openspec/llm-os-instructions.md`](docs/openspec/llm-os-instructions.md) § v2.0 migration trigger.
-- **Block-shaped thinking:** outliner blocks, nesting, `id::` — not flat blobs.
-- **Strict OCC:** Phase-1 `st_mtime` snapshot + Phase-2 verify for all mutators.
+**Out of scope for first PR:** `DatabaseRepository`, SHA-256 content CAS (v2 content-hash → comment on this issue).
 
-### Sub-tasks
+## Estimated Impact
 
-- [ ] Define `GraphRepository` protocol (`typing.Protocol`)
-- [ ] Extract `MarkdownRepository` from current graph I/O
-- [ ] Implement `DatabaseRepository` (HTTP API writes + read-only SQLite reads)
-- [ ] Wire `MATRYCA_STORAGE_MODE` + auto-detection
-- [ ] E2E tests with Logseq DB alpha/beta graphs
+**Alto** — structural milestone for v2; Phase 1 PRs must keep **zero operator-visible behavior change** when shadow flags are off.
 
-### Related
+## Files Involved
 
-- Parent epic: #20
-- Blocks: #24 (Shadow DB read path needs storage abstraction)
+- New: `src/graph/ports/` or `src/domain/repository.py` (per slice PR)
+- `src/agent/graph_dispatch.py` (thin delegate)
+- `tests/test_graph_repository.py` (parity fixtures)
+
+---
+**Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) · **Blocks:** [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) Shadow DB routing  
+**SSOT:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) § Phase 1
+
+_Closes when merged with tests green (`make check`) and CHANGELOG updated._

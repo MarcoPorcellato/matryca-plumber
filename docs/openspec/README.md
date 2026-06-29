@@ -27,9 +27,10 @@ Trimmed behavioral specs aligned with [MehmetGoekce/llm-wiki](https://github.com
 | [`runtime-bootstrap.md`](runtime-bootstrap.md) | Startup directory/config provisioning (logs, L1, cache, wiki YAML); master catalog flock/merge persistence (v1.10.0). |
 | [`llm-performance.md`](llm-performance.md) | v1.8 KV-cache layout, RAM caps, cooperative bootstrap I/O; v1.12 Tier-1 builders + L0 safety; journal Phase-2 semantic bypass. |
 | [`../PROMPT_ARCHITECTURE.md`](../PROMPT_ARCHITECTURE.md) | **v1.12** — Clean Architecture map for prompts (plan v3), semver recommendation, mermaid/ASCII flows. |
-| [`../roadmaps/ROADMAP_V2_SHADOW_DB.md`](../roadmaps/ROADMAP_V2_SHADOW_DB.md) | **Planned** — v2.0 `shadow.sqlite` read cache (FTS5, CTEs, `src/shadow/schema.py`). |
-| [`../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | **Planned** — Nacre-inspired decay/recall/procedure memory; openspec TBD at implementation. |
-| [`biological-memory.md`](biological-memory.md) | **Planned** — env vars, `search_graph(method=recall)`, Safe-Sync contract (not yet written). |
+| [`../roadmaps/ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md) | **v2 visitor SSOT** — five phases, Safe-Sync, contribute guide |
+| [`../roadmaps/ROADMAP_V2_SHADOW_DB.md`](../roadmaps/ROADMAP_V2_SHADOW_DB.md) | v2.0 `shadow.sqlite` read cache (FTS5, CTEs, `src/shadow/schema.py`) |
+| [`../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | Nacre-inspired decay/recall/procedure memory |
+| [`biological-memory.md`](biological-memory.md) | Planned env vars, `search_graph(method=recall)`, Safe-Sync contract |
 | [`../v1.8-SOFTWARE-EDGE-PLAN.md`](../v1.8-SOFTWARE-EDGE-PLAN.md) | CPU sandbox, frozen KV prefix, adaptive LLM, mmap reads. |
 | [`../v1.8-OPTIMIZATION-PLAN.md`](../v1.8-OPTIMIZATION-PLAN.md) | v1.8 operator env vars, verification matrix, load testing. |
 

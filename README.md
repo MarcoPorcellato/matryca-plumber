@@ -236,6 +236,7 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | [`docs/openspec/README.md`](docs/openspec/README.md) |
 | [`llms.txt`](llms.txt) | [`docs/openspec/tana-import.md`](docs/openspec/tana-import.md) |
 | [`ROADMAP.md`](ROADMAP.md) | [`CHANGELOG.md`](CHANGELOG.md) |
+| [**v2.0 preparation**](docs/roadmaps/ROADMAP_V2_PREPARATION.md) | [v2 issues `label:v2.0`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3Av2.0) · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) |
 | [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) |
 | [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
 | [`docs/releases/v1.12.0-GITHUB.md`](docs/releases/v1.12.0-GITHUB.md) | Draft GitHub Release body for v1.12.0 (minor, plan v3) |

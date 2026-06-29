@@ -54,6 +54,10 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 | `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Split → [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
 | `maintenance_daemon` ~3300 lines | Duty-cycle orchestration | SRP split → [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) |
 
+### v2 preparation phases
+
+See [`roadmaps/ROADMAP_V2_PREPARATION.md`](roadmaps/ROADMAP_V2_PREPARATION.md) and [`v2_preparation_blueprints.md`](../v2_preparation_blueprints.md). Phases 0–4 map to GitHub milestone **`v2.0.0 — Shadow DB & Safe-Sync Architecture`** and Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
+
 Audit triage: [`quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md`](quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md) · [`quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md).
 
 ---

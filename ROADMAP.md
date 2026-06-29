@@ -40,7 +40,8 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 - Operator workflow in [CONTRIBUTING.md](CONTRIBUTING.md) — Discussions for RFCs, issues for trackable work
 - “Test vault first” guidance in README (clone graph before pointing at production)
 - Good-first issues live on GitHub — [open `good first issue` label](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (#38, #43, #52, #53, #56, #69, #71, #85, #90–#92, #125–#129, #143–#152); maintainer blueprints in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md)
-- **Tier F Clean Code** — [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md), Cursor rule `12-clean-code-architecture`, issues [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) (label `clean-code`)
+- **Tier F Clean Code** — [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173); [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md)
+- **v2.0 preparation index** — [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md); phase issues [#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174)–[#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178); slices [#179](https://github.com/MarcoPorcellato/matryca-plumber/issues/179)–[#186](https://github.com/MarcoPorcellato/matryca-plumber/issues/186); [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md)
 - ~~CI `StarletteDeprecationWarning` in test client~~ — **done (main):** [#118](https://github.com/MarcoPorcellato/matryca-plumber/issues/118) via [#122](https://github.com/MarcoPorcellato/matryca-plumber/pull/122) (@blackwolf225)
 
 ### Tech debt & integrity (prerequisite for v2.0)
@@ -83,6 +84,8 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 
 ## Medium-term (v1.9.x → v2.0-alpha)
 
+**Visitor guide:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) — five phases, Definition of Done, contribute guide · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md)
+
 | Initiative | Issue | Goal |
 |------------|-------|------|
 | Shadow DB read path | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) | `shadow.sqlite`, FTS5, CTEs, background sync from Markdown |
@@ -93,6 +96,8 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 
 Deeper maintainer checklists (completed or in flight):
 
+- [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) — **v2 visitor SSOT** (five phases, Safe-Sync, semver rollout)
+- [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) — phase/slice issue blueprints + verify commands
 - [`docs/roadmaps/ROADMAP_LLM_WIKI.md`](docs/roadmaps/ROADMAP_LLM_WIKI.md) — LLM-Wiki baseline (done)
 - [`docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md`](docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md) — resilience and safety hardening
 - [`docs/roadmaps/ROADMAP_V2_SHADOW_DB.md`](docs/roadmaps/ROADMAP_V2_SHADOW_DB.md) — v2.0 Shadow DB read path ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24))

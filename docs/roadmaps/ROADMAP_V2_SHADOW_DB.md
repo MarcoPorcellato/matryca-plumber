@@ -1,9 +1,10 @@
 # v2.0 — Shadow DB read path (checklist)
 
-**Status:** scaffold in progress — DDL in [`src/shadow/schema.py`](../../src/shadow/schema.py)  
+**Detailed index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) — visitor SSOT for all five v2 phases  
+**Status:** DDL scaffold **shipped** — [`src/shadow/schema.py`](../../src/shadow/schema.py) + [`tests/test_shadow_schema.py`](../../tests/test_shadow_schema.py); sync and routing **not wired**  
 **Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
 **Trackable issue:** [#24 — Shadow DB read path](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)  
-**Prerequisite:** [#17 — GraphRepository abstraction](https://github.com/MarcoPorcellato/matryca-plumber/issues/17)  
+**Prerequisite:** [#17 — GraphRepository abstraction](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 2–3 tracking in [`v2_preparation_blueprints.md`](../../v2_preparation_blueprints.md)  
 **RFC:** [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19)
 
 Replace the v1.9.5 read path (`master_catalog.json` + in-memory Okapi BM25) with a daemon-owned **`shadow.sqlite`** for sub-50 ms hierarchical reads (FTS5 + recursive CTEs), without touching Logseq's internal indices.

@@ -44,6 +44,10 @@ Load when editing `src/` structure, module boundaries, config parsing, or contri
 - Refactor entire `graph_dispatch` or `maintenance_daemon` ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59), [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)) unless the issue explicitly scopes a slice.
 - Global `Result[T, E]` error-protocol rewrite.
 
+## v2 preparation
+
+Load [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](../../docs/roadmaps/ROADMAP_V2_PREPARATION.md) before v2 slices. Shadow DB is a **read cache** — never SQLite as vault system of record. Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
+
 ## Verify
 
 ```bash

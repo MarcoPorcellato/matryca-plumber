@@ -20,7 +20,7 @@ Matryca maps Robert C. Martin's concentric rings to Python packages. **Dependenc
 | Prompt domain isolation | `tests/test_daemon_prompts.py` — `*/prompts.py` imports only `prompts/core.py` |
 | Fat modules, thin edges | MCP/CLI delegate to `graph_dispatch` / `graph/*` (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)) |
 
-Full contributor SSOT: [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md). Prompt-specific tiers remain in [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). v2 hexagonal split (`MarkdownRepository`, Shadow DB) → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
+Full contributor SSOT: [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md). Prompt-specific tiers remain in [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). **v2 preparation:** [`roadmaps/ROADMAP_V2_PREPARATION.md`](roadmaps/ROADMAP_V2_PREPARATION.md) · [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
 
 ---
 

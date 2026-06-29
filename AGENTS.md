@@ -9,6 +9,7 @@ This file routes coding assistants to the correct instruction layer. **Do not lo
 | **Cursor agent patching this repo** | [`.cursor/rules/00-karpathy-agent-behavior.mdc`](.cursor/rules/00-karpathy-agent-behavior.mdc), this file, [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) | Full [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) (runtime vault law) |
 | **External agent on a user Logseq vault** | [`llms.txt`](llms.txt) → [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`.cursor/rules/`](.cursor/rules/) |
 | **Maintainer changing MCP/CLI/prompt contracts** | [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md), [`docs/openspec/agent/`](docs/openspec/agent/), [`docs/openspec/llm-performance.md`](docs/openspec/llm-performance.md), rule `11-prompt-maintainer` | — |
+| **Maintainer planning v2.0 Shadow DB** | [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md), [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md), [Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Full v1.9.x audit triage docs |
 
 ## Cursor rule routing
 
