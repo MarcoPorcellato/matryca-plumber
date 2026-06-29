@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.12.1] - 2026-06-29
+
+**Contributor hygiene & v2.0 preparation index (documentation-only patch)**
+
 ### Added
 
 - **Clean Code & Clean Architecture SSOT** — [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) maps Uncle Bob's dependency rule, SOLID, and Clean Code practices to `src/graph/`, use cases, and adapters; cross-links [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).

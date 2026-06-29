@@ -40,7 +40,7 @@
   <b>AI agents:</b> read <a href="llms.txt"><code>llms.txt</code></a> — run <code>uvx matryca-plumber --help</code>; do not parse Markdown manually.
 </sub></p>
 
-**Matryca Plumber** is the definitive bridge between your trusted AI agent and your **Logseq OG** vault — a **headless CLI** and **MCP server** for safe read/write on Logseq's block tree (no raw Markdown parsing, no Logseq API, no silent overwrites), plus a **background daemon** and **Sovereign UI**. **v1.11.0** adds **Tana → Logseq OG migration**; **v1.11.1** pins **`logseq-matryca-parser` 1.4.0**; **v1.11.2** refactors the **graph layer boundary**; **v1.12.0** applies **Clean Architecture** to Tier-1 prompts, L0 write safety, and fragment-assembled `SYSTEM_PROMPT.md`. Built on [Andrej Karpathy's LLM-Wiki vision](https://karpathy.ai/blog). **Current: v1.12.0** — [`CHANGELOG.md`](CHANGELOG.md).
+**Matryca Plumber** is the definitive bridge between your trusted AI agent and your **Logseq OG** vault — a **headless CLI** and **MCP server** for safe read/write on Logseq's block tree (no raw Markdown parsing, no Logseq API, no silent overwrites), plus a **background daemon** and **Sovereign UI**. **v1.11.0** adds **Tana → Logseq OG migration**; **v1.11.1** pins **`logseq-matryca-parser` 1.4.0**; **v1.11.2** refactors the **graph layer boundary**; **v1.12.0** applies **Clean Architecture** to Tier-1 prompts, L0 write safety, and fragment-assembled `SYSTEM_PROMPT.md`; **v1.12.1** adds contributor **Clean Code** docs and a **v2.0 preparation** index. Built on [Andrej Karpathy's LLM-Wiki vision](https://karpathy.ai/blog). **Current: v1.12.1** — [`CHANGELOG.md`](CHANGELOG.md).
 
 **Developed by [Marco Porcellato](https://github.com/MarcoPorcellato) · [Matryca.ai](https://matryca.ai)** — the product name is **Matryca Plumber** (not “Matryca” alone). See [`docs/BRANDING.md`](docs/BRANDING.md).
 
@@ -239,7 +239,8 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [**v2.0 preparation**](docs/roadmaps/ROADMAP_V2_PREPARATION.md) | [v2 issues `label:v2.0`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3Av2.0) · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) |
 | [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) |
 | [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
-| [`docs/releases/v1.12.0-GITHUB.md`](docs/releases/v1.12.0-GITHUB.md) | Draft GitHub Release body for v1.12.0 (minor, plan v3) |
+| [`docs/releases/v1.12.1-GITHUB.md`](docs/releases/v1.12.1-GITHUB.md) | Draft GitHub Release body for v1.12.1 (patch, contributor + v2 index) |
+| [`docs/releases/v1.12.0-GITHUB.md`](docs/releases/v1.12.0-GITHUB.md) | GitHub Release body for v1.12.0 (minor, plan v3) |
 | [`docs/releases/v1.11.2-GITHUB.md`](docs/releases/v1.11.2-GITHUB.md) | Copy-paste GitHub Release body for v1.11.2 |
 | [`docs/releases/v1.11.1-GITHUB.md`](docs/releases/v1.11.1-GITHUB.md) | Copy-paste GitHub Release body for v1.11.1 |
 

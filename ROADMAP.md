@@ -6,7 +6,7 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v1.12.0** — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v1.12.1** — issue numbers link to GitHub; scope may shift as milestones close.*
 
 ---
 
