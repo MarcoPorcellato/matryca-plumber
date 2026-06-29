@@ -146,10 +146,15 @@ def _persistable_alias_map(
 
 def read_xray_page_markdown(graph_path: str, page_name: str) -> str:
     """Parse a page, assign ``[n]`` aliases, persist them, and return X-Ray markdown."""
-    from logseq_matryca_parser.agent_press import SessionAliasRegistry, to_xray_markdown
+    from logseq_matryca_parser.agent_press import to_xray_markdown
 
     from ..rag.matryca_hooks import get_spatial_context, resolve_logseq_page_md
-    from .alias_state import alias_file_path, safe_update_alias, save_alias_registry
+    from .alias_state import (
+        SessionAliasRegistry,
+        alias_file_path,
+        safe_update_alias,
+        save_alias_registry,
+    )
 
     title = page_name.strip()
     if not title:

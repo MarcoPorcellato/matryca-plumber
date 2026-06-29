@@ -8,10 +8,29 @@ from collections.abc import ItemsView
 from pathlib import Path
 from typing import cast
 
-from logseq_matryca_parser.agent_press import XRAY_STATE_FILENAME, SessionAliasRegistry
+from logseq_matryca_parser.agent_press import XRAY_STATE_FILENAME
+from logseq_matryca_parser.agent_press import SessionAliasRegistry as _SessionAliasRegistry
 
 from ..graph.markdown_blocks import atomic_write_bytes
 from ..graph.page_write_lock import page_rmw_lock
+
+
+class SessionAliasRegistry(_SessionAliasRegistry):  # type: ignore[misc]
+    """Thin public-API extension of the upstream registry.
+
+    Adds :meth:`register_alias` and :meth:`alias_items` so callers never need
+    to touch the private ``_alias_to_uuid`` / ``_uuid_to_alias`` dicts directly.
+    """
+
+    def register_alias(self, alias: int, target_uuid: str) -> None:
+        """Register *alias* → *target_uuid* in both internal maps."""
+        self._alias_to_uuid[alias] = target_uuid
+        self._uuid_to_alias[target_uuid] = alias
+
+    def alias_items(self) -> ItemsView[int, str]:
+        """Return an items view of the alias → UUID mapping for persistence."""
+        return self._alias_to_uuid.items()  # type: ignore[no-any-return]
+
 
 _ALIAS_TARGET_RE = re.compile(r"^\[\s*(\d+)\s*\]$")
 
@@ -34,7 +53,7 @@ def load_alias_registry(graph_root: str | Path) -> SessionAliasRegistry:
         return SessionAliasRegistry()
     with page_rmw_lock(path):
         try:
-            return SessionAliasRegistry.load_from_disk(path)
+            return cast(SessionAliasRegistry, SessionAliasRegistry.load_from_disk(path))
         except json.JSONDecodeError as exc:
             msg = f"Corrupt {XRAY_STATE_FILENAME}: {exc}. Re-run xray_page read."
             raise ValueError(msg) from exc
@@ -88,14 +107,13 @@ def resolve_pipe_target(graph_root: str | Path, target: str) -> str:
 
 
 def safe_update_alias(registry: SessionAliasRegistry, alias: int, target_uuid: str) -> None:
-    """Scoped v1.9.x compatibility helper to update the upstream registry."""
-    registry._alias_to_uuid[alias] = target_uuid  # noqa: SLF001
-    registry._uuid_to_alias[target_uuid] = alias  # noqa: SLF001
+    """Compatibility shim — delegates to :meth:`SessionAliasRegistry.register_alias`."""
+    registry.register_alias(alias, target_uuid)
 
 
 def safe_alias_items(registry: SessionAliasRegistry) -> ItemsView[int, str]:
-    """Iterate alias→UUID pairs for persistence without leaking private access."""
-    return cast(ItemsView[int, str], registry._alias_to_uuid.items())  # noqa: SLF001
+    """Iterate alias→UUID pairs for persistence via the public registry API."""
+    return registry.alias_items()
 
 
 __all__ = [
