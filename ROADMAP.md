@@ -64,7 +64,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 - Split `maintenance_daemon.py`; handler registry for `graph_dispatch.py`
 - `BootstrapHarvestStatus` Literal dedup ([#85](https://github.com/MarcoPorcellato/matryca-plumber/issues/85), good-first slice of [#62](https://github.com/MarcoPorcellato/matryca-plumber/issues/62))
 - ~~Centralize env parsing~~ — **done (v1.11.2):** `src/utils/env_parse.py` ([#62](https://github.com/MarcoPorcellato/matryca-plumber/issues/62) partial); ~~eliminate `type: ignore` suppressions~~ — **done** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60); zero `# type: ignore` in `src/`)
-- ~~Public API on `SessionAliasRegistry`~~ — scoped v1.9.14 helpers in `alias_state.py` (#64 partial); full upstream API deferred to v2.0
+- ~~Public API on `SessionAliasRegistry` (plumber)~~ — **done:** [#165](https://github.com/MarcoPorcellato/matryca-plumber/pull/165) closes [#64](https://github.com/MarcoPorcellato/matryca-plumber/issues/64); upstream parser API → [#167](https://github.com/MarcoPorcellato/matryca-plumber/issues/167)
 - ~~Journal page detection in graph layer~~ — **done (v1.11.2 partial):** [#71](https://github.com/MarcoPorcellato/matryca-plumber/issues/71) — `is_journal_page_title_in_index()` in `alias_index`; cached wrapper in `generational_cache`
 
 **Expert Architectural Audit 2026-06** — triage: [`docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md`](docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md). Four findings were already closed or tracked; eight new issues opened:
