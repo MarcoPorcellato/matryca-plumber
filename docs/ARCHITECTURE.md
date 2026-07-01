@@ -538,7 +538,18 @@ Local LLM inference is **slow** (seconds to minutes). Logseq users keep editing 
 
 ### Known limitation — mtime granularity
 
-Page OCC compares `st_mtime` as a float (`read_file_mtime`). Master catalog and bootstrap harvest already use **`st_mtime_ns`** for finer invalidation. On coarse-grained filesystems (FAT32/exFAT) or when two Plumber writers observe the same second-level mtime after an identical snapshot, OCC alone may not detect a conflict — **`page_rmw_lock` during commit** remains the serialization backstop. v1 hardening: [#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) (nanosecond parity). **Content-hash compare-and-swap** (SHA-256 of page bytes) is v2 scope under [GraphRepository #17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17).
+Matryca Plumber uses 64-bit integer nanosecond precision (`st_mtime_ns`) for catalog invalidation and, since v1.11.2, for page-write OCC via `read_file_mtime_ns`. This bypasses Python's float timestamp truncation for deterministic drift checks.
+
+**Filesystem resolution constraints:** OCC is physically bound by the maximum timestamp resolution of the underlying filesystem.
+
+| Class | Examples | OCC behavior |
+|-------|----------|--------------|
+| **Modern** | ext4, APFS, ZFS, NTFS | Nanosecond or 100-ns precision — OCC works as designed |
+| **Legacy** | FAT32, exFAT, older HFS+ | OS pads sub-second fields with zeros (≈1–2 s effective resolution) — a concurrent human edit in the same wall-clock second as a daemon commit may not be detected by mtime alone |
+
+On legacy drives, **`page_rmw_lock` during commit** remains the serialization backstop when two writers interleave in the same second. When two Plumber writers observe identical second-level mtimes after the same snapshot, OCC alone may not detect a conflict — same mitigation applies.
+
+v1 page-write hardening: [#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) (nanosecond parity). **Content-hash compare-and-swap** (SHA-256 of page bytes) is v2 scope under [GraphRepository #17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17).
 
 ### OCC lifecycle (canonical order)
 

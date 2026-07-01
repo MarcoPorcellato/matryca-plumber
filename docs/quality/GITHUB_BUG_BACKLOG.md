@@ -1,5 +1,7 @@
 # GitHub bug backlog — Expert Audit 2026-06 slice
 
+**Triage 2026-07-01:** 33 audit/observability issues closed on GitHub (shipped v1.11.2); pass 2 closed #42, #91, #92; pass 3 closed #38, #113; pass 4 closed #97 (OCC filesystem docs). Session log: [`ISSUE_TRIAGE_2026-07-01.md`](ISSUE_TRIAGE_2026-07-01.md). Epic **#20** pinned.
+
 Authoritative triage matrices:
 
 - [`EXPERT_AUDIT_TRIAGE_2026-06.md`](EXPERT_AUDIT_TRIAGE_2026-06.md)

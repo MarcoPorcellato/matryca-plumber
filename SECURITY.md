@@ -13,6 +13,19 @@
 
 We aim to acknowledge valid reports in a reasonable timeframe and coordinate disclosure after a fix or mitigation is available.
 
+If you cannot use GitHub advisories, email **marco@matryca.ai** with the same detail (redact secrets).
+
+## Supported versions
+
+Security fixes are published for the **latest minor release line** on `main` (currently **1.12.x**). Older minors receive fixes on a **best-effort** basis when backporting is practical.
+
+| Version line | Support |
+|--------------|---------|
+| **1.12.x** (current) | Active security support |
+| **1.11.x and earlier** | Upgrade recommended; no guaranteed backports |
+
+Install the latest release from [PyPI](https://pypi.org/project/matryca-plumber/) or tag [`releases`](https://github.com/MarcoPorcellato/matryca-plumber/releases). Dependency advisories are tracked via Dependabot and [`.github/workflows/dependabot-uv-fix.yml`](.github/workflows/dependabot-uv-fix.yml).
+
 ## Scope we care about
 
 Examples include unauthorized file access outside the intended graph, credential leakage via logs or error messages, unsafe defaults that enable destructive writes without user intent, and protocol or transport issues in the daemon, HTTP surfaces, or optional MCP sidecar that could harm the host machine.

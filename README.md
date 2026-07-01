@@ -18,6 +18,8 @@
 [![Security](https://img.shields.io/badge/security-policy-important)](SECURITY.md)
 [![Contributing](https://img.shields.io/badge/contributing-guide-blue)](CONTRIBUTING.md)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant-4baaaa)](CODE_OF_CONDUCT.md)
+[![Discussions](https://img.shields.io/github/discussions/MarcoPorcellato/matryca-plumber)](https://github.com/MarcoPorcellato/matryca-plumber/discussions)
+[![Sponsors](https://img.shields.io/github/sponsors/MarcoPorcellato)](https://github.com/sponsors/MarcoPorcellato)
 ![Views](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/MarcoPorcellato/matryca-plumber/metrics/metrics/views-badge.json)
 ![Clones](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/MarcoPorcellato/matryca-plumber/metrics/metrics/clones-badge.json)
 
@@ -33,6 +35,7 @@
   <a href="#how-it-compares">Compare</a> ·
   <a href="llms.txt">Agents</a> ·
   <a href="#documentation">Docs</a> ·
+  <a href="#community">Community</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -217,6 +220,21 @@ Eight MCP tools (five mega-tools + **`store_fact`** + **`ingest_document`** + **
 
 </details>
 
+## Community
+
+| Channel | Use for |
+|---------|---------|
+| [GitHub Issues](https://github.com/MarcoPorcellato/matryca-plumber/issues) | Bugs, feature requests, trackable work |
+| [GitHub Discussions](https://github.com/MarcoPorcellato/matryca-plumber/discussions) | RFCs, architecture debate ([#19 — v2 Shadow DB](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19)) |
+| [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | Scoped starter tasks — see [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
+| [`SUPPORT.md`](SUPPORT.md) | Where to ask vs where to file bugs |
+| [Logseq forum](https://discuss.logseq.com/) | Logseq OG ecosystem questions |
+| [Sponsor](https://github.com/sponsors/MarcoPorcellato) | Support ongoing maintenance |
+
+**Code of conduct:** report concerns to marco@matryca.ai — see [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+New contributors: start with [`docs/FIRST_CONTRIBUTION.md`](docs/FIRST_CONTRIBUTION.md), then [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Developer setup
 
 ```bash
@@ -234,6 +252,7 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [`AGENTS.md`](AGENTS.md) | [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md) — Clean Architecture for prompts |
 | [`SUPPORT.md`](SUPPORT.md) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | [`docs/openspec/README.md`](docs/openspec/README.md) |
+| [`docs/FIRST_CONTRIBUTION.md`](docs/FIRST_CONTRIBUTION.md) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | [`llms.txt`](llms.txt) | [`docs/openspec/tana-import.md`](docs/openspec/tana-import.md) |
 | [`ROADMAP.md`](ROADMAP.md) | [`CHANGELOG.md`](CHANGELOG.md) |
 | [**v2.0 preparation**](docs/roadmaps/ROADMAP_V2_PREPARATION.md) | [v2 issues `label:v2.0`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3Av2.0) · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) |
