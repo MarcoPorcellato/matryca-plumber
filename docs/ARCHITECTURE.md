@@ -102,7 +102,7 @@ flowchart TB
 
 ### 1. Maintenance daemon (Python background engine)
 
-**Entry:** `matryca plumber start` → `src/agent/maintenance_daemon.py`
+**Entry:** `matryca plumber start` → `src/agent/maintenance_daemon.py` (orchestrator; see [daemon module map](CLEAN_CODE_ARCHITECTURE.md#maintenance-daemon-module-map-issue-58))
 
 The daemon polls `pages/` and `journals/` under `LOGSEQ_GRAPH_PATH`, calls a local OpenAI-compatible endpoint (LM Studio, Ollama), and commits structured results through:
 
@@ -111,6 +111,21 @@ The daemon polls `pages/` and `journals/` under `LOGSEQ_GRAPH_PATH`, calls a loc
 - **OCC + `page_rmw_lock`** — lost-update prevention and cross-process serialization per page file
 
 Persistent artifacts at the graph root include `.matryca_daemon_state.json` (checkpoint + AI impact ledger), `.matryca_plumber_daemon.lock` / `.pid`, and `.matryca_semantic_cache/`. **Before** the first harvest or lint cycle, `prepare_matryca_runtime()` (see [Runtime bootstrap](#runtime-bootstrap)) ensures log directories, the sibling `matryca-l1/` folder, cache/templates paths, and an optional seeded `matryca-wiki.yml` exist.
+
+#### Agent daemon slices (issue #58 — shipped)
+
+`maintenance_daemon.py` is the **orchestrator** (~1,280 lines): bootstrap pipeline, `run_cycle` flywheel, semantic cluster grouping, live telemetry, file watcher wiring, and CLI entrypoints (`start_daemon_foreground`, `run_plumber_audit`, …). Extracted modules keep single responsibilities; the orchestrator **re-exports** public symbols so CLI, TUI, and tests keep importing `src.agent.maintenance_daemon`.
+
+| Module | Role |
+|--------|------|
+| `daemon_state.py` | Checkpoint ledger load/save, ghost prune helpers, lock-backoff records |
+| `daemon_process_lock.py` | PID file, cross-process lock, graceful stop |
+| `daemon_semantic_write.py` | Semantic index OCC writes, lint corrections, structural warnings |
+| `daemon_page_queue.py` | Pending-file selection, Phase-2 queue rules, scan metrics |
+| `daemon_llm_cycle.py` | Per-file LLM turn, fast-track settle, journey / link-verify tail |
+| `daemon_llm_client.py` | `LLMClient` protocol + daemon `InstructorLLMClient.index_page` |
+
+Full map: [`docs/CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md#maintenance-daemon-module-map-issue-58).
 
 #### Reactive graph stack (daemon)
 
@@ -205,7 +220,7 @@ Honest status after Expert, Repomix, [Clean Architecture Audit 2026-06](quality/
 | `auto_split` child page lock | Creates child pages with `is_file()` + `atomic_write_bytes` under parent lock only — no `page_rmw_lock(child)` | [#39](https://github.com/MarcoPorcellato/matryca-plumber/issues/39) |
 | Generational BM25/alias cache | Mtime signature invalidation + LRU cap; build-then-`sig_after` mitigated with 3-attempt retry (not full fix) | [#155](https://github.com/MarcoPorcellato/matryca-plumber/issues/155) |
 | Tana `tana-id` pre-scan RAM | `scan_existing_tana_ids` loads full page text per file before import | [#156](https://github.com/MarcoPorcellato/matryca-plumber/issues/156) |
-| `maintenance_daemon` SRP | ~3300 lines; scheduling, LLM, telemetry, watcher in one class | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) |
+| ~~`maintenance_daemon` SRP~~ | **Shipped:** six `daemon_*` modules + ~1,280-line orchestrator; re-exports preserve CLI/test imports | ~~[#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)~~ closed |
 | `graph_dispatch` SRP | Mega-module; MCP routes through single dispatch plane | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
 
 **Closed in v1.11.2 (Expert Audit 2026-06):** [#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132) `lock_backoff`; [#133](https://github.com/MarcoPorcellato/matryca-plumber/issues/133) resolve/write TOCTOU; [#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134) post-write inversion; [#136](https://github.com/MarcoPorcellato/matryca-plumber/issues/136) generational cache LRU; [#137](https://github.com/MarcoPorcellato/matryca-plumber/issues/137)–[#138](https://github.com/MarcoPorcellato/matryca-plumber/issues/138) progress/TUI; [#140](https://github.com/MarcoPorcellato/matryca-plumber/issues/140)–[#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142) identity AST / routing / semantic config; [#71](https://github.com/MarcoPorcellato/matryca-plumber/issues/71) journal detection partial; `alias_index` ↔ `generational_cache` cycle (v1.11.0); NoRedirect DRY; Phase 2 denominator journal exclusion ([#70](https://github.com/MarcoPorcellato/matryca-plumber/issues/70)). **Audit correction:** `get_logseq_journal_format()` has no in-process cache — it re-reads `config.edn` each call (repeated I/O, not staleness).
@@ -1154,7 +1169,8 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | Path | Role |
 |------|------|
 | `src/plumber_entry.py` | CLI vs MCP stdio disambiguation |
-| `src/agent/maintenance_daemon.py` | Autonomous poll loop, ledger, detached spawn |
+| `src/agent/maintenance_daemon.py` | Daemon orchestrator: poll loop, bootstrap, `run_cycle`, detached spawn (re-exports slice modules) |
+| `src/agent/daemon_*.py` | Issue #58 SRP slices — state, lock, semantic write, page queue, LLM cycle, LLM client |
 | `src/agent/page_prompt_session.py` | Per-page stable LLM prefix (v1.8 KV reuse) |
 | `src/agent/prompts/core.py` | `SystemPromptBuilder`, Tier-1A/B compile helpers |
 | `src/agent/semantic_lint/prompts.py` | Tier-1A semantic lint builder (rules 1–6) |

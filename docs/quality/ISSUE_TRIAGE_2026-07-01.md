@@ -100,14 +100,14 @@ Each closure comment links `GITHUB_BUG_BACKLOG.md` and invites reopen with repro
 
 | Issue | Status | `main` snapshot |
 |-------|--------|-----------------|
-| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | **Ready to close** | `maintenance_daemon.py` **~1280** lines (−2054); slices: `daemon_state`, `daemon_process_lock`, `daemon_semantic_write`, `daemon_page_queue`, `daemon_llm_cycle`, `daemon_llm_client` |
+| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | **Closed** | `maintenance_daemon.py` **1,274** lines; six `daemon_*` modules (3,797 total); see [`CLEAN_CODE_ARCHITECTURE.md`](../CLEAN_CODE_ARCHITECTURE.md#maintenance-daemon-module-map-issue-58) |
 | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) | **Open** | `graph_dispatch.py` 1279 lines, 25× `Any`; no handler registry |
 | [#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60) | **Closed** | Zero `# type: ignore` in original 11 sites (v1.9.15); 2 remain in `alias_state.py` subclass — acceptable |
 | [#61](https://github.com/MarcoPorcellato/matryca-plumber/issues/61) | **Open** | `property_line_edit.py` 682 lines; `edit_block_property_lines` / `append_page_alias_line` ~250 lines each |
 | [#62](https://github.com/MarcoPorcellato/matryca-plumber/issues/62) | **Closed** | `platform_lock`, `network.NoRedirect`, `env_parse`, `BootstrapHarvestStatus` dedup (v1.9.14–v1.11.2) |
 | [#63](https://github.com/MarcoPorcellato/matryca-plumber/issues/63) | **Open** | Private `_insertion_line_after_node` import in `graph_dispatch.py`; upstream track [#167](https://github.com/MarcoPorcellato/matryca-plumber/issues/167) |
 
-**First slices (contributor-safe):** #58 → `daemon_state.py` extract; #59 → `dispatch_read` registry; #61 → golden tests + alias state machine; #63 → local reimplement or wait for parser public API.
+**First slices (contributor-safe):** ~~#58~~ closed; #59 → `dispatch_read` registry; #61 → golden tests + alias state machine; #63 → local reimplement or wait for parser public API.
 
 ## Do not close without code proof
 

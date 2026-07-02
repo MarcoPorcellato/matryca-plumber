@@ -32,7 +32,7 @@ Staff-level review (Repomix snapshot, June 2026). Cross-reference: [Expert Audit
 
 | ID | Finding | Action | GitHub |
 |----|---------|--------|--------|
-| P2-01 | `maintenance_daemon.py` god object (~3323 lines) | Tracked | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) (Audit #32) |
+| P2-01 | `maintenance_daemon.py` god object (~3323 lines) | **Closed** ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)) — six `daemon_*` modules + ~1,280-line orchestrator | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) (Audit #32) |
 | P2-02 | `os.environ` in graph modules | Partial — #57 fixed slices | [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57), [#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142) |
 | P2-03 | `compute_topology_metrics` triple vault scan | Tracked | [#50](https://github.com/MarcoPorcellato/matryca-plumber/issues/50) (Audit #24) |
 | P2-04 | Full `catalog.save()` per indexed page | Tracked | [#49](https://github.com/MarcoPorcellato/matryca-plumber/issues/49) (Audit #23) |

@@ -52,13 +52,67 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 | OCC `st_mtime_ns` + `page_rmw_lock` | Lost-update prevention + torn-write serialization | Content-hash CAS → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) |
 | JSON ledgers at graph root | No central DB (Phase 4) | Shadow DB → [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) |
 | `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Split → [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
-| `maintenance_daemon` SRP | ~~3300 lines~~ **~1280** orchestrator after [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | Done — `daemon_state`, `daemon_process_lock`, `daemon_semantic_write`, `daemon_page_queue`, `daemon_llm_cycle`, `daemon_llm_client` |
+| `maintenance_daemon` SRP | ~~3,300 lines~~ → **~1,280** orchestrator + six `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **closed**) | See [Maintenance daemon module map](#maintenance-daemon-module-map-issue-58) |
 
 ### v2 preparation phases
 
 See [`roadmaps/ROADMAP_V2_PREPARATION.md`](roadmaps/ROADMAP_V2_PREPARATION.md) and [`v2_preparation_blueprints.md`](../v2_preparation_blueprints.md). Phases 0–4 map to GitHub milestone **`v2.0.0 — Shadow DB & Safe-Sync Architecture`** and Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
 
 Audit triage: [`quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md`](quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md) · [`quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md).
+
+---
+
+## Maintenance daemon module map (issue #58)
+
+**Status:** closed (v1.9.x audit #32). **Goal:** single-responsibility slices without behavior change; preserve import paths for CLI, TUI, and `tests/test_maintenance_daemon.py`.
+
+### Before / after
+
+| Metric | Before (#58 opened) | After (#58 closed) |
+|--------|---------------------|---------------------|
+| `maintenance_daemon.py` | ~3,300 lines | **~1,280 lines** (−61%) |
+| Cyclomatic hotspots | `_process_llm_cycle_file` CC≈41, `run_cycle` CC≈34 | Logic distributed across focused modules |
+| Test contract | `from src.agent.maintenance_daemon import …` | Unchanged — orchestrator re-exports |
+
+### Module responsibilities
+
+| Module | Lines (approx.) | Single reason to change |
+|--------|-----------------|-------------------------|
+| [`daemon_state.py`](../src/agent/daemon_state.py) | 513 | `.matryca_daemon_state.json` load/save, ledger heal, lock-backoff records |
+| [`daemon_process_lock.py`](../src/agent/daemon_process_lock.py) | 315 | PID file, `flock` / lock sidecar, graceful `stop_daemon` |
+| [`daemon_semantic_write.py`](../src/agent/daemon_semantic_write.py) | 697 | Semantic index OCC writes, lint corrections, structural warnings, dual-embed hook |
+| [`daemon_page_queue.py`](../src/agent/daemon_page_queue.py) | 216 | `list_pending_files`, Phase-2 queue rules, journal settle semantics, scan metrics |
+| [`daemon_llm_cycle.py`](../src/agent/daemon_llm_cycle.py) | 554 | Per-file LLM turn (`process_llm_cycle_file`), fast-track, journey / link-verify tail |
+| [`daemon_llm_client.py`](../src/agent/daemon_llm_client.py) | 228 | `LLMClient` protocol + daemon `InstructorLLMClient.index_page` adapter |
+| [`maintenance_daemon.py`](../src/agent/maintenance_daemon.py) | 1,274 | Bootstrap pipeline, `run_cycle` flywheel, cluster grouping, telemetry, entrypoints |
+
+### Dependency direction
+
+```text
+maintenance_daemon (orchestrator)
+    ├── daemon_process_lock ──► daemon_state
+    ├── daemon_page_queue ────► daemon_state, daemon_semantic_write (title helpers)
+    ├── daemon_llm_cycle ─────► daemon_llm_client, daemon_semantic_write, daemon_state
+    ├── daemon_llm_client ────► llm_client (base), daemon_semantic_write
+    └── daemon_semantic_write ► src/graph/* (OCC writes)
+```
+
+**Rule:** new per-file cycle logic belongs in `daemon_llm_cycle.py` or `daemon_page_queue.py`, not back in the orchestrator. New disk-write semantics belong in `daemon_semantic_write.py` or `src/graph/`.
+
+### Backward compatibility
+
+- `maintenance_daemon.__all__` re-exports symbols moved to slice modules (e.g. `load_daemon_state`, `InstructorLLMClient`, `list_pending_files`).
+- Tests that monkeypatch implementation details should target the **defining module** (e.g. `src.agent.daemon_llm_cycle.merge_page_links_into_registry`) when the symbol no longer lives in `maintenance_daemon`.
+- Base structured-output client remains in [`llm_client.py`](../src/agent/llm_client.py); the daemon subclass in `daemon_llm_client.py` adds semantic `index_page` only.
+
+### Verification
+
+```bash
+uv run ruff check src tests
+uv run mypy src tests
+uv run pytest tests/test_maintenance_daemon.py -q
+make check
+```
 
 ---
 
