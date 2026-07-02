@@ -1,10 +1,11 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v1.12.1)
+# Matryca Plumber - AI Agent Context & Execution Guide (v1.13.0)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
+> **v1.13.0 headline:** **Daemon & dispatch modularization** — `maintenance_daemon` split into focused `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry + **`GraphReadPort`** (v2 Phase 1, [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)). Maintainer map: `docs/CLEAN_CODE_ARCHITECTURE.md` · `docs/ARCHITECTURE.md`.
 > **v1.12.0 headline:** **Prompt Clean Architecture** — Tier-1 domain prompt builders (`src/agent/prompts/`), L0 write-safety validators before semantic commits, `SYSTEM_PROMPT.md` assembled from `docs/openspec/agent/` fragments (`make build-system-prompt`). Maintainer map: `docs/PROMPT_ARCHITECTURE.md` · `AGENTS.md`.
 > **v1.11.x:** **Tana → Logseq OG** via `matryca import tana` / MCP **`import_tana`** (dry-run default). **v1.11.1** pins **`logseq-matryca-parser` 1.4.0**. **v1.11.2** refactors the **graph layer boundary** (`post_write` port, bounded RAM LRU caches, OCC `st_mtime_ns` page writes). Spec: `docs/openspec/tana-import.md` · architecture: `docs/ARCHITECTURE.md`.
 
@@ -12,7 +13,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-Matryca Plumber v1.12.1 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+Matryca Plumber v1.13.0 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -50,7 +51,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (verified v1.12.1)
+## 2. Core CLI (verified v1.13.0)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.

@@ -6,7 +6,23 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v1.12.1** — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v1.13.0** — issue numbers link to GitHub; scope may shift as milestones close.*
+
+---
+
+## v1.13.0 — Daemon & dispatch modularization (v2 Phase 0–1) ✓ on `main`
+
+| Deliverable | Status |
+|-------------|--------|
+| `maintenance_daemon` SRP — six `daemon_*` modules + orchestrator | **Done** ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)) |
+| `graph_dispatch` handler registry — five `dispatch_*_handlers.py` slices | **Done** ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)) |
+| `GraphReadPort` + `MarkdownGraphRepository` (v2 Phase 1) | **Done** ([#179](https://github.com/MarcoPorcellato/matryca-plumber/issues/179), [#180](https://github.com/MarcoPorcellato/matryca-plumber/issues/180)) |
+| Community onboarding — README, `FIRST_CONTRIBUTION.md`, CoC contact | **Done** |
+| Issue triage pass (2026-07-01) | **Done** — log [`docs/quality/ISSUE_TRIAGE_2026-07-01.md`](docs/quality/ISSUE_TRIAGE_2026-07-01.md) |
+
+**Recommended semver:** **minor 1.13.0** — internal modularization + v2 read port; no intentional PyPI CLI/MCP break for vault operators.
+
+**Next v2 slice:** Phase 2 shadow incremental sync ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)) — see [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md).
 
 ---
 

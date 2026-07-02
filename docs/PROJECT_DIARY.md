@@ -1,12 +1,41 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.12.0** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.12.0]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.13.0** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.13.0]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-02] v1.13.0 — Daemon & dispatch modularization (v2 Phase 0–1)
+
+### Context
+
+Post–v1.12.x Clean Code guidance, two god modules blocked v2 preparation: `maintenance_daemon.py` (~3,300 lines) and `graph_dispatch.py` (~2,400 lines). Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) Phase 0–1 required SRP splits and a read boundary (`GraphReadPort`) before Shadow DB work.
+
+### Shipped (stacked slices → `main`)
+
+1. **`maintenance_daemon` SRP** — six `daemon_*` modules + ~1,280-line orchestrator with backward-compatible re-exports ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)).
+2. **`graph_dispatch` handler registry** — five `dispatch_*_handlers.py` slices; thin routers in `graph_dispatch.py` (~565 lines write runtime) ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)).
+3. **`GraphReadPort`** — `src/graph/ports/read.py` protocol + `MarkdownGraphRepository`; subtree reads delegate through port ([#179](https://github.com/MarcoPorcellato/matryca-plumber/issues/179), [#180](https://github.com/MarcoPorcellato/matryca-plumber/issues/180)).
+4. **Community onboarding** — README Community section, [`FIRST_CONTRIBUTION.md`](FIRST_CONTRIBUTION.md), CoC enforcement contact.
+5. **Issue triage** — four-pass audit closure log [`quality/ISSUE_TRIAGE_2026-07-01.md`](quality/ISSUE_TRIAGE_2026-07-01.md).
+
+### Clean Architecture decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Re-exports from `maintenance_daemon` | Avoid breaking CLI/tests that import legacy symbols |
+| Lazy import in `dispatch_mutate_handlers` | Break circular dependency with write helpers in `graph_dispatch` |
+| `GraphReadPort` in `graph/ports/` not `agent/` | Dependency Rule — graph layer must not import agent |
+| **Minor 1.13.0** | Large internal refactor; no intentional operator-facing CLI/MCP break |
+
+**Verify:** `make ci` · `tests/test_graph_dispatch_*.py` · `tests/test_graph_repository.py` · daemon module tests.
+
+**Docs:** [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`roadmaps/ROADMAP_V2_PREPARATION.md`](roadmaps/ROADMAP_V2_PREPARATION.md).
 
 ---
 

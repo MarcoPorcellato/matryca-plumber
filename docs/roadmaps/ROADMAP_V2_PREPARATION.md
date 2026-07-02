@@ -10,14 +10,14 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 
 ---
 
-## Where we are today (v1.12)
+## Where we are today (v1.13)
 
-| Layer | v1.12 shipped | v2 scaffold (in tree) | Not wired yet |
+| Layer | v1.13 shipped | v2 scaffold (in tree) | Not wired yet |
 |-------|-----------------|------------------------|---------------|
 | **DDL** | — | [`src/shadow/schema.py`](../../src/shadow/schema.py) + [`tests/test_shadow_schema.py`](../../tests/test_shadow_schema.py) | sync, FTS query helpers |
 | **Memory algorithms** | — | [`src/memory/decay.py`](../../src/memory/decay.py) | recall, consolidate, MCP `recall` |
-| **Repository port** | — | — | `GraphReadPort` / `MarkdownGraphRepository` |
-| **Read path** | `master_catalog.json` + in-memory BM25 | — | shadow routing |
+| **Repository port** | `GraphReadPort` + `MarkdownGraphRepository` (subtree reads) | — | full read routing via shadow |
+| **Read path** | `master_catalog.json` + in-memory BM25; subtree via port | — | shadow routing |
 | **Write path (OG)** | OCC + `.md` + `page_rmw_lock` | — | — (done) |
 | **Write path (Logseq DB)** | — | — | official CLI/API bridge ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
 

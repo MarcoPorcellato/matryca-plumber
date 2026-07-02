@@ -1,6 +1,6 @@
 # Matryca Plumber — System Architecture
 
-**Version:** 1.12.0 (plan v3 — Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router) · ships on top of 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
+**Version:** 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1) · builds on 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router) and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
