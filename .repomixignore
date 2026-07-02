@@ -64,9 +64,8 @@ htmlcov/
 .coverage.*
 
 # --- Maintainer-local & IDE debug (not product code) ---
-.local/
-.gitnexus
-.claude/skills/gitnexus/
+.local/  # graph-based code audit index and other local tooling
+.claude/skills/
 .cursor/
 .cursorignore
 .cursorrules
