@@ -1,6 +1,6 @@
 # Matryca Plumber — System Architecture
 
-**Version:** 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1) · builds on 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router) and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
+**Version:** 1.13.1 (parser 1.6.0 alignment + headless newline parity) · builds on 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
@@ -86,9 +86,13 @@ flowchart TB
 
 **v1.11.2 focus:** **Graph layer boundary refactor** — canonical graph primitives (`post_write`, `ast_cache`, `daemon_checkpoint`, cooperative yield, harvest runtime, prompt layout/constraints, cognitive LLM protocols) live in `src/graph/` with agent/daemon shims; `tests/test_graph_layer_boundary.py` forbids graph→agent/daemon imports ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134) closed). **Bounded RAM** — generational alias/BM25 LRU (`MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS`) and dual-embedding ondemand/resident modes (`MATRYCA_BLOCK_VECTOR_STORE_MODE`, `MATRYCA_BLOCK_VECTOR_STORE_MAX_GRAPHS`) ([#136](https://github.com/MarcoPorcellato/matryca-plumber/issues/136), [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) partial). **OCC nanosecond parity** — page writes use `st_mtime_ns` via `read_file_mtime_ns` ([#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) partial). **Shared env parsing** — `src/utils/env_parse.py`.
 
-**v1.11.1 focus:** **Logseq Matryca Parser 1.4.0 alignment** — minimum dependency `logseq-matryca-parser>=1.4.0`; inherits 1.3.x root public API and graph parity; picks up 1.4.0 robustness (canonical page iteration, case-insensitive tag/search, watcher delete/move, SYNAPSE embed safety, 31 bug-hunt fixes).
+**v1.13.1 focus:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation; **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). Plumber `_headless_append_child` mirrors the **1.4.2** newline normalization.
+
+**v1.13.0 focus:** **Daemon & dispatch modularization (v2 Phase 0–1)** — `maintenance_daemon` SRP split ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)); **`GraphReadPort`** / `MarkdownGraphRepository`.
 
 **v1.11.0 focus:** **Tana → Logseq OG migration** — streaming `ijson` loader over Tana workspace JSON exports; hybrid entity placement under `Tana/`; `#day` journal routing via `logseq/config.edn`; depth-split at configurable limit; in-flight + catalog wikilink resolution; `tana-id::` idempotent OCC writes; CLI `matryca import tana` and MCP `import_tana` (dry-run default). Spec: [`openspec/tana-import.md`](openspec/tana-import.md).
+
+**v1.11.1 focus:** **Logseq Matryca Parser 1.4.0 alignment** — minimum dependency `logseq-matryca-parser>=1.4.0`; inherits 1.3.x root public API and graph parity; picks up 1.4.0 robustness (canonical page iteration, case-insensitive tag/search, watcher delete/move, SYNAPSE embed safety, 31 bug-hunt fixes).
 
 **v1.10.6 focus:** **Concurrency integrity** — shared cross-process flock in `src/utils/platform_lock.py` unifies page RMW locks and JSON sidecar locks (NB acquire + exponential backoff + blocking fallback + thread-local reentrancy; fixes nested catalog/registry deadlocks, #40); OCC-safe hub page writes via `write_generated_hub_page` for Master Index and Graph Insights compiles (pre-compile mtime snapshot, graceful skip on human edit during compile, #34).
 
@@ -494,7 +498,7 @@ Spec detail: [`openspec/llm-performance.md`](openspec/llm-performance.md#journal
 
 ### Parser-backed spatial truth
 
-**[logseq-matryca-parser](https://github.com/MarcoPorcellato/logseq-matryca-parser)** (`>=1.4.0`) owns block hierarchy, indentation, and `id::` semantics. From **1.2.0** onward the parser also handles YAML frontmatter page properties, case-insensitive page routing, and multimodal asset extraction; **1.3.0** consolidates the public root API (`LogosParser`, `LogseqGraph`, `discover_graph_files`, …); **1.4.0** adds graph-integrity hardening (canonical page iteration, case-insensitive tag/search, watcher delete/move, SYNAPSE embed safety). **`src/rag/matryca_hooks.py`** adapts `read_logseq_page` for agent consumption.
+**[logseq-matryca-parser](https://github.com/MarcoPorcellato/logseq-matryca-parser)** (`>=1.6.0`) owns block hierarchy, indentation, and `id::` semantics. From **1.2.0** onward the parser also handles YAML frontmatter page properties, case-insensitive page routing, and multimodal asset extraction; **1.3.0** consolidates the public root API (`LogosParser`, `LogseqGraph`, `discover_graph_files`, …); **1.4.0** adds graph-integrity hardening; **1.4.2** fixes agent-write newline splice and X-Ray reload; **1.6.0** adds Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). **`src/rag/matryca_hooks.py`** adapts `read_logseq_page` for agent consumption.
 
 Disk mutators that perform line surgery (`property_line_edit`, `tag_unify`, `reparent_blocks`, …) combine:
 
@@ -1252,6 +1256,8 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | **1.10.0** | Catalog/registry integrity | Master catalog flock load + merge-on-save; link registry atomic save; harvest OCC catalog guard ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)–[#37](https://github.com/MarcoPorcellato/matryca-plumber/issues/37), [#41](https://github.com/MarcoPorcellato/matryca-plumber/issues/41)); OSS CI maturity |
 | **1.10.3** | UI/LLM hardening | Non-blocking Sovereign UI config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` |
 | **1.11.2** | Graph layer boundary + bounded RAM | `post_write` port ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)); graph canonical modules; generational + block-vector LRU; OCC `st_mtime_ns` page writes ([#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) partial); `env_parse` shared helpers |
+| **1.13.1** | Parser 1.6.0 alignment | `logseq-matryca-parser>=1.6.0`; 1.4.2 splice/X-Ray fixes; 1.6.0 `iter_attached_nodes` / `is_tracked_markdown_path`; headless newline parity |
+| **1.13.0** | Daemon/dispatch modularization | `GraphReadPort`; `daemon_*` slices; `dispatch_*_handlers` ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58), [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)) |
 | **1.11.1** | Parser 1.4.0 alignment | `logseq-matryca-parser>=1.4.0`; canonical page iteration; case-insensitive tag/search; watcher delete/move; SYNAPSE embed safety |
 | **1.11.0** | Tana → Logseq OG import | `ijson` streaming loader; hybrid placement; `config.edn` journals; depth-split; `tana-id` idempotency; CLI + MCP `import_tana` (879+ tests) |
 | **1.10.6** | Concurrency integrity | Unified `platform_lock` flock for page + JSON sidecars ([#40](https://github.com/MarcoPorcellato/matryca-plumber/issues/40)); hub page OCC via `write_generated_hub_page` ([#34](https://github.com/MarcoPorcellato/matryca-plumber/issues/34)); contributor backlog hygiene |

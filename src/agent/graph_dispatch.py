@@ -290,11 +290,14 @@ def _headless_append_child(
             raise ValueError(msg)
         insert_after_line = _insertion_line_after_node(target_node)
         child_level = target_node.indent_level + 1
-        bullet_indent = " " * (child_level * graph.tab_size)
-        body_indent = " " * ((child_level + 1) * graph.tab_size)
+        tab_size = graph.tab_size_for_node(target_node)
+        bullet_indent = " " * (child_level * tab_size)
+        body_indent = " " * ((child_level + 1) * tab_size)
         path = Path(target_node.source_path or source_path)
         safe_path = assert_path_within_graph(path, graph_root)
         raw_text = read_graph_file_text(safe_path, graph_root)
+        if raw_text and not raw_text.endswith(("\n", "\r\n")):
+            raw_text += "\n"
         file_lines = raw_text.splitlines(keepends=True)
         insert_index = insert_after_line
 

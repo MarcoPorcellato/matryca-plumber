@@ -178,6 +178,26 @@ def test_headless_write_outline_strips_heading_level_from_disk(tmp_path: Path) -
     assert "Section A" in page_text
 
 
+def test_headless_append_child_without_trailing_newline(tmp_path: Path) -> None:
+    """Append on a page file missing a final newline must not splice onto the last line."""
+    pages = tmp_path / "pages"
+    pages.mkdir()
+    parent_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    # No trailing newline after id:: line (parser #72 / 1.4.2 parity).
+    (pages / "NoNewline.md").write_bytes(
+        f"- Root page block\n  id:: {parent_id}".encode(),
+    )
+
+    outline: dict[str, Any] = {"text": "Appended child", "children": []}
+    out = _headless_write_outline(str(tmp_path), parent_id, outline)
+
+    assert out.get("ok") is True
+    page_text = (pages / "NoNewline.md").read_text(encoding="utf-8")
+    lines = page_text.splitlines()
+    assert any(line.strip() == "- Appended child" for line in lines)
+    assert not any("id:: Appended" in line for line in lines)
+
+
 def test_headless_write_outline_chains_parent_uuids(tmp_path: Path) -> None:
     """Headless outline write creates nested blocks with chained UUIDs on disk."""
     pages = tmp_path / "pages"

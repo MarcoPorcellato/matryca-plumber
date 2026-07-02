@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [1.13.1] - 2026-07-02
+
+**Logseq Matryca Parser 1.6.0 alignment**
+
+### Changed
+
+- **`logseq-matryca-parser`** — minimum dependency raised to **1.6.0** (from `>=1.4.0`); inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation, plus **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`).
+- **`_headless_append_child`** — normalizes source files missing a trailing newline before line splice (parity with parser **1.4.2**); uses per-node `tab_size_for_node` for indentation.
+- **`load_alias_registry`** — maps parser `SessionAliasRegistryError` (1.4.2+) to the existing corrupt-state `ValueError` contract.
+
 ## [1.13.0] - 2026-07-02
 
 **Clean Code refactor — daemon & dispatch modularization (v2 Phase 0–1)**

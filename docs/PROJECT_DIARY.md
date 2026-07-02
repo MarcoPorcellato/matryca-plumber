@@ -1,12 +1,34 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.13.0** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.13.0]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.13.1** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.13.1]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-02] v1.13.1 — Logseq Matryca Parser 1.6.0 alignment
+
+### Context
+
+Plumber shipped **v1.13.0** on `logseq-matryca-parser` **1.4.0**. Parser **1.6.0** (PyPI 2026-07-02) consolidates **1.4.2** headless-write fixes (newline splice #72, X-Ray reload #60, SYNAPSE cyclic embed #65) and **1.6.0** Clean Architecture graph APIs. The mutation plane uses a custom OCC splice (`_headless_append_child`) that must mirror parser newline semantics independently of `append_child_to_node`.
+
+### Shipped
+
+1. **Dependency** — `logseq-matryca-parser>=1.6.0,<2.0.0` in `pyproject.toml` / `uv.lock`.
+2. **`_headless_append_child`** — trailing-newline normalization + `tab_size_for_node` (parity with parser 1.4.2).
+3. **`load_alias_registry`** — map `SessionAliasRegistryError` to existing corrupt-state `ValueError` contract.
+
+### Semver
+
+| Decision | Rationale |
+|----------|-----------|
+| **Patch 1.13.1** | Parser alignment + write robustness; no intentional MCP/CLI break |
+
+**Suite:** 987 tests green · parser 1.6.0 locked · mypy strict · ruff clean.
 
 ---
 

@@ -10,6 +10,7 @@ from typing import cast
 
 from logseq_matryca_parser.agent_press import XRAY_STATE_FILENAME
 from logseq_matryca_parser.agent_press import SessionAliasRegistry as _SessionAliasRegistry
+from logseq_matryca_parser.exceptions import SessionAliasRegistryError
 
 from ..graph.markdown_blocks import atomic_write_bytes
 from ..graph.page_write_lock import page_rmw_lock
@@ -54,7 +55,7 @@ def load_alias_registry(graph_root: str | Path) -> SessionAliasRegistry:
     with page_rmw_lock(path):
         try:
             return cast(SessionAliasRegistry, SessionAliasRegistry.load_from_disk(path))
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, SessionAliasRegistryError) as exc:
             msg = f"Corrupt {XRAY_STATE_FILENAME}: {exc}. Re-run xray_page read."
             raise ValueError(msg) from exc
         except UnicodeDecodeError as exc:

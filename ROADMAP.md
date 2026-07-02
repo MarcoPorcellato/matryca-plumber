@@ -6,7 +6,19 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v1.13.0** — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v1.13.1** — issue numbers link to GitHub; scope may shift as milestones close.*
+
+---
+
+## v1.13.1 — Logseq Matryca Parser 1.6.0 alignment ✓ on `main`
+
+| Deliverable | Status |
+|-------------|--------|
+| Parser pin `logseq-matryca-parser>=1.6.0` | **Done** |
+| `_headless_append_child` newline parity (parser 1.4.2) | **Done** |
+| `load_alias_registry` `SessionAliasRegistryError` mapping | **Done** |
+
+**Recommended semver:** **patch 1.13.1** — dependency alignment + headless write robustness; no MCP/CLI surface change.
 
 ---
 
@@ -156,6 +168,8 @@ Not backlog — context for where we are today:
 | v1.10.0 | Catalog/registry integrity (#35–#37, #41); OSS/GitHub hygiene (PR template, CodeQL, frontend ESLint); `make test-fast` local gate; dependency advisory bumps (720+ tests) |
 | v1.10.3 | Sovereign UI non-blocking config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` (725+ tests) |
 | v1.11.2 | **Graph layer boundary refactor** — `post_write` port ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)); canonical graph modules; generational + block-vector LRU; OCC `st_mtime_ns` page writes; `env_parse`; observability logging (879+ tests) |
+| v1.13.1 | `logseq-matryca-parser` 1.6.0 alignment — 1.4.2 splice/X-Ray fixes; headless newline parity |
+| v1.13.0 | Daemon/dispatch modularization + `GraphReadPort` (v2 Phase 0–1) |
 | v1.11.1 | `logseq-matryca-parser` 1.4.0 alignment — canonical page iteration, case-insensitive tag/search, watcher delete/move, SYNAPSE embed safety (879+ tests) |
 | v1.11.0 | **Tana workspace JSON import** — `ijson` streaming, hybrid placement, `config.edn` journals, depth-split, `tana-id` idempotent writes, CLI `matryca import tana`, MCP `import_tana` (879+ tests) |
 | v1.10.6 | Unified `platform_lock` flock (#40); hub page OCC (#34); contributor backlog hygiene (725+ tests) |
