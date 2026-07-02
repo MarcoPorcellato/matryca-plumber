@@ -15,8 +15,8 @@ Create issues: `bash scripts/populate_v2_preparation.sh` (idempotent).
 
 | Phase | GitHub | Summary |
 |-------|--------|---------|
-| 0 | [#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174) | v1.9.12 prerequisites — #58, #59, env_parse |
-| 1 | [#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175) | `GraphRepository` Markdown adapter |
+| 0 | [#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174) | v1.9.12 prerequisites — **done** (#58, #59); Tier F env_parse deferred |
+| 1 | [#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175) | `GraphRepository` Markdown adapter — **done** (#179, #180) |
 | 2 | [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176) | Shadow incremental sync |
 | 3 | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) | Read routing + opt-in flag |
 | 4 | [#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178) | Biological memory + Logseq DB Safe-Sync |
@@ -37,16 +37,16 @@ Epic index: [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) 
 
 ## Slice backlog (by phase)
 
-### Phase 1 — Ports
+### Phase 1 — Ports (**shipped** 2026-07-01)
 
-| Body file | GitHub | Summary | Difficulty |
-|-----------|--------|---------|------------|
-| [`v2-phase1-graph-read-port.md`](docs/quality/issue-bodies/v2-phase1-graph-read-port.md) | [#179](https://github.com/MarcoPorcellato/matryca-plumber/issues/179) | `GraphReadPort` + `MarkdownGraphRepository` + parity tests | 4/10 |
-| [`v2-phase1-dispatch-read-delegate.md`](docs/quality/issue-bodies/v2-phase1-dispatch-read-delegate.md) | [#180](https://github.com/MarcoPorcellato/matryca-plumber/issues/180) | One `graph_dispatch` read → port | 4/10 |
+| Body file | GitHub | Summary | Status |
+|-----------|--------|---------|--------|
+| [`v2-phase1-graph-read-port.md`](docs/quality/issue-bodies/v2-phase1-graph-read-port.md) | [#179](https://github.com/MarcoPorcellato/matryca-plumber/issues/179) | `GraphReadPort` + `MarkdownGraphRepository` + parity tests | **done** |
+| [`v2-phase1-dispatch-read-delegate.md`](docs/quality/issue-bodies/v2-phase1-dispatch-read-delegate.md) | [#180](https://github.com/MarcoPorcellato/matryca-plumber/issues/180) | Subtree read → port | **done** |
 
 **Verify:**
 ```bash
-uv run pytest tests/test_graph_repository.py tests/test_graph_dispatch.py -q
+uv run pytest tests/test_graph_dispatch_*.py tests/test_graph_repository.py -q
 make check
 ```
 
@@ -81,11 +81,11 @@ make check
 
 ## v1 blockers (do not duplicate — link in PRs)
 
-| Issue | Why |
-|-------|-----|
-| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | Daemon modularization for sync hooks |
-| [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) | Dispatch registry for read routing |
-| [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) | Vector RAM → shadow shard convergence |
+| Issue | Why | Status |
+|-------|-----|--------|
+| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | Daemon modularization for sync hooks | **done** |
+| [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) | Dispatch handler registry for read routing | **done** |
+| [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) | Vector RAM → shadow shard convergence | partial |
 
 ---
 

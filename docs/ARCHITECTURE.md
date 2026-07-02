@@ -106,7 +106,7 @@ flowchart TB
 
 The daemon polls `pages/` and `journals/` under `LOGSEQ_GRAPH_PATH`, calls a local OpenAI-compatible endpoint (LM Studio, Ollama), and commits structured results through:
 
-- **`graph_dispatch.py`** — headless outline appends via `logseq_matryca_parser.agent_writer.append_child_to_node`
+- **`graph_dispatch.py`** — shared mutation plane for MCP, CLI, and daemon: thin `dispatch_*` routers delegate to `dispatch_*_handlers.py`; headless outline appends via `logseq_matryca_parser.agent_writer._insertion_line_after_node` (see [graph dispatch slices](#graph-dispatch-slices-issue-59--shipped))
 - **Cognitive modules** — `src/agent/plumber_modules/` (env-gated: MARPA, dangling healer, property hygiene, auto-split, …)
 - **OCC + `page_rmw_lock`** — lost-update prevention and cross-process serialization per page file
 
@@ -126,6 +126,21 @@ Persistent artifacts at the graph root include `.matryca_daemon_state.json` (che
 | `daemon_llm_client.py` | `LLMClient` protocol + daemon `InstructorLLMClient.index_page` |
 
 Full map: [`docs/CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md#maintenance-daemon-module-map-issue-58).
+
+#### Graph dispatch slices (issue #59 — shipped)
+
+`graph_dispatch.py` is the **write runtime + router** (~565 lines): OCC-aware `_headless_append_child`, outline DFS writes, `_resolve_write_parent_target`, and five thin `dispatch_*` entrypoints. Mega-tool routing lives in handler modules (one function per target/method/action).
+
+| Module | Mega-tool | Role |
+|--------|-----------|------|
+| `dispatch_read_handlers.py` | `read_graph_data` | Page, subtree, xray, dashboard, …; subtree via `GraphReadPort` |
+| `dispatch_search_handlers.py` | `search_graph` | bm25, semantic, regex, journal_tasks, … |
+| `dispatch_mutate_handlers.py` | `mutate_graph` | write_outline, edit_property, append_journal, inject_query |
+| `dispatch_refactor_handlers.py` | `refactor_blocks` | split_large, reparent, generate_flashcards |
+| `dispatch_lint_handlers.py` | `run_linter` | unify_tags, block_refs, full_wiki_scan |
+| `markdown_graph_repository.py` | (port) | Markdown-backed `GraphReadPort` adapter |
+
+Full map: [`docs/CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md#graph-dispatch-module-map-issue-59).
 
 #### Reactive graph stack (daemon)
 
@@ -221,7 +236,7 @@ Honest status after Expert, Repomix, [Clean Architecture Audit 2026-06](quality/
 | Generational BM25/alias cache | Mtime signature invalidation + LRU cap; build-then-`sig_after` mitigated with 3-attempt retry (not full fix) | [#155](https://github.com/MarcoPorcellato/matryca-plumber/issues/155) |
 | Tana `tana-id` pre-scan RAM | `scan_existing_tana_ids` loads full page text per file before import | [#156](https://github.com/MarcoPorcellato/matryca-plumber/issues/156) |
 | ~~`maintenance_daemon` SRP~~ | **Shipped:** six `daemon_*` modules + ~1,280-line orchestrator; re-exports preserve CLI/test imports | ~~[#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)~~ closed |
-| `graph_dispatch` SRP | Mega-module; MCP routes through single dispatch plane | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
+| ~~`graph_dispatch` SRP~~ | **Shipped:** five `dispatch_*_handlers.py` modules + ~565-line write runtime / thin routers; subtree via `GraphReadPort` | ~~[#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)~~ closed |
 
 **Closed in v1.11.2 (Expert Audit 2026-06):** [#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132) `lock_backoff`; [#133](https://github.com/MarcoPorcellato/matryca-plumber/issues/133) resolve/write TOCTOU; [#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134) post-write inversion; [#136](https://github.com/MarcoPorcellato/matryca-plumber/issues/136) generational cache LRU; [#137](https://github.com/MarcoPorcellato/matryca-plumber/issues/137)–[#138](https://github.com/MarcoPorcellato/matryca-plumber/issues/138) progress/TUI; [#140](https://github.com/MarcoPorcellato/matryca-plumber/issues/140)–[#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142) identity AST / routing / semantic config; [#71](https://github.com/MarcoPorcellato/matryca-plumber/issues/71) journal detection partial; `alias_index` ↔ `generational_cache` cycle (v1.11.0); NoRedirect DRY; Phase 2 denominator journal exclusion ([#70](https://github.com/MarcoPorcellato/matryca-plumber/issues/70)). **Audit correction:** `get_logseq_journal_format()` has no in-process cache — it re-reads `config.edn` each call (repeated I/O, not staleness).
 
@@ -1186,7 +1201,14 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | `src/graph/markdown_io.py` | mmap graph page reads (Phase 1 catalog path) |
 | `src/cli/ui_server.py` | FastAPI monolith + static SPA + daemon control |
 | `src/cli/ui_auth.py` | Bearer token resolution and verification |
-| `src/agent/graph_dispatch.py` | Headless writes, OCC-aware block resolution |
+| `src/agent/graph_dispatch.py` | Headless write runtime + thin `dispatch_*` routers |
+| `src/agent/dispatch_read_handlers.py` | `read_graph_data` handler registry |
+| `src/agent/dispatch_search_handlers.py` | `search_graph` handler registry |
+| `src/agent/dispatch_mutate_handlers.py` | `mutate_graph` handler registry |
+| `src/agent/dispatch_refactor_handlers.py` | `refactor_blocks` handler registry |
+| `src/agent/dispatch_lint_handlers.py` | `run_linter` handler registry |
+| `src/graph/ports/read.py` | `GraphReadPort` protocol (no `agent` imports) |
+| `src/agent/markdown_graph_repository.py` | Markdown `GraphReadPort` adapter |
 | `src/graph/page_write_lock.py` | Per-page RMW lock + LRU registry; delegates OS flock to `platform_lock` |
 | `src/utils/platform_lock.py` | Shared cross-process flock: NB + backoff + reentrancy (v1.10.6) |
 | `src/graph/generated_hub_write.py` | OCC-safe Master Index / Graph Insights compile writes (v1.10.6) |

@@ -40,7 +40,7 @@ flowchart LR
 
 | Phase | Name | Definition of done | GitHub |
 |-------|------|-------------------|--------|
-| **0** | v1.9.12 prerequisites | Daemon/dispatch modular enough for shadow duty cycle; env_parse DRY; documented blockers closed or explicitly tracked | Phase 0 issue ([#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174)) · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **done** · [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) read slice **done** |
+| **0** | v1.9.12 prerequisites | Daemon/dispatch modular enough for shadow duty cycle; env_parse DRY; documented blockers closed or explicitly tracked | Phase 0 ([#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174)) **done** · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **done** · [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) **done** |
 | **1** | GraphRepository ports | `GraphReadPort` + `MarkdownGraphRepository`; `graph_dispatch` delegates at least one read method; parity tests; **default behavior unchanged** | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 1 ([#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175)) **done** (subtree + port) |
 | **2** | Shadow incremental sync | `open_shadow_db`; `post_write` upsert `pages`/`blocks`; integration tests on `tmp_path` graph | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) · Phase 2 issue |
 | **3** | Read routing (alpha) | `MATRYCA_SHADOW_DB_ENABLED=false` default; FTS5/CTE behind flag; BM25/AST fallback when lag or disabled | Phase 3 issue · slices under #24 |

@@ -167,7 +167,7 @@ sequenceDiagram
 
 ## 5. AX robustness — lenient reads & safe writes (v1.9.7+)
 
-**Module:** `src/agent/page_input_normalizer.py` · **Dispatch:** `graph_dispatch._resolve_write_parent_target`
+**Modules:** `src/agent/page_input_normalizer.py` · **Write runtime:** `graph_dispatch._resolve_write_parent_target` · **Routers:** `dispatch_*_handlers.py` (see [`CLEAN_CODE_ARCHITECTURE.md`](../CLEAN_CODE_ARCHITECTURE.md#graph-dispatch-module-map-issue-59))
 
 | Surface | Behavior |
 |---------|----------|

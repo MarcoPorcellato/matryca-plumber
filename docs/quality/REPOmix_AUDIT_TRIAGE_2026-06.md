@@ -32,7 +32,7 @@ Second external audit (Repomix-based). Cross-reference with [Expert Audit triage
 
 | ID | Finding | Code reality | Backlog | Action |
 |----|---------|--------------|---------|--------|
-| P2.1 | `graph_dispatch` SRP | **Confirmed** mega-module | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) (Audit #33), [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | No duplicate |
+| P2.1 | `graph_dispatch` SRP | **Shipped** — handler registry + write runtime split | ~~[#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)~~ closed, [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) closed | No duplicate |
 | P2.2 | `IdentityConfigStore` singleton | Registry `get_identity_store()` per graph root; `clear_identity_config_stores()` for tests | [#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134) ports | Absorbed into layer-inversion track; optional DI later |
 | P2.3 | Feature flag in indexer | `semantic/config.py` exists; indexer still calls `dual_embedding_enabled()` at runtime | [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57) | **[#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142)** |
 | P2.4 | Agent↔daemon coupling | Ports/adapters | [#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134), [#115](https://github.com/MarcoPorcellato/matryca-plumber/issues/115), [#116](https://github.com/MarcoPorcellato/matryca-plumber/issues/116), [#117](https://github.com/MarcoPorcellato/matryca-plumber/issues/117) | No duplicate |
@@ -56,7 +56,7 @@ Second external audit (Repomix-based). Cross-reference with [Expert Audit triage
 |---------------|-------------------|
 | Tana OOM | #135 |
 | Generational cache memory | #136 |
-| graph_dispatch / layers | #133, #134, #59 |
+| graph_dispatch / layers | #133 (fixed), #134 (fixed), ~~#59~~ shipped |
 | Cross-module coupling | #134, dev #115–#117 |
 
 ---

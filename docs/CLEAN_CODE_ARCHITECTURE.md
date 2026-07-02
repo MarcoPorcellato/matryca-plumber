@@ -1,7 +1,7 @@
 # Clean Code & Clean Architecture — Matryca Plumber
 
 **Version:** documents **v1.12.0+** maintainer contracts  
-**Audience:** contributors and Cursor agents patching `src/`  
+**Audience:** contributors patching `src/`  
 **Companion:** [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md) (prompt tiers) · [`ARCHITECTURE.md`](ARCHITECTURE.md) (system contract) · [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 
 This document applies **Robert C. Martin's** *Clean Architecture* (dependency rule, boundaries, use cases) and *Clean Code* (SRP, meaningful names, tests as specification) to the **entire** Matryca Plumber codebase — not only the LLM prompt surface.
@@ -124,7 +124,8 @@ make check
 
 | Metric | Before | After |
 |--------|--------|-------|
-| `graph_dispatch.py` routing | ~500+ lines of `if` chains | **~30 lines** — five thin delegates |
+| `graph_dispatch.py` routing | ~500+ lines of `if` chains | **~25 lines** — five thin delegates |
+| `graph_dispatch.py` (total) | ~1,280 lines monolith | **~565 lines** write runtime + routers |
 | Mega-tool handlers | Monolithic | `dispatch_*_handlers.py` (one function per target/method/action) |
 | Write runtime | Inline with routers | `_headless_*` helpers stay in `graph_dispatch.py` (shared with `memory_tools`) |
 | Subtree reads | Direct `graph_tool_helpers` | `GraphReadPort.read_subtree_markdown` via `MarkdownGraphRepository` |
@@ -267,4 +268,4 @@ uv run pytest tests/test_graph_layer_boundary.py tests/test_env_parse.py -q --no
 make check
 ```
 
-Cursor agents: load [`.cursor/rules/12-clean-code-architecture.mdc`](../.cursor/rules/12-clean-code-architecture.mdc) when editing `src/`.
+When editing `src/`, follow [`.cursor/rules/12-clean-code-architecture.mdc`](../.cursor/rules/12-clean-code-architecture.mdc) (maintainer rule index: [`AGENTS.md`](../AGENTS.md)).

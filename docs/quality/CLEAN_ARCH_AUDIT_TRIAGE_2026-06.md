@@ -37,7 +37,7 @@ Third external audit (simulated Staff Engineer review against hexagonal / ports-
 
 | # | Audit finding | Code reality | Backlog | Action |
 |---|---------------|--------------|---------|--------|
-| 3 | MCP schemas coupled to Logseq AST; need ACL at transport boundary | [`outline_models.py`](../../src/agent/outline_models.py) — transport DTOs (`OutlineNode`, Literals) without parser types. [`mcp_server.py`](../../src/agent/mcp_server.py) thin-routes to `graph_dispatch`. Deep coupling remains in dispatch mega-module. | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59), [#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134), [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | **Tracked** — no MCP-specific ACL issue |
+| 3 | MCP schemas coupled to Logseq AST; need ACL at transport boundary | [`outline_models.py`](../../src/agent/outline_models.py) — transport DTOs. [`mcp_server.py`](../../src/agent/mcp_server.py) thin-routes to `graph_dispatch`. Handler registry shipped ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)); write runtime remains in `graph_dispatch.py`. | ~~#59~~ closed, [#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134) closed, [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | **Tracked** — no MCP-specific ACL issue |
 | 4 | BM25 generational cache corrupt on partial failure; need SQLite transactional outbox | [`generational_cache.py`](../../src/graph/generational_cache.py) — **in-process** mtime-signature cache, not a persistent BM25 state file. Vector persistence [`semantic/store.py`](../../src/semantic/store.py) `apply_page_block_vector_updates`: streaming merge → `.json.tmp` → `replace` under `cross_process_json_flock`; errors unlink tmp, original intact. | [#136](https://github.com/MarcoPorcellato/matryca-plumber/issues/136) fixed; [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) / [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) for store v2 | **Rejected** — misunderstood module (Repomix P3.3) |
 
 ---
@@ -58,7 +58,7 @@ Third external audit (simulated Staff Engineer review against hexagonal / ports-
 | OCC lock leak on exception | `try/finally` + flock context managers (Repomix P1.3) |
 | Tana uses `json.load()` | `ijson` in `load.py` since v1.11 |
 | BM25 cache needs SQLite outbox | In-process mtime cache; vectors use atomic tmp+replace | **Claude 2026-06-24:** separate bug — build then `sig_after` pairs stale corpus with fresh signature → [#155](https://github.com/MarcoPorcellato/matryca-plumber/issues/155) |
-| MCP lacks transport isolation | DTO layer exists; refactor is #59/#134/#17 scope |
+| MCP lacks transport isolation | DTO layer + handler registry shipped; v2 port #17 |
 | Immediate `domain/ports.py` split | Aspirational v2 — ROADMAP + #17 |
 
 ---
@@ -76,7 +76,7 @@ Third external audit (simulated Staff Engineer review against hexagonal / ports-
 |------------------|-------------------|
 | Tana memory | #135 (partial), #139 (v2 idempotency) |
 | Hexagonal / repositories | #17, #20, Discussion #19 |
-| `graph_dispatch` coupling | #59, #133 (fixed), #134 |
+| `graph_dispatch` coupling | ~~#59~~ shipped, #133 (fixed), #134 (fixed) |
 | Vector / RAG persistence | #51, #24 |
 | Env / config DI | #57, #142 (fixed) |
 

@@ -54,7 +54,7 @@ Full matrix: [`CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](CLAUDE_ARCH_AUDIT_TRIAGE
 |---------|---------|----------|
 | `page_rmw_lock` masquerading as OCC / lock leak | By design + rejected leak | Repomix P1.3; [#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) `st_mtime_ns` parity |
 | Tana `json.load()` OOM | Obsolete — `ijson` shipped | Partial RAM: #135 / [#154](https://github.com/MarcoPorcellato/matryca-plumber/issues/154) |
-| MCP ↔ AST coupling | Partially addressed DTOs | #59; ~~#134~~ shipped v1.11.2; #17 |
+| MCP ↔ AST coupling | DTOs + handler registry shipped | ~~#59~~ closed; ~~#134~~ shipped v1.11.2; #17 |
 | BM25 cache SQLite outbox | Rejected — in-process mtime cache; vectors use atomic tmp+replace | **Claude P1-02 is different:** sig_after after build → [#155](https://github.com/MarcoPorcellato/matryca-plumber/issues/155) |
 | Config import-time globals | Partially addressed | #57, #142 fixed |
 | `PageId` lock normalization | Rejected | `graph_safe_page_path` + resolved lock keys |
@@ -66,4 +66,4 @@ Full matrix: [`CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md`](CLEAN_ARCH_AUDIT_TRIAGE_2026
 
 - [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57), [#90](https://github.com/MarcoPorcellato/matryca-plumber/issues/90)–[#91](https://github.com/MarcoPorcellato/matryca-plumber/issues/91) — env / semantic config centralization (partially addressed by #142)
 - [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) — full SQLite shard deferred to v2 [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)
-- [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) — `graph_dispatch` SRP / layer split (Clean Arch P2.3)
+- ~~[#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)~~ — `graph_dispatch` handler registry shipped (Clean Arch P2.3)
