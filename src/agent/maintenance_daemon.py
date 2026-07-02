@@ -11,7 +11,7 @@ import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any, cast
 
 from loguru import logger
 
@@ -61,7 +61,7 @@ from ..graph.semantic_clustering import (
 )
 from ..utils.logging_config import configure_loguru
 from ..utils.runtime_bootstrap import prepare_matryca_runtime
-from ..utils.token_logger import OperationType, TokenLogger
+from ..utils.token_logger import TokenLogger
 from . import daemon_process_lock as _daemon_process_lock
 from . import daemon_state as _daemon_state
 from .control_room_progress import refresh_phase2_cognitive_totals
@@ -70,6 +70,7 @@ from .cooperative_yield import (
     bootstrap_pill_checkpoint_every,
     telemetry_heartbeat_seconds,
 )
+from .daemon_llm_client import InstructorLLMClient, LLMClient
 from .daemon_llm_cycle import (
     DaemonLLMCycleHost,
     finalize_link_and_journey_pass,
@@ -112,9 +113,7 @@ from .daemon_semantic_write import (
     SemanticCrossRef,
     SemanticIndexResult,
     SemanticLintCorrection,
-    _build_index_prompt,
     _enumerate_blocks_for_prompt,
-    _normalize_index_result_aliases,
     _page_title_from_path,
     append_semantic_index,
     append_structural_lint_warning,
@@ -136,16 +135,11 @@ from .daemon_state import (
     upsert_bootstrap_recent,
 )
 from .llm_client import (
-    InstructorLLMClient as _BaseInstructorLLMClient,
-)
-from .llm_client import (
     LLMResponseError,
     StructuredOutputExhaustedError,
     ThermalProfile,
 )
-from .llm_context_payload import prepare_llm_context_payload
 from .memory_budget import log_snapshot, maybe_release_after_cycle, release_phase1_memory
-from .page_prompt_session import PagePromptSession, build_page_prompt_session
 from .plumber_config import (
     DEFAULT_LLM_MODEL_NAME,
     DEFAULT_LM_BASE_URL,
@@ -154,20 +148,9 @@ from .plumber_config import (
     load_plumber_lint_config,
     reload_plumber_dotenv,
 )
-from .plumber_llm import (
-    BootstrapSummaryResult,
-    GraphInsightsLLMResult,
-)
 from .plumber_modules._shared import is_journal_page_path
-from .plumber_modules.semantic_cache_router import (
-    cache_get,
-    cache_put,
-    purge_expired_semantic_cache,
-    semantic_cache_key,
-    validate_cached_model,
-)
+from .plumber_modules.semantic_cache_router import purge_expired_semantic_cache
 from .process_priority import apply_cpu_sandbox, apply_plumber_priority, resolve_cpu_sandbox_config
-from .semantic_lint_prompts import build_semantic_lint_system_prompt
 
 # Backward-compatible re-exports for CLI/tests (issue #58 slice).
 pid_path = _daemon_process_lock.pid_path
@@ -181,199 +164,6 @@ SHUTDOWN_INFLIGHT_TIMEOUT_SECONDS = 120.0
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL = DEFAULT_LLM_MODEL_NAME  # backward-compatible alias for CLI/TUI
 DEFAULT_POLL_SECONDS = 30.0
-
-
-class LLMClient(Protocol):
-    """Minimal LLM surface used by the daemon (for tests)."""
-
-    def index_page(
-        self,
-        page_title: str,
-        content: str,
-        *,
-        page_path: Path | None = None,
-        graph_root: Path | None = None,
-        alias_index: AliasIndex | None = None,
-        enable_semantic_routing: bool = False,
-        llm_context: str | None = None,
-        prompt_session: PagePromptSession | None = None,
-    ) -> tuple[SemanticIndexResult, dict[str, int]]:
-        """Return structured index and token usage dict with prompt/completion keys."""
-        ...
-
-    def harvest_page_summary(
-        self,
-        page_title: str,
-        content: str,
-        *,
-        page_path: Path | None = None,
-        graph_root: Path | None = None,
-        task_instruction: str | None = None,
-    ) -> BootstrapSummaryResult:
-        """Return a one-sentence bootstrap summary."""
-        ...
-
-    def generate_graph_insights(
-        self,
-        *,
-        metrics_json: str,
-        graph_root: Path,
-    ) -> GraphInsightsLLMResult:
-        """Return structured graph diagnostics."""
-        ...
-
-
-class InstructorLLMClient(_BaseInstructorLLMClient):
-    """Daemon LLM client; adds semantic ``index_page`` with alias normalization."""
-
-    def index_page(
-        self,
-        page_title: str,
-        content: str,
-        *,
-        page_path: Path | None = None,
-        graph_root: Path | None = None,
-        alias_index: AliasIndex | None = None,
-        enable_semantic_routing: bool = False,
-        llm_context: str | None = None,
-        prompt_session: PagePromptSession | None = None,
-    ) -> tuple[SemanticIndexResult, dict[str, int]]:
-        config = load_plumber_lint_config()
-        session = prompt_session
-        if session is None and graph_root is not None:
-            session = build_page_prompt_session(
-                graph_root,
-                page_title,
-                content,
-                config=config,
-                stable_system=build_semantic_lint_system_prompt(),
-                page_path=page_path,
-                alias_index=alias_index,
-            )
-        elif session is None and llm_context is not None:
-            session = None
-        if session is None and llm_context is None and graph_root is not None:
-            llm_context, _ = prepare_llm_context_payload(
-                graph_root,
-                page_title,
-                content,
-                config=config,
-            )
-        prompt = _build_index_prompt(
-            page_title,
-            content,
-            llm_body=llm_context,
-            session=session,
-        )
-        kv_prefix_hash: str | None = None
-        if session is not None:
-            session.frozen.verify_unchanged()
-            kv_prefix_hash = session.prefix_sha256
-        started = time.perf_counter()
-        usage = {"prompt_tokens": 0, "completion_tokens": 0}
-        routing_enabled = enable_semantic_routing and config.semantic_routing
-        from ..utils.agent_debug_log import agent_debug_log
-
-        agent_debug_log(
-            location="maintenance_daemon.py:index_page",
-            message="index_page start",
-            hypothesis_id="H5",
-            data={
-                "page_title": page_title,
-                "content_len": len(content),
-                "prompt_len": len(prompt),
-                "has_session": session is not None,
-            },
-        )
-        try:
-            if routing_enabled and page_path is not None and graph_root is not None:
-                key = semantic_cache_key(page_path, "semantic_index")
-                cached = cache_get(graph_root, "index", key)
-                if cached is not None:
-                    loaded = validate_cached_model(
-                        cached,
-                        SemanticIndexResult,
-                        graph_root=graph_root,
-                        namespace="index",
-                        cache_key=key,
-                    )
-                    if loaded is not None:
-                        result = _normalize_index_result_aliases(loaded, alias_index)
-                        return result, usage
-
-            result, completion = self._completion_with_structured_output(
-                prompt=prompt,
-                response_model=SemanticIndexResult,
-                system_prompt=(
-                    session.stable_system
-                    if session is not None
-                    else build_semantic_lint_system_prompt()
-                ),
-                stateless=True,
-                telemetry_target=page_title,
-                telemetry_operation="Concept Indexing",
-                log_tokens=False,
-                kv_prefix_hash=kv_prefix_hash,
-            )
-            result = _normalize_index_result_aliases(result, alias_index)
-            latency = time.perf_counter() - started
-            usage_obj = getattr(completion, "usage", None)
-            if usage_obj is not None:
-                usage["prompt_tokens"] = int(getattr(usage_obj, "prompt_tokens", 0) or 0)
-                usage["completion_tokens"] = int(getattr(usage_obj, "completion_tokens", 0) or 0)
-            operation: OperationType = (
-                "Semantic Linting" if result.semantic_corrections else "Concept Indexing"
-            )
-            self.token_logger.log_turn(
-                target_file=page_title,
-                operation=operation,
-                prompt_tokens=usage["prompt_tokens"],
-                completion_tokens=usage["completion_tokens"],
-                prompt=prompt,
-                response=result.model_dump_json(),
-                latency_seconds=latency,
-                model=self.model,
-                kv_prefix_hash=kv_prefix_hash,
-            )
-            if routing_enabled and page_path is not None and graph_root is not None:
-                key = semantic_cache_key(page_path, "semantic_index")
-                cache_put(graph_root, "index", key, result.model_dump())
-            agent_debug_log(
-                location="maintenance_daemon.py:index_page",
-                message="index_page success",
-                hypothesis_id="H1,H4",
-                data={
-                    "page_title": page_title,
-                    "completion_tokens": usage["completion_tokens"],
-                    "summary_len": len(result.summary),
-                    "corrections_count": len(result.semantic_corrections),
-                },
-            )
-            return result, usage
-        except Exception as exc:  # noqa: BLE001 - log and re-raise for daemon loop
-            agent_debug_log(
-                location="maintenance_daemon.py:index_page",
-                message="index_page failed",
-                hypothesis_id="H1,H2,H3",
-                data={
-                    "page_title": page_title,
-                    "error_head": str(exc)[:400],
-                },
-            )
-            latency = time.perf_counter() - started
-            self.token_logger.log_turn(
-                target_file=page_title,
-                operation="Concept Indexing",
-                prompt_tokens=usage["prompt_tokens"],
-                completion_tokens=usage["completion_tokens"],
-                prompt=prompt,
-                response="",
-                latency_seconds=latency,
-                model=self.model,
-                ok=False,
-                error=str(exc),
-            )
-            raise
 
 
 class MaintenanceDaemon:

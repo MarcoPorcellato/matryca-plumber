@@ -24,6 +24,7 @@ from ..graph.page_write_lock import PageLockUnavailableError
 from ..graph.path_sandbox import read_graph_file_text
 from ..utils.console_sanitize import sanitize_for_console
 from ..utils.token_logger import TokenLogger
+from .daemon_llm_client import InstructorLLMClient as _DaemonInstructorLLMClient
 from .daemon_semantic_write import (
     CorrectionOutcome,
     SemanticIndexResult,
@@ -42,7 +43,6 @@ from .daemon_state import (
     save_daemon_state,
 )
 from .journey_log import JourneyCycleStats, journey_log_enabled, upsert_journey_log
-from .llm_client import InstructorLLMClient as _BaseInstructorLLMClient
 from .page_prompt_session import PagePromptSession, build_page_prompt_session
 from .plumber_config import PlumberLintConfig
 from .plumber_modules import CognitiveLintOutcome, run_cognitive_lint_pipeline
@@ -384,7 +384,7 @@ def process_llm_cycle_file(
                 config=lint_config,
             )
             record_daemon_impact(state, cognitive=cognitive_outcome)
-            if isinstance(host.llm_client, _BaseInstructorLLMClient):
+            if isinstance(host.llm_client, _DaemonInstructorLLMClient):
                 host._absorb_token_logger_delta(
                     host.llm_client.token_logger,
                     baseline_prompt=prompt_before,
@@ -517,7 +517,7 @@ def process_llm_cycle_file(
         host._end_phase2_write()
         if cluster_id is not None:
             state.phase2_cluster_file_in_flight = False
-        if reset_history_after and isinstance(host.llm_client, _BaseInstructorLLMClient):
+        if reset_history_after and isinstance(host.llm_client, _DaemonInstructorLLMClient):
             host.llm_client.reset_execution_history()
     llm_called_from_logger = (
         host.token_logger.session_prompt_tokens > prompt_before

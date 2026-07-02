@@ -1,8 +1,7 @@
 """Semantic index write path — OCC commits, lint corrections, structural warnings.
 
 Single-responsibility slice of :mod:`maintenance_daemon` (issue #58). Prompt assembly
-helpers used by :class:`InstructorLLMClient` live here; the LLM client class stays in the
-orchestrator module.
+helpers used by :class:`~daemon_llm_client.InstructorLLMClient` live here.
 """
 
 from __future__ import annotations

@@ -100,7 +100,7 @@ Each closure comment links `GITHUB_BUG_BACKLOG.md` and invites reopen with repro
 
 | Issue | Status | `main` snapshot |
 |-------|--------|-----------------|
-| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | **Open (partial)** | `maintenance_daemon.py` **2637** lines (−697); extracted [`daemon_state.py`](../../src/agent/daemon_state.py) (513) + [`daemon_process_lock.py`](../../src/agent/daemon_process_lock.py) (315); LLM cycle / semantic write still in parent |
+| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | **Ready to close** | `maintenance_daemon.py` **~1280** lines (−2054); slices: `daemon_state`, `daemon_process_lock`, `daemon_semantic_write`, `daemon_page_queue`, `daemon_llm_cycle`, `daemon_llm_client` |
 | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) | **Open** | `graph_dispatch.py` 1279 lines, 25× `Any`; no handler registry |
 | [#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60) | **Closed** | Zero `# type: ignore` in original 11 sites (v1.9.15); 2 remain in `alias_state.py` subclass — acceptable |
 | [#61](https://github.com/MarcoPorcellato/matryca-plumber/issues/61) | **Open** | `property_line_edit.py` 682 lines; `edit_block_property_lines` / `append_page_alias_line` ~250 lines each |
