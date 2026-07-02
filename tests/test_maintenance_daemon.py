@@ -2062,14 +2062,14 @@ def test_finalize_link_and_journey_logs_upsert_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     logged: list[str] = []
-    monkeypatch.setattr("src.agent.maintenance_daemon.journey_log_enabled", lambda: True)
-    monkeypatch.setattr("src.agent.maintenance_daemon.link_verify_enabled", lambda: False)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.journey_log_enabled", lambda: True)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.link_verify_enabled", lambda: False)
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.upsert_journey_log",
+        "src.agent.daemon_llm_cycle.upsert_journey_log",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("journal locked")),
     )
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.logger.exception",
+        "src.agent.daemon_llm_cycle.logger.exception",
         lambda msg, *_args: logged.append(msg),
     )
 
@@ -2110,17 +2110,17 @@ def test_process_llm_cycle_logs_phase2_link_registry_merge_failure(
 ) -> None:
     path = _write_page(graph_root, "Topic", "- [[Link]] note\n")
     logged: list[str] = []
-    monkeypatch.setattr("src.agent.maintenance_daemon.link_verify_enabled", lambda: True)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.link_verify_enabled", lambda: True)
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.merge_page_links_into_registry",
+        "src.agent.daemon_llm_cycle.merge_page_links_into_registry",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("registry sidecar unavailable")),
     )
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.run_cognitive_lint_pipeline",
+        "src.agent.daemon_llm_cycle.run_cognitive_lint_pipeline",
         lambda *_args, **_kwargs: (CognitiveLintOutcome(), None),
     )
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.logger.exception",
+        "src.agent.daemon_llm_cycle.logger.exception",
         lambda msg, *_args: logged.append(msg),
     )
 
@@ -2147,7 +2147,7 @@ def test_run_cycle_fast_track_logs_link_registry_registration_failure(
 
     monkeypatch.setattr("src.agent.maintenance_daemon.list_pending_files", pending)
     monkeypatch.setattr("src.agent.maintenance_daemon.link_verify_enabled", lambda: True)
-    monkeypatch.setattr("src.agent.maintenance_daemon.journey_log_enabled", lambda: False)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.journey_log_enabled", lambda: False)
     monkeypatch.setattr(
         "src.agent.maintenance_daemon.register_page_links_from_path",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("registry down")),
@@ -2178,7 +2178,7 @@ def test_run_cycle_logs_phase2_totals_failure_at_cycle_end(
 
     monkeypatch.setattr("src.agent.maintenance_daemon.list_pending_files", pending)
     monkeypatch.setattr("src.agent.maintenance_daemon.link_verify_enabled", lambda: False)
-    monkeypatch.setattr("src.agent.maintenance_daemon.journey_log_enabled", lambda: False)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.journey_log_enabled", lambda: False)
     warnings: list[str] = []
 
     def fail_refresh(*_args: object, **_kwargs: object) -> None:
@@ -2300,11 +2300,11 @@ def test_run_cycle_journal_phase1_only_skips_semantic_indexing(
         original_apply(self, path, kind)
 
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.run_cognitive_lint_pipeline",
+        "src.agent.daemon_llm_cycle.run_cognitive_lint_pipeline",
         _spy_cognitive,
     )
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.run_dual_embedding_after_semantic_write",
+        "src.agent.daemon_llm_cycle.run_dual_embedding_after_semantic_write",
         _spy_dual_embed,
     )
     monkeypatch.setattr(GraphAstCache, "apply_file_event", _spy_apply)
@@ -2349,12 +2349,12 @@ def test_journal_structural_settle_logs_link_registry_merge_failure(
     def capture_exception(message: str, *_args: object, **_kwargs: object) -> None:
         logged_messages.append(message)
 
-    monkeypatch.setattr("src.agent.maintenance_daemon.link_verify_enabled", lambda: True)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.link_verify_enabled", lambda: True)
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.merge_page_links_into_registry",
+        "src.agent.daemon_llm_cycle.merge_page_links_into_registry",
         fail_link_registry_merge,
     )
-    monkeypatch.setattr("src.agent.maintenance_daemon.logger.exception", capture_exception)
+    monkeypatch.setattr("src.agent.daemon_llm_cycle.logger.exception", capture_exception)
 
     state = DaemonState(bootstrap_complete=True)
     daemon = MaintenanceDaemon(graph_root, llm_client=StubLLM())

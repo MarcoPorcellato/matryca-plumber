@@ -8,7 +8,7 @@
 
 - **GitHub issue triage (2026-07-01)** — pass 1: 33 shipped audit issues closed; pass 2: #42, #91, #92 closed; pass 3: #38, #113 closed; pass 4: #97 closed (OCC filesystem docs), ROADMAP/CONTRIBUTING good-first sync; performance backlog #46–#50, #54–#55 annotated; good-first refresh on Tier D/F and #43/#52/#114; Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) pinned; log [`docs/quality/ISSUE_TRIAGE_2026-07-01.md`](docs/quality/ISSUE_TRIAGE_2026-07-01.md).
 - **`docs/ARCHITECTURE.md`** — OCC filesystem resolution constraints (modern vs legacy drives).
-- **`maintenance_daemon` SRP slice ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) partial)** — extract `daemon_state.py`, `daemon_process_lock.py`, `daemon_semantic_write.py` (semantic index write path + prompt helpers), and `daemon_page_queue.py` (pending-file selection, scan metrics, Phase-2 queue rules); `maintenance_daemon.py` remains orchestrator with backward-compatible re-exports.
+- **`maintenance_daemon` SRP slice ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) partial)** — extract `daemon_state.py`, `daemon_process_lock.py`, `daemon_semantic_write.py`, `daemon_page_queue.py`, and `daemon_llm_cycle.py` (per-file LLM indexing, fast-track, journey tail); `maintenance_daemon.py` remains orchestrator with backward-compatible re-exports.
 - **`CODE_OF_CONDUCT.md`** — enforcement contact **marco@matryca.ai** (replaces placeholder).
 - **`SECURITY.md`** — **Supported versions** table (1.12.x active; private report email).
 
