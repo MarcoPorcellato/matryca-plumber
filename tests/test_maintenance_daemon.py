@@ -574,7 +574,7 @@ def test_start_daemon_foreground_removes_pid_on_bootstrap_failure(
         lambda _r: 42,
     )
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon._register_bootstrap_shutdown_handlers",
+        "src.agent.maintenance_daemon.register_bootstrap_shutdown_handlers",
         lambda _r: None,
     )
 
@@ -1966,7 +1966,7 @@ def test_try_acquire_daemon_process_lock_windows_fallback(
         remove_pid_file,
     )
 
-    monkeypatch.setattr("src.agent.maintenance_daemon._fcntl", None)
+    monkeypatch.setattr("src.agent.daemon_process_lock._fcntl", None)
     first = _try_acquire_daemon_process_lock(graph_root)
     assert first is not None
     assert first >= 0
@@ -2016,9 +2016,9 @@ def test_load_daemon_state_logs_when_bak_restore_fails(
     def fail_copy(*_args: object, **_kwargs: object) -> None:
         raise OSError("permission denied")
 
-    monkeypatch.setattr("src.agent.maintenance_daemon.shutil.copy2", fail_copy)
+    monkeypatch.setattr("src.agent.daemon_state.shutil.copy2", fail_copy)
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.logger.exception",
+        "src.agent.daemon_state.logger.exception",
         lambda msg, *args: logged.append(msg.format(*args) if args else msg),
     )
 
@@ -2046,9 +2046,9 @@ def test_save_daemon_state_logs_when_bak_write_fails(
             raise OSError("disk full")
         return real_copy2(src, dst, follow_symlinks=follow_symlinks)
 
-    monkeypatch.setattr("src.agent.maintenance_daemon.shutil.copy2", selective_copy2)
+    monkeypatch.setattr("src.agent.daemon_state.shutil.copy2", selective_copy2)
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon.logger.exception",
+        "src.agent.daemon_state.logger.exception",
         lambda msg, *args: logged.append(msg.format(*args) if args else msg),
     )
 

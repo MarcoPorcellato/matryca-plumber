@@ -16,12 +16,21 @@ SCAN_ROOTS = (
 )
 
 # Files allowed to call Path.read_text directly (sandbox primitives or non-markdown I/O).
+# Subset requires inline ``# sandbox-read-ok`` on each read_text line (line-stable marker).
+_MARKER_READ_TEXT_ALLOWLIST = frozenset(
+    {
+        "src/agent/maintenance_daemon.py",
+        "src/agent/daemon_process_lock.py",
+    },
+)
+
 ALLOWLIST = frozenset(
     {
         "src/graph/path_sandbox.py",
         "src/graph/markdown_io.py",
         "src/agent/plumber_modules/property_hygiene.py",  # repo-local YAML rules
-        "src/agent/maintenance_daemon.py",  # daemon pid/lock sidecars only
+        "src/agent/maintenance_daemon.py",  # daemon pid/lock sidecars only (marker-gated)
+        "src/agent/daemon_process_lock.py",  # pid/lock sidecars (marker-gated)
         "src/utils/bounded_json.py",
         "src/utils/config_paths.py",
         "src/utils/provision_l1.py",
@@ -51,7 +60,7 @@ def main() -> int:
         for path in sorted(root.rglob("*.py")):
             rel = _rel(path)
             if rel in ALLOWLIST:
-                if rel == "src/agent/maintenance_daemon.py":
+                if rel in _MARKER_READ_TEXT_ALLOWLIST:
                     lines = path.read_text(encoding="utf-8").splitlines()
                     for lineno, line in enumerate(lines, start=1):
                         if _DAEMON_ALLOW_MARKER in line:

@@ -94,6 +94,20 @@ Each closure comment links `GITHUB_BUG_BACKLOG.md` and invites reopen with repro
 2. ~~**Duplicate audit** — #42 vs #104~~ — **done pass 2** (#42 closed; #93/#104 already closed)
 3. **Stale good-first** — Tier D (#125, #126, #129) refreshed 2026-07-01
 4. **v2 prep** — ensure #174–#186 labels/milestones align with [`ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md).
+5. ~~**Tech debt #58–#63 audit**~~ — **done 2026-07-01** — #60/#62 already closed; #58/#59/#61/#63 annotated with current line counts (see below).
+
+## Tech debt audit — #58–#63 (2026-07-01)
+
+| Issue | Status | `main` snapshot |
+|-------|--------|-----------------|
+| [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) | **Open (partial)** | `maintenance_daemon.py` **2637** lines (−697); extracted [`daemon_state.py`](../../src/agent/daemon_state.py) (513) + [`daemon_process_lock.py`](../../src/agent/daemon_process_lock.py) (315); LLM cycle / semantic write still in parent |
+| [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) | **Open** | `graph_dispatch.py` 1279 lines, 25× `Any`; no handler registry |
+| [#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60) | **Closed** | Zero `# type: ignore` in original 11 sites (v1.9.15); 2 remain in `alias_state.py` subclass — acceptable |
+| [#61](https://github.com/MarcoPorcellato/matryca-plumber/issues/61) | **Open** | `property_line_edit.py` 682 lines; `edit_block_property_lines` / `append_page_alias_line` ~250 lines each |
+| [#62](https://github.com/MarcoPorcellato/matryca-plumber/issues/62) | **Closed** | `platform_lock`, `network.NoRedirect`, `env_parse`, `BootstrapHarvestStatus` dedup (v1.9.14–v1.11.2) |
+| [#63](https://github.com/MarcoPorcellato/matryca-plumber/issues/63) | **Open** | Private `_insertion_line_after_node` import in `graph_dispatch.py`; upstream track [#167](https://github.com/MarcoPorcellato/matryca-plumber/issues/167) |
+
+**First slices (contributor-safe):** #58 → `daemon_state.py` extract; #59 → `dispatch_read` registry; #61 → golden tests + alias state machine; #63 → local reimplement or wait for parser public API.
 
 ## Do not close without code proof
 

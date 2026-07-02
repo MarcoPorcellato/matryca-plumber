@@ -3,21 +3,18 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import math
 import os
 import re
-import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Literal, Protocol, cast
+from typing import Any, Literal, Protocol
 
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -42,12 +39,10 @@ from ..graph.generational_cache import (
     patch_generational_caches_for_paths,
 )
 from ..graph.global_fence_scanner import compute_page_protected_line_indices
-from ..graph.graph_analytics import reconcile_telemetry_ledger
 from ..graph.insights_engine import (
     run_graph_insights_engine,
 )
 from ..graph.journal_task_scan import journal_file_path
-from ..graph.json_flock import cross_process_json_flock
 from ..graph.link_verification import (
     link_verify_enabled,
     merge_page_links_into_registry,
@@ -85,7 +80,6 @@ from ..graph.page_write_lock import (
 )
 from ..graph.path_sandbox import (
     graph_relative_path_key,
-    normalize_daemon_file_key,
     read_graph_file_text,
 )
 from ..graph.safety.validators import validate_llm_write_diff
@@ -95,20 +89,52 @@ from ..graph.semantic_clustering import (
     format_cluster_neighborhood,
     load_or_compute_semantic_clusters,
 )
-from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 from ..utils.console_sanitize import sanitize_for_console
 from ..utils.logging_config import configure_loguru
 from ..utils.runtime_bootstrap import prepare_matryca_runtime
 from ..utils.token_logger import OperationType, TokenLogger
+from . import daemon_process_lock as _daemon_process_lock
+from . import daemon_state as _daemon_state
 from .control_room_progress import refresh_phase2_cognitive_totals
 from .cooperative_yield import (
     bootstrap_checkpoint_every,
     bootstrap_pill_checkpoint_every,
     telemetry_heartbeat_seconds,
 )
+from .daemon_process_lock import (
+    DAEMON_LOCK_FILENAME,
+    DEFAULT_STOP_GRACE_SECONDS,
+    DEFAULT_STOP_SIGKILL_AFTER_SECONDS,
+    PID_FILENAME,
+    _release_daemon_process_lock,
+    _try_acquire_daemon_process_lock,
+    bind_daemon_process_lock_fd,
+    is_plumber_process,
+    is_process_alive,
+    read_pid_file,
+    register_bootstrap_shutdown_handlers,
+    remove_pid_file,
+    stop_daemon,
+    write_pid_file,
+)
+from .daemon_state import (
+    DaemonState,
+    FileState,
+    _daemon_file_key,
+    _lock_backoff_active,
+    _lookup_file_state,
+    _record_page_lock_backoff,
+    heal_daemon_state_ledger,
+    load_daemon_state,
+    normalize_daemon_state_file_keys,
+    record_bootstrap_harvest_impact,
+    resolve_graph_root,
+    save_daemon_state,
+    sync_daemon_state_from_env,
+    upsert_bootstrap_recent,
+)
 from .journey_log import (
     JourneyCycleStats,
-    JourneyDayLedger,
     journey_log_enabled,
     upsert_journey_log,
 )
@@ -126,12 +152,10 @@ from .page_prompt_session import PagePromptSession, build_page_prompt_session
 from .plumber_config import (
     DEFAULT_LLM_MODEL_NAME,
     DEFAULT_LM_BASE_URL,
-    DEFAULT_LM_MODEL,
     PlumberLintConfig,
     bootstrap_phase_lint_config,
     load_plumber_lint_config,
     reload_plumber_dotenv,
-    resolve_llm_model_name,
 )
 from .plumber_llm import (
     BootstrapSummaryResult,
@@ -151,25 +175,16 @@ from .process_priority import apply_cpu_sandbox, apply_plumber_priority, resolve
 from .prompt_layout import build_cache_aligned_prompt
 from .semantic_lint_prompts import build_semantic_lint_system_prompt
 
-STATE_FILENAME = ".matryca_daemon_state.json"
-STATE_TMP_FILENAME = f"{STATE_FILENAME}.tmp"
-STATE_BAK_FILENAME = f"{STATE_FILENAME}.bak"
-PID_FILENAME = ".matryca_plumber_daemon.pid"
-DAEMON_LOCK_FILENAME = ".matryca_plumber_daemon.lock"
-PLUMBER_PID_MARKER = "matryca-plumber-daemon"
-DEFAULT_STOP_GRACE_SECONDS = 130.0
-DEFAULT_STOP_SIGKILL_AFTER_SECONDS = 125.0
+# Backward-compatible re-exports for CLI/tests (issue #58 slice).
+pid_path = _daemon_process_lock.pid_path
+state_path = _daemon_state.state_path
+state_bak_path = _daemon_state.state_bak_path
+daemon_lock_path = _daemon_process_lock.daemon_lock_path
+_fcntl = _daemon_process_lock._fcntl
+_register_bootstrap_shutdown_handlers = register_bootstrap_shutdown_handlers
+
 SHUTDOWN_INFLIGHT_TIMEOUT_SECONDS = 120.0
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_FILE_STATUS_PRIORITY = {
-    "processed": 5,
-    "error": 4,
-    "skipped": 3,
-    "lock_backoff": 2,
-    "pending": 1,
-}
-_LOCK_BACKOFF_INITIAL_S = 30.0
-_LOCK_BACKOFF_MAX_S = 300.0
 STRUCTURAL_LINT_HEADING = "### Matryca Structural Lint"
 STRUCTURAL_LINT_HEADER = f"- {STRUCTURAL_LINT_HEADING}"
 DEFAULT_MODEL = DEFAULT_LLM_MODEL_NAME  # backward-compatible alias for CLI/TUI
@@ -177,32 +192,6 @@ DEFAULT_POLL_SECONDS = 30.0
 MATRYCA_GENERATED_PAGE_TITLES = frozenset(
     {"Matryca Master Index", "Matryca Graph Insights"},
 )
-
-_fcntl: Any
-try:
-    import fcntl as _fcntl
-except ImportError:  # pragma: no cover - Windows and other non-Unix platforms
-    _fcntl = None
-
-_msvcrt: Any
-try:
-    import msvcrt as _msvcrt
-except ImportError:  # pragma: no cover - non-Windows platforms
-    _msvcrt = None
-
-_daemon_process_lock_fd: int | None = None
-
-
-def _register_bootstrap_shutdown_handlers(graph_root: Path) -> None:
-    """Ensure PID/lock cleanup when the worker is interrupted during bootstrap."""
-
-    def _handler(signum: int, _frame: object) -> None:
-        remove_pid_file(graph_root)
-        _release_daemon_process_lock(graph_root)
-        raise SystemExit(128 + signum)
-
-    signal.signal(signal.SIGTERM, _handler)
-    signal.signal(signal.SIGINT, _handler)
 
 
 def _semantic_index_section_present(content: str) -> bool:
@@ -219,7 +208,6 @@ _BLOCK_CATALOG_MAX_CHARS = 8000
 _MATRYCA_PLUMBER_LINE = re.compile(r"^\s*matryca-plumber::\s*", re.IGNORECASE)
 _WIKILINK = re.compile(r"\[\[([^\]#|]+)(?:\|[^\]]+)?\]\]")
 
-DaemonStatus = Literal["running", "idle", "stopped", "error"]
 LintType = Literal["auto_wikilink", "tag_hygiene", "anomaly_warning"]
 
 
@@ -304,706 +292,6 @@ class LLMClient(Protocol):
         """Return structured graph diagnostics."""
         ...
 
-
-FileStatus = Literal["processed", "skipped", "error", "pending", "lock_backoff"]
-
-
-@dataclass
-class FileState:
-    """Processing record for one markdown file."""
-
-    mtime: float
-    processed_at: str
-    status: FileStatus = "processed"
-    error: str | None = None
-    lock_backoff_until: float | None = None
-    lock_backoff_seconds: float | None = None
-
-
-BOOTSTRAP_RECENT_MAX = 30
-
-
-@dataclass
-class BootstrapRecentEntry:
-    """Recent Phase 1 catalog page for control-room pills."""
-
-    harvest: BootstrapHarvestStatus
-    processed_at: str
-
-
-def upsert_bootstrap_recent(
-    state: DaemonState,
-    path_key: str,
-    harvest: BootstrapHarvestStatus,
-) -> None:
-    """Record one cataloged page; evict oldest entries beyond ``BOOTSTRAP_RECENT_MAX``."""
-    now = datetime.now(tz=UTC).isoformat()
-    state.bootstrap_recent[path_key] = BootstrapRecentEntry(harvest=harvest, processed_at=now)
-    if len(state.bootstrap_recent) <= BOOTSTRAP_RECENT_MAX:
-        return
-    oldest_key = min(
-        state.bootstrap_recent,
-        key=lambda key: state.bootstrap_recent[key].processed_at,
-    )
-    del state.bootstrap_recent[oldest_key]
-
-
-def record_bootstrap_harvest_impact(
-    state: DaemonState,
-    harvest: BootstrapHarvestStatus | None,
-) -> None:
-    """Increment session ledger when a catalog summary is written."""
-    if harvest in ("regex", "llm"):
-        state.page_summaries_created += 1
-
-
-@dataclass
-class DaemonState:
-    """Persistent daemon checkpoint stored inside the graph root."""
-
-    version: int = 1
-    files: dict[str, FileState] = field(default_factory=dict)
-    status: DaemonStatus = "idle"
-    model: str = DEFAULT_LM_MODEL
-    bootstrap_complete: bool = False
-    bootstrap_failed: bool = False
-    bootstrap_failed_reason: str | None = None
-    bootstrap_scanned: int = 0
-    bootstrap_total: int = 0
-    session_prompt_tokens: int = 0
-    session_completion_tokens: int = 0
-    current_cluster: str | None = None
-    current_cluster_files_total: int = 0
-    current_cluster_files_done: int = 0
-    phase2_cognitive_total: int = 0
-    phase2_cognitive_done: int = 0
-    phase2_vault_baseline_total: int = 0
-    phase2_cluster_file_in_flight: bool = False
-    phase2_llm_turns: int = 0
-    last_scan_at: str | None = None
-    last_file: str | None = None
-    ai_pages_created: int = 0
-    ai_links_injected: int = 0
-    ai_blocks_healed: int = 0
-    hygiene_corrections: int = 0
-    page_summaries_created: int = 0
-    bootstrap_recent: dict[str, BootstrapRecentEntry] = field(default_factory=dict)
-    journey_day: JourneyDayLedger = field(default_factory=JourneyDayLedger)
-
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "version": self.version,
-            "status": self.status,
-            "model": self.model,
-            "bootstrap_complete": self.bootstrap_complete,
-            "bootstrap_failed": self.bootstrap_failed,
-            "bootstrap_failed_reason": self.bootstrap_failed_reason,
-            "bootstrap_scanned": self.bootstrap_scanned,
-            "bootstrap_total": self.bootstrap_total,
-            "session_prompt_tokens": self.session_prompt_tokens,
-            "session_completion_tokens": self.session_completion_tokens,
-            "current_cluster": self.current_cluster,
-            "current_cluster_files_total": self.current_cluster_files_total,
-            "current_cluster_files_done": self.current_cluster_files_done,
-            "phase2_cognitive_total": self.phase2_cognitive_total,
-            "phase2_cognitive_done": self.phase2_cognitive_done,
-            "phase2_vault_baseline_total": self.phase2_vault_baseline_total,
-            "phase2_cluster_file_in_flight": self.phase2_cluster_file_in_flight,
-            "phase2_llm_turns": self.phase2_llm_turns,
-            "last_scan_at": self.last_scan_at,
-            "last_file": self.last_file,
-            "ai_pages_created": self.ai_pages_created,
-            "ai_links_injected": self.ai_links_injected,
-            "ai_blocks_healed": self.ai_blocks_healed,
-            "hygiene_corrections": self.hygiene_corrections,
-            "page_summaries_created": self.page_summaries_created,
-            "bootstrap_recent": {
-                path: {
-                    "harvest": rec.harvest,
-                    "processed_at": rec.processed_at,
-                }
-                for path, rec in self.bootstrap_recent.items()
-            },
-            "journey_day": self.journey_day.to_json(),
-            "files": {
-                path: {
-                    "mtime": rec.mtime,
-                    "processed_at": rec.processed_at,
-                    "status": rec.status,
-                    "error": rec.error,
-                    "lock_backoff_until": rec.lock_backoff_until,
-                    "lock_backoff_seconds": rec.lock_backoff_seconds,
-                }
-                for path, rec in self.files.items()
-            },
-        }
-
-    @classmethod
-    def from_json(cls, payload: dict[str, Any]) -> DaemonState:
-        files: dict[str, FileState] = {}
-        raw_files = payload.get("files", {})
-        if isinstance(raw_files, dict):
-            for path, rec in raw_files.items():
-                if not isinstance(rec, dict):
-                    continue
-                backoff_until = rec.get("lock_backoff_until")
-                backoff_seconds = rec.get("lock_backoff_seconds")
-                files[str(path)] = FileState(
-                    mtime=float(rec.get("mtime", 0.0)),
-                    processed_at=str(rec.get("processed_at", "")),
-                    status=cast(FileStatus, str(rec.get("status", "processed"))),
-                    error=rec.get("error") if rec.get("error") is not None else None,
-                    lock_backoff_until=(
-                        float(backoff_until) if backoff_until is not None else None
-                    ),
-                    lock_backoff_seconds=(
-                        float(backoff_seconds) if backoff_seconds is not None else None
-                    ),
-                )
-        return cls(
-            version=int(payload.get("version", 1)),
-            files=files,
-            status=cast(DaemonStatus, str(payload.get("status", "idle"))),
-            model=str(payload.get("model", DEFAULT_LM_MODEL)),
-            bootstrap_complete=bool(payload.get("bootstrap_complete", False)),
-            bootstrap_failed=bool(payload.get("bootstrap_failed", False)),
-            bootstrap_failed_reason=(
-                str(payload["bootstrap_failed_reason"])
-                if payload.get("bootstrap_failed_reason") not in (None, "")
-                else None
-            ),
-            bootstrap_scanned=int(payload.get("bootstrap_scanned", 0)),
-            bootstrap_total=int(payload.get("bootstrap_total", 0)),
-            session_prompt_tokens=int(payload.get("session_prompt_tokens", 0)),
-            session_completion_tokens=int(payload.get("session_completion_tokens", 0)),
-            current_cluster=(
-                str(payload["current_cluster"])
-                if payload.get("current_cluster") not in (None, "")
-                else None
-            ),
-            current_cluster_files_total=int(payload.get("current_cluster_files_total", 0)),
-            current_cluster_files_done=int(payload.get("current_cluster_files_done", 0)),
-            phase2_cognitive_total=int(payload.get("phase2_cognitive_total", 0)),
-            phase2_cognitive_done=int(payload.get("phase2_cognitive_done", 0)),
-            phase2_vault_baseline_total=int(payload.get("phase2_vault_baseline_total", 0)),
-            phase2_cluster_file_in_flight=bool(payload.get("phase2_cluster_file_in_flight", False)),
-            phase2_llm_turns=int(payload.get("phase2_llm_turns", 0)),
-            last_scan_at=payload.get("last_scan_at"),
-            last_file=payload.get("last_file"),
-            ai_pages_created=int(payload.get("ai_pages_created", 0)),
-            ai_links_injected=int(
-                payload.get("ai_links_injected", payload.get("links_backpropagated", 0))
-            ),
-            ai_blocks_healed=int(payload.get("ai_blocks_healed", payload.get("blocks_healed", 0))),
-            hygiene_corrections=int(payload.get("hygiene_corrections", 0)),
-            page_summaries_created=int(payload.get("page_summaries_created", 0)),
-            bootstrap_recent=_bootstrap_recent_from_json(payload.get("bootstrap_recent")),
-            journey_day=JourneyDayLedger.from_json(payload.get("journey_day")),
-        )
-
-
-def _bootstrap_recent_from_json(
-    raw: object,
-) -> dict[str, BootstrapRecentEntry]:
-    if not isinstance(raw, dict):
-        return {}
-    recent: dict[str, BootstrapRecentEntry] = {}
-    for path, rec in raw.items():
-        if not isinstance(rec, dict):
-            continue
-        harvest = str(rec.get("harvest", ""))
-        if harvest not in ("regex", "llm", "skipped", "error"):
-            continue
-        recent[str(path)] = BootstrapRecentEntry(
-            harvest=cast(BootstrapHarvestStatus, harvest),
-            processed_at=str(rec.get("processed_at", "")),
-        )
-    return recent
-
-
-def record_daemon_impact(
-    state: DaemonState,
-    *,
-    cognitive: CognitiveLintOutcome | None = None,
-    lint: CorrectionOutcome | None = None,
-    links_backpropagated: int = 0,
-) -> None:
-    """Accumulate provenance counters from one Plumber cycle turn."""
-    if cognitive is not None:
-        state.ai_pages_created += len(cognitive.pages_created)
-        for detail in cognitive.details:
-            if (
-                detail.startswith("properties:")
-                or detail.startswith("alias:")
-                or detail.startswith("marpa:")
-            ):
-                state.hygiene_corrections += 1
-            elif detail.startswith("split:"):
-                state.ai_blocks_healed += 1
-    if lint is not None:
-        state.ai_blocks_healed += lint.applied
-    if links_backpropagated > 0:
-        state.ai_links_injected += links_backpropagated
-
-
-def _lock_backoff_active(rec: FileState) -> bool:
-    if rec.status != "lock_backoff":
-        return False
-    if rec.lock_backoff_until is None:
-        return False
-    return time.time() < rec.lock_backoff_until
-
-
-def _next_lock_backoff_seconds(rec: FileState | None) -> float:
-    if rec is None or rec.status != "lock_backoff":
-        return _LOCK_BACKOFF_INITIAL_S
-    previous = rec.lock_backoff_seconds or _LOCK_BACKOFF_INITIAL_S
-    return min(previous * 2.0, _LOCK_BACKOFF_MAX_S)
-
-
-def _record_page_lock_backoff(
-    state: DaemonState,
-    *,
-    key: str,
-    mtime: float,
-    message: str,
-    prior: FileState | None,
-) -> None:
-    if prior is not None and prior.status == "processed":
-        return
-    interval = _next_lock_backoff_seconds(prior)
-    state.files[key] = FileState(
-        mtime=mtime,
-        processed_at=datetime.now(tz=UTC).isoformat(),
-        status="lock_backoff",
-        error=message,
-        lock_backoff_until=time.time() + interval,
-        lock_backoff_seconds=interval,
-    )
-
-
-def _merge_file_state(existing: FileState, incoming: FileState) -> FileState:
-    """Merge duplicate ledger keys preferring higher-status, newer records."""
-    existing_prio = _FILE_STATUS_PRIORITY.get(existing.status, 0)
-    incoming_prio = _FILE_STATUS_PRIORITY.get(incoming.status, 0)
-    if incoming_prio > existing_prio:
-        return incoming
-    if incoming_prio < existing_prio:
-        return existing
-    if incoming.mtime > existing.mtime:
-        return incoming
-    if incoming.mtime < existing.mtime:
-        return existing
-    return incoming if incoming.processed_at >= existing.processed_at else existing
-
-
-def normalize_daemon_state_file_keys(graph_root: Path, state: DaemonState) -> bool:
-    """Rewrite legacy absolute file keys to graph-relative POSIX paths."""
-    if not state.files:
-        return False
-    migrated: dict[str, FileState] = {}
-    changed = False
-    for key, rec in state.files.items():
-        new_key = normalize_daemon_file_key(graph_root, key)
-        if not new_key:
-            logger.warning(
-                "Dropping unmapped or invalid ledger key during migration: {}",
-                key,
-            )
-            changed = True
-            continue
-        if new_key != key:
-            changed = True
-        if new_key in migrated:
-            migrated[new_key] = _merge_file_state(migrated[new_key], rec)
-            changed = True
-        else:
-            migrated[new_key] = rec
-    if changed:
-        state.files = migrated
-    return changed
-
-
-def _daemon_file_key(graph_root: Path, path: Path) -> str:
-    return graph_relative_path_key(path, graph_root)
-
-
-def _lookup_file_state(
-    graph_root: Path,
-    state: DaemonState,
-    path: Path,
-) -> tuple[str, FileState | None]:
-    """Resolve file ledger entry using graph-relative keys with legacy fallback."""
-    key = _daemon_file_key(graph_root, path)
-    rec = state.files.get(key)
-    if rec is not None:
-        return key, rec
-    legacy = str(path.resolve())
-    return key, state.files.get(legacy)
-
-
-def heal_daemon_state_ledger(graph_root: Path, state: DaemonState) -> bool:
-    """Clamp ledger counters when live graph totals fall below persisted AI impact."""
-    snapshot = reconcile_telemetry_ledger(
-        graph_root,
-        ai_links_injected=state.ai_links_injected,
-        ai_blocks_healed=state.ai_blocks_healed,
-        ai_pages_created=state.ai_pages_created,
-        page_summaries_created=state.page_summaries_created,
-    )
-    if not snapshot.healed:
-        return False
-    state.ai_links_injected = snapshot.ai_links_injected
-    state.ai_blocks_healed = snapshot.ai_blocks_healed
-    state.ai_pages_created = snapshot.ai_pages_created
-    state.page_summaries_created = snapshot.page_summaries_created
-    return True
-
-
-def resolve_graph_root() -> Path:
-    """Return validated ``LOGSEQ_GRAPH_PATH`` (must contain ``pages/``)."""
-    from ..graph.graph_path_validate import validate_logseq_graph_path
-
-    raw = os.environ.get("LOGSEQ_GRAPH_PATH", "").strip()
-    if not raw:
-        msg = "LOGSEQ_GRAPH_PATH must be set for the Matryca Plumber daemon"
-        raise ValueError(msg)
-    return validate_logseq_graph_path(raw)
-
-
-def state_path(graph_root: Path) -> Path:
-    return graph_root / STATE_FILENAME
-
-
-def state_bak_path(graph_root: Path) -> Path:
-    return graph_root / STATE_BAK_FILENAME
-
-
-def pid_path(graph_root: Path) -> Path:
-    return graph_root / PID_FILENAME
-
-
-def daemon_lock_path(graph_root: Path) -> Path:
-    return graph_root / DAEMON_LOCK_FILENAME
-
-
-def _try_acquire_daemon_process_lock_windows(graph_root: Path) -> int | None:
-    """Acquire an exclusive daemon lock on platforms without ``fcntl`` (Windows)."""
-    path = daemon_lock_path(graph_root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    for _attempt in range(3):
-        try:
-            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
-        except FileExistsError:
-            holder = _read_lock_holder_pid(path)
-            if holder is not None and is_plumber_process(holder):
-                return None
-            if holder is None or not is_process_alive(holder):
-                with contextlib.suppress(OSError):
-                    path.unlink(missing_ok=True)
-                continue
-            return None
-        except OSError:
-            return None
-        try:
-            os.write(fd, f"{os.getpid()}\n".encode())
-        except OSError:
-            os.close(fd)
-            with contextlib.suppress(OSError):
-                path.unlink(missing_ok=True)
-            return None
-        if _msvcrt is not None:
-            try:
-                _msvcrt.locking(fd, _msvcrt.LK_NBLCK, 1)
-            except OSError:
-                os.close(fd)
-                with contextlib.suppress(OSError):
-                    path.unlink(missing_ok=True)
-                return None
-        return fd
-    return None
-
-
-def _try_acquire_daemon_process_lock(graph_root: Path) -> int | None:
-    """Acquire an exclusive daemon lock; return ``None`` when another process holds it."""
-    if _fcntl is None:
-        return _try_acquire_daemon_process_lock_windows(graph_root)
-    path = daemon_lock_path(graph_root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(str(path), os.O_CREAT | os.O_RDWR, 0o600)
-    try:
-        _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
-    except BlockingIOError:
-        os.close(fd)
-        return None
-    return fd
-
-
-def _release_daemon_process_lock(graph_root: Path) -> None:
-    """Drop the cross-process daemon lock held by this process."""
-    global _daemon_process_lock_fd
-    if _daemon_process_lock_fd is not None and _daemon_process_lock_fd >= 0:
-        with contextlib.suppress(OSError):
-            if _fcntl is not None:
-                _fcntl.flock(_daemon_process_lock_fd, _fcntl.LOCK_UN)
-            elif _msvcrt is not None:
-                _msvcrt.locking(_daemon_process_lock_fd, _msvcrt.LK_UNLCK, 1)
-            os.close(_daemon_process_lock_fd)
-        _daemon_process_lock_fd = None
-    lock_path = daemon_lock_path(graph_root)
-    with contextlib.suppress(OSError):
-        lock_path.unlink(missing_ok=True)
-
-
-def sync_daemon_state_from_env(state: DaemonState) -> DaemonState:
-    """Ensure persisted daemon state reflects the current ``LLM_MODEL_NAME`` env value."""
-    state.model = resolve_llm_model_name()
-    return state
-
-
-def _read_daemon_state_payload(path: Path) -> dict[str, Any] | None:
-    """Load JSON payload from disk, retrying once on transient empty or malformed reads."""
-    for attempt in range(2):
-        try:
-            payload = read_bounded_json(path)
-        except BoundedJsonError:
-            if attempt == 0:
-                continue
-            return None
-        if isinstance(payload, dict):
-            return payload
-        return None
-    return None
-
-
-def load_daemon_state(graph_root: Path) -> DaemonState:
-    from loguru import logger
-
-    path = state_path(graph_root)
-    bak_path = state_bak_path(graph_root)
-    if not path.is_file() and not bak_path.is_file():
-        return sync_daemon_state_from_env(DaemonState())
-
-    payload = _read_daemon_state_payload(path) if path.is_file() else None
-    if payload is None and bak_path.is_file():
-        logger.warning(
-            "[METADATA CORRUPTION DETECTED] Primary checkpoint unreadable; "
-            "attempting recovery from .bak backup."
-        )
-        payload = _read_daemon_state_payload(bak_path)
-        if payload is not None:
-            try:
-                shutil.copy2(bak_path, path)
-            except OSError:
-                logger.exception(
-                    "Recovered daemon state from backup but failed to restore primary at {}",
-                    path,
-                )
-
-    if payload is None:
-        logger.warning(
-            "[METADATA CORRUPTION DETECTED] Checkpoint and backup both unreadable; "
-            "initializing a fresh instance."
-        )
-        return sync_daemon_state_from_env(DaemonState())
-    state = sync_daemon_state_from_env(DaemonState.from_json(payload))
-    if normalize_daemon_state_file_keys(graph_root, state):
-        logger.info("Migrated daemon file ledger keys to graph-relative POSIX paths")
-    return state
-
-
-def save_daemon_state(graph_root: Path, state: DaemonState) -> None:
-    """Persist daemon state via POSIX atomic write-and-replace under a cross-process flock."""
-    path = state_path(graph_root)
-    normalize_daemon_state_file_keys(graph_root, state)
-    payload = json.dumps(state.to_json(), indent=2, ensure_ascii=False) + "\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with cross_process_json_flock(path):
-        fd, tmp_name = tempfile.mkstemp(
-            prefix=f".{path.name}.",
-            suffix=".tmp",
-            dir=str(path.parent),
-        )
-        tmp_path = Path(tmp_name)
-        committed = False
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(str(tmp_path), str(path))
-            committed = True
-            bak_path = state_bak_path(graph_root)
-            try:
-                shutil.copy2(path, bak_path)
-            except OSError:
-                logger.exception(
-                    "Daemon state primary write succeeded but backup copy failed for {}",
-                    bak_path,
-                )
-        finally:
-            if not committed:
-                tmp_path.unlink(missing_ok=True)
-
-
-def _read_lock_holder_pid(lock_path: Path) -> int | None:
-    """Best-effort PID stored in a daemon lock sidecar."""
-    if not lock_path.is_file():
-        return None
-    try:
-        raw = lock_path.read_text(encoding="utf-8", errors="replace")  # sandbox-read-ok
-        first_line = raw.splitlines()[0].strip()
-        return int(first_line)
-    except (OSError, ValueError, IndexError):
-        return None
-
-
-def _process_command_line(pid: int) -> str:
-    """Return a best-effort command line for ``pid`` (platform-specific)."""
-    if sys.platform == "win32":
-        result = subprocess.run(  # noqa: S603
-            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-            capture_output=True,
-            text=True,
-            timeout=5.0,
-            check=False,
-        )
-        return result.stdout or ""
-    if sys.platform == "darwin":
-        result = subprocess.run(  # noqa: S603
-            ["ps", "-p", str(pid), "-o", "command="],
-            capture_output=True,
-            text=True,
-            timeout=5.0,
-            check=False,
-        )
-        return (result.stdout or "").strip()
-    proc_path = Path(f"/proc/{pid}/cmdline")
-    if proc_path.is_file():
-        return proc_path.read_bytes().replace(b"\0", b" ").decode("utf-8", errors="replace")
-    return ""
-
-
-def is_plumber_process(pid: int) -> bool:
-    """Return whether ``pid`` appears to be a Matryca Plumber daemon worker."""
-    if pid <= 0 or not is_process_alive(pid):
-        return False
-    cmd = _process_command_line(pid).lower()
-    if not cmd:
-        return False
-    if "maintenance_daemon" in cmd:
-        return True
-    return "src.cli" in cmd and "plumber" in cmd
-
-
-def write_pid_file(graph_root: Path) -> None:
-    path = pid_path(graph_root)
-    payload = json.dumps({"pid": os.getpid(), "marker": PLUMBER_PID_MARKER}) + "\n"
-    atomic_write_bytes(
-        path,
-        payload.encode("utf-8"),
-        graph_root=graph_root,
-        validate_block_refs=False,
-    )
-
-
-def read_pid_file(graph_root: Path) -> int | None:
-    path = pid_path(graph_root)
-    if not path.is_file():
-        return None
-    try:
-        raw = path.read_text(encoding="utf-8", errors="replace").strip()  # sandbox-read-ok
-    except OSError:
-        return None
-    if not raw:
-        return None
-    if raw.startswith("{"):
-        try:
-            payload = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
-            return None
-        if isinstance(payload, dict):
-            pid = payload.get("pid")
-            if isinstance(pid, int):
-                return pid
-            if isinstance(pid, str) and pid.strip().isdigit():
-                return int(pid.strip())
-        return None
-    try:
-        return int(raw)
-    except ValueError:
-        return None
-
-
-def remove_pid_file(graph_root: Path) -> None:
-    path = pid_path(graph_root)
-    if path.is_file():
-        path.unlink(missing_ok=True)
-
-
-def is_process_alive(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    return True
-
-
-def stop_daemon(
-    graph_root: Path,
-    *,
-    grace_seconds: float = DEFAULT_STOP_GRACE_SECONDS,
-    sigkill_after: float = DEFAULT_STOP_SIGKILL_AFTER_SECONDS,
-) -> dict[str, Any]:
-    """Gracefully stop a running daemon via SIGTERM, escalating to SIGKILL when needed."""
-    pid = read_pid_file(graph_root)
-    if pid is None:
-        return {"ok": True, "code": "not_running", "message": "No PID file found"}
-    if not is_process_alive(pid):
-        remove_pid_file(graph_root)
-        state = load_daemon_state(graph_root)
-        state.status = "stopped"
-        save_daemon_state(graph_root, state)
-        return {"ok": True, "code": "stale_pid_removed", "pid": pid}
-    if not is_plumber_process(pid):
-        remove_pid_file(graph_root)
-        return {
-            "ok": False,
-            "code": "foreign_pid",
-            "pid": pid,
-            "message": f"PID {pid} is not a Matryca Plumber daemon process",
-        }
-
-    os.kill(pid, signal.SIGTERM)
-    sigkill_sent = False
-    deadline = time.monotonic() + max(1.0, grace_seconds)
-    sigkill_at = time.monotonic() + max(1.0, sigkill_after)
-    while time.monotonic() < deadline:
-        if not is_process_alive(pid):
-            break
-        if not sigkill_sent and time.monotonic() >= sigkill_at:
-            with contextlib.suppress(OSError):
-                os.kill(pid, signal.SIGKILL)
-            sigkill_sent = True
-        time.sleep(0.1)
-
-    if is_process_alive(pid):
-        return {
-            "ok": False,
-            "code": "stop_failed",
-            "pid": pid,
-            "message": "Daemon process still alive after SIGTERM/SIGKILL",
-        }
-
-    remove_pid_file(graph_root)
-    state = load_daemon_state(graph_root)
-    state.status = "stopped"
-    save_daemon_state(graph_root, state)
-    code = "killed" if sigkill_sent else "signaled"
-    signal_name = "SIGKILL" if sigkill_sent else "SIGTERM"
-    return {"ok": True, "code": code, "pid": pid, "signal": signal_name}
 
 
 def _page_title_from_path(graph_root: Path, path: Path) -> str:
@@ -1223,6 +511,31 @@ class CorrectionOutcome:
     applied_details: list[str] = field(default_factory=list)
     write_aborted: bool = False
     links_backpropagated: int = 0
+
+
+def record_daemon_impact(
+    state: DaemonState,
+    *,
+    cognitive: CognitiveLintOutcome | None = None,
+    lint: CorrectionOutcome | None = None,
+    links_backpropagated: int = 0,
+) -> None:
+    """Accumulate provenance counters from one Plumber cycle turn."""
+    if cognitive is not None:
+        state.ai_pages_created += len(cognitive.pages_created)
+        for detail in cognitive.details:
+            if (
+                detail.startswith("properties:")
+                or detail.startswith("alias:")
+                or detail.startswith("marpa:")
+            ):
+                state.hygiene_corrections += 1
+            elif detail.startswith("split:"):
+                state.ai_blocks_healed += 1
+    if lint is not None:
+        state.ai_blocks_healed += lint.applied
+    if links_backpropagated > 0:
+        state.ai_links_injected += links_backpropagated
 
 
 def _direct_block_property_lines(
@@ -3217,10 +2530,9 @@ def start_daemon_foreground(graph_root: Path | None = None) -> None:
             root,
         )
         sys.exit(1)
-    global _daemon_process_lock_fd
-    _daemon_process_lock_fd = lock_fd
+    bind_daemon_process_lock_fd(lock_fd)
     write_pid_file(root)
-    _register_bootstrap_shutdown_handlers(root)
+    register_bootstrap_shutdown_handlers(root)
     try:
         daemon = MaintenanceDaemon(root)
         if isinstance(daemon.llm_client, InstructorLLMClient):
@@ -3308,6 +2620,8 @@ __all__ = [
     "MaintenanceDaemon",
     "PID_FILENAME",
     "DAEMON_LOCK_FILENAME",
+    "DEFAULT_STOP_GRACE_SECONDS",
+    "DEFAULT_STOP_SIGKILL_AFTER_SECONDS",
     "SEMANTIC_INDEX_HEADER",
     "STRUCTURAL_LINT_HEADER",
     "ScanMetrics",
@@ -3319,16 +2633,27 @@ __all__ = [
     "append_structural_lint_warning",
     "clear_phase1_error_backoff",
     "compute_scan_metrics",
+    "heal_daemon_state_ledger",
+    "is_plumber_process",
+    "is_process_alive",
     "load_daemon_state",
     "normalize_daemon_state_file_keys",
-    "is_plumber_process",
+    "pid_path",
     "prune_stale_daemon_file_entries",
     "read_pid_file",
+    "remove_pid_file",
     "resolve_graph_root",
     "run_plumber_audit",
     "save_daemon_state",
     "start_daemon_detached",
     "start_daemon_foreground",
+    "state_bak_path",
+    "state_path",
     "stop_daemon",
     "sync_daemon_state_from_env",
+    "write_pid_file",
+    "_record_page_lock_backoff",
+    "_release_daemon_process_lock",
+    "_try_acquire_daemon_process_lock",
+    "daemon_lock_path",
 ]

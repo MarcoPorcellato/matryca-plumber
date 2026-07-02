@@ -35,7 +35,7 @@ Authoritative triage matrices:
 | [#156](https://github.com/MarcoPorcellato/matryca-plumber/issues/156) | P2 | Tana `scan_existing_tana_ids` streaming scan | fixed in working tree |
 | [#157](https://github.com/MarcoPorcellato/matryca-plumber/issues/157) | P3 | Page lock registry eviction hardening (+ config `lru_cache` note) | fixed in working tree |
 
-**Already tracked (validated by Claude audit — do not duplicate):** [#48](https://github.com/MarcoPorcellato/matryca-plumber/issues/48) triple daemon checkpoint · [#49](https://github.com/MarcoPorcellato/matryca-plumber/issues/49) catalog save per page · [#50](https://github.com/MarcoPorcellato/matryca-plumber/issues/50) insights triple scan · [#53](https://github.com/MarcoPorcellato/matryca-plumber/issues/53) double Phase-2 read · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) daemon split · [#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38) `needs_refresh` seconds.
+**Already tracked (validated by Claude audit — do not duplicate):** [#48](https://github.com/MarcoPorcellato/matryca-plumber/issues/48) triple daemon checkpoint · [#49](https://github.com/MarcoPorcellato/matryca-plumber/issues/49) catalog save per page · [#50](https://github.com/MarcoPorcellato/matryca-plumber/issues/50) insights triple scan · [#53](https://github.com/MarcoPorcellato/matryca-plumber/issues/53) double Phase-2 read · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) daemon split · ~~[#38](https://github.com/MarcoPorcellato/matryca-plumber/issues/38) `needs_refresh` seconds~~ **closed pass 3**.
 
 Full matrix: [`CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md).
 

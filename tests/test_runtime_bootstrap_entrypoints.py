@@ -106,7 +106,7 @@ def test_start_daemon_foreground_defers_prepare_to_run_forever(
         lambda _r: 42,
     )
     monkeypatch.setattr(
-        "src.agent.maintenance_daemon._register_bootstrap_shutdown_handlers",
+        "src.agent.maintenance_daemon.register_bootstrap_shutdown_handlers",
         lambda _r: None,
     )
     monkeypatch.setattr("src.agent.maintenance_daemon.MaintenanceDaemon", lambda root, **kw: daemon)
