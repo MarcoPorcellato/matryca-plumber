@@ -40,8 +40,8 @@ flowchart LR
 
 | Phase | Name | Definition of done | GitHub |
 |-------|------|-------------------|--------|
-| **0** | v1.9.12 prerequisites | Daemon/dispatch modular enough for shadow duty cycle; env_parse DRY; documented blockers closed or explicitly tracked | Phase 0 issue (see [`v2_preparation_blueprints.md`](../../v2_preparation_blueprints.md)) · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) · [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
-| **1** | GraphRepository ports | `GraphReadPort` + `MarkdownGraphRepository`; `graph_dispatch` delegates at least one read method; parity tests; **default behavior unchanged** | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 1 issue |
+| **0** | v1.9.12 prerequisites | Daemon/dispatch modular enough for shadow duty cycle; env_parse DRY; documented blockers closed or explicitly tracked | Phase 0 issue ([#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174)) · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **done** · [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) read slice **done** |
+| **1** | GraphRepository ports | `GraphReadPort` + `MarkdownGraphRepository`; `graph_dispatch` delegates at least one read method; parity tests; **default behavior unchanged** | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 1 ([#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175)) **done** (subtree + port) |
 | **2** | Shadow incremental sync | `open_shadow_db`; `post_write` upsert `pages`/`blocks`; integration tests on `tmp_path` graph | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) · Phase 2 issue |
 | **3** | Read routing (alpha) | `MATRYCA_SHADOW_DB_ENABLED=false` default; FTS5/CTE behind flag; BM25/AST fallback when lag or disabled | Phase 3 issue · slices under #24 |
 | **4** | Memory + Logseq DB Safe-Sync | `MATRYCA_MEMORY_GRAPH_ENABLED`; `search_graph(method=recall)`; Logseq DB write via official CLI only | [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) · [#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139) · Phase 4 issue |
@@ -50,14 +50,16 @@ flowchart LR
 
 | Item | Why it blocks v2 | Tracking |
 |------|------------------|----------|
-| `maintenance_daemon` SRP | Shadow sync hooks into duty cycle | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) |
-| `graph_dispatch` handler registry | Read routing needs thin router | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
+| `maintenance_daemon` SRP | Shadow sync hooks into duty cycle | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **closed** |
+| `graph_dispatch` handler registry | Read routing needs thin router | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) — **read slice shipped**; search/mutate/refactor/lint follow-up |
 | Vector RAM at scale | Converges into shadow shard plan | [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) partial |
-| Config DI (`env_parse`) | Shadow flags injectable | [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57) · Tier F [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) |
+| Config DI (`env_parse`) | Shadow flags injectable | [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57) · Tier F [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) — **deferred** (not Phase 0–1 scope) |
 
 **Not v2 prep:** good-first observability slices remain v1.9.12 — see [`good_first_issues_blueprints.md`](../../good_first_issues_blueprints.md).
 
 ### Phase 1 — GraphRepository (no behavior change)
+
+**Status:** shipped (2026-07-01) — `GraphReadPort`, `MarkdownGraphRepository`, subtree delegate via port; parity tests in `tests/test_graph_repository.py`.
 
 ```text
   graph_dispatch.read_*  →  GraphReadPort  →  MarkdownGraphRepository  →  src/graph/* (today)
@@ -67,7 +69,7 @@ flowchart LR
 - Single adapter wrapping current `graph/*` + parser paths.
 - **Do not** add `domain/ports.py` god-module — follow [`CLEAN_ARCH_AUDIT_TRIAGE`](../quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md): incremental [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17).
 
-**Verify:** `make check`; new `tests/test_graph_repository.py` parity fixtures.
+**Verify:** `make check`; `tests/test_graph_repository.py` parity fixtures.
 
 ### Phase 2 — Shadow sync (read-only on source)
 

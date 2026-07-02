@@ -2,6 +2,7 @@
 
 ### Added
 
+- **v2 Phase 1 — `GraphReadPort`** — `src/graph/ports/read.py` defines a boundary-safe read protocol; `MarkdownGraphRepository` in `src/agent/markdown_graph_repository.py` delegates to existing `graph_tool_helpers` and `matryca_hooks`. Parity tests in `tests/test_graph_repository.py`.
 - **Community onboarding** — README **Community** section (Discussions, good-first issues, sponsor link); Discussions and Sponsors badges; [`docs/FIRST_CONTRIBUTION.md`](docs/FIRST_CONTRIBUTION.md); [`.editorconfig`](.editorconfig).
 
 ### Changed
@@ -9,6 +10,7 @@
 - **GitHub issue triage (2026-07-01)** — pass 1: 33 shipped audit issues closed; pass 2: #42, #91, #92 closed; pass 3: #38, #113 closed; pass 4: #97 closed (OCC filesystem docs), ROADMAP/CONTRIBUTING good-first sync; performance backlog #46–#50, #54–#55 annotated; good-first refresh on Tier D/F and #43/#52/#114; Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) pinned; log [`docs/quality/ISSUE_TRIAGE_2026-07-01.md`](docs/quality/ISSUE_TRIAGE_2026-07-01.md).
 - **`docs/ARCHITECTURE.md`** — OCC filesystem resolution constraints (modern vs legacy drives).
 - **`maintenance_daemon` SRP ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58))** — split the ~3,300-line god module into six focused `daemon_*` slices plus a ~1,280-line orchestrator. New modules: `daemon_state` (checkpoint ledger), `daemon_process_lock` (PID / cross-process lock / graceful stop), `daemon_semantic_write` (semantic index OCC write path + prompt helpers), `daemon_page_queue` (pending-file selection, scan metrics, Phase-2 queue rules), `daemon_llm_cycle` (per-file LLM cycle, fast-track settle, journey tail), `daemon_llm_client` (`LLMClient` protocol + daemon `InstructorLLMClient.index_page`). `maintenance_daemon.py` keeps bootstrap, `run_cycle`, cluster grouping, telemetry, and **backward-compatible re-exports** for CLI/tests. Documented in [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md#maintenance-daemon-module-map-issue-58).
+- **`graph_dispatch` read slice ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59), v2 Phase 0–1)** — extracted `dispatch_read_handlers.py` (one handler per `ReadGraphTarget`); `dispatch_read()` in `graph_dispatch.py` is now a thin delegate. Subtree reads route through `GraphReadPort` / `MarkdownGraphRepository`. Search/mutate/refactor/lint remain in `graph_dispatch.py` for follow-up slices. Documented in [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md#graph-dispatch-module-map-issue-59).
 - **`CODE_OF_CONDUCT.md`** — enforcement contact **marco@matryca.ai** (replaces placeholder).
 - **`SECURITY.md`** — **Supported versions** table (1.12.x active; private report email).
 

@@ -19,15 +19,12 @@ from ..graph.advanced_query_block import (
     wrap_logseq_advanced_query,
 )
 from ..graph.block_ref_lint import lint_block_refs_in_graph
-from ..graph.bootstrap_status import format_bootstrap_status_markdown
-from ..graph.dashboard import build_dashboard_markdown
 from ..graph.flashcards import append_logseq_flashcards_under_block
 from ..graph.journal_task_scan import (
     append_journal_markdown_section,
     format_journal_task_review_markdown,
     scan_journal_tasks,
 )
-from ..graph.link_tag_hop import format_hop_report_markdown
 from ..graph.markdown_blocks import (
     OCCConflictError,
     OCCSnapshot,
@@ -51,9 +48,9 @@ from ..graph.tag_unify import lint_unify_logseq_tags as core_lint_unify_logseq_t
 from ..graph.unlinked_mentions import resolve_unlinked_mentions as scan_unlinked_mentions
 from ..graph.wiki_lint import format_wiki_lint_report, lint_wiki_prefixed_pages
 from ..rag.local_query import format_keyword_query_markdown
-from ..rag.matryca_hooks import get_page_spatial_context
 from ..utils.json_repair import loads_repaired_json
 from .alias_state import resolve_pipe_target, resolve_target
+from .dispatch_read_handlers import dispatch_read_target
 from .graph_tool_helpers import (
     MutateGraphAction,
     ReadGraphTarget,
@@ -67,21 +64,14 @@ from .graph_tool_helpers import (
     graph_path_from_env,
     parse_json_object,
     parse_optional_json_query,
-    read_block_ast_markdown,
-    read_subtree_markdown,
-    read_xray_page_markdown,
 )
-from .l1_memory import read_l1_memory_async
-from .llm_context_payload import cap_llm_payload_chars
 from .page_input_normalizer import (
-    format_resolution_notes_footer,
     normalize_page_ref,
     normalize_page_ref_or_raw,
     normalize_pipe_page_target,
 )
 from .quality_gate import advanced_query_security_violations, markdown_append_bounds_violations
 from .routing_hint import (
-    append_read_page_routing_hint,
     routing_hint_for_entity_alias_preflight,
     routing_hint_for_write_outline,
 )
@@ -557,162 +547,7 @@ async def dispatch_read(
     query: str = "",
 ) -> str:
     """Route ``read_graph_data`` by ``target_type``."""
-    if target_type == "memory":
-        _labels, body = await read_l1_memory_async(wiki_config)
-        if not _labels:
-            return (
-                "No L1 memory loaded. Set **MATRYCA_L1_PATH**, or **memory_path** in "
-                "**matryca-wiki.yml**, or create **matryca-l1/*.md** next to your graph. "
-                "See `SYSTEM_PROMPT.md` for L1 vs L2 routing."
-            )
-        logger.bind(files=len(_labels)).info("read_graph_data(memory) loaded L1 context")
-        return cap_llm_payload_chars(body)
-
-    graph_path = graph_path_from_env()
-    if not graph_path:
-        logger.warning("read_graph_data(%s) but LOGSEQ_GRAPH_PATH unset", target_type)
-        return graph_missing_text()
-
-    if target_type == "page":
-        page_name = query.strip()
-        if not page_name:
-            return "For `target_type=page`, set `query` to the Logseq page title."
-        try:
-            page_norm = normalize_page_ref_or_raw(graph_path, page_name)
-        except ValueError as exc:
-            return str(exc)
-        try:
-            markdown = await get_page_spatial_context(page_norm.canonical_title, graph_path)
-        except FileNotFoundError as exc:
-            logger.bind(page=page_name, graph=graph_path).info(
-                "read_graph_data page miss: {}",
-                exc,
-            )
-            return "Page not found, you can create it."
-        except ImportError as exc:
-            logger.error("read_graph_data parser missing: {}", exc)
-            return (
-                f"Spatial parser is not available (install `logseq-matryca-parser`). Detail: {exc}"
-            )
-        except OSError as exc:
-            logger.bind(page=page_name).exception("read_graph_data OS error")
-            return f"Could not read the page file from disk: {exc}"
-        body = append_read_page_routing_hint(cap_llm_payload_chars(markdown))
-        return body + format_resolution_notes_footer(page_norm.resolution_notes)
-
-    if target_type == "xray_page":
-        page_name = query.strip()
-        if not page_name:
-            return "For `target_type=xray_page`, set `query` to the Logseq page title."
-        try:
-            page_norm = normalize_page_ref_or_raw(graph_path, page_name)
-        except ValueError as exc:
-            return str(exc)
-        try:
-            xray_md = await asyncio.to_thread(
-                read_xray_page_markdown,
-                graph_path,
-                page_norm.canonical_title,
-            )
-        except FileNotFoundError:
-            return "Page not found, you can create it."
-        except ImportError as exc:
-            logger.error("read_graph_data xray_page parser missing: {}", exc)
-            return (
-                f"Spatial parser is not available (install `logseq-matryca-parser`). Detail: {exc}"
-            )
-        except OSError as exc:
-            logger.bind(page=page_name).exception("read_graph_data xray_page OS error")
-            return f"Could not read the page file from disk: {exc}"
-        body = cap_llm_payload_chars(xray_md)
-        return body + format_resolution_notes_footer(page_norm.resolution_notes)
-
-    if target_type == "block_ast":
-        block_query = query.strip()
-        if not block_query:
-            return (
-                "For `target_type=block_ast`, set `query` to `Page Title|block-uuid` "
-                "or `Page Title|[n]` after `xray_page`."
-            )
-        try:
-            block_md = await asyncio.to_thread(read_block_ast_markdown, graph_path, block_query)
-        except ValueError as exc:
-            return str(exc)
-        return cap_llm_payload_chars(block_md)
-
-    if target_type == "subtree":
-        subtree_query = query.strip()
-        if not subtree_query:
-            return (
-                "For `target_type=subtree`, set `query` to `Page Title|block-uuid` "
-                'or JSON `{"page":"...","block_uuid":"...","heading":"optional"}`.'
-            )
-        try:
-            subtree_md = await asyncio.to_thread(
-                read_subtree_markdown,
-                graph_path,
-                subtree_query,
-            )
-        except ValueError as exc:
-            return str(exc)
-        return cap_llm_payload_chars(subtree_md)
-
-    if target_type == "structural_hops":
-        hop_opts = parse_optional_json_query(query)
-        seeds_raw = str(hop_opts.get("seeds", query)).strip()
-        seed_list = [s.strip() for s in seeds_raw.split(",") if s.strip()]
-        if not seed_list:
-            return (
-                "For `target_type=structural_hops`, provide seed page titles in `query` "
-                "(comma-separated) or JSON with `seeds`."
-            )
-        depth = wiki_config.max_depth
-        if hop_opts.get("max_depth") is not None:
-            depth_raw = bounded_int_from_options(
-                hop_opts,
-                "max_depth",
-                default=depth,
-                minimum=1,
-                maximum=10,
-            )
-            if isinstance(depth_raw, str):
-                return depth_raw
-            depth = depth_raw
-        per = wiki_config.structural_hop_max_per_level
-        if hop_opts.get("max_per_level") is not None:
-            per_raw = bounded_int_from_options(
-                hop_opts,
-                "max_per_level",
-                default=per,
-                minimum=1,
-                maximum=500,
-            )
-            if isinstance(per_raw, str):
-                return per_raw
-            per = per_raw
-
-        def _hops() -> str:
-            return format_hop_report_markdown(
-                graph_path,
-                seed_list,
-                max_depth=depth,
-                max_per_level=per,
-            )
-
-        return cap_llm_payload_chars(await asyncio.to_thread(_hops))
-
-    if target_type == "bootstrap_status":
-        status_md = await asyncio.to_thread(format_bootstrap_status_markdown, graph_path)
-        logger.bind(graph=graph_path).info("read_graph_data(bootstrap_status) completed")
-        return cap_llm_payload_chars(status_md)
-
-    dashboard_md: str = await asyncio.to_thread(
-        build_dashboard_markdown,
-        graph_path,
-        wiki_config,
-    )
-    logger.bind(graph=graph_path).info("read_graph_data(dashboard) completed")
-    return cap_llm_payload_chars(dashboard_md)
+    return await dispatch_read_target(wiki_config, target_type, query)
 
 
 async def dispatch_search(

@@ -51,7 +51,7 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 |---------|---------------|-------------|
 | OCC `st_mtime_ns` + `page_rmw_lock` | Lost-update prevention + torn-write serialization | Content-hash CAS → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) |
 | JSON ledgers at graph root | No central DB (Phase 4) | Shadow DB → [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) |
-| `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Split → [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
+| `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Read slice shipped ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) partial); search/mutate/refactor/lint remain — see [Graph dispatch module map](#graph-dispatch-module-map-issue-59) |
 | `maintenance_daemon` SRP | ~~3,300 lines~~ → **~1,280** orchestrator + six `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **closed**) | See [Maintenance daemon module map](#maintenance-daemon-module-map-issue-58) |
 
 ### v2 preparation phases
@@ -111,6 +111,48 @@ maintenance_daemon (orchestrator)
 uv run ruff check src tests
 uv run mypy src tests
 uv run pytest tests/test_maintenance_daemon.py -q
+make check
+```
+
+---
+
+## Graph dispatch module map (issue #59)
+
+**Status:** read path shipped (v2 Phase 0–1); search/mutate/refactor/lint still in `graph_dispatch.py`. **Goal:** thin router + handler registry per `ReadGraphTarget` / `SearchGraphMethod` without behavior change.
+
+### Before / after (read slice)
+
+| Metric | Before | After (read slice) |
+|--------|--------|---------------------|
+| `dispatch_read` in `graph_dispatch.py` | ~160 lines inline | **~8 lines** — delegates to `dispatch_read_target()` |
+| Read handlers | Monolithic `if` chain | One function per target in `dispatch_read_handlers.py` |
+| Subtree reads | Direct `graph_tool_helpers` | `GraphReadPort.read_subtree_markdown` via `MarkdownGraphRepository` |
+
+### Module responsibilities
+
+| Module | Single reason to change |
+|--------|-------------------------|
+| [`dispatch_read_handlers.py`](../src/agent/dispatch_read_handlers.py) | `read_graph_data` handler per `ReadGraphTarget` |
+| [`markdown_graph_repository.py`](../src/agent/markdown_graph_repository.py) | Markdown-backed `GraphReadPort` adapter (delegates to `graph_tool_helpers` + `matryca_hooks`) |
+| [`graph/ports/read.py`](../src/graph/ports/read.py) | `GraphReadPort` protocol — **no `agent` imports** |
+| [`graph_dispatch.py`](../src/agent/graph_dispatch.py) | Router for search/mutate/refactor/lint; thin `dispatch_read` delegate |
+
+### Dependency direction
+
+```text
+graph_dispatch.dispatch_read
+    └── dispatch_read_handlers
+            ├── graph_tool_helpers (page/xray/block_ast)
+            └── markdown_graph_repository ──► GraphReadPort (subtree, spatial)
+                    └── graph_tool_helpers + matryca_hooks
+```
+
+**Rule:** new read targets belong in `dispatch_read_handlers.py`. Shadow-DB reads (v2 Phase 3) implement `GraphReadPort` without changing handler signatures.
+
+### Verification
+
+```bash
+uv run pytest tests/test_graph_dispatch_read.py tests/test_graph_repository.py -q
 make check
 ```
 
