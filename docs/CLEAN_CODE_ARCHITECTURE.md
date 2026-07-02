@@ -51,7 +51,7 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 |---------|---------------|-------------|
 | OCC `st_mtime_ns` + `page_rmw_lock` | Lost-update prevention + torn-write serialization | Content-hash CAS → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) |
 | JSON ledgers at graph root | No central DB (Phase 4) | Shadow DB → [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) |
-| `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Read slice shipped ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) partial); search/mutate/refactor/lint remain — see [Graph dispatch module map](#graph-dispatch-module-map-issue-59) |
+| `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Read + search slices shipped ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) partial); mutate/refactor/lint remain — see [Graph dispatch module map](#graph-dispatch-module-map-issue-59) |
 | `maintenance_daemon` SRP | ~~3,300 lines~~ → **~1,280** orchestrator + six `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **closed**) | See [Maintenance daemon module map](#maintenance-daemon-module-map-issue-58) |
 
 ### v2 preparation phases
@@ -118,14 +118,16 @@ make check
 
 ## Graph dispatch module map (issue #59)
 
-**Status:** read path shipped (v2 Phase 0–1); search/mutate/refactor/lint still in `graph_dispatch.py`. **Goal:** thin router + handler registry per `ReadGraphTarget` / `SearchGraphMethod` without behavior change.
+**Status:** read + search paths shipped (v2 Phase 0–1); mutate/refactor/lint still in `graph_dispatch.py`. **Goal:** thin router + handler registry per `ReadGraphTarget` / `SearchGraphMethod` without behavior change.
 
-### Before / after (read slice)
+### Before / after (read + search slices)
 
-| Metric | Before | After (read slice) |
-|--------|--------|---------------------|
-| `dispatch_read` in `graph_dispatch.py` | ~160 lines inline | **~8 lines** — delegates to `dispatch_read_target()` |
+| Metric | Before | After |
+|--------|--------|-------|
+| `dispatch_read` in `graph_dispatch.py` | ~160 lines inline | **~4 lines** — delegates to `dispatch_read_target()` |
+| `dispatch_search` in `graph_dispatch.py` | ~180 lines inline | **~4 lines** — delegates to `dispatch_search_target()` |
 | Read handlers | Monolithic `if` chain | One function per target in `dispatch_read_handlers.py` |
+| Search handlers | Monolithic `if` chain | One function per method in `dispatch_search_handlers.py` |
 | Subtree reads | Direct `graph_tool_helpers` | `GraphReadPort.read_subtree_markdown` via `MarkdownGraphRepository` |
 
 ### Module responsibilities
@@ -133,9 +135,10 @@ make check
 | Module | Single reason to change |
 |--------|-------------------------|
 | [`dispatch_read_handlers.py`](../src/agent/dispatch_read_handlers.py) | `read_graph_data` handler per `ReadGraphTarget` |
+| [`dispatch_search_handlers.py`](../src/agent/dispatch_search_handlers.py) | `search_graph` handler per `SearchGraphMethod` |
 | [`markdown_graph_repository.py`](../src/agent/markdown_graph_repository.py) | Markdown-backed `GraphReadPort` adapter (delegates to `graph_tool_helpers` + `matryca_hooks`) |
 | [`graph/ports/read.py`](../src/graph/ports/read.py) | `GraphReadPort` protocol — **no `agent` imports** |
-| [`graph_dispatch.py`](../src/agent/graph_dispatch.py) | Router for search/mutate/refactor/lint; thin `dispatch_read` delegate |
+| [`graph_dispatch.py`](../src/agent/graph_dispatch.py) | Router for mutate/refactor/lint; thin `dispatch_read` / `dispatch_search` delegates |
 
 ### Dependency direction
 
@@ -145,14 +148,20 @@ graph_dispatch.dispatch_read
             ├── graph_tool_helpers (page/xray/block_ast)
             └── markdown_graph_repository ──► GraphReadPort (subtree, spatial)
                     └── graph_tool_helpers + matryca_hooks
+
+graph_dispatch.dispatch_search
+    └── dispatch_search_handlers
+            ├── rag/local_query (bm25)
+            ├── semantic/search (semantic)
+            └── graph/* (regex, unlinked, journal, alias resolve)
 ```
 
-**Rule:** new read targets belong in `dispatch_read_handlers.py`. Shadow-DB reads (v2 Phase 3) implement `GraphReadPort` without changing handler signatures.
+**Rule:** new read targets belong in `dispatch_read_handlers.py`; new search methods in `dispatch_search_handlers.py`. Shadow-DB reads (v2 Phase 3) implement `GraphReadPort` without changing handler signatures.
 
 ### Verification
 
 ```bash
-uv run pytest tests/test_graph_dispatch_read.py tests/test_graph_repository.py -q
+uv run pytest tests/test_graph_dispatch_read.py tests/test_graph_dispatch_search.py tests/test_graph_repository.py -q
 make check
 ```
 
