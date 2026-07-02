@@ -268,4 +268,4 @@ uv run pytest tests/test_graph_layer_boundary.py tests/test_env_parse.py -q --no
 make check
 ```
 
-When editing `src/`, follow [`.cursor/rules/12-clean-code-architecture.mdc`](../.cursor/rules/12-clean-code-architecture.mdc) (maintainer rule index: [`AGENTS.md`](../AGENTS.md)).
+When editing `src/`, follow maintainer rule `12-clean-code-architecture` in [`AGENTS.md`](../AGENTS.md).
