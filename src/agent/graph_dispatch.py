@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid as uuid_module
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from logseq_matryca_parser.agent_writer import _insertion_line_after_node
 from logseq_matryca_parser.graph import LogseqGraph
@@ -14,13 +14,6 @@ from loguru import logger
 
 from ..config import MatrycaWikiConfig
 from ..daemon.ast_cache import get_graph_ast_cache
-from ..graph.advanced_query_block import (
-    resolve_advanced_query_preset,
-    wrap_logseq_advanced_query,
-)
-from ..graph.block_ref_lint import lint_block_refs_in_graph
-from ..graph.flashcards import append_logseq_flashcards_under_block
-from ..graph.journal_task_scan import append_journal_markdown_section
 from ..graph.markdown_blocks import (
     OCCConflictError,
     OCCSnapshot,
@@ -33,18 +26,14 @@ from ..graph.markdown_blocks import (
 )
 from ..graph.page_write_lock import page_rmw_lock
 from ..graph.path_sandbox import (
-    PathTraversalSecurityError,
     assert_path_within_graph,
     read_graph_file_text,
 )
-from ..graph.property_line_edit import edit_block_property_lines
-from ..graph.reparent_blocks import refactor_logseq_blocks as run_reparent_logseq_blocks
-from ..graph.split_large_blocks import refactor_large_blocks as run_refactor_large_blocks
-from ..graph.tag_unify import lint_unify_logseq_tags as core_lint_unify_logseq_tags
-from ..graph.wiki_lint import format_wiki_lint_report, lint_wiki_prefixed_pages
-from ..utils.json_repair import loads_repaired_json
-from .alias_state import resolve_pipe_target, resolve_target
+from .alias_state import resolve_target
+from .dispatch_lint_handlers import dispatch_lint_target
+from .dispatch_mutate_handlers import dispatch_mutate_target
 from .dispatch_read_handlers import dispatch_read_target
+from .dispatch_refactor_handlers import dispatch_refactor_target
 from .dispatch_search_handlers import dispatch_search_target
 from .graph_tool_helpers import (
     MutateGraphAction,
@@ -52,18 +41,8 @@ from .graph_tool_helpers import (
     RefactorBlocksAction,
     RunLinterName,
     SearchGraphMethod,
-    graph_missing_dict,
-    graph_missing_text,
-    graph_path_from_env,
-    parse_json_object,
-    parse_optional_json_query,
 )
-from .page_input_normalizer import (
-    normalize_page_ref,
-    normalize_page_ref_or_raw,
-    normalize_pipe_page_target,
-)
-from .quality_gate import advanced_query_security_violations, markdown_append_bounds_violations
+from .page_input_normalizer import normalize_page_ref
 from .routing_hint import (
     routing_hint_for_entity_alias_preflight,
     routing_hint_for_write_outline,
@@ -551,203 +530,13 @@ async def dispatch_search(
     return await dispatch_search_target(method, query)
 
 
-def _mutate_error(message: str) -> dict[str, Any]:
-    return {"ok": False, "error": message}
-
-
 async def dispatch_mutate(
     action: MutateGraphAction,
     target: str,
     payload: str,
 ) -> dict[str, Any]:
     """Route ``mutate_graph`` by ``action`` (headless on-disk writes)."""
-    graph_path = graph_path_from_env()
-
-    if action == "write_outline":
-        if not graph_path:
-            return graph_missing_dict()
-        outline = parse_json_object(payload, field_name="payload")
-        try:
-            return await _run_write_outline(graph_path, target, outline)
-        except ValueError as exc:
-            return _mutate_error(str(exc))
-        except OSError as exc:
-            return _mutate_error(str(exc))
-        except OCCConflictError as exc:
-            return _mutate_error(str(exc))
-
-    if action == "edit_property":
-        if not graph_path:
-            return {
-                **graph_missing_dict(),
-                "dry_run": True,
-                "match_count": 0,
-                "previews": [],
-                "previous_size_bytes": 0,
-                "current_size_bytes": 0,
-                "lines_changed": 0,
-            }
-        try:
-            normalized_target, page_notes = normalize_pipe_page_target(graph_path, target)
-            pipe_target = resolve_pipe_target(graph_path, normalized_target)
-        except ValueError as exc:
-            return _mutate_error(str(exc))
-        target_parts = [p.strip() for p in pipe_target.split("|", 1)]
-        if len(target_parts) != 2 or not target_parts[0] or not target_parts[1]:
-            return {
-                "ok": False,
-                "error": "For edit_property, `target` must be `Page Title|block-uuid`.",
-            }
-        page_ref, block_uuid = target_parts[0], target_parts[1]
-        prop_opts = parse_json_object(payload, field_name="payload")
-        search = str(prop_opts.get("search", ""))
-        replacement = str(prop_opts.get("replacement", ""))
-        if not search:
-            return {"ok": False, "error": "payload must include non-empty `search`."}
-
-        try:
-            page_path = graph_safe_page_path(graph_path, page_ref)
-        except PathTraversalSecurityError as exc:
-            return {"ok": False, "code": "security_violation", "error": str(exc)}
-        except ValueError as exc:
-            return _mutate_error(str(exc))
-        baseline_mtime = read_file_mtime_ns(page_path) if page_path.is_file() else None
-
-        def _edit() -> dict[str, object]:
-            return edit_block_property_lines(
-                graph_path,
-                page_ref,
-                block_uuid,
-                search,
-                replacement,
-                dry_run=bool(prop_opts.get("dry_run", True)),
-                use_regex=bool(prop_opts.get("use_regex", False)),
-                replace_all=bool(prop_opts.get("replace_all", False)),
-                case_sensitive=bool(prop_opts.get("case_sensitive", True)),
-                baseline_mtime=baseline_mtime,
-            ).as_dict()
-
-        edit_out = cast(dict[str, Any], await asyncio.to_thread(_edit))
-        if page_notes:
-            edit_out["warnings"] = page_notes
-            for note in page_notes:
-                logger.warning(note)
-        return edit_out
-
-    if action == "append_journal":
-        if not graph_path:
-            return graph_missing_dict()
-        body = payload
-        dry_run = True
-        if payload.strip().startswith("{"):
-            journal_opts = parse_json_object(payload, field_name="payload")
-            body = str(journal_opts.get("markdown_body", ""))
-            dry_run = bool(journal_opts.get("dry_run", True))
-        bounds = markdown_append_bounds_violations(body)
-        if bounds:
-            return {
-                "ok": False,
-                "code": "payload_too_large",
-                "error": "; ".join(bounds),
-            }
-        return await asyncio.to_thread(
-            append_journal_markdown_section,
-            graph_path,
-            body,
-            dry_run=dry_run,
-        )
-
-    if not graph_path:
-        return graph_missing_dict()
-
-    try:
-        parent_block, empty_page_title, inject_warnings = await asyncio.to_thread(
-            _resolve_write_parent_target,
-            graph_path,
-            target,
-        )
-    except ValueError as exc:
-        return _mutate_error(str(exc))
-    if empty_page_title:
-        inject_warnings = [
-            *inject_warnings,
-            "inject_query requires a parent block; empty-page fallback is not supported.",
-        ]
-        return {
-            "ok": False,
-            "error": (
-                f"Page `{empty_page_title}` has no outline blocks. "
-                "Run `read_graph_data` / `xray_page` first, then pass a valid parent UUID or `[n]`."
-            ),
-            "warnings": inject_warnings,
-        }
-    if not parent_block:
-        return _mutate_error("Could not resolve parent block for inject_query.")
-    inject_opts = parse_json_object(payload, field_name="payload")
-    query_preset = inject_opts.get("query_preset")
-    tag = inject_opts.get("tag")
-    query_edn = str(inject_opts.get("query_edn", ""))
-    dry_run = bool(inject_opts.get("dry_run", True))
-
-    inner: str
-    if query_preset and str(query_preset).strip():
-        try:
-            inner = resolve_advanced_query_preset(str(query_preset).strip(), tag=tag)
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-    elif query_edn.strip():
-        inner = query_edn.strip()
-    else:
-        return {
-            "ok": False,
-            "error": "payload must include `query_preset` or non-empty `query_edn`.",
-        }
-
-    sec = advanced_query_security_violations(inner)
-    if sec:
-        return {"ok": False, "error": "; ".join(sec)}
-
-    try:
-        markdown = wrap_logseq_advanced_query(inner)
-    except ValueError as exc:
-        return {"ok": False, "error": str(exc)}
-
-    if dry_run:
-        dry_out: dict[str, Any] = {
-            "ok": True,
-            "dry_run": True,
-            "markdown": markdown,
-            "uuid": None,
-            "routing_hint": routing_hint_for_write_outline(),
-        }
-        if inject_warnings:
-            dry_out["warnings"] = inject_warnings
-        return dry_out
-
-    occ = _occ_snapshot_for_block(graph_path, parent_block)
-    try:
-        new_uuid = await asyncio.to_thread(
-            _headless_append_child,
-            graph_path,
-            parent_block,
-            markdown,
-            occ=occ,
-        )
-    except (ValueError, OSError, OCCConflictError) as exc:
-        return _mutate_error(str(exc))
-
-    inject_out: dict[str, Any] = {
-        "ok": True,
-        "dry_run": False,
-        "uuid": new_uuid,
-        "markdown": markdown,
-        "routing_hint": routing_hint_for_write_outline(),
-    }
-    if inject_warnings:
-        inject_out["warnings"] = inject_warnings
-        for note in inject_warnings:
-            logger.warning(note)
-    return inject_out
+    return await dispatch_mutate_target(action, target, payload)
 
 
 async def dispatch_refactor(
@@ -756,129 +545,7 @@ async def dispatch_refactor(
     payload: str = "",
 ) -> dict[str, Any]:
     """Route ``refactor_blocks`` by ``action`` (headless on-disk rewrites)."""
-    graph_path = graph_path_from_env()
-    if not graph_path:
-        return graph_missing_dict()
-
-    refactor_opts = parse_optional_json_query(payload)
-    dry_run = bool(refactor_opts.get("dry_run", True))
-    refactor_notes: list[str] = []
-    try:
-        resolved_uuid = target_uuid
-        if "|" in target_uuid:
-            normalized_target, refactor_notes = normalize_pipe_page_target(
-                graph_path,
-                target_uuid,
-            )
-            resolved_uuid = resolve_pipe_target(graph_path, normalized_target)
-        elif target_uuid.strip():
-            page_norm = normalize_page_ref_or_raw(graph_path, target_uuid)
-            refactor_notes.extend(page_norm.resolution_notes)
-            resolved_uuid = resolve_target(graph_path, page_norm.canonical_title)
-    except ValueError as exc:
-        return _mutate_error(str(exc))
-
-    if action == "split_large":
-        page_ref = resolved_uuid.strip() or None
-        if page_ref:
-            page_norm = normalize_page_ref_or_raw(graph_path, page_ref)
-            page_ref = page_norm.canonical_title
-            refactor_notes.extend(page_norm.resolution_notes)
-        min_chars = max(50, int(refactor_opts.get("min_chars", 400)))
-        max_blocks = max(1, min(int(refactor_opts.get("max_blocks", 25)), 100))
-        git_snap: dict[str, object] = (
-            {"skipped": True, "reason": "dry_run"}
-            if dry_run
-            else {
-                "committed": True,
-                "skipped": False,
-                "reason": "post-write robot commits via hooks",
-            }
-        )
-
-        def _split() -> dict[str, Any]:
-            return run_refactor_large_blocks(
-                graph_path,
-                page_ref=page_ref,
-                min_chars=min_chars,
-                max_blocks=max_blocks,
-                dry_run=dry_run,
-            ).as_dict()
-
-        split_out = await asyncio.to_thread(_split)
-        split_out["git_snapshot"] = git_snap
-        if refactor_notes:
-            split_out["warnings"] = refactor_notes
-        return split_out
-
-    if action == "reparent":
-        reparent_page = resolved_uuid.strip()
-        if reparent_page:
-            page_norm = normalize_page_ref_or_raw(graph_path, reparent_page)
-            reparent_page = page_norm.canonical_title
-            refactor_notes.extend(page_norm.resolution_notes)
-        if not reparent_page:
-            return {"ok": False, "error": "For reparent, `target_uuid` must be the page title."}
-        groups_raw = refactor_opts.get("groups")
-        if groups_raw is None and payload.strip().startswith("["):
-            groups_raw = loads_repaired_json(payload)
-        if not isinstance(groups_raw, list):
-            return {
-                "ok": False,
-                "error": "For reparent, `payload` must be a JSON array of reparent groups.",
-            }
-        groups = cast(list[dict[str, Any]], groups_raw)
-        reparent_git: dict[str, object] = (
-            {"skipped": True, "reason": "dry_run"}
-            if dry_run
-            else {
-                "committed": True,
-                "skipped": False,
-                "reason": "post-write robot commits via hooks",
-            }
-        )
-
-        def _reparent() -> dict[str, Any]:
-            return run_reparent_logseq_blocks(
-                graph_path,
-                reparent_page,
-                groups,
-                dry_run=dry_run,
-            ).as_dict()
-
-        reparent_out = await asyncio.to_thread(_reparent)
-        reparent_out["git_snapshot"] = reparent_git
-        if refactor_notes:
-            reparent_out["warnings"] = refactor_notes
-        return reparent_out
-
-    flash_parts = [p.strip() for p in resolved_uuid.split("|", 1)]
-    if len(flash_parts) != 2 or not flash_parts[0] or not flash_parts[1]:
-        return {
-            "ok": False,
-            "error": (
-                "For generate_flashcards, `target_uuid` must be `Page Title|source-block-uuid`."
-            ),
-        }
-    page_ref, source_uuid = flash_parts[0], flash_parts[1]
-    page_norm = normalize_page_ref_or_raw(graph_path, page_ref)
-    page_ref = page_norm.canonical_title
-    refactor_notes.extend(page_norm.resolution_notes)
-    max_cards = max(1, min(int(refactor_opts.get("max_cards", 30)), 200))
-
-    def _flash() -> dict[str, Any]:
-        return append_logseq_flashcards_under_block(
-            graph_path,
-            page_ref,
-            source_uuid,
-            max_cards=max_cards,
-            dry_run=dry_run,
-        ).as_dict()
-
-    flash_out = await asyncio.to_thread(_flash)
-    if refactor_notes:
-        flash_out["warnings"] = refactor_notes
-    return flash_out
+    return await dispatch_refactor_target(action, target_uuid, payload)
 
 
 async def dispatch_lint(
@@ -886,40 +553,7 @@ async def dispatch_lint(
     linter_name: RunLinterName,
 ) -> str | dict[str, Any]:
     """Route ``run_linter`` by ``linter_name``."""
-    graph_path = graph_path_from_env()
-    if not graph_path:
-        if linter_name == "unify_tags":
-            return graph_missing_dict()
-        return graph_missing_text()
-
-    if linter_name == "unify_tags":
-
-        def _tags() -> dict[str, Any]:
-            raw = core_lint_unify_logseq_tags(graph_path, dry_run=True).as_dict()
-            return cast(dict[str, Any], raw)
-
-        return await asyncio.to_thread(_tags)
-
-    if linter_name == "block_refs":
-
-        def _refs() -> str:
-            root = Path(graph_path).expanduser().resolve()
-            result = lint_block_refs_in_graph(root, graph=_cached_graph(root))
-            logger.bind(
-                pages=result.pages_scanned,
-                issues=len(result.broken),
-            ).info("run_linter(block_refs) completed")
-            return result.format_report()
-
-        return await asyncio.to_thread(_refs)
-
-    def _wiki() -> str:
-        findings = lint_wiki_prefixed_pages(graph_path, wiki_config)
-        return format_wiki_lint_report(findings, prefix=wiki_config.wiki_file_prefix)
-
-    wiki_report: str = await asyncio.to_thread(_wiki)
-    logger.bind(graph=graph_path).info("run_linter(full_wiki_scan) completed")
-    return wiki_report
+    return await dispatch_lint_target(wiki_config, linter_name)
 
 
 __all__ = [

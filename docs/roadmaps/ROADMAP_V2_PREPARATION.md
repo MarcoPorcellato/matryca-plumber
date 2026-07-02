@@ -51,7 +51,7 @@ flowchart LR
 | Item | Why it blocks v2 | Tracking |
 |------|------------------|----------|
 | `maintenance_daemon` SRP | Shadow sync hooks into duty cycle | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **closed** |
-| `graph_dispatch` handler registry | Read routing needs thin router | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) — **read + search slices shipped**; mutate/refactor/lint follow-up |
+| `graph_dispatch` handler registry | Read routing needs thin router | [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) **closed** — all five mega-tools split into `dispatch_*_handlers.py` |
 | Vector RAM at scale | Converges into shadow shard plan | [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) partial |
 | Config DI (`env_parse`) | Shadow flags injectable | [#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57) · Tier F [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) — **deferred** (not Phase 0–1 scope) |
 
