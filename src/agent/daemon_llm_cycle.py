@@ -432,8 +432,7 @@ def process_llm_cycle_file(
                 prompt_session=prompt_session,
             )
         llm_called_from_usage = (
-            int(usage.get("prompt_tokens", 0) or 0)
-            + int(usage.get("completion_tokens", 0) or 0)
+            int(usage.get("prompt_tokens", 0) or 0) + int(usage.get("completion_tokens", 0) or 0)
         ) > 0
         if baseline_mtime is not None and file_mtime_drifted(path, baseline_mtime):
             logger.warning(

@@ -43,6 +43,7 @@ from .prompt_layout import build_cache_aligned_prompt
 STRUCTURAL_LINT_HEADING = "### Matryca Structural Lint"
 STRUCTURAL_LINT_HEADER = f"- {STRUCTURAL_LINT_HEADING}"
 
+
 def _semantic_index_section_present(content: str) -> bool:
     return SEMANTIC_INDEX_HEADING in content
 
@@ -100,6 +101,8 @@ class SemanticIndexResult(BaseModel):
         default_factory=list,
         description="Safe per-block micro-corrections (additive WikiLinks / tags only)",
     )
+
+
 def _page_title_from_path(graph_root: Path, path: Path) -> str:
     return page_title_from_path(graph_root, path)
 
@@ -317,6 +320,8 @@ class CorrectionOutcome:
     applied_details: list[str] = field(default_factory=list)
     write_aborted: bool = False
     links_backpropagated: int = 0
+
+
 def _direct_block_property_lines(
     lines: list[str],
     bullet_idx: int,
@@ -677,6 +682,7 @@ def append_semantic_index(
         _page_title_from_path(graph_root, page_path),
         result,
     )
+
 
 __all__ = [
     "STRUCTURAL_LINT_HEADER",
