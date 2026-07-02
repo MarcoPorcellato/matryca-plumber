@@ -52,7 +52,7 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 | OCC `st_mtime_ns` + `page_rmw_lock` | Lost-update prevention + torn-write serialization | Content-hash CAS → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) |
 | JSON ledgers at graph root | No central DB (Phase 4) | Shadow DB → [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) |
 | `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | Split → [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) |
-| `maintenance_daemon` SRP | ~~3300 lines~~ **2637** after #58 slice; scheduling + LLM cycle remain | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) — next: `daemon_llm_cycle.py`, `daemon_semantic_write.py` |
+| `maintenance_daemon` SRP | ~~3300 lines~~ **~1840** after #58 slices; `MaintenanceDaemon` cycle + LLM client remain | [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) — next: `daemon_llm_cycle.py` |
 
 ### v2 preparation phases
 

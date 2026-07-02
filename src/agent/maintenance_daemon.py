@@ -3,29 +3,23 @@
 from __future__ import annotations
 
 import contextlib
-import math
 import os
-import re
 import signal
 import subprocess
 import sys
 import threading
 import time
-from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
 from loguru import logger
-from pydantic import BaseModel, Field
 
 from ..config import load_matryca_wiki_config
 from ..daemon.ast_cache import get_graph_ast_cache
 from ..daemon.file_watcher import FileEventKind, GraphFileWatcher
 from ..graph.alias_index import (
     AliasIndex,
-    iter_alias_source_paths,
-    resolve_canonical_page_title,
 )
 from ..graph.bootstrap_harvest import (
     BootstrapHarvestStatus,
@@ -36,7 +30,6 @@ from ..graph.concurrency_probe import probe_concurrency_capability
 from ..graph.generational_cache import (
     cached_build_alias_index,
     gc_generational_alias_cache,
-    patch_generational_caches_for_paths,
 )
 from ..graph.global_fence_scanner import compute_page_protected_line_indices
 from ..graph.insights_engine import (
@@ -51,38 +44,25 @@ from ..graph.link_verification import (
 )
 from ..graph.logseq_uuid import find_malformed_block_refs, is_malformed_block_ref_error
 from ..graph.markdown_blocks import (
-    atomic_write_bytes,
-    atomic_write_bytes_if_unchanged,
-    block_property_insert_index,
-    bullet_indent_unit,
     file_mtime_drifted,
-    locate_block_by_uuid,
     occ_snapshot,
-    occ_verify_before_write,
-    read_file_mtime_ns,
-    strip_lines_for_match,
 )
 from ..graph.master_catalog import (
     SEMANTIC_INDEX_HEADER,
-    SEMANTIC_INDEX_HEADING,
     extract_catalog_fields_from_content,
     is_bootstrap_catalog_complete,
     load_master_catalog,
     master_index_page_path,
 )
-from ..graph.mldoc_properties import parse_logseq_property_line
-from ..graph.page_path import page_title_from_path
 from ..graph.page_write_lock import (
     PageLockUnavailableError,
     clear_page_write_locks,
-    page_rmw_lock,
     sweep_matryca_lock_sidecars,
 )
 from ..graph.path_sandbox import (
     graph_relative_path_key,
     read_graph_file_text,
 )
-from ..graph.safety.validators import validate_llm_write_diff
 from ..graph.semantic_clustering import (
     CLUSTER_IDS_WITHOUT_FOCUS,
     JOURNAL_CLUSTER_ID,
@@ -101,6 +81,15 @@ from .cooperative_yield import (
     bootstrap_pill_checkpoint_every,
     telemetry_heartbeat_seconds,
 )
+from .daemon_page_queue import (
+    ScanMetrics,
+    clear_phase1_error_backoff,
+    compute_phase2_progress_metrics,
+    compute_scan_metrics,
+    list_pending_files,
+    page_needs_phase2_cognitive,
+    prune_stale_daemon_file_entries,
+)
 from .daemon_process_lock import (
     DAEMON_LOCK_FILENAME,
     DEFAULT_STOP_GRACE_SECONDS,
@@ -117,11 +106,28 @@ from .daemon_process_lock import (
     stop_daemon,
     write_pid_file,
 )
+from .daemon_semantic_write import (
+    STRUCTURAL_LINT_HEADER,
+    CorrectionOutcome,
+    LintType,
+    SemanticCrossRef,
+    SemanticIndexResult,
+    SemanticLintCorrection,
+    _build_index_prompt,
+    _enumerate_blocks_for_prompt,
+    _normalize_index_result_aliases,
+    _page_title_from_path,
+    _semantic_index_section_present,
+    append_semantic_index,
+    append_structural_lint_warning,
+    apply_semantic_corrections_to_lines,
+    apply_semantic_page_result,
+    run_dual_embedding_after_semantic_write,
+)
 from .daemon_state import (
     DaemonState,
     FileState,
     _daemon_file_key,
-    _lock_backoff_active,
     _lookup_file_state,
     _record_page_lock_backoff,
     heal_daemon_state_ledger,
@@ -163,7 +169,6 @@ from .plumber_llm import (
 )
 from .plumber_modules import CognitiveLintOutcome, run_cognitive_lint_pipeline
 from .plumber_modules._shared import is_journal_page_path
-from .plumber_modules.backlink_backpropagator import BacklinkCorrection, run_backlink_backpropagator
 from .plumber_modules.semantic_cache_router import (
     cache_get,
     cache_put,
@@ -172,7 +177,6 @@ from .plumber_modules.semantic_cache_router import (
     validate_cached_model,
 )
 from .process_priority import apply_cpu_sandbox, apply_plumber_priority, resolve_cpu_sandbox_config
-from .prompt_layout import build_cache_aligned_prompt
 from .semantic_lint_prompts import build_semantic_lint_system_prompt
 
 # Backward-compatible re-exports for CLI/tests (issue #58 slice).
@@ -185,72 +189,8 @@ _register_bootstrap_shutdown_handlers = register_bootstrap_shutdown_handlers
 
 SHUTDOWN_INFLIGHT_TIMEOUT_SECONDS = 120.0
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-STRUCTURAL_LINT_HEADING = "### Matryca Structural Lint"
-STRUCTURAL_LINT_HEADER = f"- {STRUCTURAL_LINT_HEADING}"
 DEFAULT_MODEL = DEFAULT_LLM_MODEL_NAME  # backward-compatible alias for CLI/TUI
 DEFAULT_POLL_SECONDS = 30.0
-MATRYCA_GENERATED_PAGE_TITLES = frozenset(
-    {"Matryca Master Index", "Matryca Graph Insights"},
-)
-
-
-def _semantic_index_section_present(content: str) -> bool:
-    return SEMANTIC_INDEX_HEADING in content
-
-
-def _structural_lint_section_present(content: str) -> bool:
-    return STRUCTURAL_LINT_HEADING in content
-
-
-_BULLET = re.compile(r"^(\s*)[-*+]\s+(.*)$")
-_ID_LINE = re.compile(r"^\s*id::\s*(.+?)\s*$", re.IGNORECASE)
-_BLOCK_CATALOG_MAX_CHARS = 8000
-_MATRYCA_PLUMBER_LINE = re.compile(r"^\s*matryca-plumber::\s*", re.IGNORECASE)
-_WIKILINK = re.compile(r"\[\[([^\]#|]+)(?:\|[^\]]+)?\]\]")
-
-LintType = Literal["auto_wikilink", "tag_hygiene", "anomaly_warning"]
-
-
-class SemanticLintCorrection(BaseModel):
-    """Single semantic lint fix targeting one outliner block."""
-
-    block_uuid: str = Field(description="UUID of the block to enrich (from id:: line)")
-    original_text: str = Field(description="Exact bullet-line text excluding id:: properties")
-    corrected_text: str = Field(description="Bullet text with added [[WikiLinks]] or #tags")
-    lint_type: LintType = Field(description="Lint rule that produced this correction")
-    reason: str = Field(description="Brief explanation of why the rule fired")
-
-
-class SemanticCrossRef(BaseModel):
-    """One semantic link extracted from page content."""
-
-    concept: str = Field(description="Short concept label")
-    relation: str = Field(description="Relationship type, e.g. related_to, see_also")
-    target: str = Field(
-        description=(
-            "Existing [[Canonical Page Title]] or #tag from AliasIndex; "
-            "never invent a new page title when an alias or canonical match exists"
-        ),
-    )
-
-
-class SemanticIndexResult(BaseModel):
-    """Structured semantic index + Karpathy-style lint payload from the local LLM."""
-
-    summary: str = Field(description="One-sentence page summary")
-    cross_references: list[SemanticCrossRef] = Field(default_factory=list)
-    suggested_tags: list[str] = Field(default_factory=list)
-    moc_pointers: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Suggested [[Map of Content]] links that must already exist in AliasIndex; "
-            "prefer alias:: over new pages"
-        ),
-    )
-    semantic_corrections: list[SemanticLintCorrection] = Field(
-        default_factory=list,
-        description="Safe per-block micro-corrections (additive WikiLinks / tags only)",
-    )
 
 
 class LLMClient(Protocol):
@@ -294,225 +234,6 @@ class LLMClient(Protocol):
 
 
 
-def _page_title_from_path(graph_root: Path, path: Path) -> str:
-    return page_title_from_path(graph_root, path)
-
-
-def _normalize_block_text(text: str) -> str:
-    return re.sub(r"\s+", " ", text.strip())
-
-
-def _bullet_inline_text(line: str) -> str:
-    match = _BULLET.match(line.rstrip("\n"))
-    if not match:
-        return ""
-    return match.group(2)
-
-
-def _set_bullet_inline_text(line: str, new_text: str) -> str:
-    match = _BULLET.match(line.rstrip("\n"))
-    if not match:
-        return line
-    newline = "\n" if line.endswith("\n") else ""
-    return f"{match.group(1)}- {new_text}{newline}"
-
-
-def _stamp_matryca_plumber_property(
-    lines: list[str],
-    bullet_idx: int,
-    id_idx: int,
-    block_end: int,
-) -> None:
-    """Append ``matryca-plumber:: true`` under the modified block (Logseq audit trail)."""
-    stripped = strip_lines_for_match(lines)
-    insert_at = block_property_insert_index(stripped, bullet_idx, block_end)
-    for i in range(bullet_idx + 1, insert_at):
-        if _MATRYCA_PLUMBER_LINE.match(stripped[i]):
-            return
-    bullet_match = _BULLET.match(stripped[bullet_idx])
-    base_ws = bullet_match.group(1) if bullet_match else ""
-    indent = base_ws + bullet_indent_unit(stripped, bullet_idx)
-    lines.insert(insert_at, f"{indent}matryca-plumber:: true\n")
-
-
-def _enumerate_blocks_for_prompt(
-    content: str,
-    *,
-    max_chars: int = _BLOCK_CATALOG_MAX_CHARS,
-) -> str:
-    """Serialize blocks with UUIDs so the LLM can target surgical lint corrections."""
-    lines = content.splitlines()
-    entries: list[str] = []
-    for idx, line in enumerate(lines):
-        id_match = _ID_LINE.match(line)
-        if not id_match:
-            continue
-        block_uuid = id_match.group(1).strip()
-        bullet_text = ""
-        for j in range(idx - 1, -1, -1):
-            bullet_match = _BULLET.match(lines[j])
-            if bullet_match:
-                bullet_text = bullet_match.group(2)
-                break
-        entries.append(
-            f"- block_uuid: {block_uuid}\n  original_text: {bullet_text}",
-        )
-    if not entries:
-        return "(no blocks with id:: found — omit semantic_corrections)"
-    included: list[str] = []
-    total = 0
-    for entry in entries:
-        add_len = len(entry) + (1 if included else 0)
-        if included and total + add_len > max_chars:
-            omitted = len(entries) - len(included)
-            included.append(
-                f"(block catalog truncated at {max_chars} chars; "
-                f"{omitted} block(s) omitted — omit uncatalogued semantic_corrections)",
-            )
-            break
-        if not included and len(entry) > max_chars:
-            included.append(entry[:max_chars])
-            included.append(
-                f"(block catalog truncated at {max_chars} chars; "
-                f"{len(entries) - 1} block(s) omitted — omit uncatalogued semantic_corrections)",
-            )
-            break
-        included.append(entry)
-        total += add_len
-    return "\n".join(included)
-
-
-def _build_index_task_instruction(page_title: str, content: str) -> str:
-    block_catalog = _enumerate_blocks_for_prompt(content)
-    return "\n".join(
-        [
-            "Task: semantic indexing and safe per-block lint for one Logseq OG outliner page.",
-            "Output: structured JSON only.",
-            "Steps:",
-            "1. Read the page title, block catalog, AliasIndex, and page content above.",
-            "2. Extract summary, cross_references, suggested_tags, and moc_pointers.",
-            "3. Propose semantic_corrections only when every system-prompt safety rule "
-            "is satisfied.",
-            "4. Prefer existing canonical titles and alias:: over inventing new page names.",
-            "",
-            f"Page title: {page_title}",
-            "",
-            f"Blocks available for semantic_corrections:\n{block_catalog}",
-        ],
-    )
-
-
-def _build_index_prompt(
-    page_title: str,
-    content: str,
-    *,
-    llm_body: str | None = None,
-    session: PagePromptSession | None = None,
-) -> str:
-    if session is not None:
-        return session.build_task_prompt(_build_index_task_instruction(page_title, content))
-    display_body = llm_body if llm_body is not None else content
-    return build_cache_aligned_prompt(
-        content=display_body[:8000],
-        task_instruction=_build_index_task_instruction(page_title, content),
-    )
-
-
-def _strip_wikilink_brackets(text: str) -> str:
-    return re.sub(r"\[\[([^\]]+)\]\]", r"\1", text)
-
-
-def _rewrite_wikilinks_with_alias_index(text: str, alias_index: AliasIndex | None) -> str:
-    if alias_index is None or not text:
-        return text
-
-    def _replace(match: re.Match[str]) -> str:
-        target = match.group(1).strip()
-        canonical = resolve_canonical_page_title(alias_index, target)
-        if canonical != target:
-            return f"[[{canonical}]]"
-        return match.group(0)
-
-    return _WIKILINK.sub(_replace, text)
-
-
-def _normalize_index_result_aliases(
-    result: SemanticIndexResult,
-    alias_index: AliasIndex | None,
-) -> SemanticIndexResult:
-    if alias_index is None:
-        return result
-
-    cross_refs: list[SemanticCrossRef] = []
-    for ref in result.cross_references:
-        target = ref.target
-        if target.startswith("[["):
-            inner = target.strip("[]")
-            canonical = resolve_canonical_page_title(alias_index, inner)
-            target = f"[[{canonical}]]" if canonical != inner else target
-        cross_refs.append(
-            SemanticCrossRef(concept=ref.concept, relation=ref.relation, target=target),
-        )
-
-    moc_pointers = [
-        (
-            f"[[{resolve_canonical_page_title(alias_index, pointer.strip('[]'))}]]"
-            if pointer.startswith("[[")
-            else pointer
-        )
-        for pointer in result.moc_pointers
-    ]
-
-    corrections: list[SemanticLintCorrection] = []
-    for correction in result.semantic_corrections:
-        corrections.append(
-            SemanticLintCorrection(
-                block_uuid=correction.block_uuid,
-                original_text=correction.original_text,
-                corrected_text=_rewrite_wikilinks_with_alias_index(
-                    correction.corrected_text,
-                    alias_index,
-                ),
-                lint_type=correction.lint_type,
-                reason=correction.reason,
-            ),
-        )
-
-    return SemanticIndexResult(
-        summary=result.summary,
-        cross_references=cross_refs,
-        suggested_tags=list(result.suggested_tags),
-        moc_pointers=moc_pointers,
-        semantic_corrections=corrections,
-    )
-
-
-def _is_safe_additive_correction(original: str, corrected: str, lint_type: LintType) -> bool:
-    if lint_type == "anomaly_warning":
-        return _normalize_block_text(original) == _normalize_block_text(corrected)
-    orig_norm = _normalize_block_text(original)
-    corr_norm = _normalize_block_text(corrected)
-    if lint_type == "auto_wikilink":
-        return orig_norm == _normalize_block_text(_strip_wikilink_brackets(corrected))
-    if lint_type == "tag_hygiene":
-        orig_plain = re.sub(r"#\S+", "", orig_norm).strip()
-        corr_plain = re.sub(r"#\S+", "", _strip_wikilink_brackets(corrected)).strip()
-        return orig_plain == corr_plain and len(corr_norm) >= len(orig_norm)
-    return orig_norm in corr_norm and len(corr_norm) >= len(orig_norm)
-
-
-@dataclass
-class CorrectionOutcome:
-    """Result of applying semantic lint corrections to one page."""
-
-    applied: int = 0
-    skipped: int = 0
-    skip_reasons: list[str] = field(default_factory=list)
-    applied_details: list[str] = field(default_factory=list)
-    write_aborted: bool = False
-    links_backpropagated: int = 0
-
-
 def record_daemon_impact(
     state: DaemonState,
     *,
@@ -536,372 +257,6 @@ def record_daemon_impact(
         state.ai_blocks_healed += lint.applied
     if links_backpropagated > 0:
         state.ai_links_injected += links_backpropagated
-
-
-def _direct_block_property_lines(
-    lines: list[str],
-    bullet_idx: int,
-    block_end: int,
-) -> list[str]:
-    """Non-bullet property lines under a block that must survive bullet text edits."""
-    stripped = [ln.rstrip("\n") for ln in lines]
-    props: list[str] = []
-    for i in range(bullet_idx + 1, min(block_end, len(lines))):
-        line = stripped[i]
-        if _BULLET.match(line):
-            continue
-        if parse_logseq_property_line(line) or _ID_LINE.match(line):
-            props.append(line)
-    return props
-
-
-def apply_semantic_corrections_to_lines(
-    lines: list[str],
-    corrections: list[SemanticLintCorrection],
-) -> CorrectionOutcome:
-    """Apply micro-corrections in-place on ``lines`` (bullet text only, UUID-anchored)."""
-    outcome = CorrectionOutcome()
-    if not corrections:
-        return outcome
-
-    protected_lines = compute_page_protected_line_indices("".join(lines))
-    stripped = [ln.rstrip("\n") for ln in lines]
-    pending: list[tuple[int, int, int, SemanticLintCorrection]] = []
-    for correction in corrections:
-        located = locate_block_by_uuid(stripped, correction.block_uuid)
-        if located is None:
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"uuid_not_found:{correction.block_uuid}")
-            continue
-        bullet_idx, id_idx, block_end = located
-        if bullet_idx in protected_lines or any(
-            idx in protected_lines for idx in range(bullet_idx, block_end)
-        ):
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"protected_fence:{correction.block_uuid}")
-            continue
-        pending.append((bullet_idx, id_idx, block_end, correction))
-
-    for bullet_idx, id_idx, block_end, correction in sorted(
-        pending,
-        key=lambda item: item[0],
-        reverse=True,
-    ):
-        current_text = _bullet_inline_text(lines[bullet_idx])
-        if _normalize_block_text(current_text) != _normalize_block_text(correction.original_text):
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"original_mismatch:{correction.block_uuid}")
-            continue
-        if correction.lint_type == "anomaly_warning":
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"anomaly_only:{correction.block_uuid}")
-            continue
-        if not _is_safe_additive_correction(
-            correction.original_text,
-            correction.corrected_text,
-            correction.lint_type,
-        ):
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"unsafe_correction:{correction.block_uuid}")
-            continue
-        if _normalize_block_text(current_text) == _normalize_block_text(correction.corrected_text):
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"no_change:{correction.block_uuid}")
-            continue
-        original_bullet = lines[bullet_idx]
-        property_snapshot = _direct_block_property_lines(lines, bullet_idx, block_end)
-        lines[bullet_idx] = _set_bullet_inline_text(lines[bullet_idx], correction.corrected_text)
-
-        relocated = locate_block_by_uuid(
-            [ln.rstrip("\n") for ln in lines],
-            correction.block_uuid,
-        )
-        if relocated is None:
-            lines[bullet_idx] = original_bullet
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"id_orphaned:{correction.block_uuid}")
-            continue
-        _, _, new_block_end = relocated
-        preserved = _direct_block_property_lines(lines, bullet_idx, new_block_end)
-        if property_snapshot and not all(item in preserved for item in property_snapshot):
-            lines[bullet_idx] = original_bullet
-            outcome.skipped += 1
-            outcome.skip_reasons.append(f"property_lost:{correction.block_uuid}")
-            continue
-
-        _stamp_matryca_plumber_property(lines, bullet_idx, id_idx, block_end)
-        outcome.applied += 1
-        outcome.applied_details.append(
-            f"{correction.lint_type}:{correction.block_uuid}:{correction.reason}",
-        )
-    return outcome
-
-
-def _format_index_section(
-    result: SemanticIndexResult,
-    *,
-    lint_outcome: CorrectionOutcome | None = None,
-) -> str:
-    stamp = datetime.now(tz=UTC).strftime("%Y-%m-%d %H:%M UTC")
-    lines = [
-        "",
-        SEMANTIC_INDEX_HEADER,
-        f"- indexed-at:: {stamp}",
-        f"- summary:: {result.summary.strip()}",
-    ]
-    if result.suggested_tags:
-        tag_line = " ".join(
-            t if t.startswith("#") else f"#{t.lstrip('#')}" for t in result.suggested_tags
-        )
-        lines.append(f"- suggested-tags:: {tag_line}")
-    if result.moc_pointers:
-        lines.append("- moc-pointers::")
-        for pointer in result.moc_pointers:
-            target = pointer if pointer.startswith("[[") else f"[[{pointer.strip('[]')}]]"
-            lines.append(f"  - {target}")
-    if result.cross_references:
-        lines.append("- cross-references::")
-        for ref in result.cross_references:
-            target = ref.target
-            if not (target.startswith("[[") or target.startswith("#")):
-                target = f"[[{target.strip('[]')}]]"
-            lines.append(f"  - {ref.concept} ({ref.relation}) → {target}")
-    if lint_outcome is not None and lint_outcome.applied_details:
-        lines.append("- semantic-lint-applied::")
-        for detail in lint_outcome.applied_details:
-            lines.append(f"  - {detail}")
-    warnings = [c for c in result.semantic_corrections if c.lint_type == "anomaly_warning"]
-    if warnings:
-        lines.append("- semantic-lint-warnings::")
-        for warning in warnings:
-            lines.append(f"  - {warning.reason} (block {warning.block_uuid[:8]}…)")
-    lines.append("")
-    return "\n".join(lines)
-
-
-def append_structural_lint_warning(
-    graph_root: Path,
-    page_path: Path,
-    malformed_refs: list[str],
-) -> bool:
-    """Append a non-destructive structural lint section (preserves existing malformed refs)."""
-    from loguru import logger
-
-    if not page_path.is_file() or not malformed_refs:
-        return False
-    baseline_mtime = occ_snapshot(page_path)
-    if baseline_mtime is None:
-        return False
-    if not occ_verify_before_write(page_path, baseline_mtime):
-        logger.warning(
-            "OCC Conflict: User modified {} during inference. Aborting write.",
-            page_path,
-        )
-        return False
-
-    with page_rmw_lock(page_path):
-        if file_mtime_drifted(page_path, baseline_mtime):
-            logger.warning(
-                "OCC Conflict: User modified {} during inference. Aborting write.",
-                page_path,
-            )
-            return False
-        text = read_graph_file_text(page_path, graph_root, errors="replace")
-        if _structural_lint_section_present(text):
-            return False
-
-        sample = malformed_refs[:5]
-        section_lines = [
-            "",
-            STRUCTURAL_LINT_HEADER,
-            "- malformed-block-refs::",
-        ]
-        for ref in sample:
-            section_lines.append(f"  - (({ref}))")
-        if len(malformed_refs) > len(sample):
-            section_lines.append(f"  - ... and {len(malformed_refs) - len(sample)} more")
-        section_lines.extend(
-            [
-                "- todo:: #todo [[Matryca Broken Reference]] — fix ((uuid)) typos in Logseq",
-                "",
-            ],
-        )
-        new_text = text.rstrip("\n") + "\n" + "\n".join(section_lines)
-        return atomic_write_bytes_if_unchanged(
-            page_path,
-            new_text.encode("utf-8"),
-            graph_root=graph_root,
-            baseline_mtime=baseline_mtime,
-            validate_block_refs=False,
-            robot_commit_summary="appended structural lint warning",
-        )
-
-
-def apply_semantic_page_result(
-    graph_root: Path,
-    page_path: Path,
-    page_title: str,
-    result: SemanticIndexResult,
-    *,
-    backpropagate: bool = False,
-    alias_index: AliasIndex | None = None,
-    disable_semantic_corrections: bool = True,
-    baseline_mtime: float | None = None,
-) -> CorrectionOutcome:
-    """Lint blocks surgically, then append the semantic index (one locked transaction)."""
-    from loguru import logger
-
-    lint_outcome = CorrectionOutcome()
-    if baseline_mtime is None and page_path.is_file():
-        baseline_mtime = occ_snapshot(page_path)
-    if baseline_mtime is not None and not occ_verify_before_write(page_path, baseline_mtime):
-        logger.warning(
-            "OCC Conflict: User modified {} during inference. Aborting write.",
-            page_path,
-        )
-        lint_outcome.write_aborted = True
-        return lint_outcome
-
-    with page_rmw_lock(page_path):
-        if page_path.is_file():
-            prev = read_graph_file_text(page_path, graph_root, errors="replace")
-            if baseline_mtime is None:
-                baseline_mtime = read_file_mtime_ns(page_path)
-        else:
-            prev = ""
-            baseline_mtime = None
-        if not prev.strip():
-            lint_outcome.skipped += 1
-            lint_outcome.skip_reasons.append("empty_page_body")
-            return lint_outcome
-        if baseline_mtime is not None and file_mtime_drifted(page_path, baseline_mtime):
-            logger.warning(
-                "OCC Conflict: User modified {} during inference. Aborting write.",
-                page_path,
-            )
-            lint_outcome.write_aborted = True
-            return lint_outcome
-        lines = prev.splitlines(keepends=True)
-        if disable_semantic_corrections:
-            pass
-        else:
-            lint_outcome = apply_semantic_corrections_to_lines(lines, result.semantic_corrections)
-        body = "".join(lines)
-        if not _semantic_index_section_present(body):
-            body = body.rstrip("\n") + _format_index_section(result, lint_outcome=lint_outcome)
-        safety = validate_llm_write_diff(prev, body)
-        if not safety.ok:
-            logger.warning(
-                "L0 safety rejection on {}: {}",
-                page_path,
-                safety.reason,
-            )
-            lint_outcome.write_aborted = True
-            lint_outcome.skip_reasons.append(f"l0_safety:{safety.reason}")
-            return lint_outcome
-        commit_summary = f"semantic index update on {page_title}"
-        if baseline_mtime is not None and not atomic_write_bytes_if_unchanged(
-            page_path,
-            body.encode("utf-8"),
-            graph_root=graph_root,
-            baseline_mtime=baseline_mtime,
-            robot_commit_summary=commit_summary,
-        ):
-            logger.warning(
-                "File modified by user during inference, aborting write to prevent data loss: {}",
-                page_path,
-            )
-            lint_outcome.write_aborted = True
-            return lint_outcome
-        if baseline_mtime is None:
-            atomic_write_bytes(
-                page_path,
-                body.encode("utf-8"),
-                graph_root=graph_root,
-                robot_commit_summary=commit_summary,
-            )
-    patch_generational_caches_for_paths(graph_root, [page_path])
-
-    links_backpropagated = 0
-    if backpropagate and lint_outcome.applied > 0:
-        backlink_corrections = [
-            BacklinkCorrection(
-                block_uuid=item.block_uuid,
-                original_text=item.original_text,
-                corrected_text=item.corrected_text,
-                lint_type=item.lint_type,
-                reason=item.reason,
-            )
-            for item in result.semantic_corrections
-        ]
-        backprop_outcome = run_backlink_backpropagator(
-            graph_root,
-            page_path,
-            page_title,
-            backlink_corrections,
-            lint_outcome.applied_details,
-            alias_index=alias_index,
-        )
-        links_backpropagated = sum(
-            1 for detail in backprop_outcome.details if detail.startswith("backprop:")
-        )
-    lint_outcome.links_backpropagated = links_backpropagated
-    return lint_outcome
-
-
-def run_dual_embedding_after_semantic_write(
-    graph_root: Path,
-    page_path: Path,
-    page_title: str,
-    llm_client: object,
-) -> None:
-    """Best-effort dual block indexing when ``MATRYCA_DUAL_EMBEDDING_ENABLED`` is set."""
-    from loguru import logger
-
-    from ..semantic.applicability import InstructorApplicabilityLLM
-    from ..semantic.config import SemanticRuntimeConfig
-    from ..semantic.embedding import get_openai_embedding_client
-    from ..semantic.indexer import index_page_blocks
-    from ..semantic.store import release_block_vector_store
-
-    runtime_config = SemanticRuntimeConfig.from_env()
-    if not runtime_config.dual_embedding_enabled:
-        return
-    try:
-        index_page_blocks(
-            graph_root,
-            page_path,
-            page_title,
-            llm_client=InstructorApplicabilityLLM(llm_client),
-            embedding_client=get_openai_embedding_client(),
-            runtime_config=runtime_config,
-        )
-    except Exception as exc:  # noqa: BLE001 — never fail semantic write path
-        logger.bind(page=page_title, path=str(page_path)).warning(
-            "Dual embedding sidecar failed: {}",
-            exc,
-        )
-    finally:
-        release_block_vector_store(graph_root)
-
-
-def append_semantic_index(
-    graph_root: Path,
-    page_path: Path,
-    result: SemanticIndexResult,
-) -> None:
-    """Append a semantic index section without modifying existing user content."""
-    if page_path.is_file():
-        prev = read_graph_file_text(page_path, graph_root, errors="replace")
-        if _semantic_index_section_present(prev):
-            return
-    apply_semantic_page_result(
-        graph_root,
-        page_path,
-        _page_title_from_path(graph_root, page_path),
-        result,
-    )
-
 
 class InstructorLLMClient(_BaseInstructorLLMClient):
     """Daemon LLM client; adds semantic ``index_page`` with alias normalization."""
@@ -1054,186 +409,6 @@ class InstructorLLMClient(_BaseInstructorLLMClient):
                 error=str(exc),
             )
             raise
-
-
-@dataclass
-class ScanMetrics:
-    """Graph scan counters for the TUI."""
-
-    total: int
-    processed: int
-    pending: int
-
-    @property
-    def percent_complete(self) -> float:
-        if self.total == 0:
-            return 100.0
-        return round(100.0 * self.processed / self.total, 1)
-
-
-def _mtime_matches(stored: float, current: float) -> bool:
-    """Return whether a checkpoint mtime still matches the on-disk value."""
-    if stored == current:
-        return True
-    # JSON checkpoint round-trip can shave sub-microsecond float precision.
-    return math.isclose(stored, current, rel_tol=0.0, abs_tol=1e-6)
-
-
-def _read_page_content(path: Path, graph_root: Path) -> str:
-    try:
-        return read_graph_file_text(path, graph_root, errors="replace")
-    except OSError:
-        return ""
-
-
-def _page_is_terminal_skip(content: str) -> bool:
-    """Pages that should never enter the LLM queue (empty or structurally unsafe)."""
-    if not content.strip():
-        return True
-    protected_lines = compute_page_protected_line_indices(content)
-    return bool(find_malformed_block_refs(content, protected_lines=protected_lines))
-
-
-def page_needs_phase2_cognitive(
-    graph_root: Path,
-    path: Path,
-    state: DaemonState,
-    *,
-    content: str | None = None,
-) -> bool:
-    """Return whether a page still needs the Phase 2 cognitive pass."""
-    title = _page_title_from_path(graph_root, path)
-    if title in MATRYCA_GENERATED_PAGE_TITLES:
-        return False
-
-    text = content if content is not None else _read_page_content(path, graph_root)
-    if _page_is_terminal_skip(text):
-        return False
-
-    if is_journal_page_path(graph_root, path):
-        _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime
-        if rec is None:
-            return True
-        if not _mtime_matches(rec.mtime, mtime):
-            return True
-        if rec.status == "error":
-            return False
-        if _lock_backoff_active(rec):
-            return False
-        return False
-
-    _key, rec = _lookup_file_state(graph_root, state, path)
-    mtime = path.stat().st_mtime
-    if rec is None:
-        return True
-    if not _mtime_matches(rec.mtime, mtime):
-        return True
-    if rec.status == "processed":
-        return False
-    if rec.status == "error":
-        return False
-    if _lock_backoff_active(rec):
-        return False
-    if rec.status == "skipped":
-        return _semantic_index_section_present(text)
-    return True
-
-
-def compute_phase2_progress_metrics(
-    graph_root: Path,
-    state: DaemonState,
-) -> tuple[int, int, int, int]:
-    """Return total, cognitive_done, cognitive_pending, terminal_skipped page counts."""
-    total = 0
-    cognitive_done = 0
-    cognitive_pending = 0
-    terminal_skipped = 0
-    for path in iter_alias_source_paths(graph_root):
-        title = _page_title_from_path(graph_root, path)
-        if title in MATRYCA_GENERATED_PAGE_TITLES:
-            continue
-        if is_journal_page_path(graph_root, path):
-            continue
-        total += 1
-        _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime if path.is_file() else 0.0
-        if rec is not None and _mtime_matches(rec.mtime, mtime) and rec.status == "processed":
-            cognitive_done += 1
-        elif page_needs_phase2_cognitive(graph_root, path, state):
-            cognitive_pending += 1
-        else:
-            terminal_skipped += 1
-    return total, cognitive_done, cognitive_pending, terminal_skipped
-
-
-def compute_scan_metrics(graph_root: Path, state: DaemonState) -> ScanMetrics:
-    files = iter_alias_source_paths(graph_root)
-    total = len(files)
-    processed = 0
-    pending = 0
-    for path in files:
-        _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime if path.is_file() else 0.0
-        if rec is not None and _mtime_matches(rec.mtime, mtime):
-            if rec.status == "processed":
-                processed += 1
-            elif rec.status in {"skipped", "error"}:
-                pass
-            else:
-                pending += 1
-        else:
-            pending += 1
-    return ScanMetrics(total=total, processed=processed, pending=pending)
-
-
-def clear_phase1_error_backoff(state: DaemonState) -> int:
-    """Drop Phase 1 error records so unchanged files can retry after daemon restart."""
-    cleared = 0
-    for key, rec in list(state.files.items()):
-        if rec.status == "error":
-            del state.files[key]
-            cleared += 1
-    return cleared
-
-
-def list_pending_files(
-    graph_root: Path,
-    state: DaemonState,
-    *,
-    bootstrap_complete: bool | None = None,
-) -> list[Path]:
-    pending: list[Path] = []
-    phase2 = state.bootstrap_complete if bootstrap_complete is None else bootstrap_complete
-    settled_statuses = frozenset({"processed", "skipped"})
-    for path in iter_alias_source_paths(graph_root):
-        title = _page_title_from_path(graph_root, path)
-        if title in MATRYCA_GENERATED_PAGE_TITLES:
-            continue
-        if phase2:
-            if page_needs_phase2_cognitive(graph_root, path, state):
-                pending.append(path)
-            continue
-        _key, rec = _lookup_file_state(graph_root, state, path)
-        mtime = path.stat().st_mtime
-        if rec is not None and _mtime_matches(rec.mtime, mtime):
-            if rec.status in settled_statuses:
-                continue
-            if rec.status == "error":
-                continue
-            if _lock_backoff_active(rec):
-                continue
-        pending.append(path)
-    return pending
-
-
-def prune_stale_daemon_file_entries(state: DaemonState, graph_root: Path) -> int:
-    """Remove ghost paths from daemon state (deleted or renamed markdown files)."""
-    live_keys = {_daemon_file_key(graph_root, path) for path in iter_alias_source_paths(graph_root)}
-    ghosts = [key for key in state.files if key not in live_keys]
-    for key in ghosts:
-        del state.files[key]
-    return len(ghosts)
 
 
 class MaintenanceDaemon:
@@ -2625,19 +1800,24 @@ __all__ = [
     "SEMANTIC_INDEX_HEADER",
     "STRUCTURAL_LINT_HEADER",
     "ScanMetrics",
+    "SemanticCrossRef",
     "SemanticIndexResult",
     "SemanticLintCorrection",
     "apply_semantic_corrections_to_lines",
     "apply_semantic_page_result",
     "append_semantic_index",
     "append_structural_lint_warning",
+    "run_dual_embedding_after_semantic_write",
     "clear_phase1_error_backoff",
+    "compute_phase2_progress_metrics",
     "compute_scan_metrics",
     "heal_daemon_state_ledger",
     "is_plumber_process",
     "is_process_alive",
     "load_daemon_state",
+    "list_pending_files",
     "normalize_daemon_state_file_keys",
+    "page_needs_phase2_cognitive",
     "pid_path",
     "prune_stale_daemon_file_entries",
     "read_pid_file",
@@ -2652,6 +1832,7 @@ __all__ = [
     "stop_daemon",
     "sync_daemon_state_from_env",
     "write_pid_file",
+    "_enumerate_blocks_for_prompt",
     "_record_page_lock_backoff",
     "_release_daemon_process_lock",
     "_try_acquire_daemon_process_lock",
