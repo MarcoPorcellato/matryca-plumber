@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
+
+from src.graph.concurrency_probe import probe_concurrency_capability
 from src.utils.env_parse import env_bool, env_float, env_int
 
 
@@ -39,3 +43,31 @@ def test_env_float_warns_on_invalid_value(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("MATRYCA_TEST_FLOAT_ENV", "not-a-float")
     assert env_float("MATRYCA_TEST_FLOAT_ENV", 1.5) == 1.5
     assert any("MATRYCA_TEST_FLOAT_ENV" in warning for warning in warnings)
+
+
+# --- MATRYCA_ALLOW_FLOCK_DEGRADATION via env_bool ----------------------------
+
+
+def test_flock_degradation_unset_defaults_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MATRYCA_ALLOW_FLOCK_DEGRADATION", raising=False)
+    with patch("src.graph.concurrency_probe.cross_process_lock_available", return_value=False):
+        cap = probe_concurrency_capability()
+    assert cap.degradation_allowed is False
+    assert cap.mode == "in_process_only"
+
+
+def test_flock_degradation_truthy_tokens(monkeypatch: pytest.MonkeyPatch) -> None:
+    for raw in ("1", "true", "yes", "on"):
+        monkeypatch.setenv("MATRYCA_ALLOW_FLOCK_DEGRADATION", raw)
+        with patch("src.graph.concurrency_probe.cross_process_lock_available", return_value=False):
+            cap = probe_concurrency_capability()
+        assert cap.degradation_allowed is True, f"failed for {raw!r}"
+        assert cap.mode == "in_process_only"
+
+
+def test_flock_degradation_ignored_when_flock_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MATRYCA_ALLOW_FLOCK_DEGRADATION", "true")
+    with patch("src.graph.concurrency_probe.cross_process_lock_available", return_value=True):
+        cap = probe_concurrency_capability()
+    assert cap.mode == "full"
+    assert cap.flock_available is True
