@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-
 from src.graph.concurrency_probe import probe_concurrency_capability
 from src.utils.env_parse import env_bool, env_float, env_int
 
