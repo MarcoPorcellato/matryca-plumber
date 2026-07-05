@@ -10,6 +10,7 @@ from src.graph.generational_cache import (
     Bm25Corpus,
     _alias_cache,
     _bm25_cache,
+    _generational_cache_max_graphs,
     cached_build_alias_index,
     clear_generational_caches,
     get_cached_bm25_corpus,
@@ -99,3 +100,33 @@ def test_bm25_cache_retries_when_signature_drifts_mid_build(
 
     corpus2 = get_cached_bm25_corpus(tmp_path)
     assert corpus2 is cached_corpus
+
+
+# ---------------------------------------------------------------------------
+# Clamp-contract tests for MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS (issue #173)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", 1),  # below min → clamped to 1
+        ("1", 1),  # exactly at min
+        ("4", 4),  # default value
+        ("32", 32),  # exactly at max
+        ("33", 32),  # above max → clamped to 32
+        ("999", 32),  # way above max → clamped to 32
+        ("abc", 4),  # non-integer → default
+        ("", 4),  # empty → default
+        ("-1", 1),  # negative → clamped to 1
+    ],
+)
+def test_generational_cache_max_graphs_clamp(
+    monkeypatch: pytest.MonkeyPatch,
+    raw: str,
+    expected: int,
+) -> None:
+    """MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS is clamped to [1, 32];
+    invalid input falls back to 4."""
+    monkeypatch.setenv("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", raw)
+    assert _generational_cache_max_graphs() == expected
