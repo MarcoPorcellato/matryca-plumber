@@ -12,7 +12,9 @@ from src.graph.link_verification import (
     extract_links_from_page,
     flag_block_hygiene_property,
     link_registry_path,
+    link_verify_batch_size,
     link_verify_strikes_threshold,
+    link_verify_timeout_seconds,
     load_link_registry,
     merge_page_links_into_registry,
     register_page_links_from_path,
@@ -389,3 +391,75 @@ def test_save_link_registry_uses_atomic_write_bytes(graph_with_page: tuple[Path,
     assert payload["entries"]["https://example.com/ok"]["target"] == "https://example.com/ok"
     loaded = load_link_registry(root)
     assert loaded["https://example.com/ok"].target == "https://example.com/ok"
+
+
+# ---------------------------------------------------------------------------
+# Clamp-contract tests for env-var-driven thresholds (issue #173)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", 1),  # below min → clamped to 1
+        ("1", 1),  # exactly at min
+        ("5", 5),  # typical value
+        ("abc", 2),  # non-integer → default
+        ("", 2),  # empty → default
+        ("-3", 1),  # negative → clamped to 1
+    ],
+)
+def test_link_verify_strikes_threshold_clamp(
+    monkeypatch: pytest.MonkeyPatch,
+    raw: str,
+    expected: int,
+) -> None:
+    """MATRYCA_LINK_VERIFY_STRIKES is clamped to ≥ 1; invalid input falls back to 2."""
+    monkeypatch.setenv("MATRYCA_LINK_VERIFY_STRIKES", raw)
+    assert link_verify_strikes_threshold() == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", 1),  # below min → clamped to 1
+        ("1", 1),  # exactly at min
+        ("25", 25),  # default value
+        ("200", 200),  # exactly at max
+        ("201", 200),  # above max → clamped to 200
+        ("999", 200),  # way above max → clamped to 200
+        ("abc", 25),  # non-integer → default
+        ("-1", 1),  # negative → clamped to 1
+    ],
+)
+def test_link_verify_batch_size_clamp(
+    monkeypatch: pytest.MonkeyPatch,
+    raw: str,
+    expected: int,
+) -> None:
+    """MATRYCA_LINK_VERIFY_BATCH is clamped to [1, 200]; invalid input falls back to 25."""
+    monkeypatch.setenv("MATRYCA_LINK_VERIFY_BATCH", raw)
+    assert link_verify_batch_size() == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", 1.0),  # below min → clamped to 1.0
+        ("0.5", 1.0),  # below min → clamped to 1.0
+        ("1.0", 1.0),  # exactly at min
+        ("8", 8.0),  # default value
+        ("60.0", 60.0),  # exactly at max
+        ("61.0", 60.0),  # above max → clamped to 60.0
+        ("abc", 8.0),  # non-float → default
+        ("-5", 1.0),  # negative → clamped to 1.0
+    ],
+)
+def test_link_verify_timeout_seconds_clamp(
+    monkeypatch: pytest.MonkeyPatch,
+    raw: str,
+    expected: float,
+) -> None:
+    """MATRYCA_LINK_VERIFY_TIMEOUT is clamped to [1.0, 60.0]; invalid input falls back to 8.0."""
+    monkeypatch.setenv("MATRYCA_LINK_VERIFY_TIMEOUT", raw)
+    assert link_verify_timeout_seconds() == expected
