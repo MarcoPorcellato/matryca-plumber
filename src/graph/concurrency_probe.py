@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Literal
 
+from ..utils.env_parse import env_bool
 from .page_write_lock import cross_process_lock_available
 
 ConcurrencyMode = Literal["full", "in_process_only"]
@@ -29,15 +29,10 @@ class ConcurrencyCapability:
         }
 
 
-def _flock_degradation_allowed() -> bool:
-    raw = os.environ.get("MATRYCA_ALLOW_FLOCK_DEGRADATION", "").strip().lower()
-    return raw in {"1", "true", "yes", "on"}
-
-
 def probe_concurrency_capability() -> ConcurrencyCapability:
     """Return the active cross-process locking mode for this host."""
     flock_ok = cross_process_lock_available()
-    degradation = _flock_degradation_allowed()
+    degradation = env_bool("MATRYCA_ALLOW_FLOCK_DEGRADATION", default=False)
     if flock_ok:
         return ConcurrencyCapability(
             mode="full",
