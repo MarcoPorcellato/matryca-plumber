@@ -30,7 +30,7 @@ def test_serialize_thermal_accepts_int() -> None:
 
 
 def test_env_int_warns_on_invalid_value(monkeypatch: pytest.MonkeyPatch) -> None:
-    from src.agent import plumber_config
+    from src.utils import env_parse
 
     warnings: list[str] = []
 
@@ -39,7 +39,7 @@ def test_env_int_warns_on_invalid_value(monkeypatch: pytest.MonkeyPatch) -> None
 
     monkeypatch.setattr("src.utils.env_parse.logger.warning", _capture)
     monkeypatch.setenv("MATRYCA_TEST_INT_ENV", "not-a-number")
-    assert plumber_config._env_int("MATRYCA_TEST_INT_ENV", 42) == 42
+    assert env_parse.env_int("MATRYCA_TEST_INT_ENV", 42) == 42
     assert any("MATRYCA_TEST_INT_ENV" in warning for warning in warnings)
 
 

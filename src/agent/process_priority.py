@@ -9,7 +9,8 @@ from dataclasses import dataclass
 
 from loguru import logger
 
-from .plumber_config import PlumberLintConfig, _env_int, _map_bool, load_plumber_lint_config
+from ..utils.env_parse import env_int
+from .plumber_config import PlumberLintConfig, _map_bool, load_plumber_lint_config
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,7 +102,7 @@ def resolve_cpu_sandbox_config(config: PlumberLintConfig | None = None) -> CpuSa
         if explicit is not None
         else (topology.recommended_plumber_cpus if topology is not None else None)
     )
-    nice_level = max(0, min(19, _env_int("MATRYCA_PLUMBER_NICE_LEVEL", 19)))
+    nice_level = max(0, min(19, env_int("MATRYCA_PLUMBER_NICE_LEVEL", 19)))
     return CpuSandboxConfig(
         enabled=enabled and config.low_priority_mode,
         affinity_cpus=affinity,

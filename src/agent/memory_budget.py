@@ -14,7 +14,7 @@ from loguru import logger
 
 from ..graph.generational_cache import clear_generational_caches, release_bm25_corpus
 from ..graph.master_catalog import unload_master_catalog
-from .plumber_config import _env_int
+from ..utils.env_parse import env_int
 from .plumber_modules.semantic_cache_router import (
     clear_semantic_cache_memory,
     purge_expired_semantic_cache,
@@ -25,7 +25,7 @@ _DEFAULT_RAM_BUDGET_MB = 4096
 
 
 def ram_budget_mb() -> int:
-    return max(512, _env_int(_RAM_BUDGET_MB_ENV, _DEFAULT_RAM_BUDGET_MB))
+    return max(512, env_int(_RAM_BUDGET_MB_ENV, _DEFAULT_RAM_BUDGET_MB))
 
 
 def rss_bytes() -> int:
