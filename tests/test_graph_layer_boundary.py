@@ -25,3 +25,24 @@ def test_graph_modules_do_not_import_daemon() -> None:
         if "from ..daemon" in text or "from src.daemon" in text:
             offenders.append(str(path.relative_to(graph_dir.parents[1])))
     assert offenders == []
+
+
+def test_graph_modules_do_not_import_rag() -> None:
+    graph_dir = Path(__file__).resolve().parents[1] / "src" / "graph"
+    offenders: list[str] = []
+    for path in sorted(graph_dir.rglob("*.py")):
+        # generational_cache.py uses lazy `from src.rag.local_query import
+        # tokenize` inside functions — tracked for clean-up in a follow-up PR.
+        if path.name == "generational_cache.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if (
+            "from ..rag" in text
+            or "from src.rag" in text
+            or "import rag" in text
+        ):
+            offenders.append(str(path.relative_to(graph_dir.parents[1])))
+    assert offenders == [], (
+        "src/graph/ must not import src/rag/ (domain should not depend on "
+        "retrieval adapters). Offending files:\n" + "\n".join(offenders)
+    )
