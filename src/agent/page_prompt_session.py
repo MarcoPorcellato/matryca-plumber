@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..graph.alias_index import AliasIndex, format_alias_index_for_prompt
+from ..utils.env_parse import env_int
 from .llm_context_payload import PayloadSource, prepare_llm_context_payload
-from .plumber_config import PlumberLintConfig, _env_int
+from .plumber_config import PlumberLintConfig
 from .prompt_layout import CANONICAL_TASK_HEADER, normalize_stable_text
 
 _STABLE_CONTENT_HEADER = "Page content:\n"
@@ -22,7 +23,7 @@ class PrefixDriftError(RuntimeError):
 
 
 def alias_prompt_max_chars() -> int:
-    return max(256, _env_int(_ALIAS_PROMPT_MAX_CHARS_ENV, _DEFAULT_ALIAS_PROMPT_MAX_CHARS))
+    return max(256, env_int(_ALIAS_PROMPT_MAX_CHARS_ENV, _DEFAULT_ALIAS_PROMPT_MAX_CHARS))
 
 
 def _cap_alias_footer(text: str, *, max_chars: int) -> str:
