@@ -36,11 +36,7 @@ def test_graph_modules_do_not_import_rag() -> None:
         if path.name == "generational_cache.py":
             continue
         text = path.read_text(encoding="utf-8")
-        if (
-            "from ..rag" in text
-            or "from src.rag" in text
-            or "import rag" in text
-        ):
+        if "from ..rag" in text or "from src.rag" in text or "import rag" in text:
             offenders.append(str(path.relative_to(graph_dir.parents[1])))
     assert offenders == [], (
         "src/graph/ must not import src/rag/ (domain should not depend on "
