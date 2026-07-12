@@ -7,9 +7,11 @@ from pathlib import Path
 import pytest
 from src.graph.alias_index import AliasIndex, build_alias_index
 from src.graph.generational_cache import (
+    _DEFAULT_CACHE_MAX_GRAPHS,
     Bm25Corpus,
     _alias_cache,
     _bm25_cache,
+    _bm25_mode,
     _generational_cache_max_graphs,
     cached_build_alias_index,
     clear_generational_caches,
@@ -130,3 +132,40 @@ def test_generational_cache_max_graphs_clamp(
     invalid input falls back to 4."""
     monkeypatch.setenv("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", raw)
     assert _generational_cache_max_graphs() == expected
+
+# ---------------------------------------------------------------------------
+# env_parse migration tests (issue #169)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("resident", "resident"),   # valid default
+        ("ondemand", "ondemand"),   # valid non-default
+        ("RESIDENT", "resident"),   # case-insensitive
+        ("ONDEMAND", "ondemand"),   # case-insensitive
+        ("invalid", "resident"),    # unknown → fallback
+        ("", "resident"),           # empty → default
+        ("garbage", "resident"),    # garbage → fallback
+    ],
+)
+def test_bm25_mode_validates_membership(
+    monkeypatch: pytest.MonkeyPatch,
+    raw: str,
+    expected: str,
+) -> None:
+    """_bm25_mode() accepts only 'resident'/'ondemand'; anything else falls back."""
+    monkeypatch.setenv("MATRYCA_BM25_MODE", raw)
+    assert _bm25_mode() == expected
+
+
+def test_generational_cache_max_graphs_logs_warning_on_invalid_int(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """env_int emits a warning when MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS is not an integer."""
+    import logging
+    monkeypatch.setenv("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", "notanint")
+    with caplog.at_level(logging.WARNING):
+        result = _generational_cache_max_graphs()
+    assert result == _DEFAULT_CACHE_MAX_GRAPHS
