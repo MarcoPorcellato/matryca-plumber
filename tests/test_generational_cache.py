@@ -133,20 +133,22 @@ def test_generational_cache_max_graphs_clamp(
     monkeypatch.setenv("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", raw)
     assert _generational_cache_max_graphs() == expected
 
+
 # ---------------------------------------------------------------------------
 # env_parse migration tests (issue #169)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("resident", "resident"),   # valid default
-        ("ondemand", "ondemand"),   # valid non-default
-        ("RESIDENT", "resident"),   # case-insensitive
-        ("ONDEMAND", "ondemand"),   # case-insensitive
-        ("invalid", "resident"),    # unknown → fallback
-        ("", "resident"),           # empty → default
-        ("garbage", "resident"),    # garbage → fallback
+        ("resident", "resident"),  # valid default
+        ("ondemand", "ondemand"),  # valid non-default
+        ("RESIDENT", "resident"),  # case-insensitive
+        ("ONDEMAND", "ondemand"),  # case-insensitive
+        ("invalid", "resident"),  # unknown → fallback
+        ("", "resident"),  # empty → default
+        ("garbage", "resident"),  # garbage → fallback
     ],
 )
 def test_bm25_mode_validates_membership(
@@ -165,6 +167,7 @@ def test_generational_cache_max_graphs_logs_warning_on_invalid_int(
 ) -> None:
     """env_int emits a warning when MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS is not an integer."""
     import logging
+
     monkeypatch.setenv("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", "notanint")
     with caplog.at_level(logging.WARNING):
         result = _generational_cache_max_graphs()
