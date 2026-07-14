@@ -273,8 +273,6 @@ Apache-2.0 — see [LICENSE](LICENSE).
 
 ## Star History
 
-## Star History
-
 <a href="https://www.star-history.com/?repos=MarcoPorcellato%2Fmatryca-plumber&type=date&legend=top-left">
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=MarcoPorcellato/matryca-plumber&type=date&theme=dark&legend=top-left&sealed_token=L7JFuvfcyM3kFDgnbjboRX3XieIF-HhrqN1r74nO9x01siHlrhFq-4e5Z6wu9l_hl91VwwM_j_mSx5K37NftjyQSV5AX4jQpqsHF-NvXirIrdxGxRjCEyGt0pnnGNYnoXyju4jz4EmLb9KiEhuUNRPR2Wn7irfUYwX9-T_lxqoj8nHBKKPuW8P5iSTiX" />
