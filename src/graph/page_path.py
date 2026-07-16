@@ -53,8 +53,6 @@ def page_title_from_path(graph_root: Path, path: Path) -> str:
     return page_title_from_graph_relpath(rel)
 
 
-
-
 __all__ = [
     "filename_to_page_title",
     "page_title_from_graph_relpath",
