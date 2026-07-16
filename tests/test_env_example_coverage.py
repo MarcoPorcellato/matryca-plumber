@@ -25,7 +25,7 @@ _ENV_HELPER_RE = re.compile(
     r"""_env_(?:bool|int|float|str)\(\s*["']([A-Z][A-Z0-9_]*)["']""",
 )
 _ENV_PARSE_RE = re.compile(
-    r"""env_(?:bool|int|float)\(\s*["']([A-Z][A-Z0-9_]*)["']""",
+    r"""env_(?:bool|int|float|str)\(\s*["']([A-Z][A-Z0-9_]*)["']""",
 )
 _ENV_MAP_RE = re.compile(
     r"""_map_(?:bool|int|float|str)(?:_nonempty)?\(\s*env\s*,\s*["']([A-Z][A-Z0-9_]*)["']""",

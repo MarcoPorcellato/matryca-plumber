@@ -36,4 +36,9 @@ def env_float(key: str, default: float) -> float:
         return default
 
 
-__all__ = ["env_bool", "env_float", "env_int"]
+def env_str(key: str, default: str = "") -> str:
+    raw = os.environ.get(key, "").strip().lower()
+    return raw if raw else default
+
+
+__all__ = ["env_bool", "env_float", "env_int", "env_str"]

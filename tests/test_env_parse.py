@@ -70,3 +70,34 @@ def test_flock_degradation_ignored_when_flock_ok(monkeypatch: pytest.MonkeyPatch
         cap = probe_concurrency_capability()
     assert cap.mode == "full"
     assert cap.flock_available is True
+
+
+# --- env_str tests -----------------------------------------------------------
+
+
+def test_env_str_returns_default_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.utils.env_parse import env_str
+
+    monkeypatch.delenv("MATRYCA_TEST_STR", raising=False)
+    assert env_str("MATRYCA_TEST_STR", "fallback") == "fallback"
+
+
+def test_env_str_returns_default_on_empty_string(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.utils.env_parse import env_str
+
+    monkeypatch.setenv("MATRYCA_TEST_STR", "")
+    assert env_str("MATRYCA_TEST_STR", "fallback") == "fallback"
+
+
+def test_env_str_strips_and_lowercases_value(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.utils.env_parse import env_str
+
+    monkeypatch.setenv("MATRYCA_TEST_STR", "  HELLO  ")
+    assert env_str("MATRYCA_TEST_STR", "fallback") == "hello"
+
+
+def test_env_str_whitespace_only_returns_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.utils.env_parse import env_str
+
+    monkeypatch.setenv("MATRYCA_TEST_STR", "   ")
+    assert env_str("MATRYCA_TEST_STR", "fallback") == "fallback"

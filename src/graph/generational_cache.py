@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import math
-import os
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
+
+from loguru import logger
+
+from src.utils.env_parse import env_int, env_str
 
 from .alias_index import (
     AliasIndex,
@@ -30,13 +33,8 @@ _DEFAULT_CACHE_MAX_GRAPHS = 4
 
 
 def _generational_cache_max_graphs() -> int:
-    raw = os.environ.get("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", "").strip()
-    if not raw:
-        return _DEFAULT_CACHE_MAX_GRAPHS
-    try:
-        return max(1, min(32, int(raw)))
-    except ValueError:
-        return _DEFAULT_CACHE_MAX_GRAPHS
+    value = env_int("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", _DEFAULT_CACHE_MAX_GRAPHS)
+    return max(1, min(32, value))
 
 
 def _evict_oldest_graph_caches() -> None:
@@ -67,9 +65,21 @@ def clear_generational_caches() -> None:
         _bm25_cache.clear()
 
 
+_BM25_VALID_MODES = {"resident", "ondemand"}
+_DEFAULT_BM25_MODE = "resident"
+
+
 def _bm25_mode() -> str:
-    raw = os.environ.get("MATRYCA_BM25_MODE", "resident").strip().lower()
-    return raw if raw in {"resident", "ondemand"} else "resident"
+    raw = env_str("MATRYCA_BM25_MODE", _DEFAULT_BM25_MODE)
+    if raw not in _BM25_VALID_MODES:
+        logger.warning(
+            "Unknown MATRYCA_BM25_MODE={!r}; expected one of {}; using {!r}",
+            raw,
+            sorted(_BM25_VALID_MODES),
+            _DEFAULT_BM25_MODE,
+        )
+        return _DEFAULT_BM25_MODE
+    return raw
 
 
 def release_bm25_corpus(graph_root: str | Path) -> None:
