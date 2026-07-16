@@ -7,7 +7,7 @@ One-page path from fork to a green PR. Full rules live in [`CONTRIBUTING.md`](..
 1. Read the hook in [`README.md`](../README.md) — Matryca Plumber is **Logseq OG** (Markdown on disk), not a hosted notes API.
 2. Pick work:
    - [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) (label `good first issue`)
-   - Tier F Clean Code slices — [`good_first_issues_blueprints.md`](../good_first_issues_blueprints.md)
+   - Tier F Clean Code / Tier G complexity slices — [`good_first_issues_blueprints.md`](../good_first_issues_blueprints.md)
 3. For architecture debate (v2 Shadow DB), use [Discussion #19](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19); for trackable bugs/features, open an **issue**.
 
 ## Local setup
