@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, Protocol
@@ -74,28 +75,55 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
         self._graph_root = graph_root
         self._debounce_s = debounce_s
         self._on_debounced = on_debounced
-        self._timers: dict[str, threading.Timer] = {}
-        self._timer_lock = threading.Lock()
+        # Single background scheduler with per-file monotonic deadlines, instead of one
+        # threading.Timer per file: a bulk change (sync-client re-download, mass tag
+        # rewrite) touching thousands of files would otherwise spawn thousands of OS
+        # threads at once (F5, TRIZ Principle 20: continuous action / partial-excessive).
+        self._pending: dict[str, tuple[float, Path, FileEventKind]] = {}
+        self._lock = threading.Lock()
+        self._wake = threading.Condition(self._lock)
+        self._stopped = False
+        self._worker = threading.Thread(
+            target=self._run, name="matryca-watch-debounce", daemon=True
+        )
+        self._worker.start()
 
     def _schedule(self, path: Path, kind: FileEventKind) -> None:
         key = str(path)
-        with self._timer_lock:
-            existing = self._timers.pop(key, None)
-            if existing is not None:
-                existing.cancel()
+        deadline = time.monotonic() + self._debounce_s
+        with self._wake:
+            self._pending[key] = (deadline, path, kind)
+            self._wake.notify_all()
 
-            def fire() -> None:
-                with self._timer_lock:
-                    self._timers.pop(key, None)
+    def _run(self) -> None:
+        with self._wake:
+            while not self._stopped:
+                if not self._pending:
+                    self._wake.wait()
+                    continue
+                now = time.monotonic()
+                next_deadline = min(deadline for deadline, _, _ in self._pending.values())
+                if next_deadline > now:
+                    self._wake.wait(timeout=next_deadline - now)
+                    continue
+                due = [
+                    (key, path, kind)
+                    for key, (deadline, path, kind) in self._pending.items()
+                    if deadline <= now
+                ]
+                for key, _, _ in due:
+                    del self._pending[key]
+                if not due:
+                    continue
+                self._wake.release()
                 try:
-                    self._on_debounced(path, kind)
-                except Exception:  # noqa: BLE001
-                    logger.exception("Debounced file watcher callback failed for {}", path)
-
-            timer = threading.Timer(self._debounce_s, fire)
-            timer.daemon = True
-            self._timers[key] = timer
-            timer.start()
+                    for _, path, kind in due:
+                        try:
+                            self._on_debounced(path, kind)
+                        except Exception:  # noqa: BLE001
+                            logger.exception("Debounced file watcher callback failed for {}", path)
+                finally:
+                    self._wake.acquire()
 
     def on_created(self, event: FileSystemEvent) -> None:
         self._handle(event)
@@ -106,11 +134,19 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
     def on_deleted(self, event: FileSystemEvent) -> None:
         self._handle(event)
 
+    def on_moved(self, event: FileSystemEvent) -> None:
+        if event.is_directory:
+            return
+        self._handle_path(getattr(event, "src_path", None), "deleted")
+        self._handle_path(getattr(event, "dest_path", None), "created")
+
     def _handle(self, event: FileSystemEvent) -> None:
         kind = _event_kind(event)
         if kind is None:
             return
-        src = getattr(event, "src_path", None)
+        self._handle_path(getattr(event, "src_path", None), kind)
+
+    def _handle_path(self, src: str | None, kind: FileEventKind) -> None:
         if not src:
             return
         path = Path(src)
@@ -125,10 +161,11 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
         self._schedule(safe, kind)
 
     def cancel_all(self) -> None:
-        with self._timer_lock:
-            for timer in self._timers.values():
-                timer.cancel()
-            self._timers.clear()
+        with self._wake:
+            self._stopped = True
+            self._pending.clear()
+            self._wake.notify_all()
+        self._worker.join(timeout=2.0)
 
 
 class GraphFileWatcher:
