@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Changed
+
+- **`env_str` migration for `MATRYCA_BM25_MODE` ([#169](https://github.com/MarcoPorcellato/matryca-plumber/issues/169) / [#194](https://github.com/MarcoPorcellato/matryca-plumber/pull/194))** — `_bm25_mode()` in `generational_cache.py` now reads `MATRYCA_BM25_MODE` via `env_str()` (strips + lowercases; empty → default) instead of a raw `os.environ.get`; `env_str` added to `src/utils/env_parse.py` and exported in `__all__`; `env_str` import hoisted to module level in `generational_cache.py`; loguru warning on unknown mode value. Tests added for unset/empty → default and value → stripped+lowercased. Thanks to @Maqbool61.
+
 ## [1.14.0] - 2026-07-16
 
 **Catalog write-safety, leaf-module dependency direction, and Clean Code Tier F closures**

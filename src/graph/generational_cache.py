@@ -8,7 +8,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.utils.env_parse import env_int
+from loguru import logger
+from src.utils.env_parse import env_int, env_str
 
 from .alias_index import (
     AliasIndex,
@@ -68,12 +69,8 @@ _DEFAULT_BM25_MODE = "resident"
 
 
 def _bm25_mode() -> str:
-    from src.utils.env_parse import env_str  # noqa: PLC0415
-
     raw = env_str("MATRYCA_BM25_MODE", _DEFAULT_BM25_MODE)
     if raw not in _BM25_VALID_MODES:
-        from loguru import logger
-
         logger.warning(
             "Unknown MATRYCA_BM25_MODE={!r}; expected one of {}; using {!r}",
             raw,

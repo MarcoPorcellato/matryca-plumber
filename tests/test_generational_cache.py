@@ -163,12 +163,23 @@ def test_bm25_mode_validates_membership(
 
 def test_generational_cache_max_graphs_logs_warning_on_invalid_int(
     monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """env_int emits a warning when MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS is not an integer."""
+    """env_int emits a loguru warning when MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS is not an integer."""
     import logging
 
+    from loguru import logger
+
     monkeypatch.setenv("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS", "notanint")
-    with caplog.at_level(logging.WARNING):
+    warning_messages: list[str] = []
+
+    def _sink(message: object) -> None:
+        warning_messages.append(str(message))
+
+    logger.add(_sink, level="WARNING")
+    try:
         result = _generational_cache_max_graphs()
+    finally:
+        logger.remove()
+
     assert result == _DEFAULT_CACHE_MAX_GRAPHS
+    assert any("MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS" in m for m in warning_messages)
