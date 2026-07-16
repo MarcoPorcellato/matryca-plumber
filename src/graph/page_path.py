@@ -53,27 +53,6 @@ def page_title_from_path(graph_root: Path, path: Path) -> str:
     return page_title_from_graph_relpath(rel)
 
 
-def resolve_existing_page_title(graph_root: Path | str, page_title: str) -> str | None:
-    """Return the canonical page title when a file or alias exists (case-insensitive)."""
-    from .alias_index import is_scannable_graph_markdown
-    from .generational_cache import cached_build_alias_index
-    from .path_sandbox import resolved_graph_root
-
-    root = resolved_graph_root(graph_root)
-    pages_dir = root / "pages"
-    if pages_dir.is_dir():
-        fold = page_title.casefold()
-        for candidate in pages_dir.rglob("*.md"):
-            if not candidate.is_file() or not is_scannable_graph_markdown(candidate, root):
-                continue
-            title = filename_to_page_title(candidate.name)
-            if title.casefold() == fold:
-                return title
-
-    resolved = cached_build_alias_index(root).resolve(page_title)
-    if resolved.matched and resolved.canonical_page_title:
-        return resolved.canonical_page_title
-    return None
 
 
 __all__ = [
@@ -81,5 +60,4 @@ __all__ = [
     "page_title_from_graph_relpath",
     "page_title_from_path",
     "page_title_to_filename",
-    "resolve_existing_page_title",
 ]

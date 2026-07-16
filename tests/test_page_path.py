@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.graph.alias_index import resolve_existing_page_title
 from src.graph.page_path import (
     filename_to_page_title,
     page_title_from_path,
     page_title_to_filename,
-    resolve_existing_page_title,
 )
 from src.graph.path_sandbox import graph_safe_page_path
 

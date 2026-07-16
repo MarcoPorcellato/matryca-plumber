@@ -35,11 +35,11 @@ async def handle_lint_unify_tags(
 
 
 async def handle_lint_block_refs(_wiki_config: MatrycaWikiConfig, graph_path: str) -> str:
-    from .graph_dispatch import _cached_graph
+    from ..daemon.ast_cache import get_graph_ast_cache
 
     def _refs() -> str:
         root = Path(graph_path).expanduser().resolve()
-        result = lint_block_refs_in_graph(root, graph=_cached_graph(root))
+        result = lint_block_refs_in_graph(root, graph=get_graph_ast_cache(root).get_graph())
         logger.bind(
             pages=result.pages_scanned,
             issues=len(result.broken),

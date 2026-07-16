@@ -11,7 +11,8 @@ from pathlib import Path
 from logseq_matryca_parser.logos_core import LogseqNode, LogseqPage
 from loguru import logger
 
-from ..graph.page_path import page_title_to_filename, resolve_existing_page_title
+from ..graph.alias_index import resolve_existing_page_title
+from ..graph.page_path import page_title_to_filename
 from .ast_cache import get_graph_ast_cache
 
 _IDENTITY_SECTION_MAX_BYTES = 8 * 1024

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Literal
 
 from .mldoc_properties import split_logseq_property_list_values
+from .page_path import filename_to_page_title
 from .page_path import page_title_from_path as _page_title_from_path
 from .path_sandbox import (
     PathTraversalSecurityError,
@@ -407,6 +408,27 @@ def resolve_canonical_page_title(idx: AliasIndex, candidate: str) -> str:
     return candidate.strip()
 
 
+def resolve_existing_page_title(graph_root: Path | str, page_title: str) -> str | None:
+    """Return the canonical page title when a file or alias exists (case-insensitive)."""
+    from .generational_cache import cached_build_alias_index
+
+    root = resolved_graph_root(graph_root)
+    pages_dir = root / "pages"
+    if pages_dir.is_dir():
+        fold = page_title.casefold()
+        for candidate in pages_dir.rglob("*.md"):
+            if not candidate.is_file() or not is_scannable_graph_markdown(candidate, root):
+                continue
+            title = filename_to_page_title(candidate.name)
+            if title.casefold() == fold:
+                return title
+
+    resolved = cached_build_alias_index(root).resolve(page_title)
+    if resolved.matched and resolved.canonical_page_title:
+        return resolved.canonical_page_title
+    return None
+
+
 __all__ = [
     "AliasIndex",
     "ResolvedEntity",
@@ -416,6 +438,7 @@ __all__ = [
     "index_aliases_from_file",
     "EXCLUDED_GRAPH_DIR_NAMES",
     "is_scannable_graph_markdown",
+    "resolve_existing_page_title",
     "iter_scannable_pages_markdown",
     "iter_alias_source_paths",
     "is_journal_page_title_in_index",

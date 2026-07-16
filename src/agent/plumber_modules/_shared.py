@@ -6,9 +6,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ...graph.alias_index import is_scannable_graph_markdown
+from ...graph.alias_index import is_scannable_graph_markdown, resolve_existing_page_title
 from ...graph.markdown_blocks import graph_safe_page_path
-from ...graph.page_path import filename_to_page_title, resolve_existing_page_title
+from ...graph.page_path import filename_to_page_title
 from ...graph.page_properties import page_property_keys as _page_property_keys
 from ...graph.path_sandbox import resolved_graph_root
 
