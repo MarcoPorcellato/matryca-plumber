@@ -59,6 +59,16 @@ Matryca applies **Robert C. Martin's** *Clean Architecture* (dependency rule, in
 
 These rules are enforced in code and in CI. **Violating them in a PR will be rejected**, even if tests pass by accident.
 
+```mermaid
+flowchart LR
+    P0["Phase 0\nParadigm lock\nsandboxed file I/O"] --> P1["Phase 1\nOCC snapshot\ncapture baseline_mtime"]
+    P1 --> P2["Phase 2\nOCC verify\ndrift check before write"]
+    P2 -->|"mtime matches"| Write["atomic write\ntmp -> fsync -> os.replace\nunder page_rmw_lock"]
+    P2 -->|"mtime drifted"| Abort["abort write\npreserve human edit"]
+    Write --> P3["Phase 3\nAST parity\nfrontmatter / id:: / dead zones"]
+    P3 --> P4["Phase 4\nNo central DB\nJSON ledger only"]
+```
+
 ### Phase 0 — Paradigm lock
 
 - Operate only on files inside the designated graph root (`path_sandbox.assert_path_within_graph`).

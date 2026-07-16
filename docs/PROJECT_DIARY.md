@@ -21,8 +21,19 @@ A deep code audit (see [`AUDIT_REPORT_2026-07-16.md`](AUDIT_REPORT_2026-07-16.md
 1. **Catalog write-safety (F1–F7)** — [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211), merged. Fixes the `remove()`→`upsert()` resurrection-deletion bug, stops treating a corrupt catalog as empty during merge (quarantine + warn instead), records `prune_missing_pages()` removals, handles `on_moved` in the file watcher, replaces per-file `threading.Timer` fan-out with a single-thread scheduler, narrows a `BaseException` catch, and caches the casefold index for `get_case_insensitive`.
 2. **Leaf-module dependency direction (F8)** — [#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216), merged. Relocated 4 of 5 deferred-import cycles to their true lowest-layer home (`DaemonState`/`compute_phase2_progress_metrics`, `handle_lint_block_refs`, a new shared `canonicalize_llm_base_url()`, `resolve_existing_page_title`). The `tana/graph.py` ↔ `tana/load.py` cycle stays deferred — a test monkeypatches `load_mod.load_tana_nodes_by_id`, which pins the function to the `load` module.
 3. **Not split now (F9)** — three god-module split issues opened ([#212](https://github.com/MarcoPorcellato/matryca-plumber/issues/212), [#213](https://github.com/MarcoPorcellato/matryca-plumber/issues/213), [#214](https://github.com/MarcoPorcellato/matryca-plumber/issues/214)) but deliberately not split this round.
-4. **Dead-symbol candidates verified, none removed (F10)** — [#217](https://github.com/MarcoPorcellato/matryca-plumber/issues/217), closed. Every named candidate traced back to a real caller (registry dispatch, backward-compat aliasing, a regex closure, or a re-export) — the audit's own no-outgoing-edge heuristic false-positived on all of them.
+4. **Dead-symbol candidates verified, none removed (F10)** — [#206](https://github.com/MarcoPorcellato/matryca-plumber/issues/206), closed ([#217](https://github.com/MarcoPorcellato/matryca-plumber/issues/217) closed as duplicate). Every named candidate traced back to a real caller (registry dispatch, backward-compat aliasing, a regex closure, or a re-export) — the audit's own no-outgoing-edge heuristic false-positived on all of them.
 5. **PDG-enabled CI security gate not wired (F11)** — [#219](https://github.com/MarcoPorcellato/matryca-plumber/issues/219), tracked for a future release.
+6. **Two undocumented import cycles found on re-check** — tracked in [#240](https://github.com/MarcoPorcellato/matryca-plumber/issues/240), out of scope for F8's original list.
+
+```mermaid
+flowchart LR
+    F1_7["F1-F7\ncatalog write-safety"] -->|"#211 merged"| Fixed1["fixed"]
+    F8["F8\n5 import cycles"] -->|"#216 merged, 4/5"| Fixed2["fixed"]
+    F8 -->|"1 kept + 2 new found"| Tracked1["#240 tracked"]
+    F9["F9\n3 god-modules"] -->|"issue-only"| Tracked2["#212-214 open"]
+    F10["F10\ndead-symbol candidates"] -->|"all false-positive"| Closed1["#206 closed"]
+    F11["F11\nPDG CI gate"] -->|"deferred"| Tracked3["#219 open"]
+```
 
 ### Semver
 
