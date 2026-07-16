@@ -10,7 +10,6 @@ import time
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlparse
 
 from ..utils.env_parse import env_int
 
@@ -99,19 +98,14 @@ def resolve_lm_model(*, override: str | None = None) -> str:
 
 def resolve_llm_base_url(*, override: str | None = None) -> str:
     """Resolve OpenAI-compatible base URL (appends ``/v1`` only for bare host roots)."""
+    from ..utils.llm_url_policy import canonicalize_llm_base_url
+
     if override is not None and override.strip():
         raw = override.strip()
     else:
         canonical = os.environ.get("LLM_BASE_URL", "").strip()
         raw = canonical if canonical else _env_str("MATRYCA_LM_BASE_URL", DEFAULT_LLM_BASE_URL)
-    base = raw.rstrip("/")
-    if base.endswith("/v1"):
-        return base
-    parsed = urlparse(base)
-    path = (parsed.path or "").rstrip("/")
-    if path:
-        return base
-    return f"{base}/v1"
+    return canonicalize_llm_base_url(raw)
 
 
 def resolve_lm_base_url(*, override: str | None = None) -> str:

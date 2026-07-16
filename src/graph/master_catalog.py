@@ -217,7 +217,7 @@ class MasterCatalog:
 
     def resolve_page_title(self, page_title: str) -> str | None:
         """Return canonical title when ``page_title`` matches a page or alias (case-insensitive)."""
-        from .page_path import resolve_existing_page_title
+        from .alias_index import resolve_existing_page_title
 
         return resolve_existing_page_title(self.graph_root, page_title)
 

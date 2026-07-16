@@ -120,6 +120,17 @@ def _reject(reason: str) -> NoReturn:
     raise UnsafeLlmProxyUrlError(reason)
 
 
+def canonicalize_llm_base_url(raw: str) -> str:
+    """Append ``/v1`` to a bare host root, unless a path is already present."""
+    base = raw.rstrip("/")
+    if base.endswith("/v1"):
+        return base
+    path = (urllib.parse.urlparse(base).path or "").rstrip("/")
+    if path:
+        return base
+    return f"{base}/v1"
+
+
 def validate_llm_proxy_url(
     base_url: str,
     *,
@@ -136,8 +147,6 @@ def validate_llm_proxy_url(
     Raises:
         UnsafeLlmProxyUrlError: When the URL is not an allowed inference endpoint.
     """
-    from ..agent.plumber_config import resolve_llm_base_url
-
     parsed = urllib.parse.urlparse(base_url.strip())
     if parsed.scheme not in {"http", "https"}:
         _reject("base_url must use http or https")
@@ -149,7 +158,7 @@ def validate_llm_proxy_url(
         _reject("base_url host is not allowed")
     if host_resolves_to_blocked_ip(hostname, configured_host=configured_host):
         _reject("base_url host is not allowed")
-    return resolve_llm_base_url(override=base_url)
+    return canonicalize_llm_base_url(base_url.strip())
 
 
 __all__ = [

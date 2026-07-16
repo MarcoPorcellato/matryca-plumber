@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
-    from .maintenance_daemon import DaemonState
+    from .daemon_state import DaemonState
 
 ControlRoomProgressMode = Literal["phase1_catalog", "phase2_cluster", "phase2_vault"]
 
@@ -130,7 +130,7 @@ def resolve_control_room_progress(state: DaemonState) -> ControlRoomProgress:
 
 def refresh_phase2_cognitive_totals(graph_root: Path, state: DaemonState) -> None:
     """Recompute vault-wide Phase 2 counters (O(pages); call at bootstrap / cycle start)."""
-    from .maintenance_daemon import compute_phase2_progress_metrics
+    from .daemon_page_queue import compute_phase2_progress_metrics
 
     total, done, _pending, _skipped = compute_phase2_progress_metrics(graph_root, state)
     state.phase2_cognitive_total = total

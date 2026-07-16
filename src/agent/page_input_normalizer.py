@@ -6,11 +6,11 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..graph.alias_index import resolve_existing_page_title
 from ..graph.page_path import (
     filename_to_page_title,
     page_title_from_path,
     page_title_to_filename,
-    resolve_existing_page_title,
 )
 from ..graph.path_sandbox import resolved_graph_root
 from ..rag.matryca_hooks import resolve_logseq_page_md
