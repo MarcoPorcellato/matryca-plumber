@@ -1,6 +1,6 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.13.1** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.13.1]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.14.0** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.14.0]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
@@ -39,7 +39,7 @@ flowchart LR
 
 | Decision | Rationale |
 |----------|-----------|
-| No version bump | Internal correctness/maintainability fixes; no public API or CLI/MCP surface change |
+| **minor 1.14.0** | Operator-visible catalog/watcher reliability + architecture hardening after audit F1–F8; no intentional MCP/CLI surface break |
 
 **Suite:** ruff clean · mypy strict, no issues · targeted pytest (117 tests across touched modules) green.
 

@@ -17,12 +17,12 @@ If you cannot use GitHub advisories, email **marco@matryca.ai** with the same de
 
 ## Supported versions
 
-Security fixes are published for the **latest minor release line** on `main` (currently **1.13.x**). Older minors receive fixes on a **best-effort** basis when backporting is practical.
+Security fixes are published for the **latest minor release line** on `main` (currently **1.14.x**). Older minors receive fixes on a **best-effort** basis when backporting is practical.
 
 | Version line | Support |
 |--------------|---------|
-| **1.13.x** (current) | Active security support |
-| **1.12.x and earlier** | Upgrade recommended; no guaranteed backports |
+| **1.14.x** (current) | Active security support |
+| **1.13.x and earlier** | Upgrade recommended; no guaranteed backports |
 
 Install the latest release from [PyPI](https://pypi.org/project/matryca-plumber/) or tag [`releases`](https://github.com/MarcoPorcellato/matryca-plumber/releases). Dependency advisories are tracked via Dependabot and [`.github/workflows/dependabot-uv-fix.yml`](.github/workflows/dependabot-uv-fix.yml).
 

@@ -1,6 +1,6 @@
 # Clean Code & Clean Architecture — Matryca Plumber
 
-**Version:** documents **v1.13.1+** maintainer contracts (parser 1.6.0 alignment, daemon/dispatch module maps, GraphReadPort)  
+**Version:** documents **v1.14.0+** maintainer contracts (catalog write-safety, leaf-module dependency direction, parser 1.6.0 alignment, daemon/dispatch module maps, GraphReadPort)  
 **Audience:** contributors patching `src/`  
 **Companion:** [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md) (prompt tiers) · [`ARCHITECTURE.md`](ARCHITECTURE.md) (system contract) · [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 

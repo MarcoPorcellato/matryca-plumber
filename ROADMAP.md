@@ -6,7 +6,20 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v1.13.1** — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v1.14.0** — issue numbers link to GitHub; scope may shift as milestones close.*
+
+---
+
+## v1.14.0 — Catalog write-safety & Clean Code Tier F closures ✓ on `main`
+
+| Deliverable | Status |
+|-------------|--------|
+| `MasterCatalog` remove→upsert→save integrity + corrupt quarantine ([#210](https://github.com/MarcoPorcellato/matryca-plumber/issues/210)) | **Done** |
+| File watcher `on_moved` + single debounce scheduler | **Done** |
+| Leaf-module dependency direction (4/5 import cycles) ([#215](https://github.com/MarcoPorcellato/matryca-plumber/issues/215)) | **Done** |
+| Tier F GFI: `#170`/`#171`/`#172`/`#173` (env_parse + boundary + clamps) | **Done** |
+
+**Recommended semver:** **minor 1.14.0** — operator-visible catalog/watcher reliability + architecture hardening; no intentional MCP/CLI break.
 
 ---
 
@@ -168,6 +181,7 @@ Not backlog — context for where we are today:
 | v1.10.0 | Catalog/registry integrity (#35–#37, #41); OSS/GitHub hygiene (PR template, CodeQL, frontend ESLint); `make test-fast` local gate; dependency advisory bumps (720+ tests) |
 | v1.10.3 | Sovereign UI non-blocking config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` (725+ tests) |
 | v1.11.2 | **Graph layer boundary refactor** — `post_write` port ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)); canonical graph modules; generational + block-vector LRU; OCC `st_mtime_ns` page writes; `env_parse`; observability logging (879+ tests) |
+| v1.14.0 | Catalog write-safety + watcher `on_moved` + leaf-module cycles + Tier F `#170`–`#173` |
 | v1.13.1 | `logseq-matryca-parser` 1.6.0 alignment — 1.4.2 splice/X-Ray fixes; headless newline parity |
 | v1.13.0 | Daemon/dispatch modularization + `GraphReadPort` (v2 Phase 0–1) |
 | v1.11.1 | `logseq-matryca-parser` 1.4.0 alignment — canonical page iteration, case-insensitive tag/search, watcher delete/move, SYNAPSE embed safety (879+ tests) |
