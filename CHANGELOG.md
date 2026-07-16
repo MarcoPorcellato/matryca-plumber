@@ -1,10 +1,28 @@
 ## [Unreleased]
 
+## [1.14.0] - 2026-07-16
+
+**Catalog write-safety, leaf-module dependency direction, and Clean Code Tier F closures**
+
+Reliability and architecture hardening after the [2026-07-16 deep code audit](docs/AUDIT_REPORT_2026-07-16.md). Builds on **v1.13.1** (parser 1.6.0 alignment). No intentional MCP/CLI surface break for vault operators.
+
 ### Fixed
 
-- **`MasterCatalog` write-safety** — `remove()` followed by `upsert()` of the same title no longer loses the entry on `save()`; corrupt catalogs are quarantined and logged instead of silently merged as empty; `prune_missing_pages()` now records its removals; `get_case_insensitive` caches its casefold index instead of rebuilding it under the lock. ([#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211))
-- **File watcher** — handles `on_moved` events (rename-as-delete+create); replaced per-file `threading.Timer` fan-out with a single-thread debounce scheduler. ([#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211))
-- **Leaf-module import cycles** — 4 of 5 deferred-import cycles resolved by relocating symbols to their true lowest-layer module (`daemon_state.py`, `daemon_page_queue.py`, `daemon/ast_cache.py`, a new shared `canonicalize_llm_base_url()` in `llm_url_policy.py`, `alias_index.py`). ([#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216))
+- **`MasterCatalog` write-safety ([#210](https://github.com/MarcoPorcellato/matryca-plumber/issues/210) / [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211))** — `remove()` followed by `upsert()` of the same title no longer loses the entry on `save()` (`upsert` clears a pending removal); corrupt / non-dict catalog JSON is logged and quarantined during merge-save instead of silently treated as empty; `prune_missing_pages()` records its removals so a plain save cannot undo a prune; `get_case_insensitive` uses a cached casefold index (invalidated on write) instead of a full linear scan under the lock.
+- **File watcher ([#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211))** — handles `on_moved` events (rename routed as delete+create); replaced per-file `threading.Timer` fan-out with a single-thread debounce scheduler.
+- **Leaf-module import cycles ([#215](https://github.com/MarcoPorcellato/matryca-plumber/issues/215) / [#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216))** — 4 of 5 deferred-import cycles resolved by relocating symbols to their true lowest-layer home: `DaemonState` / phase-2 progress metrics from `daemon_state.py` / `daemon_page_queue.py` (not via `maintenance_daemon` re-exports); lint handlers use `daemon.ast_cache` directly; shared `canonicalize_llm_base_url()` in `llm_url_policy.py`; `resolve_existing_page_title` moved to `alias_index.py`. One Tana cycle left intentional (test monkeypatch constraint).
+
+### Added
+
+- **Graph → rag boundary guard ([#171](https://github.com/MarcoPorcellato/matryca-plumber/issues/171) / [#192](https://github.com/MarcoPorcellato/matryca-plumber/pull/192))** — `tests/test_graph_layer_boundary.py` forbids `src/graph/` → `src/rag/` imports in CI; allowlists `generational_cache.py` (lazy `tokenize` import) for a follow-up extraction. Thanks to @Maqbool61.
+- **Env clamp-contract tests ([#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173) / [#187](https://github.com/MarcoPorcellato/matryca-plumber/pull/187))** — parametrized contracts for `MATRYCA_LINK_VERIFY_STRIKES` / `BATCH` / `TIMEOUT` and `MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS` (bounds, invalid strings, empty → defaults). Thanks to @Maqbool61.
+- **Deep code audit report** — [`docs/AUDIT_REPORT_2026-07-16.md`](docs/AUDIT_REPORT_2026-07-16.md) with F1–F11 findings, remediation status, and Mermaid architecture / sequence diagrams; CONTRIBUTING and good-first guides gain matching lifecycle diagrams.
+
+### Changed
+
+- **Shared `env_parse` adoption (Tier F)** — `concurrency_probe` uses `env_bool("MATRYCA_ALLOW_FLOCK_DEGRADATION")` instead of a private helper ([#172](https://github.com/MarcoPorcellato/matryca-plumber/issues/172) / [#188](https://github.com/MarcoPorcellato/matryca-plumber/pull/188)); `plumber_config` drops the `_env_int` shim so agent modules call `utils.env_parse.env_int` directly ([#170](https://github.com/MarcoPorcellato/matryca-plumber/issues/170) / [#191](https://github.com/MarcoPorcellato/matryca-plumber/pull/191)). Thanks to @Maqbool61.
+- **Dependencies** — Sovereign UI frontend npm group bumps ([#190](https://github.com/MarcoPorcellato/matryca-plumber/pull/190), [#218](https://github.com/MarcoPorcellato/matryca-plumber/pull/218)); `astral-sh/setup-uv` in the github-actions Dependabot group ([#189](https://github.com/MarcoPorcellato/matryca-plumber/pull/189), [#195](https://github.com/MarcoPorcellato/matryca-plumber/pull/195)).
+- **Documentation** — README star-history section and duplicate header fix; docs aligned to post-audit code state; `PROJECT_DIARY` records F1–F11 remediation.
 
 ## [1.13.1] - 2026-07-02
 
