@@ -10,6 +10,30 @@ Entries are chronological (**newest first** within each major release block). Wh
 
 ---
 
+## [2026-07-16] Deep code audit remediation
+
+### Context
+
+A deep code audit (see [`AUDIT_REPORT_2026-07-16.md`](AUDIT_REPORT_2026-07-16.md)) surfaced 11 findings (F1–F11) spanning catalog write-safety bugs, a file-watcher gap, five deferred-import cycles, three god-modules, dead-symbol candidates, and a CI security gap. Findings were triaged by severity and fixed in two PRs.
+
+### Shipped
+
+1. **Catalog write-safety (F1–F7)** — [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211), merged. Fixes the `remove()`→`upsert()` resurrection-deletion bug, stops treating a corrupt catalog as empty during merge (quarantine + warn instead), records `prune_missing_pages()` removals, handles `on_moved` in the file watcher, replaces per-file `threading.Timer` fan-out with a single-thread scheduler, narrows a `BaseException` catch, and caches the casefold index for `get_case_insensitive`.
+2. **Leaf-module dependency direction (F8)** — [#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216), merged. Relocated 4 of 5 deferred-import cycles to their true lowest-layer home (`DaemonState`/`compute_phase2_progress_metrics`, `handle_lint_block_refs`, a new shared `canonicalize_llm_base_url()`, `resolve_existing_page_title`). The `tana/graph.py` ↔ `tana/load.py` cycle stays deferred — a test monkeypatches `load_mod.load_tana_nodes_by_id`, which pins the function to the `load` module.
+3. **Not split now (F9)** — three god-module split issues opened ([#212](https://github.com/MarcoPorcellato/matryca-plumber/issues/212), [#213](https://github.com/MarcoPorcellato/matryca-plumber/issues/213), [#214](https://github.com/MarcoPorcellato/matryca-plumber/issues/214)) but deliberately not split this round.
+4. **Dead-symbol candidates verified, none removed (F10)** — [#217](https://github.com/MarcoPorcellato/matryca-plumber/issues/217), closed. Every named candidate traced back to a real caller (registry dispatch, backward-compat aliasing, a regex closure, or a re-export) — the audit's own no-outgoing-edge heuristic false-positived on all of them.
+5. **PDG-enabled CI security gate not wired (F11)** — [#219](https://github.com/MarcoPorcellato/matryca-plumber/issues/219), tracked for a future release.
+
+### Semver
+
+| Decision | Rationale |
+|----------|-----------|
+| No version bump | Internal correctness/maintainability fixes; no public API or CLI/MCP surface change |
+
+**Suite:** ruff clean · mypy strict, no issues · targeted pytest (117 tests across touched modules) green.
+
+---
+
 ## [2026-07-02] v1.13.1 — Logseq Matryca Parser 1.6.0 alignment
 
 ### Context

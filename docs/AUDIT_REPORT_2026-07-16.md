@@ -127,3 +127,16 @@ Full suite (`pytest -q -o addopts=""`, coverage gate disabled for speed): **987 
 | 10 | Verify/remove the F10 dead-symbol candidates | F10 | S | Dead code |
 
 *Report generated incrementally during the audit; sections 1–6 were written as each analysis phase completed, §7 after the background test run finished.*
+
+## 9. Remediation status (as of 2026-07-16)
+
+| Finding | Status | Where |
+|---|---|---|
+| F1, F3 | Fixed | PR [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211), merged |
+| F2 | Fixed | PR [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211), merged |
+| F4, F5 | Fixed | PR [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211), merged |
+| F6, F7 | Fixed | PR [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211), merged |
+| F8 | Fixed (4 of 5 cycles) | PR [#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216), merged. The `tana/graph.py` ↔ `tana/load.py` cycle is intentionally kept — a test monkeypatches `load_mod.load_tana_nodes_by_id`, which requires the function to stay an attribute of the `load` module. |
+| F9 | Tracked, not split | Issues [#212](https://github.com/MarcoPorcellato/matryca-plumber/issues/212) (`maintenance_daemon.py`), [#213](https://github.com/MarcoPorcellato/matryca-plumber/issues/213) (`ui_server.py`), [#214](https://github.com/MarcoPorcellato/matryca-plumber/issues/214) (`llm_client.py`) — split deferred by design choice |
+| F10 | Verified, no action needed | Issue [#217](https://github.com/MarcoPorcellato/matryca-plumber/issues/217), closed. All named candidates are false positives from the no-outgoing-edge heuristic (registry dispatch, backward-compat aliasing, regex closures, re-exports). |
+| F11 | Tracked, not wired | Issue [#219](https://github.com/MarcoPorcellato/matryca-plumber/issues/219) — PDG-enabled CI gate recommended, not yet implemented |

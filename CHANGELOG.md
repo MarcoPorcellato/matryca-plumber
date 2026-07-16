@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+
+- **`MasterCatalog` write-safety** — `remove()` followed by `upsert()` of the same title no longer loses the entry on `save()`; corrupt catalogs are quarantined and logged instead of silently merged as empty; `prune_missing_pages()` now records its removals; `get_case_insensitive` caches its casefold index instead of rebuilding it under the lock. ([#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211))
+- **File watcher** — handles `on_moved` events (rename-as-delete+create); replaced per-file `threading.Timer` fan-out with a single-thread debounce scheduler. ([#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211))
+- **Leaf-module import cycles** — 4 of 5 deferred-import cycles resolved by relocating symbols to their true lowest-layer module (`daemon_state.py`, `daemon_page_queue.py`, `daemon/ast_cache.py`, a new shared `canonicalize_llm_base_url()` in `llm_url_policy.py`, `alias_index.py`). ([#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216))
+
 ## [1.13.1] - 2026-07-02
 
 **Logseq Matryca Parser 1.6.0 alignment**
