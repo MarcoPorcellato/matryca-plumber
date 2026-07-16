@@ -1,5 +1,17 @@
 # Good First Issues — Contributor Blueprints
 
+```mermaid
+flowchart TD
+  Start(["Pick a first PR"]) --> Diff{"Difficulty\ncomfort?"}
+  Diff -->|"1-2/10, mechanical"| TierF["Tier F\n#168-#173\nenv_parse DRY / boundary tests"]
+  Diff -->|"3/10, extract-method"| TierG["Tier G\n#220-#239\ncomplexity slices"]
+  Diff -->|"varies"| Other["#43, #52, #114\n#125-#129"]
+  TierF --> Verify["Run the issue's Verify block\n+ make check"]
+  TierG --> Verify
+  Other --> Verify
+  Verify --> PR(["Open PR, link Closes #N"])
+```
+
 **Updated 2026-07-16 (Tier G added)** — pass 4 closed #97 (OCC filesystem docs); pass 3 closed #38, #113; pass 2 closed #42, #91, #92; pass 1 closed 33 audit issues ([`docs/quality/ISSUE_TRIAGE_2026-07-01.md`](docs/quality/ISSUE_TRIAGE_2026-07-01.md)). **Tier D** [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129). **Tier F** [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173). **Tier G** (complexity slices, 2026-07-16 deep audit) [#220](https://github.com/MarcoPorcellato/matryca-plumber/issues/220)–[#239](https://github.com/MarcoPorcellato/matryca-plumber/issues/239). F10 dead-symbol check from the same audit closed with no removal needed (#206, duplicate #217).
 
 **Active good-first candidates:** #43, #52, [#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114), [#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125)–[#129](https://github.com/MarcoPorcellato/matryca-plumber/issues/129), **Tier F** [#168](https://github.com/MarcoPorcellato/matryca-plumber/issues/168)–[#173](https://github.com/MarcoPorcellato/matryca-plumber/issues/173), **Tier G** [#220](https://github.com/MarcoPorcellato/matryca-plumber/issues/220)–[#239](https://github.com/MarcoPorcellato/matryca-plumber/issues/239). Start with [`docs/FIRST_CONTRIBUTION.md`](docs/FIRST_CONTRIBUTION.md); welcome comments on each GitHub thread.

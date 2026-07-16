@@ -29,11 +29,56 @@ Functional areas by symbol count / cohesion: Graph (576 / 70%), Agent (475 / 71%
 
 Any change to these must go through impact analysis first (per CLAUDE.md policy); they concentrate the write-safety of the whole system.
 
+```mermaid
+flowchart LR
+  callers["~150 call sites\nacross Agent, CLI, Daemon"]
+
+  subgraph hubs ["Write-safety hubs (src/graph/)"]
+    RGFT["read_graph_file_text\npath_sandbox.py\nfan-in 54"]
+    LMC["load_master_catalog\nmaster_catalog.py\nfan-in 40"]
+    AWB["atomic_write_bytes\nmarkdown_blocks.py\nfan-in 35"]
+    PRL["page_rmw_lock\npage_write_lock.py\nfan-in 34"]
+    UPS["MasterCatalog.upsert / save\nmaster_catalog.py\nfan-in 30 / 20"]
+    FLOCK["cross_process_json_flock\njson_flock.py\nfan-in 27"]
+  end
+
+  Vault[("LOGSEQ_GRAPH_PATH\nmaster_catalog.json + pages/")]
+
+  callers --> RGFT & LMC & AWB & PRL & UPS & FLOCK
+  RGFT --> Vault
+  LMC --> Vault
+  AWB --> Vault
+  PRL --> FLOCK
+  UPS --> FLOCK
+  FLOCK --> Vault
+```
+
 ## 2. Correctness findings (bugs)
 
 ### F1 — HIGH: `MasterCatalog.remove()` then `upsert()` of the same title is lost on `save()`
 `src/graph/master_catalog.py:157-164` — `save(replace=False)` first merges `pending` (which contains the re-added entry) into disk state, **then** pops every title in `_pending_removals`. A `remove("X")` followed by `upsert("X", …)` therefore deletes X from disk even though the in-memory catalog holds it. Worse, line 178 then sets `self.pages = merged_pages`, silently dropping the entry from memory too.
 **Fix:** in `upsert()`, discard the title from `_pending_removals` under the lock; or apply removals *before* merging pending rows in `save()`.
+
+```mermaid
+sequenceDiagram
+  participant Caller
+  participant Catalog as MasterCatalog (in-memory)
+  participant Disk as master_catalog.json
+
+  Caller->>Catalog: remove("X")
+  Note right of Catalog: _pending_removals = {"X"}
+  Caller->>Catalog: upsert("X", row)
+  Note right of Catalog: pending["X"] = row<br/>(before fix: _pending_removals still has "X")
+  Caller->>Catalog: save(replace=False)
+  Catalog->>Disk: merge pending into disk state
+  Note over Disk: X is written back
+  Catalog->>Disk: pop every title in _pending_removals
+  Note over Disk: X deleted again ❌
+  Catalog->>Catalog: self.pages = merged_pages
+  Note over Catalog: X dropped from memory too ❌
+```
+
+**After the fix** (PR #211): `upsert()` discards the title from `_pending_removals` under the lock, so the `remove()`→`upsert()` sequence never reaches `save()` with a stale removal — X survives.
 
 ### F2 — HIGH: corrupt catalog silently treated as empty during merge
 `src/graph/master_catalog.py:264-274` — `_load_catalog_pages_unlocked` returns `{}` on `BoundedJsonError` or non-dict payload. Under `save(replace=False)` this means a transiently corrupt/truncated `master_catalog.json` is merged as if the disk were empty: rows written by other processes since this process's load are permanently dropped, with no log line and no quarantine (the `_quarantine_corrupt_catalog` path exists but is not used here).
@@ -70,6 +115,45 @@ Any change to these must go through impact analysis first (per CLAUDE.md policy)
 All are currently defused with function-local (deferred) imports — no runtime crash — but each is a dependency-direction smell: `utils/` importing from `agent/` (cycle 4) inverts the layering, and cycle 1 shows the progress-reporting module reaching back into the daemon for both a type (`DaemonState`) and a metric function. Note the metric function also appears as `compute_phase2_progress_metrics` in `daemon_page_queue.py` (see F10). **Fix:** extract the shared pieces (the `DaemonState` protocol, the metrics function, the URL-policy validator) into leaf modules both sides import.
 
 > **Re-check (2026-07-16, post-remediation):** cycles 1, 2, 4, 5 are gone after PR #216 (cycle 3 kept deliberately, see §9). A fresh structural check found 2 cycles **not in this original list**, pre-existing and out of scope for F8: `agent/dispatch_mutate_handlers.py ↔ agent/graph_dispatch.py` and `graph/page_path.py ↔ graph/path_sandbox.py`. Tracked as a follow-up in [#240](https://github.com/MarcoPorcellato/matryca-plumber/issues/240) rather than silently left undocumented.
+
+```mermaid
+flowchart LR
+  classDef fixed fill:#d4f7d4,stroke:#2c7a2c
+  classDef kept fill:#fff3cd,stroke:#a67c00
+  classDef new fill:#f8d7da,stroke:#a12b2b
+
+  subgraph c1 [Cycle 1 — fixed, PR #216]
+    A1["control_room_progress.py"] -->|"deferred import"| A2["maintenance_daemon.py"]
+    A2 -.->|"re-exports from"| A3["daemon_state.py / daemon_page_queue.py"]
+  end
+  class c1 fixed
+
+  subgraph c2 [Cycle 2 — fixed, PR #216]
+    B1["dispatch_lint_handlers.py"] -->|"deferred import"| B2["graph_dispatch.py"]
+  end
+  class c2 fixed
+
+  subgraph c3 [Cycle 3 — kept on purpose]
+    C1["tana/graph.py"] -->|"deferred import\n(test monkeypatch pins symbol)"| C2["tana/load.py"]
+  end
+  class c3 kept
+
+  subgraph c4 [Cycle 4 — fixed, PR #216]
+    D1["plumber_config.py"] -->|"deferred import"| D2["llm_url_policy.py"]
+  end
+  class c4 fixed
+
+  subgraph c5 [Cycle 5 — fixed, PR #216]
+    E1["alias_index.py"] -->|"deferred import"| E2["page_path.py"]
+  end
+  class c5 fixed
+
+  subgraph c6 [New — found post-remediation, issue #240]
+    F1["dispatch_mutate_handlers.py"] --> F2["graph_dispatch.py"]
+    G1["page_path.py"] --> G2["path_sandbox.py"]
+  end
+  class c6 new
+```
 
 ### F9 — Oversized god-modules
 `maintenance_daemon.py` (1,274 LOC), `ui_server.py` (1,161), `llm_client.py` (1,119), plus six more files over 600 LOC. Combined with 104 ruff complexity findings (C901/PLR0912/PLR0915) concentrated in `property_line_edit.py` (7), `link_verification.py` (6), `semantic_clustering.py` (5), `bootstrap_harvest.py` (5), `maintenance_daemon.py` (5), these are the highest-defect-density candidates. The daemon modularization started in 1.13.0 (per changelog) should continue: `llm_client.py` cleanly splits into transport/retry, JSON-salvage, and prompt-assembly layers that already exist as distinct regions of the file.
