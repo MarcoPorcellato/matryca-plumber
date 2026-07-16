@@ -103,6 +103,7 @@ class MasterCatalog:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
     persist_allowed: bool = True
     _pending_removals: set[str] = field(default_factory=set, repr=False, compare=False)
+    _casefold_index: dict[str, str] | None = field(default=None, repr=False, compare=False)
 
     @staticmethod
     def catalog_path(graph_root: Path) -> Path:
@@ -176,6 +177,7 @@ class MasterCatalog:
             )
         with self._lock:
             self.pages = merged_pages
+            self._casefold_index = None
             self.updated_at = updated_at
             self._pending_removals.clear()
         cache_key = str(self.graph_root.expanduser().resolve(strict=False))
@@ -185,6 +187,8 @@ class MasterCatalog:
     def upsert(self, page_title: str, entry: CatalogEntry) -> None:
         with self._lock:
             self.pages[page_title] = entry
+            self._pending_removals.discard(page_title)
+            self._casefold_index = None
 
     def get(self, page_title: str) -> CatalogEntry | None:
         with self._lock:
@@ -197,10 +201,13 @@ class MasterCatalog:
             if entry is not None:
                 return page_title, entry
             fold = page_title.casefold()
-            for title, row in self.pages.items():
-                if title.casefold() == fold:
-                    return title, row
-            return None
+            if self._casefold_index is None:
+                self._casefold_index = {title.casefold(): title for title in self.pages}
+            canonical = self._casefold_index.get(fold)
+            if canonical is None:
+                return None
+            row = self.pages.get(canonical)
+            return None if row is None else (canonical, row)
 
     def rebuild_alias_index(self) -> None:
         """Refresh the in-memory alias map from ``alias::`` frontmatter across the graph."""
@@ -228,6 +235,7 @@ class MasterCatalog:
         with self._lock:
             self.pages.pop(page_title, None)
             self._pending_removals.add(page_title)
+            self._casefold_index = None
 
     def needs_refresh(self, page_title: str, mtime_ns: int) -> bool:
         """Return True when the on-disk page is newer than the catalog row."""
@@ -247,6 +255,9 @@ class MasterCatalog:
             stale = [title for title in self.pages if title not in live_titles]
             for title in stale:
                 del self.pages[title]
+                self._pending_removals.add(title)
+            if stale:
+                self._casefold_index = None
             alias_purged = 0
             orphan_keys = [
                 key for key, title in self.alias_to_page.items() if title not in live_titles
@@ -262,16 +273,45 @@ def _catalog_backup_path(catalog_path: Path) -> Path:
 
 
 def _load_catalog_pages_unlocked(path: Path, root: Path) -> dict[str, CatalogEntry]:
-    """Read catalog page rows from disk without acquiring flock."""
+    """Read catalog page rows from disk without acquiring flock.
+
+    Caller already holds the cross-process flock on ``path``, so corruption
+    handling here must not re-acquire it.
+    """
     if not path.is_file():
         return {}
     try:
         payload = read_bounded_json(path)
-    except BoundedJsonError:
+    except BoundedJsonError as exc:
+        logger.warning(
+            "[METADATA CORRUPTION DETECTED] Unreadable master catalog at {} during merge-save: {}",
+            path,
+            exc,
+        )
+        _quarantine_or_warn(path)
         return {}
     if not isinstance(payload, dict):
+        logger.warning(
+            "[METADATA CORRUPTION DETECTED] Non-dict master catalog payload at {} (merge-save)",
+            path,
+        )
+        _quarantine_or_warn(path)
         return {}
     return dict(MasterCatalog.from_json(root, payload).pages)
+
+
+def _quarantine_or_warn(path: Path) -> None:
+    try:
+        quarantined = _quarantine_corrupt_catalog(path)
+        logger.warning(
+            "[METADATA CORRUPTION DETECTED] Quarantined malformed catalog to {}",
+            quarantined,
+        )
+    except OSError as move_exc:
+        logger.warning(
+            "[METADATA CORRUPTION DETECTED] Could not quarantine catalog: {}",
+            move_exc,
+        )
 
 
 def _merge_catalog_page_deltas(
