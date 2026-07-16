@@ -1108,7 +1108,7 @@ wheels = [
 
 [[package]]
 name = "matryca-plumber"
-version = "1.13.1"
+version = "1.14.0"
 source = { editable = "." }
 dependencies = [
     { name = "edn-format" },
