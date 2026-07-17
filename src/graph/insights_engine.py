@@ -7,6 +7,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from loguru import logger
 
 from .alias_index import iter_alias_source_paths, page_title_from_path
 from .cognitive_llm import GraphInsightsLLMResult, InsightsLLM
@@ -393,6 +394,10 @@ def run_graph_insights_engine(
             llm_result = llm.generate_graph_insights(metrics_json=payload, graph_root=root)
             llm_used = True
         except Exception:  # noqa: BLE001 - fallback to deterministic report
+            logger.warning(
+                "Graph Insights LLM call failed — falling back to deterministic report",
+                exc_info=True,
+            )
             llm_result = _fallback_insights(metrics)
     else:
         llm_result = _fallback_insights(metrics)

@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Graph Insights silent LLM fallback ([#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114))** — `run_graph_insights_engine` now emits `logger.exception(...)` before falling back to `_fallback_insights(metrics)` when `llm.generate_graph_insights` raises; `llm_used=False` semantics unchanged. Operators can distinguish LLM-enriched vs deterministic insights in logs.
+
 ## [2.0.0-alpha.4] - 2026-07-19
 
 **v2.0.0-alpha.4** — Shadow FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)) after **v2.0.0-alpha.3**. Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) audit probe corrected in [#287](https://github.com/MarcoPorcellato/matryca-plumber/pull/287)). **Not an RC** — Axes 5–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.3`** / PyPI **`2.0.0a3`** for new installs; prior alphas remain on PyPI (not yanked).
