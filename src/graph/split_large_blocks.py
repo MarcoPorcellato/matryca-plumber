@@ -61,6 +61,41 @@ class SplitLargeBlocksResult:
         }
 
 
+def _find_preceding_bullet_idx(stripped: list[str], id_line_idx: int) -> int | None:
+    """Return the nearest bullet line index above ``id_line_idx``, or ``None``."""
+    for j in range(id_line_idx - 1, -1, -1):
+        if _BULLET.match(stripped[j]):
+            return j
+    return None
+
+
+def _eligible_split_sentences(
+    stripped: list[str],
+    bullet_idx: int,
+    id_line_idx: int,
+    *,
+    min_chars: int,
+    protected: set[int],
+) -> list[str] | None:
+    """Return split sentences for the bullet body, or ``None`` if it can't be split."""
+    bm = _BULLET.match(stripped[bullet_idx])
+    if not bm:
+        return None
+    body = bm.group(3).strip()
+    if bullet_first_line_refactor_blocked(body):
+        return None
+    if pre_id_block_lines_protected(stripped, bullet_idx, id_line_idx):
+        return None
+    if any(j in protected for j in range(bullet_idx, id_line_idx + 1)):
+        return None
+    if len(body) < min_chars:
+        return None
+    sents = _split_sentences(body)
+    if len(sents) < 2:
+        return None
+    return sents
+
+
 def _collect_candidates(
     stripped: list[str],
     *,
@@ -73,30 +108,19 @@ def _collect_candidates(
         mid = _ID_LINE.match(s)
         if not mid:
             continue
-        block_uuid = mid.group(1).lower()
-        bullet_idx: int | None = None
-        for j in range(i - 1, -1, -1):
-            bm = _BULLET.match(stripped[j])
-            if bm:
-                bullet_idx = j
-                break
+        bullet_idx = _find_preceding_bullet_idx(stripped, i)
         if bullet_idx is None:
             continue
-        bm = _BULLET.match(stripped[bullet_idx])
-        if not bm:
+        sents = _eligible_split_sentences(
+            stripped,
+            bullet_idx,
+            i,
+            min_chars=min_chars,
+            protected=protected,
+        )
+        if sents is None:
             continue
-        body = bm.group(3).strip()
-        if bullet_first_line_refactor_blocked(body):
-            continue
-        if pre_id_block_lines_protected(stripped, bullet_idx, i):
-            continue
-        if any(j in protected for j in range(bullet_idx, i + 1)):
-            continue
-        if len(body) < min_chars:
-            continue
-        sents = _split_sentences(body)
-        if len(sents) < 2:
-            continue
+        block_uuid = mid.group(1).lower()
         found.append((bullet_idx, i, block_uuid, sents))
     found.sort(key=lambda t: t[0], reverse=True)
     return found
