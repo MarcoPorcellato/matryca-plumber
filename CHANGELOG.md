@@ -3,6 +3,7 @@
 ### Added
 
 - **Shadow DB connection helper (#181)** — `open_shadow_db` / `shadow_db_path` open sandboxed `shadow.sqlite` under `.matryca_semantic_cache/` and apply schema DDL (Phase 2 infra; sync not wired yet).
+- **Shadow incremental sync (#182)** — `post_write` bridge upserts `pages`/`blocks` into `shadow.sqlite` after Markdown commits (read-only on vault files).
 
 ### Changed
 
