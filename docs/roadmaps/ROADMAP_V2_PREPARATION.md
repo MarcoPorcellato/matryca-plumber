@@ -15,13 +15,14 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 | Layer | Shipped | In tree (not fully operational) | Not wired yet |
 |-------|---------|----------------------------------|---------------|
 | **DDL** | [`src/shadow/schema.py`](../../src/shadow/schema.py) + tests | — | — |
-| **Shadow sync** | `open_shadow_db`, per-page `sync_page_to_shadow`, post-write bridge ([#181](https://github.com/MarcoPorcellato/matryca-plumber/issues/181)–[#182](https://github.com/MarcoPorcellato/matryca-plumber/issues/182)) | Full bootstrap/reconciliation ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176)) | — |
-| **Shadow query** | `search_blocks_fts` ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183)) | — | dispatch routing ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) |
+| **Shadow sync** | `open_shadow_db`, per-page `sync_page_to_shadow`, post-write bridge, bootstrap/reconciliation ([#181](https://github.com/MarcoPorcellato/matryca-plumber/issues/181)–[#182](https://github.com/MarcoPorcellato/matryca-plumber/issues/182), [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)) | — | — |
+| **Shadow query** | `search_blocks_fts` + FTS5 dispatch ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183), [#250](https://github.com/MarcoPorcellato/matryca-plumber/issues/250)) | — | — |
 | **Memory algorithms** | — | [`src/memory/decay.py`](../../src/memory/decay.py) | recall, consolidate, MCP `recall` |
-| **Repository port** | `GraphReadPort` + `MarkdownGraphRepository` (subtree) | — | shadow adapter + routing |
-| **Read path** | `master_catalog.json` + in-memory BM25; subtree via port | — | shadow routing |
+| **Repository port** | `GraphReadPort`, `MarkdownGraphRepository`, `ShadowGraphRepository`, subtree CTE routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), [#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253), [#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255)) | — | — |
+| **Read path** | Default: `master_catalog.json` + in-memory BM25; opt-in shadow FTS5/CTE when `MATRYCA_SHADOW_DB_ENABLED=true` ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | — | shadow default-on (rc) |
 | **Write path (OG)** | OCC + `.md` + `page_rmw_lock` | — | — |
 | **Write path (Logseq DB)** | — | — | official CLI/API bridge ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
+| **Operator health** | Sovereign UI `/api/state.shadow_db` ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)) | — | — |
 
 Child roadmaps: [`ROADMAP_V2_SHADOW_DB.md`](ROADMAP_V2_SHADOW_DB.md) · [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md) · [`../openspec/biological-memory.md`](../openspec/biological-memory.md).
 
@@ -44,8 +45,8 @@ flowchart LR
 |-------|------|-------------------|--------|
 | **0** | v1.9.12 prerequisites | Daemon/dispatch modular enough for shadow duty cycle; env_parse DRY; documented blockers closed or explicitly tracked | Phase 0 ([#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174)) **done** · [#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **done** · [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) **done** |
 | **1** | GraphRepository ports | `GraphReadPort` + `MarkdownGraphRepository`; `graph_dispatch` delegates at least one read method; parity tests; **default behavior unchanged** | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 1 ([#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175)) **done** (subtree + port) |
-| **2** | Shadow incremental sync | **Core shipped:** `open_shadow_db`, post-write upsert, FTS5 helper. **Operational completion pending:** bootstrap/reconciliation/freshness ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176)) | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) · [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176) **open** |
-| **3** | Read routing (alpha) | `MATRYCA_SHADOW_DB_ENABLED=false` default; FTS5/CTE behind flag; BM25/AST fallback when lag or disabled | Phase 3 issue · slices under #24 |
+| **2** | Shadow incremental sync | Bootstrap, reconciliation, runtime gating ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)) | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) · **done** |
+| **3** | Read routing (alpha) | `MATRYCA_SHADOW_DB_ENABLED=false` default; FTS5/CTE behind flag; BM25/AST fallback when lag or disabled; Sovereign UI health row | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) · **done** |
 | **4** | Memory + Logseq DB Safe-Sync | `MATRYCA_MEMORY_GRAPH_ENABLED`; `search_graph(method=recall)`; Logseq DB write via official CLI only | [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) · [#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139) · Phase 4 issue |
 
 ### Phase 0 — v1 prerequisites (blockers)
@@ -75,7 +76,7 @@ flowchart LR
 
 ### Phase 2 — Shadow sync (read-only on source)
 
-**Status:** core shipped (#181–#183); operational completion (bootstrap, reconciliation, runtime gating) tracked in [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176).
+**Status:** shipped ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248), #181–#183).
 
 - Sync listens on [`post_write`](../../src/graph/post_write.py) / file watcher — **never** writes to `pages/*.md` from shadow.
 - Path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (see schema).
@@ -84,13 +85,19 @@ flowchart LR
 
 ### Phase 3 — Alpha read routing
 
+**Status:** shipped ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) — PR-A/B/C1/C2/D on `main`).
+
 | Surface | v1 default | v2-alpha (`MATRYCA_SHADOW_DB_ENABLED=true`) |
 |---------|------------|---------------------------------------------|
 | `search_graph(bm25)` | generational BM25 | FTS5 shadow; fallback if stale |
 | `read_graph_data(subtree)` | parser + AST | recursive CTE on `blocks` |
 | `read_graph_data(page)` | `read_graph_file_text` | unchanged (source of truth) |
 
-Sovereign UI: shadow sync lag / last full sync (no `matryca doctor` — see `llms.txt` §2.3).
+Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`, page counts, `lag_pages`, `last_sync_error`). No `matryca doctor` — see `llms.txt` §2.5–§2.6.
+
+**Known alpha hardening (non-blocking):** [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251) duplicate block UUID pre-insert diagnostics — bootstrap fails safe; read paths fall back to Markdown/BM25.
+
+**Verify:** `uv run pytest tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py tests/test_shadow_state_api.py tests/test_ui_server.py -q`
 
 ### Phase 4 — Biological memory + Safe-Sync DB
 

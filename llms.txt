@@ -217,6 +217,20 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
+### 2.6 Shadow DB (v2.0.0-alpha — experimental, opt-in)
+
+Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
+
+| Env var | Default | When `true` |
+|---------|---------|-------------|
+| `MATRYCA_SHADOW_DB_ENABLED` | `false` | `search_graph(bm25)` prefers FTS5 on shadow; `read_graph_data(subtree)` prefers recursive CTE; **always falls back** to generational BM25 / parser+AST when flag is off, shadow is bootstrapping, stale, or errors |
+
+**Operator health (no `doctor`):** Sovereign UI `status` → sidebar **Shadow DB** row (sourced from `GET /api/state.shadow_db`: `state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`).
+
+**Agent default unchanged:** With flag unset/false, MCP/CLI behavior matches v1.14.x (BM25 + parser subtree). Enable only when explicitly testing v2 alpha on a vault backup.
+
+Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md` · Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
+
 ---
 
 ## 3. Zero-shot examples (small LLMs — copy exactly)
