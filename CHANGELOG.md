@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **Shadow DB connection helper (#181)** — `open_shadow_db` / `shadow_db_path` open sandboxed `shadow.sqlite` under `.matryca_semantic_cache/` and apply schema DDL (Phase 2 infra; sync not wired yet).
+
 ### Changed
 
 - **`env_str` migration for `MATRYCA_BM25_MODE` ([#169](https://github.com/MarcoPorcellato/matryca-plumber/issues/169) / [#194](https://github.com/MarcoPorcellato/matryca-plumber/pull/194))** — `_bm25_mode()` in `generational_cache.py` now reads `MATRYCA_BM25_MODE` via `env_str()` (strips + lowercases; empty → default) instead of a raw `os.environ.get`; `env_str` added to `src/utils/env_parse.py` and exported in `__all__`; `env_str` import hoisted to module level in `generational_cache.py`; loguru warning on unknown mode value. Tests added for unset/empty → default and value → stripped+lowercased. Thanks to @Maqbool61.
