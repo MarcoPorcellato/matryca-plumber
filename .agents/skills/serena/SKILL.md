@@ -169,4 +169,4 @@ Full parameter detail: [reference.md](reference.md).
 ## Related skills
 
 - **GitNexus** — execution-flow / call-graph impact before `src/` edits.
-- **`.agents/skills/serena/`** — same content for agent routers that load from `.agents/`.
+- Mirrored in `.cursor/skills/serena/` and `.agents/skills/serena/`; **`.cursor/skills/serena/` is canonical**.

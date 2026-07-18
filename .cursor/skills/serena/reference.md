@@ -1,7 +1,7 @@
 # Serena MCP — tool reference (matryca-plumber)
 
-MCP server: **`serena-matryca-plumber`**.  
-Source of truth for schemas: call `GetMcpTools` with `server: user-serena-matryca-plumber`.
+MCP server: **`serena-matryca-plumber`** (canonical for this repo).  
+Source of truth for schemas: `GetMcpTools` with `server: serena-matryca-plumber`.
 
 Official: https://oraios.github.io/serena/02-usage/040_workflow.html
 
