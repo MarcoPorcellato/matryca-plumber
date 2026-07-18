@@ -1,6 +1,6 @@
 # Matryca Plumber — System Architecture
 
-**Version:** 1.14.0 (catalog write-safety + leaf-module dependency direction + Tier F env_parse / graph→rag guards) · builds on 1.13.1 (parser 1.6.0 alignment + headless newline parity), 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
+**Version:** 2.0.0-alpha (Shadow DB opt-in read cache + duplicate UUID diagnostics) · builds on 1.14.0 (catalog write-safety + leaf-module dependency direction + Tier F env_parse / graph→rag guards), 1.13.1 (parser 1.6.0 alignment), 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
@@ -64,7 +64,7 @@ flowchart TB
   Locks --> Vault
 ```
 
-**Quality bar:** **974+** pytest targets passing (70% coverage gate on `src`), **Mypy strict** on `src` and `tests` with **zero `# type: ignore` in `src/`** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60)), Ruff lint/format clean via `make ci`; local iteration via `make test-fast` (`NUM_WORKERS` default `4`, no coverage, skips `tests/slow/`); slow perf tests via `make perf` (`pytest -m slow`). Maintainer gates: `make agents-check`, `make check-system-prompt`.
+**Quality bar:** **1117+** pytest targets passing (70% coverage gate on `src`), **Mypy strict** on `src` and `tests` with **zero `# type: ignore` in `src/`** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60)), Ruff lint/format clean via `make ci`; local iteration via `make test-fast` (`NUM_WORKERS` default `4`, no coverage, skips `tests/slow/`); slow perf tests via `make perf` (`pytest -m slow`). Maintainer gates: `make agents-check`, `make check-system-prompt`.
 
 **v1.8 focus:** Run indefinitely on a **16 GB CPU-only laptop** with **≤10k pages** — KV-cache-aligned prompts, bounded RAM, cooperative bootstrap I/O. See [Edge computing & performance (v1.8)](#edge-computing--performance-v18).
 
@@ -87,6 +87,8 @@ flowchart TB
 **v1.11.2 focus:** **Graph layer boundary refactor** — canonical graph primitives (`post_write`, `ast_cache`, `daemon_checkpoint`, cooperative yield, harvest runtime, prompt layout/constraints, cognitive LLM protocols) live in `src/graph/` with agent/daemon shims; `tests/test_graph_layer_boundary.py` forbids graph→agent/daemon imports ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134) closed). **Bounded RAM** — generational alias/BM25 LRU (`MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS`) and dual-embedding ondemand/resident modes (`MATRYCA_BLOCK_VECTOR_STORE_MODE`, `MATRYCA_BLOCK_VECTOR_STORE_MAX_GRAPHS`) ([#136](https://github.com/MarcoPorcellato/matryca-plumber/issues/136), [#51](https://github.com/MarcoPorcellato/matryca-plumber/issues/51) partial). **OCC nanosecond parity** — page writes use `st_mtime_ns` via `read_file_mtime_ns` ([#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) partial). **Shared env parsing** — `src/utils/env_parse.py`.
 
 **v1.14.0 focus:** **Catalog write-safety & leaf-module dependency direction** — `MasterCatalog` remove→upsert→save integrity, corrupt catalog quarantine, watcher `on_moved` + single debounce scheduler ([#210](https://github.com/MarcoPorcellato/matryca-plumber/issues/210) / [#211](https://github.com/MarcoPorcellato/matryca-plumber/pull/211)); 4/5 deferred import cycles resolved at the lowest layer ([#215](https://github.com/MarcoPorcellato/matryca-plumber/issues/215) / [#216](https://github.com/MarcoPorcellato/matryca-plumber/pull/216)); Tier F Clean Code closures `#170`–`#173` (shared `env_parse`, graph→rag CI guard, env clamp contracts). Audit SSOT: [`AUDIT_REPORT_2026-07-16.md`](AUDIT_REPORT_2026-07-16.md).
+
+**v2.0.0-alpha focus:** **Shadow DB read path (opt-in)** — daemon-owned `shadow.sqlite` under `.matryca_semantic_cache/`; bootstrap/reconciliation ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)); `MATRYCA_SHADOW_DB_ENABLED=false` default; when enabled and healthy, `search_graph(bm25)` prefers FTS5 and `read_graph_data(subtree)` prefers recursive CTE via `ShadowGraphRepository` + `get_graph_read_port`; generational BM25 and `MarkdownGraphRepository` fallback when flag is off, health is not `ready`, or SQLite errors; Sovereign UI `/api/state.shadow_db` telemetry ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)); bounded duplicate `block_uuid` diagnostics ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)). Spec: [`roadmaps/ROADMAP_V2_SHADOW_DB.md`](roadmaps/ROADMAP_V2_SHADOW_DB.md) · operator contract: [`llms.txt`](../llms.txt) §2.6.
 
 **v1.13.1 focus:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation; **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). Plumber `_headless_append_child` mirrors the **1.4.2** newline normalization.
 
@@ -1215,6 +1217,8 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | `src/agent/dispatch_lint_handlers.py` | `run_linter` handler registry |
 | `src/graph/ports/read.py` | `GraphReadPort` protocol (no `agent` imports) |
 | `src/agent/markdown_graph_repository.py` | Markdown `GraphReadPort` adapter |
+| `src/agent/shadow_graph_repository.py` | Shadow `GraphReadPort` adapter (FTS5 + CTE when healthy) |
+| `src/shadow/` | `shadow.sqlite` DDL, sync, FTS5, subtree CTE, health meta |
 | `src/graph/page_write_lock.py` | Per-page RMW lock + LRU registry; delegates OS flock to `platform_lock` |
 | `src/utils/platform_lock.py` | Shared cross-process flock: NB + backoff + reentrancy (v1.10.6) |
 | `src/graph/generated_hub_write.py` | OCC-safe Master Index / Graph Insights compile writes (v1.10.6) |
@@ -1259,6 +1263,7 @@ Background service: `matryca service install` → LaunchAgent / systemd user uni
 | **1.10.3** | UI/LLM hardening | Non-blocking Sovereign UI config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` |
 | **1.11.2** | Graph layer boundary + bounded RAM | `post_write` port ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)); graph canonical modules; generational + block-vector LRU; OCC `st_mtime_ns` page writes ([#153](https://github.com/MarcoPorcellato/matryca-plumber/issues/153) partial); `env_parse` shared helpers |
 | **1.14.0** | Catalog write-safety + cycles | `MasterCatalog` remove→upsert integrity; corrupt quarantine; watcher `on_moved`; leaf-module dependency direction; Tier F `#170`–`#173` |
+| **2.0.0-alpha** | Shadow DB read path | Opt-in `shadow.sqlite`; FTS5/CTE routing; Sovereign UI health; duplicate UUID diagnostics ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24), [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177), [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)) |
 | **1.13.1** | Parser 1.6.0 alignment | `logseq-matryca-parser>=1.6.0`; 1.4.2 splice/X-Ray fixes; 1.6.0 `iter_attached_nodes` / `is_tracked_markdown_path`; headless newline parity |
 | **1.13.0** | Daemon/dispatch modularization | `GraphReadPort`; `daemon_*` slices; `dispatch_*_handlers` ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58), [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)) |
 | **1.11.1** | Parser 1.4.0 alignment | `logseq-matryca-parser>=1.4.0`; canonical page iteration; case-insensitive tag/search; watcher delete/move; SYNAPSE embed safety |

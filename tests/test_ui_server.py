@@ -59,6 +59,7 @@ def test_get_state_returns_daemon_checkpoint(
         },
     )
     save_daemon_state(graph_root, state)
+    monkeypatch.delenv("MATRYCA_SHADOW_DB_ENABLED", raising=False)
     monkeypatch.setattr("src.cli.ui_server.read_pid_file", lambda _root: 4242)
     monkeypatch.setattr("src.cli.ui_server.is_plumber_process", lambda _pid: True)
 

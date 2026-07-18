@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Changed
+
+- **Documentation** — maintainer surfaces synced to **v2.0.0-alpha** (README, `ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/CLEAN_CODE_ARCHITECTURE.md`, `docs/PROJECT_DIARY.md`, v2 roadmaps, `v2_preparation_blueprints.md`, `docs/openspec/biological-memory.md`, `docs/releases/v2.0.0-alpha-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
+
+### Fixed
+
+- **UI server test isolation** — `test_get_state_returns_daemon_checkpoint` clears `MATRYCA_SHADOW_DB_ENABLED` so local env cannot flip `shadow_db` expectations.
+
 ## [2.0.0-alpha] - 2026-07-18
 
 **v2.0.0-alpha** — experimental Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED` (default off). Logseq Markdown on disk remains the system of record; generational BM25 and parser subtree reads are unchanged when the flag is unset or shadow health is not `ready`.
