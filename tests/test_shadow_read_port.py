@@ -152,6 +152,7 @@ def test_shadow_subtree_truncation_notice_preserved(tmp_path: Path) -> None:
     query = _query(block_id)
 
     original = query_subtree_by_block_uuid
+
     def _limited(
         conn: sqlite3.Connection,
         uuid: str,
