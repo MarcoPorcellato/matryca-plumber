@@ -17,6 +17,7 @@ from src.shadow.bootstrap import (
 )
 from src.shadow.config import shadow_db_enabled
 from src.shadow.connection import open_shadow_db, shadow_db_path
+from src.shadow.errors import ShadowSyncError
 from src.shadow.health import ShadowHealthState, resolve_shadow_health
 from src.shadow.meta import (
     META_GENERATION,
@@ -370,3 +371,71 @@ def test_startup_bootstrap_via_prepare_matryca_runtime(tmp_path: Path) -> None:
         assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "true"
     finally:
         conn.close()
+
+
+def test_rebuild_duplicate_block_uuid_cross_page_bounded_diagnostic(
+    tmp_path: Path,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    shared_uuid = "67684dfc-dddd-4ddd-8ddd-dddddddddddd"
+    secret_a = "super-secret-alpha-content"
+    secret_b = "super-secret-beta-content"
+    _write_page(
+        graph,
+        "pages/Alpha.md",
+        f"- alpha block\n  id:: {shared_uuid}\n  {secret_a}\n",
+    )
+    _write_page(
+        graph,
+        "pages/Beta.md",
+        f"- beta block\n  id:: {shared_uuid}\n  {secret_b}\n",
+    )
+
+    with pytest.raises(ShadowSyncError, match="duplicate block_uuid") as exc_info:
+        rebuild_shadow_from_graph(graph)
+
+    message = str(exc_info.value)
+    assert shared_uuid[:8] in message
+    assert "pages/Alpha.md" in message
+    assert "pages/Beta.md" in message
+    assert secret_a not in message
+    assert secret_b not in message
+    assert len(message) <= 200
+
+    conn = open_shadow_db(graph)
+    try:
+        sync_error = get_meta(conn, META_LAST_SYNC_ERROR) or ""
+        assert "duplicate block_uuid" in sync_error
+        assert secret_a not in sync_error
+        assert secret_b not in sync_error
+        assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) != "true"
+    finally:
+        conn.close()
+    assert resolve_shadow_health(graph) == ShadowHealthState.ERROR
+
+
+def test_incremental_sync_duplicate_block_uuid_raises_without_content_leak(
+    tmp_path: Path,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    shared_uuid = "abababab-abab-4aba-8aba-abababababab"
+    secret = "vault-secret-should-not-appear"
+    _write_page(
+        graph,
+        "pages/First.md",
+        f"- first\n  id:: {shared_uuid}\n",
+    )
+    rebuild_shadow_from_graph(graph)
+
+    second = _write_page(
+        graph,
+        "pages/Second.md",
+        f"- second\n  id:: {shared_uuid}\n  {secret}\n",
+    )
+    with pytest.raises(ShadowSyncError, match="duplicate block_uuid") as exc_info:
+        sync_page_to_shadow(graph, second)
+
+    message = str(exc_info.value)
+    assert "pages/First.md" in message
+    assert "pages/Second.md" in message
+    assert secret not in message

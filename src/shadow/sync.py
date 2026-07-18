@@ -22,6 +22,7 @@ from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
 from ..graph.post_write import PageWrittenEvent, register_page_written_handler
 from .config import shadow_db_enabled
 from .connection import open_shadow_db
+from .errors import ShadowSyncError, format_duplicate_block_uuid_error
 from .meta import META_LAST_INCREMENTAL_SYNC_AT, set_meta
 from .runtime_state import defer_sync_path, is_shadow_bootstrapping
 
@@ -79,6 +80,37 @@ def _walk_blocks(
             )
         )
     return rows
+
+
+def _preflight_block_uuids(
+    connection: sqlite3.Connection,
+    flat: list[tuple[str, str | None, int, int, str, dict[str, Any]]],
+    current_rel: str,
+) -> None:
+    """Reject duplicate ``block_uuid`` values before insert (no silent dedup)."""
+    if not flat:
+        return
+
+    seen_on_page: set[str] = set()
+    for block_uuid, *_rest in flat:
+        if block_uuid in seen_on_page:
+            raise ShadowSyncError(format_duplicate_block_uuid_error(block_uuid, [current_rel]))
+        seen_on_page.add(block_uuid)
+
+    placeholders = ",".join("?" * len(seen_on_page))
+    rows = connection.execute(
+        f"""
+        SELECT b.block_uuid, p.file_path
+        FROM blocks b
+        JOIN pages p ON b.page_id = p.page_id
+        WHERE b.block_uuid IN ({placeholders})
+        """,
+        tuple(seen_on_page),
+    ).fetchall()
+    for block_uuid, other_path in rows:
+        if other_path != current_rel:
+            paths = sorted({current_rel, str(other_path)})
+            raise ShadowSyncError(format_duplicate_block_uuid_error(block_uuid, paths))
 
 
 def delete_shadow_page_by_file_path(graph_root: Path | str, rel_path: str) -> None:
@@ -147,6 +179,7 @@ def sync_page_into_connection(
     if page_id <= 0:
         raise RuntimeError("shadow pages insert returned no page_id")
     flat = _walk_blocks(list(page.root_nodes or []), parent_uuid=None, sort_base=0)
+    _preflight_block_uuids(connection, flat, rel)
     uuid_to_rowid: dict[str, int] = {}
     for block_uuid, parent_uuid, sort_order, indent, content, props in flat:
         parent_rowid = uuid_to_rowid.get(parent_uuid) if parent_uuid else None
