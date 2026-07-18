@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from scripts.docs_knowledge_check import (
     build_default_entry,
     discover_inventory_paths,
@@ -175,3 +176,55 @@ def test_inventory_md_matches_generated_view() -> None:
     data = json.loads(INVENTORY_JSON.read_text(encoding="utf-8"))
     rendered = render_inventory_md(data)
     assert INVENTORY_MD.read_text(encoding="utf-8") == rendered
+
+
+def test_inventory_probe_drift_gate_lifecycle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Observation-phase gate: new legacy doc fails sync check until reconciled."""
+    import scripts.docs_knowledge_check as module
+
+    repo = tmp_path
+    knowledge = repo / "docs" / "knowledge"
+    knowledge.mkdir(parents=True)
+    (repo / "docs" / "existing.md").write_text("# Existing\n\nBaseline doc.\n", encoding="utf-8")
+
+    inventory_path = knowledge / "inventory.json"
+    inventory_md_path = knowledge / "inventory.md"
+    baseline_entry = build_default_entry("docs/existing.md")
+    payload = {
+        "schema_version": 1,
+        "scope": "repository-documentation",
+        "entries": [baseline_entry],
+    }
+    inventory_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    inventory_md_path.write_text(render_inventory_md(payload), encoding="utf-8")
+
+    monkeypatch.setattr(module, "ROOT", repo)
+    monkeypatch.setattr(module, "KNOWLEDGE_DIR", knowledge)
+    monkeypatch.setattr(module, "INVENTORY_JSON", inventory_path)
+    monkeypatch.setattr(module, "INVENTORY_MD", inventory_md_path)
+    monkeypatch.setattr(module, "ROOT_SURFACE_PATHS", ())
+
+    module.inventory_sync(check=True)
+
+    probe_path = repo / "docs" / "_inventory_probe.md"
+    probe_path.write_text("# Inventory probe\n\nTemporary observation fixture.\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit) as drift_exc:
+        module.inventory_sync(check=True)
+    assert drift_exc.value.code == 1
+
+    module.inventory_sync()
+    module.inventory_md()
+    module.inventory_md(check=True)
+
+    reconciled = json.loads(inventory_path.read_text(encoding="utf-8"))
+    probe_entry = next(
+        entry for entry in reconciled["entries"] if entry["path"] == "docs/_inventory_probe.md"
+    )
+    assert probe_entry.get("missing") is not True
+    assert probe_entry["title"] == "Inventory probe"
+
+    module.inventory_sync(check=True)
