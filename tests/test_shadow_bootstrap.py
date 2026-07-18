@@ -169,13 +169,78 @@ def test_interrupted_rebuild_preserves_prior_generation(tmp_path: Path) -> None:
 
     conn = open_shadow_db(graph)
     try:
-        assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "false"
+        assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "true"
+        assert get_meta(conn, META_GENERATION) == "1"
         assert "full rebuild failed" in (get_meta(conn, META_LAST_SYNC_ERROR) or "")
         titles = {row[0] for row in conn.execute("SELECT title FROM pages").fetchall()}
         assert titles == {"Safe"}
         assert resolve_shadow_health(graph) == ShadowHealthState.ERROR
     finally:
         conn.close()
+
+
+def test_prepare_matryca_runtime_flag_false_no_shadow_db(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
+    graph = _minimal_graph(tmp_path)
+    _write_page(graph, "pages/Quiet.md", "- quiet\n")
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+    assert not shadow_db_path(graph).exists()
+
+
+def test_prepare_matryca_runtime_flag_false_leaves_existing_db_untouched(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/Legacy.md",
+        "- legacy\n  id:: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        before = get_meta(conn, META_GENERATION)
+        page_count = conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0]
+    finally:
+        conn.close()
+
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
+    reset_shadow_bootstrap_checked_for_tests()
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+    conn = open_shadow_db(graph)
+    try:
+        assert get_meta(conn, META_GENERATION) == before
+        assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == page_count
+    finally:
+        conn.close()
+
+
+def test_prepare_matryca_runtime_survives_bootstrap_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    _write_page(graph, "pages/Ok.md", "- ok\n")
+    with patch(
+        "src.shadow.bootstrap.rebuild_shadow_from_graph",
+        side_effect=RuntimeError("bootstrap boom"),
+    ):
+        prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+
+def test_watchdog_errors_do_not_propagate(tmp_path: Path) -> None:
+    graph = _minimal_graph(tmp_path)
+    page = _write_page(graph, "pages/Wd.md", "- wd\n")
+    with patch(
+        "src.shadow.bootstrap.sync_page_to_shadow",
+        side_effect=RuntimeError("watchdog boom"),
+    ):
+        handle_shadow_watchdog_change(graph, page, "modified")
 
 
 def test_incompatible_schema_triggers_bootstrap(tmp_path: Path) -> None:
@@ -246,6 +311,38 @@ def test_concurrent_rebuild_defers_incremental_sync(tmp_path: Path) -> None:
         titles = {row[0] for row in conn.execute("SELECT title FROM pages").fetchall()}
         assert "Late" in titles
         assert "Base" in titles
+    finally:
+        conn.close()
+
+
+def test_concurrent_watchdog_and_post_write_replay_coherent_meta(tmp_path: Path) -> None:
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/Seed.md",
+        "- seed\n  id:: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\n",
+    )
+    rebuild_shadow_from_graph(graph)
+
+    from src.shadow.runtime_state import mark_bootstrapping
+
+    mark_bootstrapping(graph)
+    extra = _write_page(
+        graph,
+        "pages/Deferred.md",
+        "- deferred\n  id:: cccccccc-cccc-4ccc-8ccc-cccccccccccc\n",
+    )
+    handle_shadow_watchdog_change(graph, extra, "created")
+    sync_page_to_shadow(graph, extra)
+    rebuild_shadow_from_graph(graph)
+
+    conn = open_shadow_db(graph)
+    try:
+        assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "true"
+        assert get_meta(conn, META_LAST_SYNC_ERROR) == ""
+        assert int(get_meta(conn, META_SOURCE_PAGE_COUNT) or "0") == 2
+        assert int(get_meta(conn, META_INDEXED_PAGE_COUNT) or "0") == 2
+        assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == 2
     finally:
         conn.close()
 

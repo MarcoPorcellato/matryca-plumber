@@ -101,10 +101,10 @@ def rebuild_shadow_from_graph(graph_root: Path | str) -> None:
 
 
 def _record_rebuild_error(graph_root: Path, message: str) -> None:
+    """Persist rebuild failure without invalidating the last committed generation."""
     conn = open_shadow_db(graph_root)
     try:
         ensure_meta_defaults(conn)
-        set_meta(conn, META_LAST_FULL_SYNC_COMPLETED, "false")
         set_meta(conn, META_LAST_SYNC_ERROR, message)
         conn.commit()
     except Exception:  # noqa: BLE001 — best-effort error meta
@@ -132,9 +132,12 @@ def ensure_shadow_runtime_at_startup(graph_root: Path | str) -> None:
     key = str(root)
     if key in _BOOTSTRAP_CHECKED and not shadow_needs_bootstrap(root):
         return
-    if shadow_needs_bootstrap(root):
-        rebuild_shadow_from_graph(root)
-    _BOOTSTRAP_CHECKED.add(key)
+    try:
+        if shadow_needs_bootstrap(root):
+            rebuild_shadow_from_graph(root)
+        _BOOTSTRAP_CHECKED.add(key)
+    except Exception:  # noqa: BLE001 — must not block MCP/CLI/daemon startup
+        logger.exception("Shadow bootstrap failed for {}", root)
 
 
 def reset_shadow_bootstrap_checked_for_tests() -> None:
@@ -149,20 +152,23 @@ def handle_shadow_watchdog_change(
     """Sync or delete shadow rows after debounced external vault edits."""
     if not shadow_db_enabled():
         return
-    root = resolved_graph_root(graph_root)
-    safe = assert_path_within_graph(path, root)
-    if safe.suffix.lower() != ".md":
-        return
-    rel = safe.relative_to(root).as_posix()
-    if is_shadow_bootstrapping(root):
-        from .runtime_state import defer_sync_path
+    try:
+        root = resolved_graph_root(graph_root)
+        safe = assert_path_within_graph(path, root)
+        if safe.suffix.lower() != ".md":
+            return
+        rel = safe.relative_to(root).as_posix()
+        if is_shadow_bootstrapping(root):
+            from .runtime_state import defer_sync_path
 
-        defer_sync_path(root, rel)
-        return
-    if kind == "deleted":
-        delete_shadow_page_by_file_path(root, rel)
-        return
-    sync_page_to_shadow(root, safe)
+            defer_sync_path(root, rel)
+            return
+        if kind == "deleted":
+            delete_shadow_page_by_file_path(root, rel)
+            return
+        sync_page_to_shadow(root, safe)
+    except Exception:  # noqa: BLE001 — fail-safe like AST bridge
+        logger.exception("Shadow watchdog sync failed for {} ({})", path, kind)
 
 
 __all__ = [

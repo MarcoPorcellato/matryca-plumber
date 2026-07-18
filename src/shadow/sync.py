@@ -178,7 +178,7 @@ def sync_page_to_shadow(graph_root: Path | str, page_path: Path | str) -> None:
     """Parse ``page_path`` and upsert its rows into ``shadow.sqlite``.
 
     If the file is missing, remove the corresponding ``pages`` row by ``file_path``.
-  """
+    """
     if not shadow_db_enabled():
         return
     root = resolved_graph_root(graph_root)
