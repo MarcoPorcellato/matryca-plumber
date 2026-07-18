@@ -12,6 +12,7 @@ from ..graph.alias_index import iter_alias_source_paths
 from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
 from .config import shadow_db_enabled
 from .connection import open_shadow_db, shadow_db_path
+from .errors import ShadowSyncError
 from .meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_AT,
@@ -90,9 +91,10 @@ def rebuild_shadow_from_graph(graph_root: Path | str) -> None:
                 set_meta(conn, META_INDEXED_PAGE_COUNT, str(indexed))
                 set_meta(conn, META_LAST_SYNC_ERROR, "")
                 conn.commit()
-            except Exception:
+            except Exception as exc:
                 conn.rollback()
-                _record_rebuild_error(root, "full rebuild failed")
+                message = str(exc) if isinstance(exc, ShadowSyncError) else "full rebuild failed"
+                _record_rebuild_error(root, message)
                 raise
         finally:
             conn.close()

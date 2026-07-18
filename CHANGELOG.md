@@ -13,6 +13,10 @@
 - **Shadow DB health on Sovereign UI `/api/state` (#185)** — backward-compatible `shadow_db` row with persisted-meta fields (`state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`), bounded sanitized errors, and a minimal read-only telemetry row in the control room.
 - **Phase 3 alpha operator docs** — `llms.txt` §2.6 documents `MATRYCA_SHADOW_DB_ENABLED`; v2 roadmaps updated for shipped read routing ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)).
 
+### Fixed
+
+- **Shadow duplicate block UUID diagnostics (#251)** — pre-insert guard during bootstrap/incremental sync raises bounded `ShadowSyncError` with sanitized UUID and `file_path` values (no auto-dedup); bootstrap persists the message in `last_sync_error` and reports `error` health while read paths keep Markdown/BM25 fallback.
+
 ### Changed
 
 - **`env_str` migration for `MATRYCA_BM25_MODE` ([#169](https://github.com/MarcoPorcellato/matryca-plumber/issues/169) / [#194](https://github.com/MarcoPorcellato/matryca-plumber/pull/194))** — `_bm25_mode()` in `generational_cache.py` now reads `MATRYCA_BM25_MODE` via `env_str()` (strips + lowercases; empty → default) instead of a raw `os.environ.get`; `env_str` added to `src/utils/env_parse.py` and exported in `__all__`; `env_str` import hoisted to module level in `generational_cache.py`; loguru warning on unknown mode value. Tests added for unset/empty → default and value → stripped+lowercased. Thanks to @Maqbool61.
