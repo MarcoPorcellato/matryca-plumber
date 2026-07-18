@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Changed
+
+- **Documentation** — added `docs/knowledge/` OKF-inspired pilot bundle (`profile.md`, architecture system-overview, curated `inventory.json` + generated `inventory.md`) with `make docs-check` / `make docs-audit`; discovery index only — legacy `docs/ARCHITECTURE.md` and other canonical paths remain authoritative during Phase 1.
+
 ## [2.0.0-alpha.1] - 2026-07-18
 
 **v2.0.0-alpha.1** — Axis 1 hardening on the experimental Shadow DB read cache ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)). Supersedes **`v2.0.0-alpha`** / PyPI **`2.0.0a0`** for new installs; **`2.0.0a0` remains on PyPI** (not yanked).
