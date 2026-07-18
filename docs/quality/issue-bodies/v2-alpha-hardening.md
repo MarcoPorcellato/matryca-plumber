@@ -77,10 +77,14 @@ uvx matryca-plumber@2.0.0-alpha.2 --version   # expect 2.0.0-alpha.2 (PyPI 2.0.0
 
 ### Axis 4 — FTS5
 
-- [ ] Special chars, quotes, operators, Unicode
-- [ ] Very long queries
-- [ ] Limits and deterministic ordering
-- [ ] MCP/CLI envelope parity
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis4_fts5.py`).
+
+- [x] Special chars, quotes, operators, Unicode — **A4-QUERY-01..09 pass; A4-QUERY-05/07 xfail**
+- [x] Very long queries — **A4-QUERY-10 xfail (unbounded input)**
+- [x] Limits and deterministic ordering — **A4-RANK-01..04 pass**
+- [x] MCP/CLI envelope parity — **A4-CONTENT-06 / A4-FAIL envelope probes pass**
+- [x] FTS sync/index parity — **A4-SYNC-01..05 pass**
+- [x] Failure injection + fallback contract — **A4-FAIL-01..05 pass**
 
 ### Axis 5 — CTE subtree
 
@@ -149,6 +153,36 @@ uvx matryca-plumber@2.0.0-alpha.2 --version   # expect 2.0.0-alpha.2 (PyPI 2.0.0
 | A3-SURFACE-01 | 3 | MCP BM25 ≡ direct resolver envelope | — | `test_a3_surface_01_bm25_mcp_handler_matches_direct_resolver` | — | **pass** |
 | A3-SURFACE-02 | 3 | CLI subtree ≡ port; selector side-effect free | — | `test_a3_surface_02_subtree_handler_matches_port_and_selector_is_side_effect_free` | — | **pass** |
 | A3-HEALTH-FLIP | 3 | Health flip after port selection → Markdown fallback | — | `test_a3_health_change_between_port_selection_and_subtree_query` | — | **pass** |
+| A4-QUERY-05 | 4 | Unquoted hyphenated query → generational BM25 fallback | **P1** | `test_a4_query_05_hyphenated_phrase_no_generational_fallback` | [#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) | **open** |
+| A4-QUERY-07 | 4 | `cafe` misses indexed `caffè` | **P2** | `test_a4_query_07_unicode_diacritic_fold` | [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) | **open** |
+| A4-QUERY-10 | 4 | No bounded max FTS query length | **P2** | `test_a4_query_10_very_long_query_bounded` | [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) | **open** |
+| A4-QUERY-01 | 4 | Simple token match | — | `test_a4_query_01_simple_token` | — | **pass** |
+| A4-QUERY-02 | 4 | Multi-token implicit AND | — | `test_a4_query_02_multiple_tokens` | — | **pass** |
+| A4-QUERY-03 | 4 | Quoted phrase / hyphenated body | — | `test_a4_query_03_quoted_phrase` | — | **pass** |
+| A4-QUERY-04 | 4 | Boolean OR + parentheses | — | `test_a4_query_04_operators_and_parentheses` | — | **pass** |
+| A4-QUERY-06 | 4 | Apostrophe → validation error | — | `test_a4_query_06_apostrophe_raises_validation_not_sqlite` | — | **pass** |
+| A4-QUERY-08 | 4 | Whitespace-only → empty hits | — | `test_a4_query_08_whitespace_only_returns_empty` | — | **pass** |
+| A4-QUERY-09 | 4 | Unbalanced quotes rejected | — | `test_a4_query_09_invalid_syntax_validation_error` | — | **pass** |
+| A4-CONTENT-01 | 4 | Page title not FTS-indexed | — | `test_a4_content_01_block_body_indexed_not_page_title` | — | **pass** |
+| A4-CONTENT-02 | 4 | Block properties not FTS-indexed | — | `test_a4_content_02_properties_not_indexed` | — | **pass** |
+| A4-CONTENT-03 | 4 | Unicode body searchable | — | `test_a4_content_03_unicode_in_body` | — | **pass** |
+| A4-CONTENT-04 | 4 | Markdown punctuation in body | — | `test_a4_content_04_markdown_punctuation_in_body` | — | **pass** |
+| A4-CONTENT-05 | 4 | Multiline block content indexed | — | `test_a4_content_05_multiline_block_content` | — | **pass** |
+| A4-CONTENT-06 | 4 | Public envelope omits SQLite internals | — | `test_a4_content_06_public_envelope_omits_raw_db_paths` | — | **pass** |
+| A4-RANK-01 | 4 | BM25 relevance ordering | — | `test_a4_rank_01_bm25_ordering_higher_relevance_first` | — | **pass** |
+| A4-RANK-02 | 4 | Stable tie-break across connections | — | `test_a4_rank_02_tie_break_stable_across_connections` | — | **pass** |
+| A4-RANK-03 | 4 | Limit clamped [1, 500] | — | `test_a4_rank_03_limit_boundaries` | — | **pass** |
+| A4-RANK-04 | 4 | Zero hits → no generational fallback | — | `test_a4_rank_04_zero_hits_no_generational_fallback` | — | **pass** |
+| A4-SYNC-01 | 4 | Full rebuild ≡ incremental FTS rows | — | `test_a4_sync_01_full_rebuild_matches_incremental_create` | — | **pass** |
+| A4-SYNC-02 | 4 | Update removes stale FTS tokens | — | `test_a4_sync_02_update_removes_stale_tokens` | — | **pass** |
+| A4-SYNC-03 | 4 | Delete removes FTS hits | — | `test_a4_sync_03_delete_removes_hits` | — | **pass** |
+| A4-SYNC-04 | 4 | Rename → single FTS row | — | `test_a4_sync_04_rename_no_duplicate_hits` | — | **pass** |
+| A4-SYNC-05 | 4 | Repeated rebuild → no duplicate FTS rows | — | `test_a4_sync_05_repeated_rebuild_no_duplicate_fts_rows` | — | **pass** |
+| A4-FAIL-01 | 4 | Missing FTS table → single generational fallback | — | `test_a4_fail_01_missing_fts_table_falls_back_once` | — | **pass** |
+| A4-FAIL-02 | 4 | SQLite locked → generational fallback | — | `test_a4_fail_02_sqlite_locked_falls_back_to_generational` | — | **pass** |
+| A4-FAIL-03 | 4 | Health `error` skips shadow FTS | — | `test_a4_fail_03_health_not_ready_skips_shadow_fts` | — | **pass** |
+| A4-FAIL-04 | 4 | Validation errors bounded, no secret leak | — | `test_a4_fail_04_backend_exception_bounded_public_error` | — | **pass** |
+| A4-FAIL-05 | 4 | Writer lock → SQLite error, meta intact | — | `test_a4_fail_05_writer_lock_does_not_corrupt_fts_meta` | — | **pass** |
 
 ---
 
