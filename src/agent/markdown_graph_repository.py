@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..graph.path_sandbox import resolved_graph_root
 from ..graph.ports.read import GraphReadPort
 from ..rag.matryca_hooks import get_page_spatial_context
 from .graph_tool_helpers import read_subtree_markdown
+from .shadow_graph_repository import ShadowGraphRepository, shadow_read_port_ready
 
 
 class MarkdownGraphRepository:
@@ -20,8 +22,11 @@ class MarkdownGraphRepository:
 
 
 def get_graph_read_port(graph_root: Path | None = None) -> GraphReadPort:
-    """Return the active read port for ``graph_root`` (Markdown-only until shadow lands)."""
-    _ = graph_root
+    """Return the active read port for ``graph_root`` (shadow when healthy, else Markdown)."""
+    if graph_root is not None and shadow_read_port_ready(graph_root):
+        return ShadowGraphRepository()
+    if graph_root is not None:
+        _ = resolved_graph_root(graph_root)
     return MarkdownGraphRepository()
 
 
