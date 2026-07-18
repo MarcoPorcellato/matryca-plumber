@@ -35,6 +35,12 @@ from .schema import (
     SHADOW_SCHEMA_VERSION,
     apply_shadow_schema,
 )
+from .subtree import (
+    SubtreeBlock,
+    SubtreeQueryResult,
+    SubtreeStatus,
+    query_subtree_by_block_uuid,
+)
 from .sync import (
     delete_shadow_page_by_file_path,
     ensure_shadow_sync_bridge,
@@ -60,6 +66,9 @@ __all__ = [
     "BlockHit",
     "FtsQueryValidationError",
     "ShadowHealthState",
+    "SubtreeBlock",
+    "SubtreeQueryResult",
+    "SubtreeStatus",
     "apply_shadow_schema",
     "delete_shadow_page_by_file_path",
     "ensure_shadow_runtime_at_startup",
@@ -67,6 +76,7 @@ __all__ = [
     "format_shadow_fts_markdown",
     "handle_shadow_watchdog_change",
     "open_shadow_db",
+    "query_subtree_by_block_uuid",
     "rebuild_shadow_from_graph",
     "resolve_bm25_search_markdown",
     "resolve_shadow_health",
