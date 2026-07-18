@@ -12,6 +12,7 @@ from ..graph.path_sandbox import resolved_graph_root
 from ..utils.console_sanitize import sanitize_for_console
 from .config import shadow_db_enabled
 from .connection import shadow_db_path
+from .health import shadow_meta_matches_page_rows
 from .meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_AT,
@@ -82,10 +83,10 @@ def _last_full_sync_at(meta: dict[str, str | None]) -> str | None:
     return value or None
 
 
-def _read_meta_readonly(db_path: Path) -> dict[str, str | None]:
+def _read_meta_readonly(db_path: Path) -> tuple[dict[str, str | None], int]:
     connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
-        return {
+        meta = {
             META_SCHEMA_VERSION: get_meta(connection, META_SCHEMA_VERSION),
             META_LAST_SYNC_ERROR: get_meta(connection, META_LAST_SYNC_ERROR),
             META_LAST_FULL_SYNC_AT: get_meta(connection, META_LAST_FULL_SYNC_AT),
@@ -93,16 +94,24 @@ def _read_meta_readonly(db_path: Path) -> dict[str, str | None]:
             META_SOURCE_PAGE_COUNT: get_meta(connection, META_SOURCE_PAGE_COUNT),
             META_INDEXED_PAGE_COUNT: get_meta(connection, META_INDEXED_PAGE_COUNT),
         }
+        page_count = int(connection.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
+        return meta, page_count
     finally:
         connection.close()
 
 
-def _state_from_meta(meta: dict[str, str | None]) -> ShadowDbStateValue:
+def _state_from_meta(meta: dict[str, str | None], *, actual_page_count: int) -> ShadowDbStateValue:
     sync_error = (meta.get(META_LAST_SYNC_ERROR) or "").strip()
     if sync_error:
         return "error"
     completed = (meta.get(META_LAST_FULL_SYNC_COMPLETED) or "").strip().lower()
     if completed == "true":
+        if not shadow_meta_matches_page_rows(
+            indexed_page_count=meta.get(META_INDEXED_PAGE_COUNT),
+            source_page_count=meta.get(META_SOURCE_PAGE_COUNT),
+            actual_page_count=actual_page_count,
+        ):
+            return "stale"
         return "ready"
     return "stale"
 
@@ -139,7 +148,7 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
         return ShadowDbStateResponse(enabled=True, state="stale")
 
     try:
-        meta = _read_meta_readonly(db_path)
+        meta, page_count = _read_meta_readonly(db_path)
     except sqlite3.Error as exc:
         return ShadowDbStateResponse(
             enabled=True,
@@ -155,7 +164,7 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
             last_sync_error="Shadow schema version mismatch",
         )
 
-    state = _state_from_meta(meta)
+    state = _state_from_meta(meta, actual_page_count=page_count)
     sync_error = (meta.get(META_LAST_SYNC_ERROR) or "").strip()
     error = _bounded_error_message(sync_error) if state == "error" else None
     return _snapshot_from_meta(state=state, meta=meta, last_sync_error=error)
