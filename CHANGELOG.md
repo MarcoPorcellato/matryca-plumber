@@ -4,6 +4,7 @@
 
 - **Shadow DB connection helper (#181)** — `open_shadow_db` / `shadow_db_path` open sandboxed `shadow.sqlite` under `.matryca_semantic_cache/` and apply schema DDL (Phase 2 infra; sync not wired yet).
 - **Shadow incremental sync (#182)** — `post_write` bridge upserts `pages`/`blocks` into `shadow.sqlite` after Markdown commits (read-only on vault files).
+- **Shadow FTS5 query (#183)** — `search_blocks_fts` returns BM25-ranked `BlockHit` rows (not yet wired to MCP dispatch; Phase 3).
 
 ### Changed
 

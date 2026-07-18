@@ -1,6 +1,7 @@
 """Shadow DB (`shadow.sqlite`) — daemon-owned read cache and memory graph layer."""
 
 from .connection import open_shadow_db, shadow_db_path
+from .query import BlockHit, search_blocks_fts
 from .schema import (
     MEMORY_GRAPH_DDL,
     SHADOW_DDL,
@@ -19,9 +20,11 @@ __all__ = [
     "SHADOW_PRAGMAS",
     "SHADOW_READ_DDL",
     "SHADOW_SCHEMA_VERSION",
+    "BlockHit",
     "apply_shadow_schema",
     "ensure_shadow_sync_bridge",
     "open_shadow_db",
+    "search_blocks_fts",
     "shadow_db_path",
     "sync_page_to_shadow",
 ]
