@@ -85,10 +85,15 @@ def _walk_blocks(
 
 def _preflight_block_uuids(
     connection: sqlite3.Connection,
+    graph_root: Path,
     flat: list[tuple[str, str | None, int, int, str, dict[str, Any]]],
     current_rel: str,
 ) -> None:
-    """Reject duplicate ``block_uuid`` values before insert (no silent dedup)."""
+    """Reject duplicate ``block_uuid`` values before insert (no silent dedup).
+
+    When a UUID is owned by another ``file_path`` whose Markdown file no longer
+    exists (typical rename), drop the stale shadow page in the same transaction.
+    """
     if not flat:
         return
 
@@ -108,10 +113,17 @@ def _preflight_block_uuids(
         """,
         tuple(seen_on_page),
     ).fetchall()
+    stale_paths: set[str] = set()
     for block_uuid, other_path in rows:
-        if other_path != current_rel:
-            paths = sorted({current_rel, str(other_path)})
+        other_rel = str(other_path)
+        if other_rel == current_rel:
+            continue
+        if (graph_root / other_rel).is_file():
+            paths = sorted({current_rel, other_rel})
             raise ShadowSyncError(format_duplicate_block_uuid_error(block_uuid, paths))
+        stale_paths.add(other_rel)
+    for stale_rel in sorted(stale_paths):
+        connection.execute("DELETE FROM pages WHERE file_path = ?", (stale_rel,))
 
 
 def delete_shadow_page_by_file_path(graph_root: Path | str, rel_path: str) -> None:
@@ -156,6 +168,9 @@ def sync_page_into_connection(
     is_journal = 1 if _is_journal_relpath(rel) else 0
     props_json = _props_json(dict(page.properties or {}))
 
+    flat = _walk_blocks(list(page.root_nodes or []), parent_uuid=None, sort_base=0)
+    _preflight_block_uuids(connection, root, flat, rel)
+
     connection.execute(
         "DELETE FROM pages WHERE file_path = ? OR title = ?",
         (rel, title),
@@ -180,8 +195,6 @@ def sync_page_into_connection(
     page_id = int(cur.lastrowid or 0)
     if page_id <= 0:
         raise RuntimeError("shadow pages insert returned no page_id")
-    flat = _walk_blocks(list(page.root_nodes or []), parent_uuid=None, sort_base=0)
-    _preflight_block_uuids(connection, flat, rel)
     uuid_to_rowid: dict[str, int] = {}
     for block_uuid, parent_uuid, sort_order, indent, content, props in flat:
         parent_rowid = uuid_to_rowid.get(parent_uuid) if parent_uuid else None

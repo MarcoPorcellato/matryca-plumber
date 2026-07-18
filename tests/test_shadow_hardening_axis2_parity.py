@@ -369,10 +369,6 @@ def test_a2_watch_01_watchdog_crud_matches_incremental_sync(tmp_path: Path) -> N
     assert_full_rebuild_matches_incremental(graph, seed_files={}, ops=ops)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="A2-WATCH-02: stale shadow page owner on rename — #272",
-)
 def test_a2_watch_02_rename_file_path_parity(tmp_path: Path) -> None:
     """A2-WATCH-02: rename on disk converges to same shadow state as full rebuild."""
     graph = _minimal_graph(tmp_path)
