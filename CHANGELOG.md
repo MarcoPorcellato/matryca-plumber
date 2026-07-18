@@ -1,9 +1,24 @@
 ## [Unreleased]
 
-### Changed
+## [2.0.0-alpha.2] - 2026-07-18
 
-- **Documentation** — extended `docs/knowledge/architecture/` with experimental `graph-plane.md` and `shadow-db.md` pilots; added `legacy_sources` validation to `make docs-check`.
-- **Documentation** — added `docs/knowledge/` OKF-inspired pilot bundle (`profile.md`, architecture system-overview, curated `inventory.json` + generated `inventory.md`) with `make docs-check` / `make docs-audit`; discovery index only — legacy `docs/ARCHITECTURE.md` and other canonical paths remain authoritative during Phase 1.
+**v2.0.0-alpha.2** — Shadow DB hardening after **v2.0.0-alpha.1** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)): ships the **P1 rename stale-owner fix** ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272) / [#274](https://github.com/MarcoPorcellato/matryca-plumber/pull/274)) missing from PyPI **`2.0.0a1`**, plus Axis 2 parity and Axis 3 routing audit probes. **Not an RC** — Axes 4–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.1`** / PyPI **`2.0.0a1`** for new installs; **`2.0.0a0`–`2.0.0a1` remain on PyPI** (not yanked).
+
+### Fixed
+
+- **Shadow incremental rename stale page owner (#272 / #274)** — when a `block_uuid` is owned by another `file_path` whose Markdown file no longer exists (external rename), `sync_page_into_connection` deletes the stale shadow page in the same transaction before upserting blocks; true cross-page duplicates (both files on disk) still raise `ShadowSyncError`.
+- **Shadow cross-process writer coordination (#262)** — advisory `shadow.writer.flock` per graph root (shipped **v2.0.0-alpha.1**; included here for operators upgrading from PyPI **`2.0.0a0`** only).
+- **Shadow health meta/pages consistency (#264)** — `resolve_shadow_health` and `/api/state` no longer report `ready` when `shadow_meta` page counts diverge from the `pages` table (shipped **v2.0.0-alpha.1**).
+
+### Tests / Quality
+
+- **Axis 2 parity audit** — `tests/test_shadow_hardening_axis2_parity.py`: full rebuild ≡ incremental/watcher paths; **A2-WATCH-02** rename probe green after #274.
+- **Axis 3 routing & fallback audit** — `tests/test_shadow_hardening_axis3_routing.py`: **19 probes**, zero confirmed findings; flag/health gating, FTS/subtree fallback contracts, MCP/CLI surface parity.
+
+### Documentation
+
+- **OKF-inspired knowledge bundle (experimental)** — `docs/knowledge/` pilot bundle ([#268](https://github.com/MarcoPorcellato/matryca-plumber/pull/268)) and architecture Phase 2 pilots ([#270](https://github.com/MarcoPorcellato/matryca-plumber/pull/270)); `make docs-check` / `make docs-audit` gates; **`docs/ARCHITECTURE.md` remains SSOT** during observation ([#271](https://github.com/MarcoPorcellato/matryca-plumber/issues/271)).
+- **Maintainer surfaces** synced to **v2.0.0-alpha.2** (README, `ROADMAP.md`, `llms.txt`, `docs/ARCHITECTURE.md`, tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261), `docs/releases/v2.0.0-alpha.2-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
 
 ## [2.0.0-alpha.1] - 2026-07-18
 
