@@ -349,8 +349,11 @@ def main() -> None:
             [
                 *py,
                 "-c",
-                f"from pathlib import Path; from src.shadow.bootstrap import rebuild_shadow_from_graph; "
-                f"rebuild_shadow_from_graph(Path({str(graph)!r}))",
+                (
+                    "from pathlib import Path\n"
+                    "from src.shadow.bootstrap import rebuild_shadow_from_graph\n"
+                    f"rebuild_shadow_from_graph(Path({str(graph)!r}))"
+                ),
             ],
             env=_env(graph, shadow=True),
             capture_output=True,
