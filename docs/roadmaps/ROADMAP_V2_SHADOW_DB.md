@@ -1,7 +1,7 @@
 # v2.0 — Shadow DB read path (checklist)
 
 **Detailed index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) — visitor SSOT for all five v2 phases  
-**Status:** DDL scaffold **shipped** — [`src/shadow/schema.py`](../../src/shadow/schema.py) + [`tests/test_shadow_schema.py`](../../tests/test_shadow_schema.py); sync and routing **not wired**  
+**Status:** Phase 2 **core shipped** (connection, post-write upsert, FTS5 query helper); **operational completion pending** (bootstrap/reconciliation, freshness contract, runtime gating). Read routing **not wired**.  
 **Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
 **Trackable issue:** [#24 — Shadow DB read path](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)  
 **Prerequisite:** [#17 — GraphRepository abstraction](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 2–3 tracking in [`v2_preparation_blueprints.md`](../../v2_preparation_blueprints.md)  
@@ -42,12 +42,13 @@ Default path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (exact
 ### Shadow read path (#24)
 
 - [x] Scaffold `shadow.sqlite` DDL (`pages`, `blocks`, `block_refs`, FTS5) — `src/shadow/schema.py`
-- [ ] `GraphRepository` routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17))
-- [ ] Async ingestion from Markdown (Classic Logseq or DB Markdown Mirror)
-- [ ] FTS5 query helpers + incremental sync triggers
+- [x] Connection helper — `open_shadow_db` / `shadow_db_path` ([#181](https://github.com/MarcoPorcellato/matryca-plumber/issues/181))
+- [x] Incremental post-write upsert — `sync_page_to_shadow` ([#182](https://github.com/MarcoPorcellato/matryca-plumber/issues/182))
+- [x] FTS5 query helper — `search_blocks_fts` ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183); dispatch wiring Phase 3)
+- [ ] Full bootstrap / reconciliation / freshness contract (Phase 2 operational — [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176))
+- [ ] `GraphRepository` read routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17))
 - [ ] Recursive CTEs (`WITH RECURSIVE`) for sub-tree / thought-chain extraction
-- [ ] Background sync daemon (read-only on source `.md` files)
-- [ ] Opt-in env flag `MATRYCA_SHADOW_DB_ENABLED` (v2.0.0-alpha)
+- [ ] Opt-in env flag `MATRYCA_SHADOW_DB_ENABLED` ([#184](https://github.com/MarcoPorcellato/matryca-plumber/issues/184); config slice in flight)
 - [ ] Preflight / Sovereign UI health surface (no `matryca doctor` — see `llms.txt` §2.3)
 
 ### Rollout (Epic #20)
