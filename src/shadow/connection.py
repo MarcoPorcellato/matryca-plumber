@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
+from .config import shadow_db_busy_timeout_ms
 from .schema import apply_shadow_schema
 
 _SHADOW_CACHE_DIRNAME = ".matryca_semantic_cache"
@@ -28,6 +29,9 @@ def open_shadow_db(graph_root: Path | str) -> sqlite3.Connection:
     db_path = shadow_db_path(graph_root)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(str(db_path))
+    busy_timeout_ms = shadow_db_busy_timeout_ms()
+    if busy_timeout_ms > 0:
+        connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
     try:
         apply_shadow_schema(connection)
         connection.commit()

@@ -50,11 +50,16 @@ def clear_flock_depths() -> None:
         del _flock_depth_local.depths
 
 
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=clear_flock_depths)
+
+
 def acquire_exclusive_flock(
     fd: int,
     lock_path: Path,
     *,
     unavailable_label: str = "sidecar lock",
+    max_wait_s: float | None = None,
 ) -> bool:
     """Acquire exclusive flock with exponential backoff.
 
@@ -72,27 +77,41 @@ def acquire_exclusive_flock(
             return True
         except BlockingIOError:
             if attempt >= IO_RETRY_ATTEMPTS - 1:
-                logger.warning(
-                    "{} sidecar contended after {} NB retries; blocking until free: {}",
-                    unavailable_label,
-                    IO_RETRY_ATTEMPTS - 1,
-                    lock_path,
-                )
-                try:
-                    _fcntl.flock(fd, _fcntl.LOCK_EX)
-                    return True
-                except OSError as exc:
-                    if not flock_degradation_allowed():
-                        raise PageLockUnavailableError(
-                            f"Could not acquire {unavailable_label} for {lock_path}: {exc}",
-                        ) from exc
-                    logger.info(
-                        "[LOCK FILE SYSTEM DEGRADATION] Shared process lock not supported by "
-                        "filesystem ({}), falling back to in-process coordination for {}.",
-                        exc,
+                if max_wait_s is None:
+                    logger.warning(
+                        "{} sidecar contended after {} NB retries; blocking until free: {}",
+                        unavailable_label,
+                        IO_RETRY_ATTEMPTS - 1,
                         lock_path,
                     )
-                    return False
+                    try:
+                        _fcntl.flock(fd, _fcntl.LOCK_EX)
+                        return True
+                    except OSError as exc:
+                        if not flock_degradation_allowed():
+                            raise PageLockUnavailableError(
+                                f"Could not acquire {unavailable_label} for {lock_path}: {exc}",
+                            ) from exc
+                        logger.info(
+                            "[LOCK FILE SYSTEM DEGRADATION] Shared process lock not supported by "
+                            "filesystem ({}), falling back to in-process coordination for {}.",
+                            exc,
+                            lock_path,
+                        )
+                        return False
+                deadline = time.monotonic() + max_wait_s
+                poll_delay = min(IO_RETRY_INITIAL_DELAY_S, max_wait_s / 10.0)
+                while time.monotonic() < deadline:
+                    try:
+                        _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+                        return True
+                    except BlockingIOError:
+                        time.sleep(min(poll_delay, max(0.0, deadline - time.monotonic())))
+                        poll_delay = min(IO_RETRY_MAX_DELAY_S, poll_delay * 2)
+                raise PageLockUnavailableError(
+                    f"Timed out acquiring {unavailable_label} for {lock_path} "
+                    f"after {max_wait_s:.1f}s",
+                ) from None
             time.sleep(min(IO_RETRY_MAX_DELAY_S, delay))
             delay = min(IO_RETRY_MAX_DELAY_S, delay * 2)
         except OSError as exc:
@@ -146,6 +165,7 @@ def cross_process_sidecar_lock(
     *,
     depth_key: str,
     unavailable_label: str = "sidecar lock",
+    max_wait_s: float | None = None,
 ) -> Iterator[None]:
     """Hold an exclusive cross-process flock on ``lock_path`` with reentrancy depth tracking."""
     depths = flock_depths()
@@ -173,6 +193,7 @@ def cross_process_sidecar_lock(
             fd,
             lock_path,
             unavailable_label=unavailable_label,
+            max_wait_s=max_wait_s,
         )
         if not acquired and not flock_degradation_allowed():
             raise PageLockUnavailableError(

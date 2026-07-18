@@ -25,6 +25,7 @@ from .connection import open_shadow_db
 from .errors import ShadowSyncError, format_duplicate_block_uuid_error
 from .meta import META_LAST_INCREMENTAL_SYNC_AT, set_meta
 from .runtime_state import defer_sync_path, is_shadow_bootstrapping
+from .writer_lock import shadow_writer_lock
 
 _bridge_lock = threading.Lock()
 _bridge_registered = False
@@ -118,16 +119,17 @@ def delete_shadow_page_by_file_path(graph_root: Path | str, rel_path: str) -> No
     if not shadow_db_enabled():
         return
     root = resolved_graph_root(graph_root)
-    conn = open_shadow_db(root)
-    try:
-        conn.execute("DELETE FROM pages WHERE file_path = ?", (rel_path,))
-        set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    with shadow_writer_lock(root):
+        conn = open_shadow_db(root)
+        try:
+            conn.execute("DELETE FROM pages WHERE file_path = ?", (rel_path,))
+            set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 
 def sync_page_into_connection(
@@ -223,16 +225,17 @@ def sync_page_to_shadow(graph_root: Path | str, page_path: Path | str) -> None:
         defer_sync_path(root, rel)
         return
 
-    conn = open_shadow_db(root)
-    try:
-        sync_page_into_connection(conn, root, path)
-        set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    with shadow_writer_lock(root):
+        conn = open_shadow_db(root)
+        try:
+            sync_page_into_connection(conn, root, path)
+            set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 
 def _on_shadow_page_written(event: PageWrittenEvent) -> None:
