@@ -148,9 +148,7 @@ def sync_page_to_shadow(graph_root: Path | str, page_path: Path | str) -> None:
             )
             rowid = int(block_cur.lastrowid or 0)
             if rowid <= 0:
-                raise RuntimeError(
-                    f"shadow blocks insert returned no rowid for {block_uuid}"
-                )
+                raise RuntimeError(f"shadow blocks insert returned no rowid for {block_uuid}")
             uuid_to_rowid[block_uuid] = rowid
         conn.commit()
     except Exception:

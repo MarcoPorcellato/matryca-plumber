@@ -24,7 +24,7 @@ This file routes coding assistants to the correct instruction layer. **Do not lo
 | [`06-auto-changelog.mdc`](.cursor/rules/06-auto-changelog.mdc) | User-visible changes — update `CHANGELOG.md` |
 | [`07-env-example.mdc`](.cursor/rules/07-env-example.mdc) | New/changed `MATRYCA_*` env vars |
 | [`08-github-workflow-standards.mdc`](.cursor/rules/08-github-workflow-standards.mdc) | GitHub issues/PRs (on request) |
-| [`09-github-identity-marco-porcellato.mdc`](.cursor/rules/09-github-identity-marco-porcellato.mdc) | GitHub actions as maintainer |
+| [`09-github-identity-marco-porcellato.mdc`](.cursor/rules/09-github-identity-marco-porcellato.mdc) | Always — zero Cursor/AI su artefatti GitHub |
 | [`10-tooling-static-analysis-policy.mdc`](.cursor/rules/10-tooling-static-analysis-policy.mdc) | Public docs / CI — vendor-agnostic tooling |
 | [`11-prompt-maintainer.mdc`](.cursor/rules/11-prompt-maintainer.mdc) | Prompt fragments, Tier-1 builders, MCP docstrings (on request) |
 | [`12-clean-code-architecture.mdc`](.cursor/rules/12-clean-code-architecture.mdc) | Clean Code & Clean Architecture — repo-wide boundaries, `env_parse`, layer tests |

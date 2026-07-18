@@ -13,7 +13,7 @@ Load task-specific rules from [`.cursor/rules/`](.cursor/rules/). Contributor ro
 | `06-auto-changelog.mdc` | `CHANGELOG.md` after user-visible changes |
 | `07-env-example.mdc` | `.env.example` sync |
 | `08-github-workflow-standards.mdc` | GitHub issues/PRs (on request) |
-| `09-github-identity-marco-porcellato.mdc` | Maintainer voice on GitHub |
+| `09-github-identity-marco-porcellato.mdc` | Always — divieto assoluto Cursor/AI su GitHub |
 | `10-tooling-static-analysis-policy.mdc` | Vendor-agnostic public repo policy |
 | `11-prompt-maintainer.mdc` | Prompt fragments, Tier-1 builders, MCP docstrings (on request) |
 | `12-clean-code-architecture.mdc` | Clean Code & Clean Architecture — repo-wide boundaries, env_parse, layer tests |
