@@ -8,6 +8,11 @@ from .bootstrap import (
 )
 from .config import shadow_db_enabled
 from .connection import open_shadow_db, shadow_db_path
+from .fts_format import (
+    FtsQueryValidationError,
+    format_shadow_fts_markdown,
+    resolve_bm25_search_markdown,
+)
 from .health import ShadowHealthState, resolve_shadow_health
 from .meta import (
     META_GENERATION,
@@ -53,14 +58,17 @@ __all__ = [
     "META_SOURCE_PAGE_COUNT",
     "REQUIRED_META_KEYS",
     "BlockHit",
+    "FtsQueryValidationError",
     "ShadowHealthState",
     "apply_shadow_schema",
     "delete_shadow_page_by_file_path",
     "ensure_shadow_runtime_at_startup",
     "ensure_shadow_sync_bridge",
+    "format_shadow_fts_markdown",
     "handle_shadow_watchdog_change",
     "open_shadow_db",
     "rebuild_shadow_from_graph",
+    "resolve_bm25_search_markdown",
     "resolve_shadow_health",
     "search_blocks_fts",
     "shadow_db_enabled",

@@ -12,7 +12,6 @@ from ..graph.journal_task_scan import (
     scan_journal_tasks,
 )
 from ..graph.unlinked_mentions import resolve_unlinked_mentions as scan_unlinked_mentions
-from ..rag.local_query import format_keyword_query_markdown
 from .graph_tool_helpers import (
     SearchGraphMethod,
     bounded_int_from_options,
@@ -41,13 +40,16 @@ async def handle_search_bm25(graph_path: str, query: str) -> str:
     if isinstance(limit_raw, str):
         return limit_raw
     limit = limit_raw
-    return await asyncio.to_thread(
-        format_keyword_query_markdown,
-        graph_path,
-        keyword,
-        limit=limit,
-        mode="bm25",
-    )
+
+    def _run() -> str:
+        from ..shadow.fts_format import FtsQueryValidationError, resolve_bm25_search_markdown
+
+        try:
+            return resolve_bm25_search_markdown(graph_path, keyword, limit=limit)
+        except FtsQueryValidationError as exc:
+            return str(exc)
+
+    return await asyncio.to_thread(_run)
 
 
 async def handle_search_semantic(graph_path: str, query: str) -> str:

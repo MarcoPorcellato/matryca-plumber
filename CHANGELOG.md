@@ -7,6 +7,7 @@
 - **Shadow FTS5 query (#183)** — `search_blocks_fts` returns BM25-ranked `BlockHit` rows (not yet wired to MCP dispatch; Phase 3).
 - **`MATRYCA_SHADOW_DB_ENABLED` (#184)** — `shadow_db_enabled()` opt-in flag in `src/shadow/config.py` and `.env.example` (parse only; runtime wiring in PR-0).
 - **Shadow bootstrap & runtime activation (#248)** — `rebuild_shadow_from_graph`, `shadow_meta` health keys, startup bootstrap via `prepare_matryca_runtime`, watchdog reconciliation by `file_path`, and sync bridge gated on `MATRYCA_SHADOW_DB_ENABLED` (Phase 2 operational completion; no FTS routing).
+- **Shadow FTS routing for `search_graph(bm25)` (#250)** — when `MATRYCA_SHADOW_DB_ENABLED=true` and shadow health is `ready`, `handle_search_bm25` queries FTS5 with BM25-markdown envelope parity; invalid FTS syntax returns validation errors; backend failures fall back to generational BM25.
 
 ### Changed
 
