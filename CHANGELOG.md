@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Shadow FTS hyphenated-query silent fallback (#277)** — an unquoted hyphenated keyword such as `state-of-the-art` made FTS5 read the hyphen fragments as column filters and raise `no such column: of`; `format_shadow_fts_markdown` only classified `syntax` errors, so this propagated into the `bm25` router's broad `except` and silently fell back to generational BM25 while shadow health was `ready`. The `no such column` case is now recovered as a quoted-phrase retry (returns the real shadow hit); genuine syntax errors still raise `FtsQueryValidationError`, and backend failures (missing table, locked db) still fall back.
+
 ## [2.0.0-alpha.2] - 2026-07-18
 
 **v2.0.0-alpha.2** — Shadow DB hardening after **v2.0.0-alpha.1** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)): ships the **P1 rename stale-owner fix** ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272) / [#274](https://github.com/MarcoPorcellato/matryca-plumber/pull/274)) missing from PyPI **`2.0.0a1`**, plus Axis 2 parity and Axis 3 routing audit probes. **Not an RC** — Axes 4–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.1`** / PyPI **`2.0.0a1`** for new installs; **`2.0.0a0`–`2.0.0a1` remain on PyPI** (not yanked).
