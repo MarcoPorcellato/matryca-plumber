@@ -27,6 +27,21 @@ version-check: ## Fail if llms.txt version headers drift from pyproject.toml
 agents-check: ## Fail if AGENTS.md coherence, llms byte-identity, or doc paths drift
 	uv run python scripts/check_agents_coherence.py
 
+docs-inventory-init: ## Initialize docs/knowledge/inventory.json (one-time/bootstrap)
+	uv run python scripts/docs_knowledge_check.py inventory-init
+
+docs-inventory-sync: ## Reconcile new/missing paths without overwriting curated metadata
+	uv run python scripts/docs_knowledge_check.py inventory-sync
+
+docs-inventory-md: ## Regenerate inventory.md from inventory.json
+	uv run python scripts/docs_knowledge_check.py inventory-md
+
+docs-check: ## Blocking checks for the new knowledge bundle and generated inventory view
+	uv run python scripts/docs_knowledge_check.py check-bundle
+
+docs-audit: ## Informational legacy coverage/classification report
+	uv run python scripts/docs_knowledge_check.py audit-legacy
+
 build-system-prompt: ## Assemble SYSTEM_PROMPT.md from docs/openspec/agent/ fragments
 	uv run python scripts/build_system_prompt.py
 

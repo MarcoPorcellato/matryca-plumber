@@ -35,6 +35,10 @@ This file routes coding assistants to the correct instruction layer. **Do not lo
 - **Cognitive law (Tier-2 vault agents):** [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) — LLM OS, MCP tools, Safe-Sync
 - **OpenSpec maintainer specs:** [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md)
 
+## Maintainer documentation surfaces
+
+- **Documentation inventory and OKF-inspired migration index:** [`docs/knowledge/index.md`](docs/knowledge/index.md) — discovery only during Phase 1; existing canonical paths remain authoritative.
+
 ## Verification before merge
 
 ```bash
