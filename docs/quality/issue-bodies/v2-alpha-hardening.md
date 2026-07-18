@@ -79,7 +79,7 @@ uvx matryca-plumber@2.0.0-alpha.2 --version   # expect 2.0.0-alpha.2 (PyPI 2.0.0
 
 **Status:** audit probes complete (`tests/test_shadow_hardening_axis4_fts5.py`).
 
-- [x] Special chars, quotes, operators, Unicode — **A4-QUERY-01..09 pass; A4-QUERY-05/07 xfail**
+- [x] Special chars, quotes, operators, Unicode — **A4-QUERY-01..09 pass; A4-QUERY-05 fixed (#277); A4-QUERY-07 xfail**
 - [x] Very long queries — **A4-QUERY-10 xfail (unbounded input)**
 - [x] Limits and deterministic ordering — **A4-RANK-01..04 pass**
 - [x] MCP/CLI envelope parity — **A4-CONTENT-06 / A4-FAIL envelope probes pass**
@@ -153,7 +153,7 @@ uvx matryca-plumber@2.0.0-alpha.2 --version   # expect 2.0.0-alpha.2 (PyPI 2.0.0
 | A3-SURFACE-01 | 3 | MCP BM25 ≡ direct resolver envelope | — | `test_a3_surface_01_bm25_mcp_handler_matches_direct_resolver` | — | **pass** |
 | A3-SURFACE-02 | 3 | CLI subtree ≡ port; selector side-effect free | — | `test_a3_surface_02_subtree_handler_matches_port_and_selector_is_side_effect_free` | — | **pass** |
 | A3-HEALTH-FLIP | 3 | Health flip after port selection → Markdown fallback | — | `test_a3_health_change_between_port_selection_and_subtree_query` | — | **pass** |
-| A4-QUERY-05 | 4 | Unquoted hyphenated query → generational BM25 fallback | **P1** | `test_a4_query_05_hyphenated_phrase_no_generational_fallback` | [#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) | **open** |
+| A4-QUERY-05 | 4 | Unquoted hyphenated query → generational BM25 fallback | **P1** | `test_a4_query_05_hyphenated_phrase_no_generational_fallback` | [#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) | **fixed** (PR pending) |
 | A4-QUERY-07 | 4 | `cafe` misses indexed `caffè` | **P2** | `test_a4_query_07_unicode_diacritic_fold` | [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) | **open** |
 | A4-QUERY-10 | 4 | No bounded max FTS query length | **P2** | `test_a4_query_10_very_long_query_bounded` | [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) | **open** |
 | A4-QUERY-01 | 4 | Simple token match | — | `test_a4_query_01_simple_token` | — | **pass** |

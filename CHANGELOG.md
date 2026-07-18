@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Shadow FTS hyphenated keywords (#277)** — natural compound tokens such as `state-of-the-art` are quoted before FTS5 `MATCH`, so shadow search no longer mis-parses interior hyphens as boolean `NOT` or falls back to generational BM25 while health is `ready`.
+
 ## [2.0.0-alpha.2] - 2026-07-18
 
 **v2.0.0-alpha.2** — Shadow DB hardening after **v2.0.0-alpha.1** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)): ships the **P1 rename stale-owner fix** ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272) / [#274](https://github.com/MarcoPorcellato/matryca-plumber/pull/274)) missing from PyPI **`2.0.0a1`**, plus Axis 2 parity and Axis 3 routing audit probes. **Not an RC** — Axes 4–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.1`** / PyPI **`2.0.0a1`** for new installs; **`2.0.0a0`–`2.0.0a1` remain on PyPI** (not yanked).

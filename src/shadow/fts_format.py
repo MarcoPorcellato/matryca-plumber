@@ -64,7 +64,15 @@ def format_shadow_fts_markdown(
         try:
             hits = search_blocks_fts(conn, keyword, limit=limit)
         except sqlite3.OperationalError as exc:
-            if "syntax" in str(exc).lower():
+            msg = str(exc).lower()
+            if any(
+                fragment in msg
+                for fragment in (
+                    "syntax",
+                    "no such column",
+                    "unknown special query",
+                )
+            ):
                 raise FtsQueryValidationError(
                     f"{_FTS_VALIDATION_PREFIX}: {keyword!r} is not valid FTS5 syntax."
                 ) from exc
