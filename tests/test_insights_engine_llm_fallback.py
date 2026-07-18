@@ -27,7 +27,7 @@ class _FailingInsightsLLM(InsightsLLM):
     def generate_graph_insights(
         self, *, metrics_json: str, graph_root: Path
     ) -> GraphInsightsLLMResult:
-        raise self._exc  # type: ignore[misc]
+        raise self._exc
 
 
 class _OkInsightsLLM(InsightsLLM):
