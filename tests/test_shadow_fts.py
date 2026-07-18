@@ -48,8 +48,7 @@ def test_search_blocks_fts_respects_limit(tmp_path: Path) -> None:
     page = tmp_path / "pages" / "Many.md"
     page.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        f"- token shared word {i}\n  id:: {i:08x}-1111-4111-8111-111111111111\n"
-        for i in range(5)
+        f"- token shared word {i}\n  id:: {i:08x}-1111-4111-8111-111111111111\n" for i in range(5)
     ]
     page.write_text("".join(lines), encoding="utf-8")
     sync_page_to_shadow(tmp_path, page)
