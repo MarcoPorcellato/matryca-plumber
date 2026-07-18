@@ -16,9 +16,55 @@ from .query import BlockHit, search_blocks_fts
 
 _FTS_VALIDATION_PREFIX = "Invalid FTS query for `method=bm25`"
 
+# FTS5 reports an unrecognised bareword column filter (e.g. the ``-of`` / ``-the``
+# fragments of ``state-of-the-art``, which it reads as NOT operators against a
+# ``of``/``the`` column) as ``OperationalError: no such column: <name>``. This is
+# neither an FTS5 *syntax* error nor a shadow backend failure, so it must not reach
+# the generational fallback — the query is recoverable as a literal phrase.
+_FTS_COLUMN_FILTER_MARKER = "no such column"
+
 
 class FtsQueryValidationError(ValueError):
     """User-supplied keyword is not a valid FTS5 ``MATCH`` expression."""
+
+
+def _as_fts_phrase(keyword: str) -> str:
+    """Wrap ``keyword`` as a single FTS5 quoted phrase, escaping embedded quotes."""
+    return '"' + keyword.strip().replace('"', '""') + '"'
+
+
+def _search_blocks_fts_recovering(
+    connection: sqlite3.Connection,
+    keyword: str,
+    *,
+    limit: int,
+) -> list[BlockHit]:
+    """Run the FTS5 ``MATCH`` for ``keyword``, recovering misparsed bareword input.
+
+    A user keyword such as ``state-of-the-art`` is a valid search intent but not a
+    valid FTS5 expression: FTS5 reads the hyphenated fragments as column filters and
+    raises ``no such column: of``. Rather than let that surface as a backend failure
+    (which would silently fall back to generational BM25), retry the raw keyword as a
+    quoted phrase so it matches the indexed content literally. Genuine syntax errors
+    (e.g. a stray apostrophe) still raise :class:`FtsQueryValidationError`, and other
+    ``OperationalError``\\ s (missing table, locked database) propagate unchanged.
+    """
+    try:
+        return search_blocks_fts(connection, keyword, limit=limit)
+    except sqlite3.OperationalError as exc:
+        message = str(exc).lower()
+        if "syntax" in message:
+            raise FtsQueryValidationError(
+                f"{_FTS_VALIDATION_PREFIX}: {keyword!r} is not valid FTS5 syntax."
+            ) from exc
+        if _FTS_COLUMN_FILTER_MARKER in message:
+            try:
+                return search_blocks_fts(connection, _as_fts_phrase(keyword), limit=limit)
+            except sqlite3.OperationalError as retry_exc:
+                raise FtsQueryValidationError(
+                    f"{_FTS_VALIDATION_PREFIX}: {keyword!r} is not valid FTS5 syntax."
+                ) from retry_exc
+        raise
 
 
 def validate_fts_match_query(keyword: str) -> None:
@@ -61,14 +107,7 @@ def format_shadow_fts_markdown(
     root = resolved_graph_root(graph_root)
     conn = open_shadow_db(root)
     try:
-        try:
-            hits = search_blocks_fts(conn, keyword, limit=limit)
-        except sqlite3.OperationalError as exc:
-            if "syntax" in str(exc).lower():
-                raise FtsQueryValidationError(
-                    f"{_FTS_VALIDATION_PREFIX}: {keyword!r} is not valid FTS5 syntax."
-                ) from exc
-            raise
+        hits = _search_blocks_fts_recovering(conn, keyword, limit=limit)
         page_rows = _page_rows_for_hits(conn, hits)
     finally:
         conn.close()
