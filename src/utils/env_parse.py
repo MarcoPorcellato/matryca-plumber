@@ -25,6 +25,34 @@ def env_int(key: str, default: int) -> int:
         return default
 
 
+def env_int_clamped(
+    key: str,
+    default: int,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    """Parse an integer env var and clamp to ``[minimum, maximum]``."""
+    value = env_int(key, default)
+    if value < minimum:
+        logger.warning(
+            "Integer for {}={} below minimum {}; clamping",
+            key,
+            value,
+            minimum,
+        )
+        return minimum
+    if value > maximum:
+        logger.warning(
+            "Integer for {}={} above maximum {}; clamping",
+            key,
+            value,
+            maximum,
+        )
+        return maximum
+    return value
+
+
 def env_float(key: str, default: float) -> float:
     raw = os.environ.get(key, "").strip()
     if not raw:
@@ -41,4 +69,4 @@ def env_str(key: str, default: str = "") -> str:
     return raw if raw else default
 
 
-__all__ = ["env_bool", "env_float", "env_int", "env_str"]
+__all__ = ["env_bool", "env_float", "env_int", "env_int_clamped", "env_str"]

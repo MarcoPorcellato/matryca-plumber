@@ -6,6 +6,8 @@
 
 ### Fixed
 
+- **Shadow cross-process writer coordination (#262)** — advisory `shadow.writer.flock` per graph root serializes rebuild, incremental sync, and delete writers; split flock timeouts (`MATRYCA_SHADOW_WRITER_LOCK_TIMEOUT_S` default 10s for post-write/watchdog, `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` default 120s for full rebuild) and `PRAGMA busy_timeout` via `MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS` (clamped) prevent infinite SQLite waits without masking corruption errors.
+
 - **UI server test isolation** — `test_get_state_returns_daemon_checkpoint` clears `MATRYCA_SHADOW_DB_ENABLED` so local env cannot flip `shadow_db` expectations.
 
 ## [2.0.0-alpha] - 2026-07-18

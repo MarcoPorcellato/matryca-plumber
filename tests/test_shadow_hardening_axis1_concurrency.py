@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import multiprocessing as mp
 import sqlite3
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -39,11 +40,13 @@ from src.shadow.sync import (
     sync_page_into_connection,
     sync_page_to_shadow,
 )
+from src.shadow.writer_lock import shadow_writer_lock, shadow_writer_lock_path
 
 
 @pytest.fixture(autouse=True)
 def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS", "200")
     reset_shadow_runtime_state_for_tests()
     reset_shadow_bootstrap_checked_for_tests()
     reset_shadow_sync_bridge_for_tests()
@@ -258,7 +261,6 @@ def _multiprocess_rebuild_worker(graph_str: str) -> None:
     rebuild_shadow_from_graph(graph_str)
 
 
-@pytest.mark.xfail(strict=True, reason="A1-PROC-01/02: no cross-process rebuild lock (#262)")
 @pytest.mark.slow
 def test_a1_cross_process_rebuild_completes_while_sqlite_writer_active(
     tmp_path: Path,
@@ -273,15 +275,16 @@ def test_a1_cross_process_rebuild_completes_while_sqlite_writer_active(
         )
     rebuild_shadow_from_graph(graph)
 
-    holder = open_shadow_db(graph)
-    holder.execute("BEGIN IMMEDIATE")
-    try:
-        ctx = mp.get_context("spawn")
-        with ctx.Pool(processes=1) as pool:
-            pool.apply(_multiprocess_rebuild_worker, (str(graph),))
-    finally:
-        holder.rollback()
-        holder.close()
+    ctx = mp.get_context("spawn")
+    with ctx.Pool(processes=1) as pool:
+        with shadow_writer_lock(graph):
+            holder = open_shadow_db(graph)
+            holder.execute("BEGIN IMMEDIATE")
+            async_rebuild = pool.apply_async(_multiprocess_rebuild_worker, (str(graph),))
+            time.sleep(0.2)
+            holder.rollback()
+            holder.close()
+        async_rebuild.get(timeout=60)
 
     conn = open_shadow_db(graph)
     try:
@@ -293,11 +296,9 @@ def test_a1_cross_process_rebuild_completes_while_sqlite_writer_active(
         conn.close()
 
 
-def test_a1_rebuild_lock_is_in_process_only_probe() -> None:
-    """A1-PROC-02 probe (non-gating): documents in-process ``threading.Lock`` scope."""
-    from src.shadow.runtime_state import rebuild_lock_for
-
-    lock_a = rebuild_lock_for("/tmp/vault-a")
-    lock_b = rebuild_lock_for("/tmp/vault-a")
-    assert lock_a is lock_b
-    assert type(lock_a).__name__ == "lock"
+def test_a1_shadow_writer_lock_is_cross_process(tmp_path: Path) -> None:
+    """A1-PROC-02: shadow writers share a graph-root flock sidecar under semantic cache."""
+    graph = _minimal_graph(tmp_path)
+    lock_path = shadow_writer_lock_path(graph)
+    assert lock_path.name == "shadow.writer.flock"
+    assert lock_path.parent.name == ".matryca_semantic_cache"

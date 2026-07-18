@@ -32,6 +32,7 @@ from .runtime_state import (
 )
 from .schema import SHADOW_SCHEMA_VERSION
 from .sync import delete_shadow_page_by_file_path, sync_page_to_shadow
+from .writer_lock import shadow_rebuild_lock
 
 _BOOTSTRAP_CHECKED: set[str] = set()
 
@@ -63,7 +64,7 @@ def rebuild_shadow_from_graph(graph_root: Path | str) -> None:
     if not shadow_db_enabled():
         return
     root = resolved_graph_root(graph_root)
-    with rebuild_lock_for(root):
+    with shadow_rebuild_lock(root), rebuild_lock_for(root):
         mark_bootstrapping(root)
         conn = open_shadow_db(root)
         try:

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from src.graph.concurrency_probe import probe_concurrency_capability
-from src.utils.env_parse import env_bool, env_float, env_int
+from src.utils.env_parse import env_bool, env_float, env_int, env_int_clamped
 
 
 def test_env_bool_truthy_tokens(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -30,6 +30,13 @@ def test_env_int_warns_on_invalid_value(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("MATRYCA_TEST_INT_ENV", "not-a-number")
     assert env_int("MATRYCA_TEST_INT_ENV", 42) == 42
     assert any("MATRYCA_TEST_INT_ENV" in warning for warning in warnings)
+
+
+def test_env_int_clamped_enforces_bounds(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MATRYCA_TEST_CLAMP", "500")
+    assert env_int_clamped("MATRYCA_TEST_CLAMP", 10, minimum=1, maximum=100) == 100
+    monkeypatch.setenv("MATRYCA_TEST_CLAMP", "0")
+    assert env_int_clamped("MATRYCA_TEST_CLAMP", 10, minimum=1, maximum=100) == 1
 
 
 def test_env_float_warns_on_invalid_value(monkeypatch: pytest.MonkeyPatch) -> None:
