@@ -59,24 +59,24 @@ def _minimal_graph_root(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def test_llm_failure_logs_warning(
+def test_llm_failure_logs_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When the LLM raises, a warning must be emitted before the fallback."""
+    """When the LLM raises, logger.exception must be called to capture the traceback."""
     root = _minimal_graph_root(tmp_path)
 
-    warnings: list[str] = []
+    messages: list[str] = []
 
     def _capture(msg: str, *args: object, **kwargs: object) -> None:  # noqa: ARG001
-        warnings.append(msg)
+        messages.append(msg)
 
-    monkeypatch.setattr("src.graph.insights_engine.logger.warning", _capture)
+    monkeypatch.setattr("src.graph.insights_engine.logger.exception", _capture)
 
     run_graph_insights_engine(root, llm=_FailingInsightsLLM())
 
-    assert any("fallback" in w.lower() or "llm" in w.lower() for w in warnings), (
-        f"Expected a warning mentioning the LLM fallback; got: {warnings}"
+    assert any("fallback" in m.lower() or "llm" in m.lower() for m in messages), (
+        f"Expected a message mentioning the LLM fallback; got: {messages}"
     )
 
 
@@ -86,8 +86,8 @@ def test_llm_failure_sets_llm_used_false(
 ) -> None:
     """When the LLM raises, ``InsightsRunResult.llm_used`` must be False."""
     root = _minimal_graph_root(tmp_path)
-    # Silence the warning so test output is clean
-    monkeypatch.setattr("src.graph.insights_engine.logger.warning", lambda *a, **k: None)
+    # Silence the exception log so test output is clean
+    monkeypatch.setattr("src.graph.insights_engine.logger.exception", lambda *a, **k: None)
 
     result: InsightsRunResult = run_graph_insights_engine(root, llm=_FailingInsightsLLM())
 
@@ -120,7 +120,7 @@ def test_llm_failure_still_writes_page(
 ) -> None:
     """The fallback path must still produce a written insights page."""
     root = _minimal_graph_root(tmp_path)
-    monkeypatch.setattr("src.graph.insights_engine.logger.warning", lambda *a, **k: None)
+    monkeypatch.setattr("src.graph.insights_engine.logger.exception", lambda *a, **k: None)
 
     result: InsightsRunResult = run_graph_insights_engine(root, llm=_FailingInsightsLLM())
 
@@ -129,23 +129,20 @@ def test_llm_failure_still_writes_page(
     )
 
 
-def test_llm_failure_warning_contains_exc_info(
+def test_llm_failure_uses_logger_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The warning call must pass ``exc_info=True`` so the traceback is captured."""
+    """The exception must be logged with logger.exception to capture the traceback."""
     root = _minimal_graph_root(tmp_path)
 
-    captured_kwargs: list[dict] = []
+    called: list[bool] = []
 
-    def _capture_kwargs(msg: str, *args: object, **kwargs: object) -> None:  # noqa: ARG001
-        captured_kwargs.append(dict(kwargs))
+    def _capture_exception(msg: str, *args: object, **kwargs: object) -> None:  # noqa: ARG001
+        called.append(True)
 
-    monkeypatch.setattr("src.graph.insights_engine.logger.warning", _capture_kwargs)
+    monkeypatch.setattr("src.graph.insights_engine.logger.exception", _capture_exception)
 
     run_graph_insights_engine(root, llm=_FailingInsightsLLM())
 
-    assert captured_kwargs, "logger.warning was not called"
-    assert any(kw.get("exc_info") for kw in captured_kwargs), (
-        "logger.warning must be called with exc_info=True to capture the traceback"
-    )
+    assert called, "logger.exception was not called"
