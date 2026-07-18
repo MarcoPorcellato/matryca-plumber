@@ -9,7 +9,9 @@ status: experimental
 audience: [maintainer, contributor, operator]
 owner: core-runtime
 supersedes: []
-related: []
+related:
+  - /architecture/graph-plane.md
+  - /architecture/shadow-db.md
 legacy_sources:
   - ../../ARCHITECTURE.md
   - ../../CLEAN_CODE_ARCHITECTURE.md
@@ -21,7 +23,7 @@ legacy_sources:
 
 > **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
 
-Matryca Plumber is a **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees; safety is enforced through **AST parity**, **optimistic concurrency control (OCC)**, **path sandboxing**, and operator-visible **Trust & Safety** tiers.
+Matryca Plumber is a **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees. Safety on the graph plane — AST parity, OCC, path sandboxing — is documented in [Graph plane](graph-plane.md). Operator Trust & Safety tiers remain in the legacy architecture contract.
 
 ## Clean Architecture map
 
@@ -85,7 +87,7 @@ flowchart TB
 | **Sovereign UI** | `matryca plumber ui` → `src/cli/ui_server.py` | Monolithic Uvicorn on loopback; REST + static SPA; reads daemon checkpoints — never a second source of truth |
 | **MCP sidecar** | `matryca-plumber` with no CLI argv → `src/main.py` | Five polymorphic mega-tools plus `store_fact`, `ingest_document`, `import_tana`; lazy AST bootstrap on large vaults |
 
-The daemon orchestrator delegates to `daemon_*` modules (state, locks, semantic writes, page queue, LLM cycle). `graph_dispatch.py` routes read/search/mutate/refactor/lint through `dispatch_*_handlers.py` and `GraphReadPort` adapters. Canonical graph primitives live in `src/graph/` with agent/daemon shims.
+The daemon orchestrator delegates to `daemon_*` modules. `graph_dispatch.py` routes through `dispatch_*_handlers.py` and `GraphReadPort` adapters — see [Graph plane](graph-plane.md) for the mutation contract.
 
 ## System topology
 
@@ -172,13 +174,14 @@ stateDiagram-v2
 
 ### Journal pages — structural-only indexing
 
-Daily fleeting notes under **`journals/`** receive structural indexing only in Phase 2; semantic LLM indexing and dual embeddings are skipped. Pages under **`pages/`** receive full cognitive lint when env-gated modules are enabled. Spec detail: [`openspec/llm-performance.md`](../../openspec/llm-performance.md).
+Daily fleeting notes under **`journals/`** receive structural indexing only in Phase 2; semantic LLM indexing is skipped for journals. Detail: [`openspec/llm-performance.md`](../../openspec/llm-performance.md).
 
-## Shadow DB boundary (v2 pilot)
+## Architecture pilots
 
-Logseq Markdown on disk remains the **authoritative system of record**. The optional Shadow DB (`shadow.sqlite` under `.matryca_semantic_cache/`) is an **opt-in read cache** gated by `MATRYCA_SHADOW_DB_ENABLED` (default off). When enabled and healthy, BM25 search and subtree reads may route through SQLite FTS5 and recursive CTEs; otherwise the generational BM25 and `MarkdownGraphRepository` paths apply unchanged.
-
-Operator contract and roadmap: [`roadmaps/ROADMAP_V2_SHADOW_DB.md`](../../roadmaps/ROADMAP_V2_SHADOW_DB.md), [`llms.txt`](../../llms.txt) §2.6.
+| Topic | Pilot document |
+| --- | --- |
+| Graph plane (parser, OCC, sandbox) | [Graph plane](graph-plane.md) |
+| Shadow DB read cache (opt-in) | [Shadow DB](shadow-db.md) |
 
 ## Legacy deep dives
 
@@ -186,10 +189,11 @@ This pilot omits operational depth available in the legacy architecture contract
 
 | Topic | Legacy document |
 | --- | --- |
-| OCC, locks, hub writes | [`ARCHITECTURE.md`](../../ARCHITECTURE.md#optimistic-concurrency-control-occ) |
+| Graph plane (full OCC/sandbox) | [`ARCHITECTURE.md`](../../ARCHITECTURE.md#optimistic-concurrency-control-occ) · [pilot](graph-plane.md) |
+| Shadow DB | [`ARCHITECTURE.md`](../../ARCHITECTURE.md) · [pilot](shadow-db.md) |
 | Trust & Safety tiers | [`ARCHITECTURE.md`](../../ARCHITECTURE.md#trust--safety-levels) |
 | Runtime bootstrap | [`ARCHITECTURE.md`](../../ARCHITECTURE.md#runtime-bootstrap) |
-| Sandboxing | [`openspec/security-sandbox.md`](../../openspec/security-sandbox.md) |
+| Sandboxing (normative) | [`openspec/security-sandbox.md`](../../openspec/security-sandbox.md) |
 | Release engineering | [`RELEASE_PROCESS.md`](../../RELEASE_PROCESS.md) |
 | Maintainer timeline | [`PROJECT_DIARY.md`](../../PROJECT_DIARY.md) |
 | Agent runtime law | [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) |

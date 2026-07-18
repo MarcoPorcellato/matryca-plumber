@@ -5,17 +5,22 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
 from scripts.docs_knowledge_check import (
+    KNOWLEDGE_DIR,
     build_default_entry,
     discover_inventory_paths,
     inventory_sync,
     render_inventory_md,
     resolve_bundle_link,
+    resolve_legacy_source,
     split_frontmatter,
     validate_inventory_schema,
+    validate_legacy_sources,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -228,3 +233,110 @@ def test_inventory_probe_drift_gate_lifecycle(
     assert probe_entry["title"] == "Inventory probe"
 
     module.inventory_sync(check=True)
+
+
+ARCHITECTURE_PILOTS = (
+    "architecture/system-overview.md",
+    "architecture/graph-plane.md",
+    "architecture/shadow-db.md",
+)
+
+
+def test_resolve_legacy_source_valid_llms_txt() -> None:
+    concept = KNOWLEDGE_DIR / "architecture" / "shadow-db.md"
+    resolved = resolve_legacy_source("../../../llms.txt", concept)
+    assert resolved == (ROOT / "llms.txt").resolve()
+    assert resolved.is_file()
+
+
+def test_resolve_legacy_source_rejects_absolute_path() -> None:
+    concept = KNOWLEDGE_DIR / "architecture" / "shadow-db.md"
+    with pytest.raises(ValueError, match="repo-relative"):
+        resolve_legacy_source("/etc/passwd", concept)
+
+
+def test_resolve_legacy_source_rejects_escape_outside_repo(tmp_path: Path) -> None:
+    concept = tmp_path / "docs" / "knowledge" / "architecture" / "pilot.md"
+    concept.parent.mkdir(parents=True)
+    with pytest.raises(ValueError, match="inside repository root"):
+        resolve_legacy_source("../../../../outside.md", concept)
+
+
+def test_validate_legacy_sources_missing_file() -> None:
+    concept = KNOWLEDGE_DIR / "architecture" / "graph-plane.md"
+    errors = validate_legacy_sources(
+        {"legacy_sources": ["../../DOES_NOT_EXIST.md"]},
+        concept,
+        "architecture/graph-plane.md",
+    )
+    assert any("missing legacy_sources" in error for error in errors)
+
+
+def test_validate_legacy_sources_rejects_absolute() -> None:
+    concept = KNOWLEDGE_DIR / "architecture" / "graph-plane.md"
+    errors = validate_legacy_sources(
+        {"legacy_sources": ["/tmp/secret.md"]},
+        concept,
+        "architecture/graph-plane.md",
+    )
+    assert any("repo-relative" in error for error in errors)
+
+
+def test_architecture_pilot_frontmatter_required_fields() -> None:
+    required = ("type", "title", "description", "tags", "timestamp", "status", "audience", "owner")
+    for rel in ARCHITECTURE_PILOTS:
+        meta, _ = split_frontmatter(KNOWLEDGE_DIR / rel)
+        assert meta is not None, rel
+        for field in required:
+            assert field in meta, f"{rel} missing {field}"
+        assert meta["type"] == "Architecture"
+        assert meta["status"] == "experimental"
+        assert "canonical_for" not in meta
+
+
+def test_shadow_db_since_version() -> None:
+    meta, _ = split_frontmatter(KNOWLEDGE_DIR / "architecture" / "shadow-db.md")
+    assert meta is not None
+    assert meta.get("since") == "v2.0.0-alpha"
+    assert meta.get("since") != "v2.0.0-alpha.1"
+
+
+def test_architecture_pilot_related_reciprocal() -> None:
+    concepts: dict[str, set[str]] = {}
+    for rel in ARCHITECTURE_PILOTS:
+        meta, _ = split_frontmatter(KNOWLEDGE_DIR / rel)
+        assert meta is not None
+        related = meta.get("related", [])
+        assert isinstance(related, list)
+        concepts[rel] = {item for item in related if isinstance(item, str)}
+
+    overview = "architecture/system-overview.md"
+    graph = "architecture/graph-plane.md"
+    shadow = "architecture/shadow-db.md"
+
+    assert f"/{overview}" in concepts[graph]
+    assert f"/{graph}" in concepts[overview]
+    assert f"/{shadow}" in concepts[overview]
+    assert f"/{overview}" in concepts[shadow]
+    assert f"/{graph}" in concepts[shadow]
+    assert f"/{shadow}" in concepts[graph]
+
+
+def test_check_bundle_passes_concept_rel_to_validate_legacy_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: check_bundle must pass concept rel, not an undefined label."""
+    import scripts.docs_knowledge_check as module
+
+    captured: list[str] = []
+
+    def spy(meta: Mapping[str, Any], concept_path: Path, label: str) -> list[str]:
+        captured.append(label)
+        return validate_legacy_sources(meta, concept_path, label)
+
+    monkeypatch.setattr(module, "validate_legacy_sources", spy)
+    module.check_bundle()
+    assert captured, "expected validate_legacy_sources to run for pilot concepts"
+    assert "architecture/shadow-db.md" in captured
+    assert "architecture/graph-plane.md" in captured
+    assert all(isinstance(label, str) and label for label in captured)

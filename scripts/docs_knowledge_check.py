@@ -547,6 +547,50 @@ def resolve_bundle_link(target: str) -> Path:
     return KNOWLEDGE_DIR / clean.lstrip("/")
 
 
+def resolve_legacy_source(source: str, concept_path: Path) -> Path:
+    if not isinstance(source, str) or not source.strip():
+        msg = "legacy_sources entries must be non-empty strings"
+        raise ValueError(msg)
+    normalized = source.strip()
+    if normalized.startswith("/") or Path(normalized).is_absolute():
+        msg = f"legacy_sources must be repo-relative paths, not absolute: {source}"
+        raise ValueError(msg)
+    resolved = (concept_path.parent / normalized).resolve()
+    root = ROOT.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        msg = f"legacy_sources must resolve inside repository root: {source}"
+        raise ValueError(msg) from exc
+    return resolved
+
+
+def validate_legacy_sources(
+    meta: Mapping[str, Any],
+    concept_path: Path,
+    label: str,
+) -> list[str]:
+    errors: list[str] = []
+    legacy_sources = meta.get("legacy_sources")
+    if legacy_sources is None:
+        return errors
+    if not isinstance(legacy_sources, list):
+        errors.append(f"{label}: legacy_sources must be a list")
+        return errors
+    for index, source in enumerate(legacy_sources):
+        if not isinstance(source, str):
+            errors.append(f"{label}: legacy_sources[{index}] must be a string")
+            continue
+        try:
+            resolved = resolve_legacy_source(source, concept_path)
+        except ValueError as exc:
+            errors.append(f"{label}: {exc}")
+            continue
+        if not resolved.is_file():
+            errors.append(f"{label}: missing legacy_sources target {source!r}")
+    return errors
+
+
 def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     rel = path.relative_to(KNOWLEDGE_DIR).as_posix()
@@ -602,6 +646,7 @@ def check_bundle() -> None:
             errors.append(f"{rel}: concept documents require YAML frontmatter")
             continue
         errors.extend(validate_concept_frontmatter(concept_path, meta))
+        errors.extend(validate_legacy_sources(meta, concept_path, rel))
 
         canonical_for = meta.get("canonical_for")
         if canonical_for is not None:
