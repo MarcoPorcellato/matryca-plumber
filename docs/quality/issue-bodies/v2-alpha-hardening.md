@@ -57,7 +57,7 @@ uvx matryca-plumber@2.0.0-alpha.1 --version   # expect 2.0.0-alpha.1 (PyPI 2.0.0
 - [ ] Full rebuild vs incremental equivalent sequence — **A2-PARITY-02/03/05 pass**
 - [ ] Shadow never writes Markdown — **A2-PARITY-04 pass**
 - [ ] Watcher create/modify/delete — **A2-WATCH-01 pass**
-- [ ] Rename on disk — **A2-WATCH-02 P1 open**
+- [x] Rename on disk — **A2-WATCH-02 fixed ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272))**
 - [ ] Modify during bootstrap replay — **A2-WATCH-03 pass**
 - [ ] Journals + encoded page titles — **A2-PARSE-01 pass**
 - [ ] Unicode, multiline, page properties — **A2-PARSE-02 pass**
@@ -114,7 +114,7 @@ uvx matryca-plumber@2.0.0-alpha.1 --version   # expect 2.0.0-alpha.1 (PyPI 2.0.0
 | A1-DEFER-01 | 1 | Watchdog delete deferred + file removed | — | `test_a1_watchdog_delete_during_bootstrap_replays_removal_when_file_gone` | — | **pass** |
 | A1-DEFER-02 | 1 | `post_write` during bootstrap | — | `test_a1_post_write_during_bootstrap_replays_after_rebuild` | — | **pass** |
 | A1-SQLITE-01 | 1 | Holder keeps `BEGIN IMMEDIATE` | — | `test_a1_sqlite_writer_lock_blocks_incremental_without_meta_corruption` | — | **pass** |
-| A2-WATCH-02 | 2 | Page file rename leaves stale shadow row | **P1** | `test_a2_watch_02_rename_file_path_parity` | [#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272) | **open** |
+| A2-WATCH-02 | 2 | Page file rename leaves stale shadow row | **P1** | `test_a2_watch_02_rename_file_path_parity` | [#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272) | **fixed** |
 | A2-PARITY-01 | 2 | Bootstrap structural snapshot | — | `test_a2_parity_01_bootstrap_pages_blocks_parentage_order` | — | **pass** |
 | A2-PARITY-02 | 2 | Full vs incremental create sequence | — | `test_a2_parity_02_full_rebuild_matches_incremental_create_sequence` | — | **pass** |
 | A2-PARITY-03 | 2 | Full vs incremental mutations | — | `test_a2_parity_03_full_rebuild_matches_incremental_mutations` | — | **pass** |
