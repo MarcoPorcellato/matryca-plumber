@@ -97,9 +97,9 @@ uvx matryca-plumber@2.0.0-alpha --version
 
 | ID | Axis | Repro | Sev | Minimal test | Child issue | Status |
 |----|------|-------|-----|--------------|-------------|--------|
-| A1-PROC-01 | 1 | Cross-process rebuild while another writer holds `BEGIN IMMEDIATE` | **P1** | `test_a1_cross_process_rebuild_while_write_lock_held_raises_database_locked` | [#262](https://github.com/MarcoPorcellato/matryca-plumber/issues/262) | **open** |
+| A1-PROC-01 | 1 | Cross-process rebuild while SQLite writer active | **P1** | `test_a1_cross_process_rebuild_completes_while_sqlite_writer_active` | [#262](https://github.com/MarcoPorcellato/matryca-plumber/issues/262) | **open** |
 | A1-PROC-02 | 1 | Design review | **P1** | `test_a1_rebuild_lock_is_in_process_only_documented_gap` | [#262](https://github.com/MarcoPorcellato/matryca-plumber/issues/262) | **open** |
-| A1-META-01 | 1 | Manual meta corruption on fixture DB | **P2** | `test_a1_health_ready_does_not_validate_page_rows` | *(pending)* | **open** |
+| A1-META-01 | 1 | Manual meta corruption on fixture DB | **P2** | `test_a1_health_not_ready_when_meta_completed_but_pages_empty` | [#264](https://github.com/MarcoPorcellato/matryca-plumber/issues/264) | **open** |
 | A1-BOOT-02 | 1 | Injected page failure mid-rebuild | **P2** | `test_a1_rebuild_injected_failure_preserves_committed_generation` | — | **accepted** — rollback preserves generation; `last_sync_error` forces `error` health (fallback) |
 | A1-DEFER-01 | 1 | Watchdog delete deferred + file removed | — | `test_a1_watchdog_delete_during_bootstrap_replays_removal_when_file_gone` | — | **pass** |
 | A1-DEFER-02 | 1 | `post_write` during bootstrap | — | `test_a1_post_write_during_bootstrap_replays_after_rebuild` | — | **pass** |

@@ -26,6 +26,7 @@ from src.shadow.meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_COMPLETED,
     META_LAST_SYNC_ERROR,
+    META_SOURCE_PAGE_COUNT,
     get_meta,
     set_meta,
 )
@@ -116,22 +117,38 @@ def test_a1_rebuild_injected_failure_preserves_committed_generation(tmp_path: Pa
         conn.close()
 
 
-def test_a1_health_ready_does_not_validate_page_rows(tmp_path: Path) -> None:
-    """A1-META-01 (P2 gap): ``ready`` trusts meta only; empty ``pages`` still reports ready."""
+@pytest.mark.xfail(
+    strict=True,
+    reason="A1-META-01: health ready ignores meta/row mismatch (#264)",
+)
+def test_a1_health_not_ready_when_meta_completed_but_pages_empty(tmp_path: Path) -> None:
+    """A1-META-01: meta/pages mismatch must report ``stale`` or ``error``, never ``ready``."""
     graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/Alpha.md",
+        "- alpha\n  id:: 11111111-1111-4111-8111-111111111111\n",
+    )
     rebuild_shadow_from_graph(graph)
 
     conn = open_shadow_db(graph)
     try:
         set_meta(conn, META_LAST_FULL_SYNC_COMPLETED, "true")
         set_meta(conn, META_LAST_SYNC_ERROR, "")
-        set_meta(conn, META_INDEXED_PAGE_COUNT, "99")
+        set_meta(conn, META_SOURCE_PAGE_COUNT, "1")
+        set_meta(conn, META_INDEXED_PAGE_COUNT, "1")
         conn.execute("DELETE FROM pages")
         conn.commit()
+        assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "true"
+        assert int(get_meta(conn, META_SOURCE_PAGE_COUNT) or "0") > 0
+        assert int(get_meta(conn, META_INDEXED_PAGE_COUNT) or "0") > 0
+        assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == 0
     finally:
         conn.close()
 
-    assert resolve_shadow_health(graph) == ShadowHealthState.READY
+    health = resolve_shadow_health(graph)
+    assert health != ShadowHealthState.READY
+    assert health in (ShadowHealthState.STALE, ShadowHealthState.ERROR)
 
 
 def test_a1_watchdog_delete_during_bootstrap_replays_removal_when_file_gone(
@@ -241,11 +258,12 @@ def _multiprocess_rebuild_worker(graph_str: str) -> None:
     rebuild_shadow_from_graph(graph_str)
 
 
+@pytest.mark.xfail(strict=True, reason="A1-PROC-01/02: no cross-process rebuild lock (#262)")
 @pytest.mark.slow
-def test_a1_cross_process_rebuild_while_write_lock_held_raises_database_locked(
+def test_a1_cross_process_rebuild_completes_while_sqlite_writer_active(
     tmp_path: Path,
 ) -> None:
-    """A1-PROC-01 (P1): cross-process rebuild contends when another writer holds the DB."""
+    """A1-PROC-01: rebuild must finish under cross-process contention without SQLite lock errors."""
     graph = _minimal_graph(tmp_path)
     for index in range(4):
         _write_page(
@@ -259,27 +277,24 @@ def test_a1_cross_process_rebuild_while_write_lock_held_raises_database_locked(
     holder.execute("BEGIN IMMEDIATE")
     try:
         ctx = mp.get_context("spawn")
-        with (
-            ctx.Pool(processes=1) as pool,
-            pytest.raises(Exception, match="database is locked"),
-        ):
+        with ctx.Pool(processes=1) as pool:
             pool.apply(_multiprocess_rebuild_worker, (str(graph),))
     finally:
         holder.rollback()
         holder.close()
 
-    rebuild_shadow_from_graph(graph)
     conn = open_shadow_db(graph)
     try:
         assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "true"
+        assert (get_meta(conn, META_LAST_SYNC_ERROR) or "").strip() == ""
         assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == 4
         assert resolve_shadow_health(graph) == ShadowHealthState.READY
     finally:
         conn.close()
 
 
-def test_a1_rebuild_lock_is_in_process_only_documented_gap() -> None:
-    """A1-PROC-02 (P1 gap): ``rebuild_lock_for`` is a threading.Lock, not cross-process."""
+def test_a1_rebuild_lock_is_in_process_only_probe() -> None:
+    """A1-PROC-02 probe (non-gating): documents in-process ``threading.Lock`` scope."""
     from src.shadow.runtime_state import rebuild_lock_for
 
     lock_a = rebuild_lock_for("/tmp/vault-a")
