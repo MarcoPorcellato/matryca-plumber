@@ -6,7 +6,20 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-alpha** (2026-07-18) — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v2.0.0-alpha.1** (2026-07-18) — issue numbers link to GitHub; scope may shift as milestones close.*
+
+---
+
+## v2.0.0-alpha.1 — Shadow DB Axis 1 hardening ✓ release PR
+
+| Deliverable | Status |
+|-------------|--------|
+| Cross-process writer coordination — advisory flock + SQLite `busy_timeout` ([#262](https://github.com/MarcoPorcellato/matryca-plumber/issues/262)) | **Done** |
+| Meta/pages health validation — mismatch → `stale` ([#264](https://github.com/MarcoPorcellato/matryca-plumber/issues/264)) | **Done** |
+| Axis 1 audit probes — zero xfails ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261), [#263](https://github.com/MarcoPorcellato/matryca-plumber/pull/263)) | **Done** |
+| Maintainer doc sync + release notes | **Done** |
+
+**Tag (after merge):** `v2.0.0-alpha.1` · PyPI `matryca-plumber==2.0.0a1` · **supersedes** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) / `2.0.0a0` for new installs (`2.0.0a0` remains on PyPI).
 
 ---
 
@@ -20,7 +33,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | Duplicate block UUID diagnostics ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)) | **Done** |
 | Operator docs — `llms.txt` §2.6, v2 roadmaps | **Done** |
 
-**Tag:** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) · PyPI `matryca-plumber==2.0.0a0` · **default off** — unset flag preserves v1.14.x BM25 + parser subtree behavior.
+**Tag:** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) · PyPI `matryca-plumber==2.0.0a0` · **superseded by v2.0.0-alpha.1** for new installs.
 
 **Next v2 slice:** Phase 4 biological memory + Logseq DB Safe-Sync ([#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178), [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)).
 
@@ -198,6 +211,7 @@ Not backlog — context for where we are today:
 | v1.10.3 | Sovereign UI non-blocking config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` (725+ tests) |
 | v1.11.2 | **Graph layer boundary refactor** — `post_write` port ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)); canonical graph modules; generational + block-vector LRU; OCC `st_mtime_ns` page writes; `env_parse`; observability logging (879+ tests) |
 | v1.14.0 | Catalog write-safety + watcher `on_moved` + leaf-module cycles + Tier F `#170`–`#173` |
+| **v2.0.0-alpha.1** | Shadow DB Axis 1 hardening — writer flock (#262), meta/pages health (#264) |
 | **v2.0.0-alpha** | Shadow DB opt-in read cache — FTS5/CTE routing, Sovereign UI health, duplicate UUID diagnostics ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24), [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177), [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)) |
 | v1.13.1 | `logseq-matryca-parser` 1.6.0 alignment — 1.4.2 splice/X-Ray fixes; headless newline parity |
 | v1.13.0 | Daemon/dispatch modularization + `GraphReadPort` (v2 Phase 0–1) |

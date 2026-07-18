@@ -1,12 +1,34 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.1** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.1]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-18] v2.0.0-alpha.1 — Shadow DB Axis 1 hardening
+
+### Context
+
+Hardening campaign [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261) on the experimental Shadow DB read cache shipped in `v2.0.0-alpha`. Axis 1 concurrency and meta/pages consistency gaps were confirmed by audit probes ([#263](https://github.com/MarcoPorcellato/matryca-plumber/pull/263)) and fixed in surgical PRs.
+
+### Shipped
+
+1. **Cross-process writer coordination (#262)** — per-graph advisory `shadow.writer.flock` serializes rebuild, incremental sync, and delete; split flock timeouts (10s incremental / 120s rebuild) + clamped `PRAGMA busy_timeout`.
+2. **Meta/pages health (#264)** — `resolve_shadow_health` and `/api/state` no longer report `ready` when `shadow_meta` page counts diverge from `pages` rows.
+3. **Distribution** — tag `v2.0.0-alpha.1`; PyPI `2.0.0a1`; supersedes `v2.0.0-alpha` / `2.0.0a0` for new installs (`2.0.0a0` remains on PyPI).
+
+### Semver
+
+| Decision | Rationale |
+|----------|-----------|
+| **pre-release 2.0.0-alpha.1** | Axis 1 hardening only; no schema migration; default-off flag unchanged |
+
+**Suite:** `make ci` green · Axis 1 concurrency suite **zero xfails**.
 
 ---
 
