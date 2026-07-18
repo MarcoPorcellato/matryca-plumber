@@ -1,11 +1,11 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v1.14.0)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
-> **v1.14.0 headline:** **Catalog write-safety & leaf-module dependency direction** — `MasterCatalog` remove→upsert→save integrity, corrupt catalog quarantine, file watcher `on_moved` + single debounce scheduler; 4/5 deferred import cycles relocated to lowest-layer modules; Tier F `#170`–`#173` shared `env_parse` + graph→rag CI guard. Audit: `docs/AUDIT_REPORT_2026-07-16.md`. Architecture: `docs/ARCHITECTURE.md`.
+> **v2.0.0-alpha headline:** **Shadow DB (opt-in read cache)** — `MATRYCA_SHADOW_DB_ENABLED=false` by default; when enabled and healthy, FTS5 BM25 + recursive CTE subtree reads with Markdown/BM25 fallback; Sovereign UI `shadow_db` health row on `/api/state`. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v1.13.1 headline:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** newline splice safety, resilient X-Ray reload, SYNAPSE cyclic-embed truncation; `_headless_append_child` mirrors parser newline normalization. Architecture: `docs/ARCHITECTURE.md`.
 > **v1.13.0 headline:** **Daemon & dispatch modularization** — `maintenance_daemon` split into focused `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry + **`GraphReadPort`** (v2 Phase 1, [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)). Maintainer map: `docs/CLEAN_CODE_ARCHITECTURE.md` · `docs/ARCHITECTURE.md`.
 > **v1.12.0 headline:** **Prompt Clean Architecture** — Tier-1 domain prompt builders (`src/agent/prompts/`), L0 write-safety validators before semantic commits, `SYSTEM_PROMPT.md` assembled from `docs/openspec/agent/` fragments (`make build-system-prompt`). Maintainer map: `docs/PROMPT_ARCHITECTURE.md` · `AGENTS.md`.
@@ -15,7 +15,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-Matryca Plumber v1.14.0 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+Matryca Plumber v2.0.0-alpha does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -53,7 +53,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (verified v1.14.0)
+## 2. Core CLI (verified v2.0.0-alpha)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.

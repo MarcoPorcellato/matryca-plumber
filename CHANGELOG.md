@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.0.0-alpha] - 2026-07-18
+
+**v2.0.0-alpha** — experimental Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED` (default off). Logseq Markdown on disk remains the system of record; generational BM25 and parser subtree reads are unchanged when the flag is unset or shadow health is not `ready`.
+
 ### Added
 
 - **Shadow DB connection helper (#181)** — `open_shadow_db` / `shadow_db_path` open sandboxed `shadow.sqlite` under `.matryca_semantic_cache/` and apply schema DDL (Phase 2 infra; sync not wired yet).
