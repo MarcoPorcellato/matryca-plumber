@@ -17,7 +17,10 @@ from .post_write_hooks import (
 
 
 def register_daemon_post_write_hooks(graph_root: Path) -> None:
-    """Wire surgical git commits and identity refresh after successful markdown writes."""
+    """Wire surgical git commits, identity refresh, and shadow sync after writes."""
+    from ..shadow.sync import ensure_shadow_sync_bridge
+
+    ensure_shadow_sync_bridge()
     root = graph_root.expanduser().resolve(strict=False)
 
     def _on_commit(event: PostWriteEvent) -> None:
