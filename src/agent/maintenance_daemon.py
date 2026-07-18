@@ -383,6 +383,9 @@ class MaintenanceDaemon:
                 register_page_links_from_path(self.graph_root, path)
             except OSError:
                 logger.exception("Link registry update failed for deleted page {}", path)
+        from ..shadow.bootstrap import handle_shadow_watchdog_change
+
+        handle_shadow_watchdog_change(self.graph_root, path, kind)
         self._cycle_wake.set()
 
     def _start_file_watcher(self) -> None:

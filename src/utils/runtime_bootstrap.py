@@ -143,6 +143,9 @@ def prepare_matryca_runtime(
     from ..daemon import register_daemon_post_write_hooks
 
     register_daemon_post_write_hooks(graph_root)
+    from ..shadow.bootstrap import ensure_shadow_runtime_at_startup
+
+    ensure_shadow_runtime_at_startup(graph_root)
     if not eager_graph:
         return
 
