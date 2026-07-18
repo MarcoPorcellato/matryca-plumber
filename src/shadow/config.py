@@ -8,8 +8,7 @@ from ..utils.env_parse import env_bool
 def shadow_db_enabled() -> bool:
     """Return whether the Shadow DB subsystem is enabled (opt-in alpha).
 
-    Parsing only — no runtime wiring in this slice. When false or unset, callers
-    must not create, sync, or read ``shadow.sqlite`` (enforced in follow-up PR-0).
+    When false or unset, callers must not create, sync, or read ``shadow.sqlite``.
     """
     return env_bool("MATRYCA_SHADOW_DB_ENABLED", default=False)
 

@@ -4,9 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from src.shadow.connection import open_shadow_db
 from src.shadow.query import search_blocks_fts
 from src.shadow.sync import sync_page_to_shadow
+
+
+@pytest.fixture(autouse=True)
+def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
 
 
 def _seed(tmp_path: Path) -> Path:

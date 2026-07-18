@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from src.graph.markdown_blocks import atomic_write_bytes
 from src.graph.post_write import clear_page_written_handlers, emit_page_written
 from src.shadow.connection import open_shadow_db
@@ -12,6 +13,11 @@ from src.shadow.sync import (
     reset_shadow_sync_bridge_for_tests,
     sync_page_to_shadow,
 )
+
+
+@pytest.fixture(autouse=True)
+def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
 
 
 def _write_page(graph: Path, rel: str, body: str) -> Path:

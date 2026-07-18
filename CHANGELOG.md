@@ -6,6 +6,7 @@
 - **Shadow incremental sync (#182)** — `post_write` bridge upserts `pages`/`blocks` into `shadow.sqlite` after Markdown commits (read-only on vault files).
 - **Shadow FTS5 query (#183)** — `search_blocks_fts` returns BM25-ranked `BlockHit` rows (not yet wired to MCP dispatch; Phase 3).
 - **`MATRYCA_SHADOW_DB_ENABLED` (#184)** — `shadow_db_enabled()` opt-in flag in `src/shadow/config.py` and `.env.example` (parse only; runtime wiring in PR-0).
+- **Shadow bootstrap & runtime activation (#248)** — `rebuild_shadow_from_graph`, `shadow_meta` health keys, startup bootstrap via `prepare_matryca_runtime`, watchdog reconciliation by `file_path`, and sync bridge gated on `MATRYCA_SHADOW_DB_ENABLED` (Phase 2 operational completion; no FTS routing).
 
 ### Changed
 
