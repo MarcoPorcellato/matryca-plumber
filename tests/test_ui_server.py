@@ -75,6 +75,15 @@ def test_get_state_returns_daemon_checkpoint(
     assert payload["ai_links_injected"] == 0
     assert payload["ai_blocks_healed"] == 0
     assert "graph_analytics" not in payload
+    assert payload["shadow_db"] == {
+        "enabled": False,
+        "state": "disabled",
+        "last_full_sync_at": None,
+        "source_page_count": None,
+        "indexed_page_count": None,
+        "lag_pages": None,
+        "last_sync_error": None,
+    }
 
 
 def test_get_graph_analytics_returns_topology(
@@ -959,3 +968,127 @@ def test_post_graph_path_endpoint(
     env_text = (tmp_path / ".env").read_text(encoding="utf-8")
     assert str(graph.resolve()) in env_text
     assert "LOGSEQ_GRAPH_PATH=" in env_text
+
+
+def test_get_state_shadow_db_disabled_by_default(
+    graph_root: Path,
+    auth_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("MATRYCA_SHADOW_DB_ENABLED", raising=False)
+    save_daemon_state(graph_root, DaemonState(status="idle"))
+
+    with TestClient(app) as client:
+        response = client.get("/api/state", headers=auth_headers)
+
+    assert response.status_code == 200
+    shadow_db = response.json()["shadow_db"]
+    assert shadow_db == {
+        "enabled": False,
+        "state": "disabled",
+        "last_full_sync_at": None,
+        "source_page_count": None,
+        "indexed_page_count": None,
+        "lag_pages": None,
+        "last_sync_error": None,
+    }
+    from src.shadow.connection import shadow_db_path
+
+    assert not shadow_db_path(graph_root).exists()
+
+
+def test_get_state_shadow_db_ready_when_rebuilt(
+    graph_root: Path,
+    auth_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.shadow.bootstrap import rebuild_shadow_from_graph
+
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    page = graph_root / "pages" / "Alpha.md"
+    page.write_text("- alpha\n  id:: 11111111-1111-4111-8111-111111111111\n", encoding="utf-8")
+    rebuild_shadow_from_graph(graph_root)
+    save_daemon_state(graph_root, DaemonState(status="idle"))
+
+    with TestClient(app) as client:
+        response = client.get("/api/state", headers=auth_headers)
+
+    shadow_db = response.json()["shadow_db"]
+    assert shadow_db["enabled"] is True
+    assert shadow_db["state"] == "ready"
+    assert shadow_db["last_sync_error"] is None
+    assert shadow_db["lag_pages"] == 0
+    assert shadow_db["source_page_count"] == 1
+    assert shadow_db["indexed_page_count"] == 1
+
+
+def test_get_state_shadow_db_bootstrapping(
+    graph_root: Path,
+    auth_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.shadow.runtime_state import mark_bootstrapping
+
+    monkeypatch.setattr(
+        "src.cli.ui_server.try_prepare_matryca_runtime_from_env",
+        lambda **_kwargs: None,
+    )
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    mark_bootstrapping(graph_root)
+    save_daemon_state(graph_root, DaemonState(status="idle"))
+
+    with TestClient(app) as client:
+        response = client.get("/api/state", headers=auth_headers)
+
+    shadow_db = response.json()["shadow_db"]
+    assert shadow_db["enabled"] is True
+    assert shadow_db["state"] == "bootstrapping"
+
+
+def test_get_state_shadow_db_stale_without_db_file(
+    graph_root: Path,
+    auth_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.cli.ui_server.try_prepare_matryca_runtime_from_env",
+        lambda **_kwargs: None,
+    )
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    save_daemon_state(graph_root, DaemonState(status="idle"))
+
+    with TestClient(app) as client:
+        response = client.get("/api/state", headers=auth_headers)
+
+    shadow_db = response.json()["shadow_db"]
+    assert shadow_db["enabled"] is True
+    assert shadow_db["state"] == "stale"
+
+
+def test_get_state_shadow_db_error_from_meta(
+    graph_root: Path,
+    auth_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.shadow.bootstrap import rebuild_shadow_from_graph
+    from src.shadow.connection import open_shadow_db
+    from src.shadow.meta import META_LAST_SYNC_ERROR, set_meta
+
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    page = graph_root / "pages" / "Alpha.md"
+    page.write_text("- alpha\n  id:: 11111111-1111-4111-8111-111111111111\n", encoding="utf-8")
+    rebuild_shadow_from_graph(graph_root)
+    conn = open_shadow_db(graph_root)
+    try:
+        set_meta(conn, META_LAST_SYNC_ERROR, "sync failed")
+        conn.commit()
+    finally:
+        conn.close()
+    save_daemon_state(graph_root, DaemonState(status="idle"))
+
+    with TestClient(app) as client:
+        response = client.get("/api/state", headers=auth_headers)
+
+    shadow_db = response.json()["shadow_db"]
+    assert shadow_db["state"] == "error"
+    assert shadow_db["last_sync_error"] == "sync failed"
