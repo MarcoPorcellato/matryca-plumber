@@ -92,9 +92,7 @@ def format_shadow_fts_markdown(
 
     for hit in hits:
         title, rel = page_rows.get(hit.page_id, ("?", "?"))
-        lines.append(
-            f"- `{rel}` ({title}) — block `{hit.block_uuid}` — **{hit.rank:.4f}**"
-        )
+        lines.append(f"- `{rel}` ({title}) — block `{hit.block_uuid}` — **{hit.rank:.4f}**")
         snippet = (hit.content or "").strip().replace("\n", " ")
         if snippet:
             lines.append(f"  > {snippet[:240]}")
