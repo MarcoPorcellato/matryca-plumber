@@ -51,27 +51,29 @@ uvx matryca-plumber@2.0.0-alpha.1 --version   # expect 2.0.0-alpha.1 (PyPI 2.0.0
 
 ### Axis 2 — Shadow ↔ Markdown correctness
 
-**Status:** audit probes in progress (`tests/test_shadow_hardening_axis2_parity.py`).
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis2_parity.py`).
 
-- [ ] Bootstrap parity (pages, blocks, parentage, order) — **A2-PARITY-01 pass**
-- [ ] Full rebuild vs incremental equivalent sequence — **A2-PARITY-02/03/05 pass**
-- [ ] Shadow never writes Markdown — **A2-PARITY-04 pass**
-- [ ] Watcher create/modify/delete — **A2-WATCH-01 pass**
+- [x] Bootstrap parity (pages, blocks, parentage, order) — **A2-PARITY-01 pass**
+- [x] Full rebuild vs incremental equivalent sequence — **A2-PARITY-02/03/05 pass**
+- [x] Shadow never writes Markdown — **A2-PARITY-04 pass**
+- [x] Watcher create/modify/delete — **A2-WATCH-01 pass**
 - [x] Rename on disk — **A2-WATCH-02 fixed ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272))**
-- [ ] Modify during bootstrap replay — **A2-WATCH-03 pass**
-- [ ] Journals + encoded page titles — **A2-PARSE-01 pass**
-- [ ] Unicode, multiline, page properties — **A2-PARSE-02 pass**
-- [ ] Empty / minimal Markdown — **A2-PARSE-03 pass**
-- [ ] Parser-tolerant malformed outline — **A2-PARSE-04 pass**
-- [ ] Intra-page duplicate `block_uuid` rejected — **A2-PARSE-05 pass**
-- [ ] Delete + recreate same title — **A2-PARSE-06 pass**
+- [x] Modify during bootstrap replay — **A2-WATCH-03 pass**
+- [x] Journals + encoded page titles — **A2-PARSE-01 pass**
+- [x] Unicode, multiline, page properties — **A2-PARSE-02 pass**
+- [x] Empty / minimal Markdown — **A2-PARSE-03 pass**
+- [x] Parser-tolerant malformed outline — **A2-PARSE-04 pass**
+- [x] Intra-page duplicate `block_uuid` rejected — **A2-PARSE-05 pass**
+- [x] Delete + recreate same title — **A2-PARSE-06 pass**
 
 ### Axis 3 — Routing & fallback
 
-- [ ] Health changes between port selection and query
-- [ ] DB removed/corrupted after `ready`
-- [ ] Flag toggled across processes
-- [ ] Zero-hit and not-found must **not** trigger Markdown fallback
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis3_routing.py`).
+
+- [x] Health changes between port selection and query — **A3-SURFACE-02 / health-flip probe pass**
+- [x] DB removed/corrupted after `ready` — **A3-HEALTH-03 pass**
+- [x] Flag toggled across processes — **A3-FLAG cross-process probe pass**
+- [x] Zero-hit and not-found must **not** trigger Markdown fallback — **A3-FTS-01 / A3-SUBTREE-01 pass**
 
 ### Axis 4 — FTS5
 
@@ -128,6 +130,25 @@ uvx matryca-plumber@2.0.0-alpha.1 --version   # expect 2.0.0-alpha.1 (PyPI 2.0.0
 | A2-PARSE-04 | 2 | Malformed outline tolerance | — | `test_a2_parse_04_malformed_outline_still_parity` | — | **pass** |
 | A2-PARSE-05 | 2 | Duplicate block UUID rejection | — | `test_a2_parse_05_duplicate_block_uuid_raises` | — | **pass** |
 | A2-PARSE-06 | 2 | Delete + recreate same title | — | `test_a2_parse_06_delete_and_recreate_same_title` | — | **pass** |
+| A3-FLAG-01 | 3 | Flag off → no shadow.sqlite on BM25 read | — | `test_a3_flag_01_false_flag_never_creates_shadow_sqlite` | — | **pass** |
+| A3-FLAG-02 | 3 | Flag off → Markdown subtree port | — | `test_a3_flag_02_false_flag_subtree_uses_markdown_port` | — | **pass** |
+| A3-FLAG-XPROC | 3 | Per-process flag off ignores parent shadow DB | — | `test_a3_flag_cross_process_false_flag_uses_generational_bm25` | — | **pass** |
+| A3-HEALTH-01 | 3 | `disabled` → generational BM25 | — | `test_a3_health_01_disabled_routes_generational_bm25` | — | **pass** |
+| A3-HEALTH-02 | 3 | `bootstrapping` → no shadow FTS | — | `test_a3_health_02_bootstrapping_routes_generational_bm25` | — | **pass** |
+| A3-HEALTH-03 | 3 | DB removed after ready → BM25 fallback | — | `test_a3_health_03_stale_db_removed_routes_generational_bm25` | — | **pass** |
+| A3-HEALTH-04 | 3 | `error` meta → BM25 fallback | — | `test_a3_health_04_error_meta_routes_generational_bm25` | — | **pass** |
+| A3-HEALTH-META | 3 | Meta/pages mismatch → Markdown subtree port | — | `test_a3_health_meta_pages_mismatch_subtree_falls_back` | — | **pass** |
+| A3-FTS-01 | 3 | Zero FTS hits → empty envelope, no fallback | — | `test_a3_fts_01_zero_hits_no_generational_fallback` | — | **pass** |
+| A3-FTS-02 | 3 | Invalid FTS → validation error, no fallback | — | `test_a3_fts_02_invalid_query_no_generational_fallback` | — | **pass** |
+| A3-FTS-03 | 3 | Backend failure → generational BM25 | — | `test_a3_fts_03_backend_failure_falls_back_to_generational_bm25` | — | **pass** |
+| A3-FTS-04 | 3 | Public errors omit vault secrets | — | `test_a3_fts_04_public_errors_do_not_leak_vault_secrets` | — | **pass** |
+| A3-SUBTREE-01 | 3 | Missing UUID → NOT_FOUND, no Markdown fallback | — | `test_a3_subtree_01_missing_uuid_not_found_no_markdown_fallback` | — | **pass** |
+| A3-SUBTREE-02 | 3 | Inconsistent shadow → Markdown fallback | — | `test_a3_subtree_02_inconsistent_shadow_falls_back_to_markdown` | — | **pass** |
+| A3-SUBTREE-03 | 3 | SQLite error → Markdown fallback | — | `test_a3_subtree_03_sqlite_error_falls_back_to_markdown` | — | **pass** |
+| A3-SUBTREE-04 | 3 | Truncation notice preserved | — | `test_a3_subtree_04_truncation_notice_preserved` | — | **pass** |
+| A3-SURFACE-01 | 3 | MCP BM25 ≡ direct resolver envelope | — | `test_a3_surface_01_bm25_mcp_handler_matches_direct_resolver` | — | **pass** |
+| A3-SURFACE-02 | 3 | CLI subtree ≡ port; selector side-effect free | — | `test_a3_surface_02_subtree_handler_matches_port_and_selector_is_side_effect_free` | — | **pass** |
+| A3-HEALTH-FLIP | 3 | Health flip after port selection → Markdown fallback | — | `test_a3_health_change_between_port_selection_and_subtree_query` | — | **pass** |
 
 ---
 
