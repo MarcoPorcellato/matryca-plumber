@@ -1,11 +1,11 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha.1)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
-> **v2.0.0-alpha headline:** **Shadow DB (opt-in read cache)** — `MATRYCA_SHADOW_DB_ENABLED=false` by default; when enabled and healthy, FTS5 BM25 + recursive CTE subtree reads with Markdown/BM25 fallback; Sovereign UI `shadow_db` health row on `/api/state`. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
+> **v2.0.0-alpha.1 headline:** **Shadow DB Axis 1 hardening** — cross-process writer flock (#262) + meta/pages health validation (#264); `MATRYCA_SHADOW_DB_ENABLED=false` by default; FTS5/CTE when `ready`; Markdown/BM25 fallback otherwise. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v1.13.1 headline:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** newline splice safety, resilient X-Ray reload, SYNAPSE cyclic-embed truncation; `_headless_append_child` mirrors parser newline normalization. Architecture: `docs/ARCHITECTURE.md`.
 > **v1.13.0 headline:** **Daemon & dispatch modularization** — `maintenance_daemon` split into focused `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry + **`GraphReadPort`** (v2 Phase 1, [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)). Maintainer map: `docs/CLEAN_CODE_ARCHITECTURE.md` · `docs/ARCHITECTURE.md`.
 > **v1.12.0 headline:** **Prompt Clean Architecture** — Tier-1 domain prompt builders (`src/agent/prompts/`), L0 write-safety validators before semantic commits, `SYSTEM_PROMPT.md` assembled from `docs/openspec/agent/` fragments (`make build-system-prompt`). Maintainer map: `docs/PROMPT_ARCHITECTURE.md` · `AGENTS.md`.
@@ -15,7 +15,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-Matryca Plumber v2.0.0-alpha does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+Matryca Plumber v2.0.0-alpha.1 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -53,7 +53,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (verified v2.0.0-alpha)
+## 2. Core CLI (verified v2.0.0-alpha.1)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.
@@ -217,13 +217,16 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB (v2.0.0-alpha — experimental, opt-in)
+### 2.6 Shadow DB (v2.0.0-alpha.1 — experimental, opt-in)
 
 Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|
 | `MATRYCA_SHADOW_DB_ENABLED` | `false` | `search_graph(bm25)` prefers FTS5 on shadow; `read_graph_data(subtree)` prefers recursive CTE; **always falls back** to generational BM25 / parser+AST when flag is off, shadow is bootstrapping, stale, or errors |
+| `MATRYCA_SHADOW_WRITER_LOCK_TIMEOUT_S` | `10` | Cross-process advisory flock wait for incremental sync/delete (alpha.1) |
+| `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` | `120` | Cross-process advisory flock wait for full rebuild (alpha.1) |
+| `MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS` | `5000` | SQLite `busy_timeout` for shadow writers (clamped 0–60000 ms; alpha.1) |
 
 **Operator health (no `doctor`):** Sovereign UI `status` → sidebar **Shadow DB** row (sourced from `GET /api/state.shadow_db`: `state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`).
 

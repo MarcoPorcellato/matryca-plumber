@@ -1,16 +1,18 @@
 ## [Unreleased]
 
-### Changed
+## [2.0.0-alpha.1] - 2026-07-18
 
-- **Documentation** — maintainer surfaces synced to **v2.0.0-alpha** (README, `ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/CLEAN_CODE_ARCHITECTURE.md`, `docs/PROJECT_DIARY.md`, v2 roadmaps, `v2_preparation_blueprints.md`, `docs/openspec/biological-memory.md`, `docs/releases/v2.0.0-alpha-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
+**v2.0.0-alpha.1** — Axis 1 hardening on the experimental Shadow DB read cache ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)). Supersedes **`v2.0.0-alpha`** / PyPI **`2.0.0a0`** for new installs; **`2.0.0a0` remains on PyPI** (not yanked).
 
 ### Fixed
 
-- **Shadow health meta/pages consistency (#264)** — `resolve_shadow_health` and `/api/state` no longer report `ready` when `shadow_meta` page counts diverge from the `pages` table.
-
 - **Shadow cross-process writer coordination (#262)** — advisory `shadow.writer.flock` per graph root serializes rebuild, incremental sync, and delete writers; split flock timeouts (`MATRYCA_SHADOW_WRITER_LOCK_TIMEOUT_S` default 10s for post-write/watchdog, `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` default 120s for full rebuild) and `PRAGMA busy_timeout` via `MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS` (clamped) prevent infinite SQLite waits without masking corruption errors.
-
+- **Shadow health meta/pages consistency (#264)** — `resolve_shadow_health` and `/api/state` no longer report `ready` when `shadow_meta` page counts diverge from the `pages` table.
 - **UI server test isolation** — `test_get_state_returns_daemon_checkpoint` clears `MATRYCA_SHADOW_DB_ENABLED` so local env cannot flip `shadow_db` expectations.
+
+### Changed
+
+- **Documentation** — maintainer surfaces synced to **v2.0.0-alpha.1** (README, `ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/CLEAN_CODE_ARCHITECTURE.md`, `docs/PROJECT_DIARY.md`, v2 roadmaps, `v2_preparation_blueprints.md`, `docs/openspec/biological-memory.md`, `docs/releases/v2.0.0-alpha.1-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
 
 ## [2.0.0-alpha] - 2026-07-18
 

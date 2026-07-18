@@ -28,7 +28,7 @@ When implemented, document in [`.env.example`](../../.env.example) under **Advan
 | `store_fact` | Episodic / procedural memory nodes (extends identity plane) |
 | — | `nacre_forget` / feedback analogues — TBD in Phase 4 issues |
 
-Contract changes ship with semver **v2.0.0-alpha** minimum; update [`llms.txt`](../../llms.txt) in the same PR.
+Contract changes ship with semver **v2.0.0-alpha.1** minimum; update [`llms.txt`](../../llms.txt) in the same PR.
 
 ---
 

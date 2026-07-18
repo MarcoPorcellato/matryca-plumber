@@ -18,7 +18,7 @@ Create issues: `bash scripts/populate_v2_preparation.sh` (idempotent).
 | 0 | [#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174) | v1.9.12 prerequisites — **done** (#58, #59); Tier F env_parse deferred |
 | 1 | [#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175) | `GraphRepository` Markdown adapter — **done** (#179, #180) |
 | 2 | [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176) | Shadow incremental sync | **done** |
-| 3 | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) | Read routing + opt-in flag | **done** (`v2.0.0-alpha`) |
+| 3 | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) | Read routing + opt-in flag | **done** (`v2.0.0-alpha` → hardened `v2.0.0-alpha.1`) |
 | 4 | [#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178) | Biological memory + Logseq DB Safe-Sync |
 
 Epic index: [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) (comment with phase table).

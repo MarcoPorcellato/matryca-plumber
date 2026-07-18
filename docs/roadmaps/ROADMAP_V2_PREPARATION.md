@@ -95,7 +95,7 @@ flowchart LR
 
 Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`, page counts, `lag_pages`, `last_sync_error`). No `matryca doctor` — see `llms.txt` §2.5–§2.6.
 
-**Known alpha hardening (shipped in `v2.0.0-alpha`):** [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251) duplicate block UUID pre-insert diagnostics — bootstrap fails safe; read paths fall back to Markdown/BM25.
+**Known alpha hardening:** [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251) duplicate block UUID pre-insert diagnostics (`v2.0.0-alpha`); Axis 1 writer flock + meta/pages health ([#262](https://github.com/MarcoPorcellato/matryca-plumber/issues/262), [#264](https://github.com/MarcoPorcellato/matryca-plumber/issues/264)) in **`v2.0.0-alpha.1`** — tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
 
 **Verify:** `uv run pytest tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py tests/test_shadow_state_api.py tests/test_shadow_bootstrap.py tests/test_ui_server.py -q`
 
@@ -111,7 +111,8 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 
 | Track | Operator impact | Agent / MCP impact |
 |-------|-----------------|-------------------|
-| **v2.0.0-alpha** | Opt-in `MATRYCA_SHADOW_DB_ENABLED` | BM25 remains default; shadow experimental | **tagged** 2026-07-18 |
+| **v2.0.0-alpha.1** | Axis 1 hardening (#262, #264) | Pin `@2.0.0-alpha.1`; supersedes alpha | **release PR** 2026-07-18 |
+| **v2.0.0-alpha** | Opt-in `MATRYCA_SHADOW_DB_ENABLED` | BM25 remains default; shadow experimental | **tagged** 2026-07-18 (superseded) |
 | **v2.0.0-rc** | Shadow health in UI | MCP read traffic prefers shadow |
 | **v2.0.0-stable** | Deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
 
