@@ -212,6 +212,35 @@ def test_resolve_shadow_db_state_sqlite_read_failure(
     assert len(snapshot.last_sync_error) <= 200
 
 
+def test_resolve_shadow_db_state_stale_when_meta_completed_but_pages_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _graph(tmp_path)
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    _write_page(
+        graph,
+        "pages/Alpha.md",
+        "- alpha\n  id:: 11111111-1111-4111-8111-111111111111\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        set_meta(conn, META_LAST_FULL_SYNC_COMPLETED, "true")
+        set_meta(conn, META_LAST_SYNC_ERROR, "")
+        set_meta(conn, META_SOURCE_PAGE_COUNT, "1")
+        set_meta(conn, META_INDEXED_PAGE_COUNT, "1")
+        conn.execute("DELETE FROM pages")
+        conn.commit()
+    finally:
+        conn.close()
+
+    snapshot = resolve_shadow_db_state_for_api(graph)
+
+    assert snapshot.state == "stale"
+    assert snapshot.last_sync_error is None
+
+
 def test_shadow_db_response_model_has_stable_keys() -> None:
     payload = ShadowDbStateResponse().model_dump()
     assert set(payload.keys()) == set(DISABLED_SHADOW_DB.keys())

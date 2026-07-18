@@ -9,9 +9,11 @@ from ..graph.path_sandbox import resolved_graph_root
 from .config import shadow_db_enabled
 from .connection import open_shadow_db, shadow_db_path
 from .meta import (
+    META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_COMPLETED,
     META_LAST_SYNC_ERROR,
     META_SCHEMA_VERSION,
+    META_SOURCE_PAGE_COUNT,
     get_meta,
 )
 from .runtime_state import is_shadow_bootstrapping
@@ -24,6 +26,32 @@ class ShadowHealthState(StrEnum):
     READY = "ready"
     STALE = "stale"
     ERROR = "error"
+
+
+def _parse_meta_page_count(raw: str | None) -> int | None:
+    if raw is None:
+        return None
+    text = raw.strip()
+    if not text:
+        return None
+    try:
+        return max(0, int(text))
+    except ValueError:
+        return None
+
+
+def shadow_meta_matches_page_rows(
+    *,
+    indexed_page_count: str | None,
+    source_page_count: str | None,
+    actual_page_count: int,
+) -> bool:
+    """Return whether persisted meta counts match the ``pages`` table row count."""
+    indexed = _parse_meta_page_count(indexed_page_count)
+    source = _parse_meta_page_count(source_page_count)
+    if indexed is not None and indexed != actual_page_count:
+        return False
+    return source is None or source == actual_page_count
 
 
 def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
@@ -46,10 +74,21 @@ def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
             return ShadowHealthState.ERROR
         completed = (get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) or "").strip().lower()
         if completed == "true":
+            actual_pages = int(conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
+            if not shadow_meta_matches_page_rows(
+                indexed_page_count=get_meta(conn, META_INDEXED_PAGE_COUNT),
+                source_page_count=get_meta(conn, META_SOURCE_PAGE_COUNT),
+                actual_page_count=actual_pages,
+            ):
+                return ShadowHealthState.STALE
             return ShadowHealthState.READY
         return ShadowHealthState.STALE
     finally:
         conn.close()
 
 
-__all__ = ["ShadowHealthState", "resolve_shadow_health"]
+__all__ = [
+    "ShadowHealthState",
+    "resolve_shadow_health",
+    "shadow_meta_matches_page_rows",
+]

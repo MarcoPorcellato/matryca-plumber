@@ -120,10 +120,6 @@ def test_a1_rebuild_injected_failure_preserves_committed_generation(tmp_path: Pa
         conn.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="A1-META-01: health ready ignores meta/row mismatch (#264)",
-)
 def test_a1_health_not_ready_when_meta_completed_but_pages_empty(tmp_path: Path) -> None:
     """A1-META-01: meta/pages mismatch must report ``stale`` or ``error``, never ``ready``."""
     graph = _minimal_graph(tmp_path)
