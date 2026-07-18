@@ -137,10 +137,6 @@ def test_a4_query_04_operators_and_parentheses(tmp_path: Path) -> None:
         conn.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P1 #277: unquoted hyphenated queries must not fall back to generational BM25",
-)
 @pytest.mark.asyncio
 async def test_a4_query_05_hyphenated_phrase_no_generational_fallback(
     tmp_path: Path,
@@ -159,6 +155,129 @@ async def test_a4_query_05_hyphenated_phrase_no_generational_fallback(
     assert "block `" in out
     assert "Hyphen.md" in out
     assert "Invalid FTS query" not in out
+
+
+def test_a4_query_05b_hyphenated_ascii_token_hits(tmp_path: Path) -> None:
+    """A4-QUERY-05b (#277): bare ASCII hyphenated token matches indexed block content."""
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/HyphenAscii.md",
+        "- state-of-the-art token\n  id:: 67676767-6767-4676-8676-676767676767\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        hits = search_blocks_fts(conn, "state-of-the-art")
+        assert len(hits) == 1
+        assert "state-of-the-art" in hits[0].content
+    finally:
+        conn.close()
+
+
+def test_a4_query_05c_unicode_dash_hyphenated_token(tmp_path: Path) -> None:
+    """A4-QUERY-05c (#277): Unicode dash compounds are quoted like ASCII hyphens."""
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/HyphenUnicode.md",
+        "- state–of–the–art token\n  id:: 68686868-6868-4686-8686-686868686868\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        hits = search_blocks_fts(conn, "state–of–the–art")
+        assert len(hits) == 1
+    finally:
+        conn.close()
+
+
+def test_a4_query_05d_leading_hyphen_is_not_compound_quoting(tmp_path: Path) -> None:
+    """A4-QUERY-05d (#277): leading ``-`` remains FTS negation, not phrase quoting."""
+    from src.shadow.query import prepare_fts_user_query
+
+    assert prepare_fts_user_query("-needle") == "-needle"
+
+
+def test_a4_query_05e_trailing_hyphen_not_auto_quoted(tmp_path: Path) -> None:
+    """A4-QUERY-05e (#277): trailing hyphen tokens are not rewritten as compounds."""
+    from src.shadow.query import prepare_fts_user_query
+
+    assert prepare_fts_user_query("token-") == "token-"
+
+
+def test_a4_query_05f_multi_term_with_one_hyphenated(tmp_path: Path) -> None:
+    """A4-QUERY-05f (#277): mixed query quotes only the hyphenated bare token."""
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/MixHyphen.md",
+        "- needle state-of-the-art token\n  id:: 69696969-6969-4696-8696-696969696969\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        hits = search_blocks_fts(conn, "needle state-of-the-art")
+        assert len(hits) == 1
+    finally:
+        conn.close()
+
+
+def test_a4_query_05g_quoted_hyphenated_phrase_unchanged(tmp_path: Path) -> None:
+    """A4-QUERY-05g (#277): user-supplied quoted spans are not re-quoted."""
+    from src.shadow.query import prepare_fts_user_query
+
+    assert prepare_fts_user_query('"state-of-the-art"') == '"state-of-the-art"'
+
+
+@pytest.mark.asyncio
+async def test_a4_query_05h_hyphenated_with_supported_or_operator(tmp_path: Path) -> None:
+    """A4-QUERY-05h (#277): hyphenated token coexists with explicit OR syntax."""
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/OrHyphen.md",
+        "- alpha state-of-the-art token\n  id:: 70707070-7070-4707-8707-707070707070\n"
+        "- beta plain token\n  id:: 71717171-7171-4717-8717-717171717171\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        hits = search_blocks_fts(conn, "state-of-the-art OR beta")
+        assert len(hits) == 2
+    finally:
+        conn.close()
+
+
+@pytest.mark.asyncio
+async def test_a4_query_05i_invalid_syntax_still_validation_error(tmp_path: Path) -> None:
+    """A4-QUERY-05i (#277): truly invalid FTS input still raises validation error."""
+    graph = _minimal_graph(tmp_path)
+    _seed_fts_graph(graph)
+    out = await handle_search_bm25(str(graph), '"unclosed')
+    assert "Invalid FTS query" in out
+    assert "## Ranked pages (BM25)" not in out
+
+
+@pytest.mark.asyncio
+async def test_a4_query_05j_backend_failure_still_generational_fallback(
+    tmp_path: Path,
+) -> None:
+    """A4-QUERY-05j (#277): real SQLite backend failures still fall back once."""
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/FallbackHyphen.md",
+        "- state-of-the-art fallback marker\n",
+    )
+    _seed_fts_graph(graph)
+    with patch(
+        "src.shadow.fts_format.search_blocks_fts",
+        side_effect=sqlite3.OperationalError("database disk image is malformed"),
+    ):
+        out = await handle_search_bm25(str(graph), "state-of-the-art")
+    assert "FallbackHyphen.md" in out
+    assert "malformed" not in out
 
 
 def test_a4_query_06_apostrophe_raises_validation_not_sqlite(tmp_path: Path) -> None:

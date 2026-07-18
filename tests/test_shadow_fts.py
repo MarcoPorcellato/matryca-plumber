@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from src.shadow.connection import open_shadow_db
-from src.shadow.query import search_blocks_fts
+from src.shadow.query import prepare_fts_user_query, search_blocks_fts
 from src.shadow.sync import sync_page_to_shadow
 
 
@@ -63,5 +63,28 @@ def test_search_blocks_fts_respects_limit(tmp_path: Path) -> None:
     try:
         hits = search_blocks_fts(conn, "shared", limit=2)
         assert len(hits) == 2
+    finally:
+        conn.close()
+
+
+def test_prepare_fts_user_query_quotes_natural_hyphen_compounds() -> None:
+    assert prepare_fts_user_query("state-of-the-art") == '"state-of-the-art"'
+    assert prepare_fts_user_query("needle state-of-the-art") == 'needle "state-of-the-art"'
+    assert prepare_fts_user_query("alpha OR beta") == "alpha OR beta"
+    assert prepare_fts_user_query('"state-of-the-art"') == '"state-of-the-art"'
+
+
+def test_search_blocks_fts_hyphenated_user_query(tmp_path: Path) -> None:
+    page = tmp_path / "pages" / "Hyphen.md"
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(
+        "- state-of-the-art needle\n  id:: 66666666-6666-4666-8666-666666666666\n",
+        encoding="utf-8",
+    )
+    sync_page_to_shadow(tmp_path, page)
+    conn = open_shadow_db(tmp_path)
+    try:
+        hits = search_blocks_fts(conn, "state-of-the-art")
+        assert len(hits) == 1
     finally:
         conn.close()

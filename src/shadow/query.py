@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass
+
+# ASCII hyphen + common Unicode dash code points (en/em/figure dashes).
+_HYPHEN_DASH_CLASS = "-\u2010\u2011\u2012\u2013\u2014"
+_FTS_RESERVED_TOKENS = frozenset({"OR", "AND", "NOT", "NEAR"})
+_NATURAL_COMPOUND_TOKEN = re.compile(rf"^[A-Za-z0-9][A-Za-z0-9{_HYPHEN_DASH_CLASS}]*[A-Za-z0-9]$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,6 +20,64 @@ class BlockHit:
     content: str
     page_id: int
     rank: float
+
+
+def _quote_natural_hyphenated_token(token: str) -> str:
+    """Quote a bare token that FTS5 would parse as boolean NOT chains."""
+    prefix = ""
+    suffix = ""
+    core = token
+    while core.startswith("("):
+        prefix += "("
+        core = core[1:]
+    while core.endswith(")"):
+        suffix = ")" + suffix
+        core = core[:-1]
+    if not core or core.upper() in _FTS_RESERVED_TOKENS:
+        return token
+    if core.startswith("-") or "*" in core:
+        return token
+    if not any(ch in _HYPHEN_DASH_CLASS for ch in core):
+        return token
+    if not _NATURAL_COMPOUND_TOKEN.match(core):
+        return token
+    escaped = core.replace('"', '""')
+    return f'{prefix}"{escaped}"{suffix}'
+
+
+def prepare_fts_user_query(query: str) -> str:
+    """Prepare user keyword input for safe FTS5 ``MATCH`` binding.
+
+    Natural compound tokens such as ``state-of-the-art`` are wrapped as phrase
+    literals so FTS5 does not interpret interior hyphens as ``NOT``. Explicit
+    quoted spans, boolean operators, prefix terms (``*``), and leading ``-``
+    negation are left unchanged.
+    """
+    q = query.strip()
+    if not q:
+        return q
+    parts: list[str] = []
+    i = 0
+    n = len(q)
+    while i < n:
+        while i < n and q[i].isspace():
+            i += 1
+        if i >= n:
+            break
+        if q[i] == '"':
+            j = i + 1
+            while j < n and q[j] != '"':
+                j += 1
+            end = j + 1 if j < n else n
+            parts.append(q[i:end])
+            i = end
+        else:
+            j = i
+            while j < n and not q[j].isspace():
+                j += 1
+            parts.append(_quote_natural_hyphenated_token(q[i:j]))
+            i = j
+    return " ".join(parts)
 
 
 def search_blocks_fts(
@@ -28,7 +92,7 @@ def search_blocks_fts(
     should supply FTS5 query syntax (plain tokens are fine for simple search).
     Empty / whitespace-only queries return an empty list.
     """
-    q = query.strip()
+    q = prepare_fts_user_query(query)
     if not q:
         return []
     capped = max(1, min(int(limit), 500))
@@ -56,5 +120,6 @@ def search_blocks_fts(
 
 __all__ = [
     "BlockHit",
+    "prepare_fts_user_query",
     "search_blocks_fts",
 ]
