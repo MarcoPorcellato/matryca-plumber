@@ -147,11 +147,7 @@ def test_subtree_max_depth_applied_in_query(tmp_path: Path) -> None:
     _write_page(
         tmp_path,
         "pages/Depth.md",
-        (
-            f"- d0\n  id:: {ids[0]}\n"
-            f"  - d1\n    id:: {ids[1]}\n"
-            f"    - d2\n      id:: {ids[2]}\n"
-        ),
+        (f"- d0\n  id:: {ids[0]}\n  - d1\n    id:: {ids[1]}\n    - d2\n      id:: {ids[2]}\n"),
     )
     _sync(tmp_path, "pages/Depth.md")
 
@@ -311,26 +307,26 @@ def test_subtree_sort_order_tie_breaks_on_rowid(tmp_path: Path) -> None:
                 indent_level, content, properties_json, synced_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'test')
             """,
-        [
-            (
-                "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-                page_id,
-                int(root_row[0]),
-                5,
-                1,
-                "first by rowid",
-                "{}",
-            ),
-            (
-                "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-                page_id,
-                int(root_row[0]),
-                5,
-                1,
-                "second by rowid",
-                "{}",
-            ),
-        ],
+            [
+                (
+                    "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                    page_id,
+                    int(root_row[0]),
+                    5,
+                    1,
+                    "first by rowid",
+                    "{}",
+                ),
+                (
+                    "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                    page_id,
+                    int(root_row[0]),
+                    5,
+                    1,
+                    "second by rowid",
+                    "{}",
+                ),
+            ],
         )
         conn.commit()
 
