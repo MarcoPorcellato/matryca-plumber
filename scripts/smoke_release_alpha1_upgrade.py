@@ -35,8 +35,7 @@ def _write_vault(graph: Path) -> None:
     (graph / "pages").mkdir(parents=True)
     (graph / "journals").mkdir(parents=True)
     (graph / "pages" / "Alpha.md").write_text(
-        f"- alpha shadow term\n  id:: {BLOCK_UUID}\n"
-        f"  - child block\n    id:: {CHILD_UUID}\n",
+        f"- alpha shadow term\n  id:: {BLOCK_UUID}\n  - child block\n    id:: {CHILD_UUID}\n",
         encoding="utf-8",
     )
     (graph / "journals" / "2026_07_18.md").write_text(
@@ -92,7 +91,9 @@ def _install_wheel_venv(wheel: Path, venv_dir: Path) -> Path:
     return exe
 
 
-def _run_wheel(exe: Path, graph: Path, *args: str, shadow: bool = True) -> subprocess.CompletedProcess[str]:
+def _run_wheel(
+    exe: Path, graph: Path, *args: str, shadow: bool = True
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [str(exe), *args],
         env=_env(graph, shadow=shadow),
@@ -226,9 +227,7 @@ def _check_meta_stale(graph: Path, py: list[str]) -> None:
     db = _shadow_db(graph)
     conn = sqlite3.connect(db)
     try:
-        conn.execute(
-            "UPDATE shadow_meta SET value = '999' WHERE key = 'indexed_page_count'"
-        )
+        conn.execute("UPDATE shadow_meta SET value = '999' WHERE key = 'indexed_page_count'")
         conn.commit()
     finally:
         conn.close()
