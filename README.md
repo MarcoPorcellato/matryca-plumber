@@ -5,7 +5,7 @@
 [![PyPI Downloads](https://img.shields.io/pypi/dm/matryca-plumber.svg)](https://pypi.org/project/matryca-plumber/)
 [![GitHub release](https://img.shields.io/github/v/release/MarcoPorcellato/matryca-plumber?display_name=tag)](https://github.com/MarcoPorcellato/matryca-plumber/releases)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue?logo=python&logoColor=white)](https://github.com/MarcoPorcellato/matryca-plumber/blob/main/pyproject.toml#L10)
-[![Tests](https://img.shields.io/badge/tests-974%2B%20passing-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-1117%2B%20passing-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A570%25-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/blob/main/pyproject.toml#L138)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -43,7 +43,7 @@
   <b>AI agents:</b> read <a href="llms.txt"><code>llms.txt</code></a> — run <code>uvx matryca-plumber --help</code>; do not parse Markdown manually.
 </sub></p>
 
-**Matryca Plumber** is the definitive bridge between your trusted AI agent and your **Logseq OG** vault — a **headless CLI** and **MCP server** for safe read/write on Logseq's block tree (no raw Markdown parsing, no Logseq API, no silent overwrites), plus a **background daemon** and **Sovereign UI**. **v1.11.0** adds **Tana → Logseq OG migration**; **v1.11.1** aligned **`logseq-matryca-parser` 1.4.0**; **v1.11.2** refactors the **graph layer boundary**; **v1.12.0** applies **Clean Architecture** to Tier-1 prompts, L0 write safety, and fragment-assembled `SYSTEM_PROMPT.md`; **v1.12.1** adds contributor **Clean Code** docs and a **v2.0 preparation** index; **v1.13.0** ships **daemon/dispatch modularization** ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58), [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)) and **`GraphReadPort`** (v2 Phase 1); **v1.13.1** pins **`logseq-matryca-parser` 1.6.0** with headless newline parity; **v1.14.0** hardens **`MasterCatalog` write-safety**, the file watcher, and leaf-module dependency direction after the 2026-07-16 audit. Built on [Andrej Karpathy's LLM-Wiki vision](https://karpathy.ai/blog). **Current: v1.14.0** — [`CHANGELOG.md`](CHANGELOG.md).
+**Matryca Plumber** is the definitive bridge between your trusted AI agent and your **Logseq OG** vault — a **headless CLI** and **MCP server** for safe read/write on Logseq's block tree (no raw Markdown parsing, no Logseq API, no silent overwrites), plus a **background daemon** and **Sovereign UI**. **v1.11.0** adds **Tana → Logseq OG migration**; **v1.11.1** aligned **`logseq-matryca-parser` 1.4.0**; **v1.11.2** refactors the **graph layer boundary**; **v1.12.0** applies **Clean Architecture** to Tier-1 prompts, L0 write safety, and fragment-assembled `SYSTEM_PROMPT.md`; **v1.12.1** adds contributor **Clean Code** docs and a **v2.0 preparation** index; **v1.13.0** ships **daemon/dispatch modularization** ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58), [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)) and **`GraphReadPort`** (v2 Phase 1); **v1.13.1** pins **`logseq-matryca-parser` 1.6.0** with headless newline parity; **v1.14.0** hardens **`MasterCatalog` write-safety**, the file watcher, and leaf-module dependency direction after the 2026-07-16 audit; **v2.0.0-alpha** ships an **opt-in Shadow DB** read cache (`MATRYCA_SHADOW_DB_ENABLED`, default off) with FTS5 BM25 + recursive CTE subtree reads and Markdown/BM25 fallback. Built on [Andrej Karpathy's LLM-Wiki vision](https://karpathy.ai/blog). **Current: v2.0.0-alpha** — [`CHANGELOG.md`](CHANGELOG.md).
 
 **Developed by [Marco Porcellato](https://github.com/MarcoPorcellato) · [Matryca.ai](https://matryca.ai)** — the product name is **Matryca Plumber** (not “Matryca” alone). See [`docs/BRANDING.md`](docs/BRANDING.md).
 
@@ -61,6 +61,7 @@
 - **Link hygiene** — background URL/asset checks, Journey Log in today's journal — no per-cycle journal spam
 - **L0 write safety** — semantic index commits abort when an LLM diff would delete `id::` lines or edit protected zones (`graph/safety/validators.py`)
 - **Tier-1 prompt architecture** — domain `*/prompts.py` builders + DI on `InstructorLLMClient`; `SYSTEM_PROMPT.md` assembled from OpenSpec fragments (`make build-system-prompt`)
+- **Shadow DB (v2.0.0-alpha, opt-in)** — daemon-owned `shadow.sqlite` read cache: FTS5 BM25 + recursive CTE subtree when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready`; generational BM25 + parser fallback otherwise — see [`llms.txt`](llms.txt) §2.6
 - **100% local-first** — vault stays on disk; no cloud API key required
 
 ## Tana → Logseq OG migration
@@ -258,6 +259,7 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [**v2.0 preparation**](docs/roadmaps/ROADMAP_V2_PREPARATION.md) | [v2 issues `label:v2.0`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3Av2.0) · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) |
 | [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) |
 | [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
+| [`docs/releases/v2.0.0-alpha-GITHUB.md`](docs/releases/v2.0.0-alpha-GITHUB.md) | GitHub Release body for v2.0.0-alpha (Shadow DB opt-in read path) |
 | [`docs/releases/v1.14.0-GITHUB.md`](docs/releases/v1.14.0-GITHUB.md) | Draft GitHub Release body for v1.14.0 (minor, catalog write-safety + Tier F) |
 | [`docs/releases/v1.13.1-GITHUB.md`](docs/releases/v1.13.1-GITHUB.md) | Draft GitHub Release body for v1.13.1 (patch, parser 1.6.0 alignment) |
 | [`docs/releases/v1.13.0-GITHUB.md`](docs/releases/v1.13.0-GITHUB.md) | Draft GitHub Release body for v1.13.0 (minor, daemon/dispatch refactor + GraphReadPort) |

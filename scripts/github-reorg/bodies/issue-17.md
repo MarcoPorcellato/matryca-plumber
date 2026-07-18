@@ -12,7 +12,7 @@ Apply the **Repository Pattern** incrementally (Phase 1 of [`ROADMAP_V2_PREPARAT
 |-----------|------|
 | `GraphReadPort` (`typing.Protocol`) | `search_blocks`, `read_subtree`, `resolve_entity` — read path first |
 | `MarkdownGraphRepository` | Wraps current v1.12 `src/graph/*` + parser — **default adapter** |
-| `ShadowGraphRepository` | Delegates reads to shadow when enabled (Phase 3) |
+| `ShadowGraphRepository` | Delegates reads to shadow when enabled — **shipped v2.0.0-alpha** (`get_graph_read_port`) |
 | `DatabaseRepository` | Logseq DB: read-only SQLite harvest; writes via Logseq Local HTTP API (Phase 4) |
 
 Runtime selection (later): `MATRYCA_STORAGE_MODE=markdown|database` with folder auto-detection.
@@ -36,7 +36,7 @@ Runtime selection (later): `MATRYCA_STORAGE_MODE=markdown|database` with folder 
 - `tests/test_graph_repository.py` (parity fixtures)
 
 ---
-**Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) · **Blocks:** [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) Shadow DB routing  
+**Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) · **Blocks:** [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) Shadow DB routing — **closed at v2.0.0-alpha**
 **SSOT:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) § Phase 1
 
 _Closes when merged with tests green (`make check`) and CHANGELOG updated._

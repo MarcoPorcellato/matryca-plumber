@@ -1,12 +1,36 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v1.14.0** — see [`CHANGELOG.md`](../CHANGELOG.md) `[1.14.0]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-18] v2.0.0-alpha — Shadow DB read path (opt-in)
+
+### Context
+
+Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) Phase 2–3 delivered a daemon-owned **`shadow.sqlite`** read cache with opt-in routing behind `MATRYCA_SHADOW_DB_ENABLED`. Logseq Markdown on disk remains the system of record; generational BM25 and parser subtree reads are unchanged when the flag is unset or shadow health is not `ready`.
+
+### Shipped
+
+1. **Shadow sync + bootstrap** — `open_shadow_db`, `sync_page_to_shadow`, full-graph `rebuild_shadow_from_graph`, watchdog reconciliation, runtime gating ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248), #181–#182).
+2. **Read routing** — FTS5 BM25 + recursive CTE subtree via `ShadowGraphRepository` / `get_graph_read_port` with Markdown/BM25 fallback ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177), [#250](https://github.com/MarcoPorcellato/matryca-plumber/issues/250), [#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253), [#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255)).
+3. **Operator health** — Sovereign UI `/api/state.shadow_db` row ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)).
+4. **Duplicate UUID diagnostics** — pre-insert guard with bounded `ShadowSyncError`; bootstrap persists `last_sync_error`; read paths fail safe to Markdown/BM25 ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)).
+5. **Distribution** — tag [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha); PyPI `2.0.0a0`; `llms.txt` §2.6.
+
+### Semver
+
+| Decision | Rationale |
+|----------|-----------|
+| **pre-release 2.0.0-alpha** | First operator-visible v2 read cache; default-off flag preserves v1.14.x agent behavior |
+
+**Suite:** `make ci` green at tag (1117 passed, 2 skipped) · PyPI + vault smoke verified.
 
 ---
 

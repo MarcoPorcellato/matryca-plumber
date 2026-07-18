@@ -14,7 +14,7 @@ Nacre-inspired decay, recall, and consolidation **inside** Matryca's Logseq-nati
 | Variable | Default (planned) | Role |
 |----------|-------------------|------|
 | `MATRYCA_MEMORY_GRAPH_ENABLED` | `false` | Opt-in alpha — memory graph read/write in `shadow.sqlite` |
-| `MATRYCA_SHADOW_DB_ENABLED` | `false` | Prerequisite for memory graph persistence (Phase 3+) |
+| `MATRYCA_SHADOW_DB_ENABLED` | `false` | **Shipped in v2.0.0-alpha** — prerequisite for memory graph persistence; enables Shadow DB read cache (FTS5/CTE) when healthy |
 
 When implemented, document in [`.env.example`](../../.env.example) under **Advanced / high impact** per [`07-env-example.mdc`](../../.cursor/rules/07-env-example.mdc).
 
@@ -24,7 +24,7 @@ When implemented, document in [`.env.example`](../../.env.example) under **Advan
 
 | Today (v1.12) | v2 target |
 |---------------|-----------|
-| `search_graph(method=bm25\|semantic\|…)` | Add `method=recall` — hybrid fusion (semantic + graph walk + recency + importance) |
+| `search_graph(method=bm25\|semantic\|…)` | `bm25` prefers shadow FTS5 when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready` (**shipped v2.0.0-alpha**); add `method=recall` in Phase 4 |
 | `store_fact` | Episodic / procedural memory nodes (extends identity plane) |
 | — | `nacre_forget` / feedback analogues — TBD in Phase 4 issues |
 

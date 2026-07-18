@@ -6,7 +6,23 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v1.14.0** — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v2.0.0-alpha** (2026-07-18) — issue numbers link to GitHub; scope may shift as milestones close.*
+
+---
+
+## v2.0.0-alpha — Shadow DB read path (opt-in) ✓ tagged
+
+| Deliverable | Status |
+|-------------|--------|
+| Shadow bootstrap, reconciliation, runtime gating ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)) | **Done** |
+| FTS5 BM25 + recursive CTE read routing behind `MATRYCA_SHADOW_DB_ENABLED` ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | **Done** |
+| Sovereign UI `/api/state.shadow_db` health row ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)) | **Done** |
+| Duplicate block UUID diagnostics ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)) | **Done** |
+| Operator docs — `llms.txt` §2.6, v2 roadmaps | **Done** |
+
+**Tag:** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) · PyPI `matryca-plumber==2.0.0a0` · **default off** — unset flag preserves v1.14.x BM25 + parser subtree behavior.
+
+**Next v2 slice:** Phase 4 biological memory + Logseq DB Safe-Sync ([#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178), [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)).
 
 ---
 
@@ -47,7 +63,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 
 **Recommended semver:** **minor 1.13.0** — internal modularization + v2 read port; no intentional PyPI CLI/MCP break for vault operators.
 
-**Next v2 slice:** Phase 2 shadow incremental sync ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)) — see [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md).
+**Superseded by:** v2.0.0-alpha shadow read path ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) closed) — see [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md).
 
 ---
 
@@ -123,17 +139,17 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 
 ---
 
-## Medium-term (v1.9.x → v2.0-alpha)
+## Medium-term (v2.0-alpha → rc)
 
 **Visitor guide:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) — five phases, Definition of Done, contribute guide · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md)
 
-| Initiative | Issue | Goal |
-|------------|-------|------|
-| Shadow DB read path | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) | `shadow.sqlite`, FTS5, CTEs, background sync from Markdown |
-| Biological memory layer | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Nacre-inspired decay/recall in `shadow.sqlite` — [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) |
-| GraphRepository abstraction | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | Coexistent Markdown / SQLite backends |
-| Hardware Profiler & LLM Recommender | [#23](https://github.com/MarcoPorcellato/matryca-plumber/issues/23) | Sovereign UI guidance for 16 GB CPU-only laptops |
-| **v2.0.0-alpha** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Experimental `shadow.sqlite` behind opt-in env flag |
+| Initiative | Issue | Goal | Status |
+|------------|-------|------|--------|
+| Shadow DB read path | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) | `shadow.sqlite`, FTS5, CTEs, background sync from Markdown | **shipped** (`v2.0.0-alpha`) |
+| Biological memory layer | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Nacre-inspired decay/recall in `shadow.sqlite` — [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | Phase 4 |
+| GraphRepository abstraction | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | Coexistent Markdown / SQLite backends | read port **done** |
+| Hardware Profiler & LLM Recommender | [#23](https://github.com/MarcoPorcellato/matryca-plumber/issues/23) | Sovereign UI guidance for 16 GB CPU-only laptops | planned |
+| **v2.0.0-alpha** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Experimental `shadow.sqlite` behind opt-in env flag | **tagged** |
 
 Deeper maintainer checklists (completed or in flight):
 
@@ -182,6 +198,7 @@ Not backlog — context for where we are today:
 | v1.10.3 | Sovereign UI non-blocking config saves; strict Pydantic LLM/outline contracts; recursive OpenAI strict JSON Schema; flock sidecars `0o600` (725+ tests) |
 | v1.11.2 | **Graph layer boundary refactor** — `post_write` port ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)); canonical graph modules; generational + block-vector LRU; OCC `st_mtime_ns` page writes; `env_parse`; observability logging (879+ tests) |
 | v1.14.0 | Catalog write-safety + watcher `on_moved` + leaf-module cycles + Tier F `#170`–`#173` |
+| **v2.0.0-alpha** | Shadow DB opt-in read cache — FTS5/CTE routing, Sovereign UI health, duplicate UUID diagnostics ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24), [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177), [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)) |
 | v1.13.1 | `logseq-matryca-parser` 1.6.0 alignment — 1.4.2 splice/X-Ray fixes; headless newline parity |
 | v1.13.0 | Daemon/dispatch modularization + `GraphReadPort` (v2 Phase 0–1) |
 | v1.11.1 | `logseq-matryca-parser` 1.4.0 alignment — canonical page iteration, case-insensitive tag/search, watcher delete/move, SYNAPSE embed safety (879+ tests) |

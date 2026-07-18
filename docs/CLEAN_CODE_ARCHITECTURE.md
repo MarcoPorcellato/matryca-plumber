@@ -1,6 +1,6 @@
 # Clean Code & Clean Architecture — Matryca Plumber
 
-**Version:** documents **v1.14.0+** maintainer contracts (catalog write-safety, leaf-module dependency direction, parser 1.6.0 alignment, daemon/dispatch module maps, GraphReadPort)  
+**Version:** documents **v2.0.0-alpha+** maintainer contracts (Shadow DB read port, catalog write-safety, leaf-module dependency direction, parser 1.6.0 alignment, daemon/dispatch module maps, GraphReadPort)  
 **Audience:** contributors patching `src/`  
 **Companion:** [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md) (prompt tiers) · [`ARCHITECTURE.md`](ARCHITECTURE.md) (system contract) · [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 
@@ -50,7 +50,7 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 | Pattern | Why it exists | v2 tracking |
 |---------|---------------|-------------|
 | OCC `st_mtime_ns` + `page_rmw_lock` | Lost-update prevention + torn-write serialization | Content-hash CAS → [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) |
-| JSON ledgers at graph root | No central DB (Phase 4) | Shadow DB → [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) |
+| JSON ledgers at graph root | No central DB (Phase 4 memory graph) | Shadow DB read cache — **shipped v2.0.0-alpha** ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)) |
 | `graph_dispatch` mega-module | Single headless mutation plane for MCP/CLI/daemon | **Handler registry complete** ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59) closed) — see [Graph dispatch module map](#graph-dispatch-module-map-issue-59) |
 | `maintenance_daemon` SRP | ~~3,300 lines~~ → **~1,280** orchestrator + six `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58) **closed**) | See [Maintenance daemon module map](#maintenance-daemon-module-map-issue-58) |
 
@@ -154,7 +154,8 @@ graph_dispatch.dispatch_read
 
 graph_dispatch.dispatch_search
     └── dispatch_search_handlers
-            ├── rag/local_query (bm25)
+            ├── shadow/query (bm25 when flag on + healthy)
+            ├── rag/local_query (bm25 fallback)
             ├── semantic/search (semantic)
             └── graph/* (regex, unlinked, journal, alias resolve)
 
@@ -163,7 +164,7 @@ graph_dispatch.dispatch_mutate / dispatch_refactor / dispatch_lint
             └── graph/* + quality_gate (behavior unchanged)
 ```
 
-**Rule:** new mega-tool targets belong in the matching `dispatch_*_handlers.py` module. Shadow-DB reads (v2 Phase 3) implement `GraphReadPort` without changing handler signatures.
+**Rule:** new mega-tool targets belong in the matching `dispatch_*_handlers.py` module. Shadow-DB reads implement `GraphReadPort` via `ShadowGraphRepository` + `get_graph_read_port` without changing handler signatures (shipped v2.0.0-alpha).
 
 ### Verification
 

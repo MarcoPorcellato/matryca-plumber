@@ -52,7 +52,7 @@ Details: [`ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md).
 | Issue | Scope |
 |-------|-------|
 | #17 | `GraphRepository` abstraction (Markdown first, then Logseq DB) |
-| #24 | Shadow DB read path (`shadow.sqlite`, FTS5, CTEs, background sync) |
+| #24 | Shadow DB read path (`shadow.sqlite`, FTS5, CTEs, background sync) — **closed at v2.0.0-alpha** |
 | #25 | Safe-Sync write path (Logseq DB CLI bridge — OG path done) |
 | #23 | Hardware profiler & LLM recommender (DX; independent) |
 | #139 | Tana content-aware re-import (`--merge`) — v2 scope |
@@ -70,11 +70,11 @@ Phase tracking issues and slices: see [`v2_preparation_blueprints.md`](v2_prepar
 
 ## v2.0 rollout
 
-| Track | Target |
-|-------|--------|
-| v2.0.0-alpha | Experimental `shadow.sqlite` + opt-in env flag |
-| v2.0.0-rc | MCP read traffic routed to Shadow DB by default |
-| v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path |
+| Track | Target | Status |
+|-------|--------|--------|
+| v2.0.0-alpha | Experimental `shadow.sqlite` + opt-in env flag | **tagged** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) (2026-07-18) |
+| v2.0.0-rc | MCP read traffic routed to Shadow DB by default | planned |
+| v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path | planned |
 
 ## Diagnostics note
 

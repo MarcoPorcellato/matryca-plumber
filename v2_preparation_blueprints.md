@@ -17,8 +17,8 @@ Create issues: `bash scripts/populate_v2_preparation.sh` (idempotent).
 |-------|--------|---------|
 | 0 | [#174](https://github.com/MarcoPorcellato/matryca-plumber/issues/174) | v1.9.12 prerequisites — **done** (#58, #59); Tier F env_parse deferred |
 | 1 | [#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175) | `GraphRepository` Markdown adapter — **done** (#179, #180) |
-| 2 | [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176) | Shadow incremental sync |
-| 3 | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) | Read routing + opt-in flag |
+| 2 | [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176) | Shadow incremental sync | **done** |
+| 3 | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) | Read routing + opt-in flag | **done** (`v2.0.0-alpha`) |
 | 4 | [#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178) | Biological memory + Logseq DB Safe-Sync |
 
 Epic index: [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) (comment with phase table).
@@ -28,7 +28,7 @@ Epic index: [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) 
 | Issue | Scope |
 |-------|-------|
 | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | `GraphRepository` abstraction |
-| [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) | Shadow DB read path |
+| [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) | Shadow DB read path | **closed** at `v2.0.0-alpha` |
 | [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) | Safe-Sync write path |
 | [#23](https://github.com/MarcoPorcellato/matryca-plumber/issues/23) | Hardware profiler (DX, independent) |
 | [#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139) | Tana content-aware re-import (v2) |
@@ -50,7 +50,7 @@ uv run pytest tests/test_graph_dispatch_*.py tests/test_graph_repository.py -q
 make check
 ```
 
-### Phase 2 — Shadow sync
+### Phase 2 — Shadow sync (**shipped** 2026-07)
 
 | Body file | GitHub | Summary | Difficulty |
 |-----------|--------|---------|------------|
@@ -64,12 +64,13 @@ uv run pytest tests/test_shadow_schema.py tests/test_shadow_sync.py -q
 make check
 ```
 
-### Phase 3 — Alpha routing
+### Phase 3 — Alpha routing (**shipped** `v2.0.0-alpha`)
 
-| Body file | GitHub | Summary | Difficulty |
-|-----------|--------|---------|------------|
-| [`v2-phase3-shadow-env-flag.md`](docs/quality/issue-bodies/v2-phase3-shadow-env-flag.md) | [#184](https://github.com/MarcoPorcellato/matryca-plumber/issues/184) | `MATRYCA_SHADOW_DB_ENABLED` + `.env.example` | 2/10 |
-| [`v2-phase3-ui-shadow-health.md`](docs/quality/issue-bodies/v2-phase3-ui-shadow-health.md) | [#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185) | Sovereign UI shadow health row | 3/10 |
+| Body file | GitHub | Summary | Status |
+|-----------|--------|---------|--------|
+| [`v2-phase3-shadow-env-flag.md`](docs/quality/issue-bodies/v2-phase3-shadow-env-flag.md) | [#184](https://github.com/MarcoPorcellato/matryca-plumber/issues/184) | `MATRYCA_SHADOW_DB_ENABLED` + `.env.example` | **done** |
+| [`v2-phase3-ui-shadow-health.md`](docs/quality/issue-bodies/v2-phase3-ui-shadow-health.md) | [#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185) | Sovereign UI shadow health row | **done** |
+| — | [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251) | Duplicate block UUID diagnostics | **done** |
 
 ### Phase 4 — Memory + Safe-Sync
 
