@@ -1,12 +1,30 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.1** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.1]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.2** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.2]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-18] v2.0.0-alpha.2 — Shadow DB rename fix & routing audit
+
+### Shipped
+
+1. **Rename stale-owner (#272 / #274)** — incremental external rename reconciles stale shadow page rows in-transaction; Axis 2 **A2-WATCH-02** probe green.
+2. **Axis 3 routing audit (#275)** — 19 probes (flag/health gating, FTS/subtree fallback, MCP/CLI parity); zero confirmed findings.
+3. **Knowledge bundle (experimental)** — OKF-inspired pilots Phase 1–2 merged; `docs/ARCHITECTURE.md` remains SSOT ([#271](https://github.com/MarcoPorcellato/matryca-plumber/issues/271) observation gate).
+4. **Distribution** — tag `v2.0.0-alpha.2`; PyPI `2.0.0a2`; supersedes `v2.0.0-alpha.1` / `2.0.0a1` for new installs. **Not an RC** — Axes 4–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
+
+### Semver
+
+| Milestone | Scope |
+|-----------|--------|
+| **pre-release 2.0.0-alpha.2** | Rename fix + audit probes; no schema migration; default-off flag unchanged |
+| **pre-release 2.0.0-rc** | Blocked until [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261) P0/P1 clear |
 
 ---
 

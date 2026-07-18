@@ -61,7 +61,7 @@
 - **Link hygiene** — background URL/asset checks, Journey Log in today's journal — no per-cycle journal spam
 - **L0 write safety** — semantic index commits abort when an LLM diff would delete `id::` lines or edit protected zones (`graph/safety/validators.py`)
 - **Tier-1 prompt architecture** — domain `*/prompts.py` builders + DI on `InstructorLLMClient`; `SYSTEM_PROMPT.md` assembled from OpenSpec fragments (`make build-system-prompt`)
-- **Shadow DB (v2.0.0-alpha.1, opt-in)** — daemon-owned `shadow.sqlite` read cache: FTS5 BM25 + recursive CTE subtree when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready`; cross-process writer flock + meta/pages validation; generational BM25 + parser fallback otherwise — see [`llms.txt`](llms.txt) §2.6
+- **Shadow DB (v2.0.0-alpha.2, opt-in)** — daemon-owned `shadow.sqlite` read cache: FTS5 BM25 + recursive CTE subtree when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready`; incremental rename stale-owner fix (#272); cross-process writer flock + meta/pages validation; generational BM25 + parser fallback otherwise — see [`llms.txt`](llms.txt) §2.6
 - **100% local-first** — vault stays on disk; no cloud API key required
 
 ## Tana → Logseq OG migration
@@ -259,6 +259,7 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [**v2.0 preparation**](docs/roadmaps/ROADMAP_V2_PREPARATION.md) | [v2 issues `label:v2.0`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3Av2.0) · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) |
 | [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) |
 | [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
+| [`docs/releases/v2.0.0-alpha.2-GITHUB.md`](docs/releases/v2.0.0-alpha.2-GITHUB.md) | GitHub Release body for v2.0.0-alpha.2 (rename fix + routing audit) |
 | [`docs/releases/v2.0.0-alpha.1-GITHUB.md`](docs/releases/v2.0.0-alpha.1-GITHUB.md) | GitHub Release body for v2.0.0-alpha.1 (Shadow DB Axis 1 hardening) |
 | [`docs/releases/v2.0.0-alpha-GITHUB.md`](docs/releases/v2.0.0-alpha-GITHUB.md) | GitHub Release body for v2.0.0-alpha (Shadow DB opt-in read path; superseded by alpha.1) |
 | [`docs/releases/v1.14.0-GITHUB.md`](docs/releases/v1.14.0-GITHUB.md) | Draft GitHub Release body for v1.14.0 (minor, catalog write-safety + Tier F) |

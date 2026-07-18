@@ -2435,6 +2435,24 @@
       "missing": false
     },
     {
+      "path": "docs/releases/v2.0.0-alpha.2-GITHUB.md",
+      "type": "Release Note",
+      "title": "GitHub Release — v2.0.0-alpha.2 (editorial copy-paste)",
+      "description": "> **Workflow source of truth:** CI creates the GitHub Release body from",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/resilience-llm-json-triz.md",
       "type": "Archive",
       "title": "Resilient structured output — TRIZ applied to local LLMs",

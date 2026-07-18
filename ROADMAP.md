@@ -6,11 +6,24 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-alpha.1** (2026-07-18) — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v2.0.0-alpha.2** (2026-07-18) — issue numbers link to GitHub; scope may shift as milestones close.*
 
 ---
 
-## v2.0.0-alpha.1 — Shadow DB Axis 1 hardening ✓ release PR
+## v2.0.0-alpha.2 — Shadow DB rename fix & routing audit (release PR)
+
+| Deliverable | Status |
+|-------------|--------|
+| Incremental rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272) / [#274](https://github.com/MarcoPorcellato/matryca-plumber/pull/274)) | **Done** |
+| Axis 2 parity audit probes ([#275](https://github.com/MarcoPorcellato/matryca-plumber/pull/275) prerequisite: [#274](https://github.com/MarcoPorcellato/matryca-plumber/pull/274)) | **Done** |
+| Axis 3 routing & fallback audit — 19 probes, zero findings ([#275](https://github.com/MarcoPorcellato/matryca-plumber/pull/275)) | **Done** |
+| OKF knowledge bundle pilots (experimental) ([#268](https://github.com/MarcoPorcellato/matryca-plumber/pull/268), [#270](https://github.com/MarcoPorcellato/matryca-plumber/pull/270)) | **Done** |
+
+**Tag (after merge):** `v2.0.0-alpha.2` · PyPI `matryca-plumber==2.0.0a2` · **supersedes** `v2.0.0-alpha.1` / `2.0.0a1` for new installs (`2.0.0a0`–`2.0.0a1` remain on PyPI). **Not an RC** — Axes 4–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
+
+---
+
+## v2.0.0-alpha.1 — Shadow DB Axis 1 hardening ✓ tagged
 
 | Deliverable | Status |
 |-------------|--------|
@@ -19,7 +32,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | Axis 1 audit probes — zero xfails ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261), [#263](https://github.com/MarcoPorcellato/matryca-plumber/pull/263)) | **Done** |
 | Maintainer doc sync + release notes | **Done** |
 
-**Tag (after merge):** `v2.0.0-alpha.1` · PyPI `matryca-plumber==2.0.0a1` · **supersedes** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) / `2.0.0a0` for new installs (`2.0.0a0` remains on PyPI).
+**Tag (after merge):** `v2.0.0-alpha.1` · PyPI `matryca-plumber==2.0.0a1` · **superseded by v2.0.0-alpha.2** for new installs (`2.0.0a0` remains on PyPI).
 
 ---
 
