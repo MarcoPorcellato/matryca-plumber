@@ -10,6 +10,7 @@
 - **Shadow FTS routing for `search_graph(bm25)` (#250)** — when `MATRYCA_SHADOW_DB_ENABLED=true` and shadow health is `ready`, `handle_search_bm25` queries FTS5 with BM25-markdown envelope parity; invalid FTS syntax returns validation errors; backend failures fall back to generational BM25.
 - **Shadow recursive CTE subtree helper (#253)** — `query_subtree_by_block_uuid` in `src/shadow/subtree.py` reads block subtrees from `shadow.sqlite` with depth-first ordering, visited-rowid cycle guards, SQL-enforced depth/node limits, UTF-8-safe byte truncation, and parity tests against `MarkdownGraphRepository` (no dispatch wiring).
 - **Shadow read-port selector for `read_graph_data(subtree)` (#255)** — `ShadowGraphRepository` routes subtree reads through the CTE helper when `MATRYCA_SHADOW_DB_ENABLED=true` and shadow health is `ready`; `get_graph_read_port` falls back to `MarkdownGraphRepository` when flag is off, health is not `ready`, SQLite fails, or health changes between port selection and query.
+- **Shadow DB health on Sovereign UI `/api/state` (#185)** — backward-compatible `shadow_db` row with persisted-meta fields (`state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`), bounded sanitized errors, and a minimal read-only telemetry row in the control room.
 
 ### Changed
 

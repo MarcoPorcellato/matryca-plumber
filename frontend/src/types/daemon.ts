@@ -1,3 +1,26 @@
+/** Shadow DB health row from ``GET /api/state`` (v2 PR-D). */
+export type ShadowDbStateValue = 'disabled' | 'bootstrapping' | 'ready' | 'stale' | 'error'
+
+export interface ShadowDbState {
+  enabled: boolean
+  state: ShadowDbStateValue
+  last_full_sync_at: string | null
+  source_page_count: number | null
+  indexed_page_count: number | null
+  lag_pages: number | null
+  last_sync_error: string | null
+}
+
+export const DEFAULT_SHADOW_DB_STATE: ShadowDbState = {
+  enabled: false,
+  state: 'disabled',
+  last_full_sync_at: null,
+  source_page_count: null,
+  indexed_page_count: null,
+  lag_pages: null,
+  last_sync_error: null,
+}
+
 /** Mirrors ``FileStateResponse`` from ``src/cli/ui_server.py``. */
 export type FileStatus = 'processed' | 'skipped' | 'error' | 'pending'
 
@@ -226,6 +249,44 @@ function normalizeImpactCounters(raw: DaemonStateResponse): DaemonImpactCounters
   }
 }
 
+function readNullableCount(source: Record<string, unknown>, snakeKey: string, camelKey: string): number | null {
+  if (!hasExplicitField(source, snakeKey, camelKey)) {
+    return null
+  }
+  const value = readNumber(source, snakeKey, camelKey)
+  return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : null
+}
+
+function normalizeShadowDb(raw: unknown): ShadowDbState {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ...DEFAULT_SHADOW_DB_STATE }
+  }
+  const source = raw as Record<string, unknown>
+  const stateRaw = source.state ?? source.status ?? source.State ?? source.Status
+  const state =
+    stateRaw === 'disabled'
+    || stateRaw === 'bootstrapping'
+    || stateRaw === 'ready'
+    || stateRaw === 'stale'
+    || stateRaw === 'error'
+      ? stateRaw
+      : 'disabled'
+  const enabled = Boolean(source.enabled ?? source.Enabled ?? false)
+  const lastFullSyncRaw =
+    source.last_full_sync_at ?? source.lastFullSyncAt ?? source.last_sync ?? source.lastSync
+  const errorRaw = source.last_sync_error ?? source.lastSyncError ?? source.error ?? source.Error
+  return {
+    enabled,
+    state: enabled ? state : 'disabled',
+    last_full_sync_at:
+      typeof lastFullSyncRaw === 'string' && lastFullSyncRaw.trim() ? lastFullSyncRaw : null,
+    source_page_count: readNullableCount(source, 'source_page_count', 'sourcePageCount'),
+    indexed_page_count: readNullableCount(source, 'indexed_page_count', 'indexedPageCount'),
+    lag_pages: readNullableCount(source, 'lag_pages', 'lagPages'),
+    last_sync_error: typeof errorRaw === 'string' && errorRaw.trim() ? errorRaw : null,
+  }
+}
+
 /** Coerce legacy `/api/state` payloads that omit ``graph_analytics`` or use camelCase keys. */
 export function normalizeDaemonState(raw: DaemonStateResponse): DaemonStateResponse {
   const files =
@@ -265,6 +326,10 @@ export function normalizeDaemonState(raw: DaemonStateResponse): DaemonStateRespo
     ),
     daemon_pid: readNumber(source, 'daemon_pid', 'daemonPid') || undefined,
     graph_analytics: graphAnalytics,
+    shadow_db: normalizeShadowDb(
+      (raw as unknown as Record<string, unknown>).shadow_db
+        ?? (raw as unknown as Record<string, unknown>).shadowDb,
+    ),
   }
 }
 
@@ -302,6 +367,7 @@ export interface DaemonStateResponse {
   bootstrap_recent?: Record<string, BootstrapRecentEntry>
   daemon_pid?: number | null
   graph_analytics?: GraphAnalytics
+  shadow_db?: ShadowDbState
 }
 
 /** Mirrors ``PlumberConfigResponse`` from ``src/cli/ui_server.py``. */

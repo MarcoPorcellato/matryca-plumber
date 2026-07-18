@@ -56,6 +56,7 @@ from ..agent.plumber_config import (
 from ..config import load_matryca_wiki_config
 from ..graph.graph_analytics import compute_graph_analytics
 from ..graph.graph_path_validate import validate_logseq_graph_path_for_config
+from ..shadow.state_api import ShadowDbStateResponse, resolve_shadow_db_state_for_api
 from ..utils.console_sanitize import sanitize_for_console
 from ..utils.env_placeholders import is_template_env_path
 from ..utils.llm_url_policy import UnsafeLlmProxyUrlError, validate_llm_proxy_url
@@ -160,6 +161,7 @@ class DaemonStateResponse(BaseModel):
     progress_total: int = 0
     progress_percent: float = 0.0
     daemon_pid: int | None = None
+    shadow_db: ShadowDbStateResponse = Field(default_factory=ShadowDbStateResponse)
 
     @classmethod
     def from_daemon_state(cls, state: DaemonState) -> DaemonStateResponse:
@@ -809,6 +811,7 @@ def _build_daemon_state_response(graph_root: Path) -> DaemonStateResponse:
             "session_prompt_tokens": session_prompt_tokens,
             "session_completion_tokens": session_completion_tokens,
             "daemon_pid": daemon_pid,
+            "shadow_db": resolve_shadow_db_state_for_api(graph_root),
             **progress.to_api_fields(),
         }
     )

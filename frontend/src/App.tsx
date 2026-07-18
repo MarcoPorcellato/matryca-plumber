@@ -5,6 +5,7 @@ import { FeatureStatusBar } from './components/FeatureStatusBar'
 import { GraphInsightsCard } from './components/GraphInsightsCard'
 import { LiveConsole } from './components/LiveConsole'
 import { MasterHeader } from './components/MasterHeader'
+import { ShadowDbStatusRow } from './components/ShadowDbStatusRow'
 import { TokenCounterCard } from './components/TokenCounterCard'
 import { usePlumberPolling } from './hooks/usePlumberPolling'
 
@@ -151,6 +152,8 @@ export default function App() {
             config={config}
             frozen={frozen}
           />
+
+          <ShadowDbStatusRow shadowDb={state?.shadow_db} />
 
           <div className="flex min-h-[12rem] flex-1 flex-col overflow-hidden lg:min-h-0">
             <LiveConsole
