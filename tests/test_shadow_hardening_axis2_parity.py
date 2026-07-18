@@ -371,18 +371,17 @@ def test_a2_watch_01_watchdog_crud_matches_incremental_sync(tmp_path: Path) -> N
 
 @pytest.mark.xfail(
     strict=True,
-    reason=(
-        "A2-WATCH-02: incremental rename leaves stale shadow page; duplicate block_uuid on upsert"
-    ),
+    reason="A2-WATCH-02: stale shadow page owner on rename — #272",
 )
 def test_a2_watch_02_rename_file_path_parity(tmp_path: Path) -> None:
     """A2-WATCH-02: rename on disk converges to same shadow state as full rebuild."""
     graph = _minimal_graph(tmp_path)
+    block_uuid = "50505050-5050-4050-8050-505050505050"
     ops = [
         IncrementalOp(
             "write_sync",
             "pages/OldName.md",
-            "- body\n  id:: 50505050-5050-4050-8050-505050505050\n",
+            f"- body\n  id:: {block_uuid}\n",
         ),
         IncrementalOp(
             "rename_sync",
@@ -390,6 +389,21 @@ def test_a2_watch_02_rename_file_path_parity(tmp_path: Path) -> None:
             dest_rel="pages/NewName.md",
         ),
     ]
+
+    expected_graph = graph.parent / f"{graph.name}-expected"
+    if expected_graph.exists():
+        shutil.rmtree(expected_graph)
+    shutil.copytree(graph, expected_graph)
+    _apply_markdown_ops(expected_graph, ops)
+    _remove_shadow_db(expected_graph)
+    rebuild_shadow_from_graph(expected_graph)
+    expected = capture_shadow_snapshot(expected_graph)
+    assert len(expected) == 1
+    assert expected[0].title == "NewName"
+    assert expected[0].file_path == "pages/NewName.md"
+    assert len(expected[0].blocks) == 1
+    assert expected[0].blocks[0].block_uuid == block_uuid
+
     assert_full_rebuild_matches_incremental(graph, seed_files={}, ops=ops)
 
 
