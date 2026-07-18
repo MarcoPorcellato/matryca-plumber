@@ -2,6 +2,7 @@
 
 ### Changed
 
+- **Documentation** — extended `docs/knowledge/architecture/` with experimental `graph-plane.md` and `shadow-db.md` pilots; added `legacy_sources` validation to `make docs-check`.
 - **Documentation** — added `docs/knowledge/` OKF-inspired pilot bundle (`profile.md`, architecture system-overview, curated `inventory.json` + generated `inventory.md`) with `make docs-check` / `make docs-audit`; discovery index only — legacy `docs/ARCHITECTURE.md` and other canonical paths remain authoritative during Phase 1.
 
 ## [2.0.0-alpha.1] - 2026-07-18

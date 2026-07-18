@@ -74,7 +74,7 @@ The pilot applies stricter producer rules inside `docs/knowledge/`:
 | `okf_target` | profile only | Target OKF revision |
 | `conformance` | profile only | `partial` until Phase 5 |
 
-Do not place legacy file paths in `related`. Use `legacy_sources` for transitional authority pointers.
+Do not place legacy file paths in `related`. Use `legacy_sources` for transitional authority pointers. `make docs-check` validates that each `legacy_sources` entry is repo-relative, resolves inside the repository root, and points to an existing file.
 
 ## Inventory extensions
 

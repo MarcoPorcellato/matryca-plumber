@@ -208,7 +208,7 @@
       "destination": "docs/knowledge/architecture/",
       "action": "split",
       "supersedes": [],
-      "notes": "",
+      "notes": "Split pilots: system-overview, graph-plane, shadow-db (Phase 2). Legacy remains SSOT.",
       "missing": false
     },
     {
@@ -2621,7 +2621,7 @@
       "destination": "docs/knowledge/roadmaps/active/",
       "action": "migrate",
       "supersedes": [],
-      "notes": "",
+      "notes": "Pilot distilled in docs/knowledge/architecture/shadow-db.md (experimental).",
       "missing": false
     },
     {
