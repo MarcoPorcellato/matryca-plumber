@@ -137,10 +137,6 @@ def test_a4_query_04_operators_and_parentheses(tmp_path: Path) -> None:
         conn.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P1 #277: unquoted hyphenated queries must not fall back to generational BM25",
-)
 @pytest.mark.asyncio
 async def test_a4_query_05_hyphenated_phrase_no_generational_fallback(
     tmp_path: Path,
