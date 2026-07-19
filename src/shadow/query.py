@@ -92,9 +92,13 @@ def search_blocks_fts(
     should supply FTS5 query syntax (plain tokens are fine for simple search).
     Empty / whitespace-only queries return an empty list.
     """
-    q = prepare_fts_user_query(query)
-    if not q:
+    stripped = query.strip()
+    if not stripped:
         return []
+    from .fts_format import check_fts_query_length_bounded
+
+    check_fts_query_length_bounded(stripped)
+    q = prepare_fts_user_query(query)
     capped = max(1, min(int(limit), 500))
     rows = connection.execute(
         """

@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from src.agent.dispatch_search_handlers import handle_search_bm25
 from src.shadow.bootstrap import rebuild_shadow_from_graph
 from src.shadow.connection import open_shadow_db, shadow_db_path
 from src.shadow.fts_format import (
+    MAX_FTS_MATCH_QUERY_CHARS,
     FtsQueryValidationError,
     format_shadow_fts_markdown,
     resolve_bm25_search_markdown,
@@ -325,15 +326,110 @@ def test_a4_query_09_invalid_syntax_validation_error(tmp_path: Path) -> None:
         validate_fts_match_query('"unclosed')
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P2 #279: FTS query length should be bounded before SQLite MATCH",
-)
 def test_a4_query_10_very_long_query_bounded(tmp_path: Path) -> None:
-    """A4-QUERY-10: overlong query rejected with validation error (bounded input)."""
+    """A4-QUERY-10 (#279): overlong query rejected with validation error (bounded input)."""
     long_query = "needle " + ("x" * 5000)
-    with pytest.raises(FtsQueryValidationError):
+    with pytest.raises(FtsQueryValidationError, match="exceeds max length"):
         validate_fts_match_query(long_query)
+
+
+def test_a4_query_10b_length_at_limit_minus_one_accepted(tmp_path: Path) -> None:
+    """A4-QUERY-10b (#279): query at limit-1 passes validation."""
+    query = "n" * (MAX_FTS_MATCH_QUERY_CHARS - 1)
+    validate_fts_match_query(query)
+
+
+def test_a4_query_10c_length_at_limit_accepted(tmp_path: Path) -> None:
+    """A4-QUERY-10c (#279): query at exact limit passes validation."""
+    query = "n" * MAX_FTS_MATCH_QUERY_CHARS
+    validate_fts_match_query(query)
+
+
+def test_a4_query_10d_length_over_limit_rejected(tmp_path: Path) -> None:
+    """A4-QUERY-10d (#279): query at limit+1 is rejected."""
+    query = "n" * (MAX_FTS_MATCH_QUERY_CHARS + 1)
+    with pytest.raises(FtsQueryValidationError, match="exceeds max length"):
+        validate_fts_match_query(query)
+
+
+def test_a4_query_10e_unicode_multibyte_counts_characters_not_bytes(tmp_path: Path) -> None:
+    """A4-QUERY-10e (#279): limit uses Unicode code points, not UTF-8 byte length."""
+    query = "café" + ("é" * (MAX_FTS_MATCH_QUERY_CHARS - 4))
+    validate_fts_match_query(query)
+    over = "café" + ("é" * (MAX_FTS_MATCH_QUERY_CHARS - 3))
+    with pytest.raises(FtsQueryValidationError, match="exceeds max length"):
+        validate_fts_match_query(over)
+
+
+def test_a4_query_10f_whitespace_only_still_empty_at_fts_layer(tmp_path: Path) -> None:
+    """A4-QUERY-10f (#279): whitespace-only input unchanged at FTS search layer."""
+    graph = _minimal_graph(tmp_path)
+    _seed_fts_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        assert search_blocks_fts(conn, "   \t\n") == []
+    finally:
+        conn.close()
+
+
+def test_a4_query_10g_operator_prefix_hyphen_within_limit(tmp_path: Path) -> None:
+    """A4-QUERY-10g (#279): operators, prefix, and hyphenated tokens within limit."""
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/BoundOps.md",
+        "- alpha state-of-the-art prefixneedle token\n"
+        "  id:: 19191919-1919-4191-8191-919191919191\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    conn = open_shadow_db(graph)
+    try:
+        query = 'alpha OR "state-of-the-art" prefix*'
+        validate_fts_match_query(query)
+        assert len(search_blocks_fts(conn, query)) == 1
+    finally:
+        conn.close()
+
+
+def test_a4_query_10h_overlong_skips_sqlite_match() -> None:
+    """A4-QUERY-10h (#279): overlong query never reaches SQLite ``MATCH``."""
+    conn = MagicMock(spec=sqlite3.Connection)
+    overlong = "n" * (MAX_FTS_MATCH_QUERY_CHARS + 1)
+    with pytest.raises(FtsQueryValidationError):
+        search_blocks_fts(conn, overlong)
+    conn.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a4_query_10i_overlong_public_bm25_validation_error(tmp_path: Path) -> None:
+    """A4-QUERY-10i (#279): MCP/CLI BM25 envelope returns validation error, no fallback."""
+    graph = _minimal_graph(tmp_path)
+    _seed_fts_graph(graph)
+    overlong = "needle " + ("x" * 5000)
+    out = await handle_search_bm25(str(graph), overlong)
+    assert "Invalid FTS query" in out
+    assert "exceeds max length" in out
+    assert "block `" not in out
+    assert "xxxx" not in out
+
+
+def test_a4_query_10j_overlong_error_message_bounded(tmp_path: Path) -> None:
+    """A4-QUERY-10j (#279): validation error omits full query and vault paths."""
+    graph = _minimal_graph(tmp_path)
+    secret = "supersecretvaulttoken"
+    _write_page(
+        graph,
+        f"pages/{secret}.md",
+        "- body\n  id:: 20202020-2020-4202-8202-020202020202\n",
+    )
+    rebuild_shadow_from_graph(graph)
+    overlong = secret + ("z" * 5000)
+    with pytest.raises(FtsQueryValidationError) as exc:
+        format_shadow_fts_markdown(graph, overlong)
+    msg = str(exc.value)
+    assert secret not in msg
+    assert str(graph) not in msg
+    assert len(msg) < 500
 
 
 # --- A4-CONTENT ---
