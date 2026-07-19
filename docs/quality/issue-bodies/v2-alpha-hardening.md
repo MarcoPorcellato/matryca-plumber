@@ -111,13 +111,14 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 7 — Performance
 
-**Status:** audit probes started (`tests/test_shadow_hardening_axis7_performance.py`) — **7 pass** in default CI; **2 slow** (10k/50k bootstrap) deselected.
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis7_performance.py`) — **7 pass** in default CI; **2 slow** (10k/50k) verified locally.
 
-- [x] Bootstrap at 1k blocks (CI) — **A7-BOOT-01 pass**; 10k/50k under `@pytest.mark.slow`
+- [x] Bootstrap at 1k blocks (CI) — **A7-BOOT-01 pass**; 10k/50k under `@pytest.mark.slow` (**pass**, see soak note below)
 - [x] FTS/CTE latency p50/p95 — **A7-FTS-01 / A7-CTE-01 pass** (soft ceilings)
 - [x] Memory and lock hold duration — **A7-MEM-01 / A7-LOCK-01 pass**
 - [x] Watcher cost on file bursts — **A7-WATCH-01 pass**
 
+**Slow soak note (2026-07-19, maintainer laptop):** macOS 15.7.3 arm64, CPython 3.12.13 (pytest venv). Dataset A7-BOOT-02: 200 pages × ~50 blocks → **10200** rows, ceiling **180s**, measured **0.901s**. Dataset A7-BOOT-03: 500 pages × ~100 blocks → **50500** rows, ceiling **600s**, measured **4.378s**. Soft ceilings catch pathological regressions only — not a reproducible CI baseline across runners.
 ### Axis 7 findings
 
 | ID | Axis | Repro | Sev | Minimal test | Child issue | Status |
