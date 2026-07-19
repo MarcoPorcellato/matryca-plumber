@@ -102,10 +102,12 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 6 — Security & isolation
 
-- [ ] Path traversal and symlink escape
-- [ ] Sanitized errors (no vault content leak)
-- [ ] Flag `false` must not create/open/mutate SQLite
-- [ ] Shadow DB must never write Markdown
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis6_security.py`) — **18 pass, 0 xfail**.
+
+- [x] Path traversal and symlink escape — **A6-PATH-01..04 pass**
+- [x] Sanitized errors (no vault content leak) — **A6-ERRORS-01..05 pass**
+- [x] Flag `false` must not create/open/mutate SQLite — **A6-FLAG-01..04 pass**
+- [x] Shadow DB must never write Markdown — **A6-MD-01..05 pass**
 
 ### Axis 7 — Performance
 
@@ -234,6 +236,24 @@ uvx --refresh-package matryca-plumber \
 | A5-CONCURRENCY-04 | 5 | Reader txn isolates incremental sync (old vs new conn) | — | `test_a5_concurrency_04_reader_transaction_isolates_incremental_sync` | — | **pass** |
 | A5-CONCURRENCY-05 | 5 | Query during uncommitted rebuild — committed snapshot only | — | `test_a5_concurrency_05_query_during_uncommitted_rebuild_never_hybrid` | — | **pass** |
 | A5-CONCURRENCY-06 | 5 | Reader opened before `BEGIN IMMEDIATE` sees committed subtree | — | `test_a5_concurrency_06_reader_sees_committed_generation_during_writer_lock` | — | **pass** |
+| A6-PATH-01 | 6 | Sync rejects page path outside graph | — | `test_a6_path_01_sync_rejects_page_outside_graph` | — | **pass** |
+| A6-PATH-02 | 6 | Semantic-cache symlink escape rejected | — | `test_a6_path_02_shadow_writer_lock_rejects_cache_symlink_escape` | — | **pass** |
+| A6-PATH-03 | 6 | `shadow.sqlite` stays under graph cache | — | `test_a6_path_03_shadow_db_path_stays_under_graph` | — | **pass** |
+| A6-PATH-04 | 6 | Graph symlink — lock path stays sandboxed | — | `test_a6_path_04_open_shadow_db_rejects_graph_escape_via_symlink` | — | **pass** |
+| A6-ERRORS-01 | 6 | Subtree NOT_FOUND omits vault secrets | — | `test_a6_errors_01_subtree_not_found_omits_vault_secrets` | — | **pass** |
+| A6-ERRORS-02 | 6 | SQLite failure fallback omits DB internals | — | `test_a6_errors_02_subtree_sqlite_failure_fallback_omits_db_internals` | — | **pass** |
+| A6-ERRORS-03 | 6 | FTS validation error omits vault content | — | `test_a6_errors_03_fts_validation_error_omits_vault_content` | — | **pass** |
+| A6-ERRORS-04 | 6 | Duplicate UUID sync error omits block bodies | — | `test_a6_errors_04_sync_duplicate_uuid_error_omits_block_content` | — | **pass** |
+| A6-ERRORS-05 | 6 | INCONSISTENT subtree fallback omits SQLite leak | — | `test_a6_errors_05_inconsistent_subtree_falls_back_without_sqlite_leak` | — | **pass** |
+| A6-FLAG-01 | 6 | Flag off — rebuild skips DB creation | — | `test_a6_flag_01_false_flag_skips_rebuild_db_creation` | — | **pass** |
+| A6-FLAG-02 | 6 | Flag off — incremental sync no-op | — | `test_a6_flag_02_false_flag_skips_incremental_sync` | — | **pass** |
+| A6-FLAG-03 | 6 | Flag off — read port is Markdown | — | `test_a6_flag_03_false_flag_read_port_is_markdown` | — | **pass** |
+| A6-FLAG-04 | 6 | Flag off — subtree handler uses Markdown | — | `test_a6_flag_04_false_flag_handler_uses_markdown_subtree` | — | **pass** |
+| A6-MD-01 | 6 | Full rebuild never writes Markdown | — | `test_a6_md_01_full_rebuild_never_writes_markdown` | — | **pass** |
+| A6-MD-02 | 6 | Incremental sync never writes Markdown | — | `test_a6_md_02_incremental_sync_never_writes_markdown` | — | **pass** |
+| A6-MD-03 | 6 | Subtree reads never write Markdown | — | `test_a6_md_03_subtree_reads_never_write_markdown` | — | **pass** |
+| A6-MD-04 | 6 | BM25 search never writes Markdown | — | `test_a6_md_04_bm25_search_never_writes_markdown` | — | **pass** |
+| A6-MD-05 | 6 | Direct CTE query never writes Markdown | — | `test_a6_md_05_direct_cte_query_never_writes_markdown` | — | **pass** |
 
 ---
 
