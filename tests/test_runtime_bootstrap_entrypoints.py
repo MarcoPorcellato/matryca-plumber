@@ -26,11 +26,13 @@ def test_cli_main_calls_try_prepare_before_dispatch(monkeypatch: pytest.MonkeyPa
     from src.cli import main as cli_main
 
     order: list[str] = []
+    eager_flags: list[bool] = []
 
-    monkeypatch.setattr(
-        "src.cli.try_prepare_matryca_runtime_from_env",
-        lambda: order.append("prepare"),
-    )
+    def _prepare(*, eager_graph: bool = True) -> None:
+        order.append("prepare")
+        eager_flags.append(eager_graph)
+
+    monkeypatch.setattr("src.cli.try_prepare_matryca_runtime_from_env", _prepare)
 
     async def _run_cli(_args: object) -> int:
         order.append("dispatch")
@@ -51,6 +53,19 @@ def test_cli_main_calls_try_prepare_before_dispatch(monkeypatch: pytest.MonkeyPa
 
     assert exc.value.code == 0
     assert order == ["prepare", "dispatch"]
+    assert eager_flags == [True]
+
+
+def test_cli_eager_graph_route_matrix() -> None:
+    from argparse import Namespace
+
+    from src.cli import _cli_eager_graph
+
+    assert _cli_eager_graph(Namespace(command="search", method="bm25")) is False
+    assert _cli_eager_graph(Namespace(command="search", method="regex")) is True
+    assert _cli_eager_graph(Namespace(command="search", method="semantic")) is True
+    assert _cli_eager_graph(Namespace(command="read", method=None)) is True
+    assert _cli_eager_graph(Namespace(command="lint", method=None)) is True
 
 
 @pytest.mark.asyncio

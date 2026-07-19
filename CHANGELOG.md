@@ -1,8 +1,12 @@
 ## [Unreleased]
 
+### Fixed
+
+- **CLI `search bm25` no longer eager-bootstraps AST (#297 / A-CLI-01)** — `matryca search bm25` prepares runtime with `eager_graph=False`, so LogosParser cold load cannot hang BM25 (raw Markdown / Shadow FTS). Other CLI commands keep eager AST warm-up.
+
 ### Changed
 
-- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); no runtime containment yet.
+- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); bounded parser worker / Shadow containment still follow-up (PR2B/C).
 
 ## [2.0.0-alpha.5] - 2026-07-19
 

@@ -396,6 +396,16 @@ async def run_cli(args: argparse.Namespace) -> int:
     return 2
 
 
+def _cli_eager_graph(args: argparse.Namespace) -> bool:
+    """Return whether this CLI invocation should warm the in-memory AST index.
+
+    ``search bm25`` scores raw Markdown / Shadow FTS and must not pay for
+    ``GraphAstCache.bootstrap`` (A-CLI-01 / #297). Other graph commands keep
+    eager load so first-read latency stays predictable.
+    """
+    return not (args.command == "search" and getattr(args, "method", None) == "bm25")
+
+
 def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint: load ``.env``, parse args, run async dispatch."""
     parser = build_parser()
@@ -403,7 +413,7 @@ def main(argv: list[str] | None = None) -> None:
     ui_only = args.command == "plumber" and args.plumber_action in {"status", "ui"}
     skip_eager_bootstrap = args.command == "plumber" and args.plumber_action == "start"
     if not ui_only and not skip_eager_bootstrap:
-        try_prepare_matryca_runtime_from_env()
+        try_prepare_matryca_runtime_from_env(eager_graph=_cli_eager_graph(args))
     if ui_only:
         try:
             run_ui_server()
