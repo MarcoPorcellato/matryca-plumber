@@ -2,11 +2,27 @@
 
 ## Problem Description
 
-`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`. **`v2.0.0-alpha.2`** adds the rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272)) and Axis 2–3 audit probes. **`v2.0.0-alpha.3`** ships the hyphenated FTS fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277)). **`v2.0.0-alpha.4`** ships the FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279)) and completes Axis 4 (**52 pass, 0 xfail**; #278 probe corrected). Before `v2.0.0-rc`, we need a structured hardening campaign: reproduce real failures and edge cases with minimal tests, then land **surgical PRs** per confirmed finding — no monolithic audit-fix PR.
+`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`. **`v2.0.0-alpha.2`** adds the rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272)) and Axis 2–3 audit probes. **`v2.0.0-alpha.3`** ships the hyphenated FTS fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277)). **`v2.0.0-alpha.4`** ships the FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279)) and completes Axis 4 (**52 pass, 0 xfail**). **`v2.0.0-alpha.5`** closes this campaign: CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289)), state API path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293)), Axes 5–7 green — **no open P0/P1**.
 
-**Baseline:** tag [`v2.0.0-alpha.4`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.4) (release PR pending merge) · prior [`v2.0.0-alpha.3`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.3) superseded for new installs.
+**Baseline (campaign close):** tag `v2.0.0-alpha.5` (release PR) · prior [`v2.0.0-alpha.4`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.4) superseded for new installs.
 
 **Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
+
+## Campaign status — CLOSED (2026-07-19)
+
+| Axis | Probes | Result |
+|------|--------|--------|
+| 1 — Concurrency & recovery | Axis 1 suite | green (`v2.0.0-alpha.1`) |
+| 2 — Shadow ↔ Markdown | `axis2_parity` | green (`v2.0.0-alpha.2`) |
+| 3 — Routing & fallback | `axis3_routing` | green (`v2.0.0-alpha.2`) |
+| 4 — FTS5 | `axis4_fts5` | **52 pass, 0 xfail** (`v2.0.0-alpha.4`) |
+| 5 — CTE subtree | `axis5_cte` | **43 pass, 0 xfail** (`v2.0.0-alpha.5` / #289) |
+| 6 — Security & isolation | `axis6_security` | **24 pass, 0 xfail** (`v2.0.0-alpha.5` / #293) |
+| 7 — Performance | `axis7_performance` | **7 pass** CI; slow 10k/50k verified locally |
+
+**Residual findings:** none open. Accepted P2 without code change: **A1-BOOT-02** (rollback preserves generation). All other P0–P2 findings fixed in alpha.1–alpha.5.
+
+**RC exit criteria (this tracker):** no open P0/P1 — **met**. Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) continues toward beta/RC after post-publish soak of `2.0.0a5`.
 
 ## Proposed Architectural Solution
 
@@ -35,8 +51,8 @@ Seven-axis audit with severity classification **P0–P3**. Each **confirmed** fi
 ```bash
 make ci
 uvx --refresh-package matryca-plumber \
-  matryca-plumber@2.0.0-alpha.4 read --help
-# PyPI normalizes the pin to matryca-plumber==2.0.0a4 (PEP 440); help output does not print version.
+  matryca-plumber@2.0.0-alpha.5 read --help
+# PyPI normalizes the pin to matryca-plumber==2.0.0a5 (PEP 440); help output does not print version.
 # vault soak (flag off + flag on) — see Epic #20 distribution comment
 ```
 
@@ -295,4 +311,4 @@ uvx --refresh-package matryca-plumber \
 **Epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
 **Milestone:** `v2.0.0 — Shadow DB & Safe-Sync Architecture`
 
-_Closes when RC exit criteria are met and findings table is empty or P2-only with explicit acceptance._
+_Campaign closed 2026-07-19: Axes 1–7 green, no open P0/P1. Residual accepted: A1-BOOT-02. Next: post-publish soak of `2.0.0a5` before beta/RC (Epic #20)._

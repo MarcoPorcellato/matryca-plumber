@@ -1,12 +1,32 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.4** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.4]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.5** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.5]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-19] v2.0.0-alpha.5 — Shadow hardening campaign close
+
+### Context
+
+Hardening tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261) Axes 5–7 completed after alpha.4. Confirmed P2s: CTE `max_depth≤1` truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289)) and state API absolute-path leak in `last_sync_error` ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293)).
+
+### Decisions
+
+1. **Surgical fixes** — #291 (subtree truncation status) and #294 (path redaction) landed separately from audit PRs #290/#292/#295.
+2. **Campaign close** — Axes 1–7 green; no open P0/P1; A1-BOOT-02 remains the only accepted P2 without code change.
+3. **Distribution** — tag `v2.0.0-alpha.5`; PyPI `2.0.0a5`; supersedes `v2.0.0-alpha.4` / `2.0.0a4` for new installs. **Not an RC** — post-publish soak before beta/RC (Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)).
+
+### Outcome
+
+| Surface | Note |
+|---------|------|
+| **pre-release 2.0.0-alpha.5** | Hardening close + #114/#289/#293; no schema migration; default-off flag unchanged |
 
 ---
 

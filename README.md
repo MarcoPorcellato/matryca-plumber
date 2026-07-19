@@ -61,7 +61,7 @@
 - **Link hygiene** — background URL/asset checks, Journey Log in today's journal — no per-cycle journal spam
 - **L0 write safety** — semantic index commits abort when an LLM diff would delete `id::` lines or edit protected zones (`graph/safety/validators.py`)
 - **Tier-1 prompt architecture** — domain `*/prompts.py` builders + DI on `InstructorLLMClient`; `SYSTEM_PROMPT.md` assembled from OpenSpec fragments (`make build-system-prompt`)
-- **Shadow DB (v2.0.0-alpha.4, opt-in)** — daemon-owned `shadow.sqlite` read cache: FTS5 BM25 + recursive CTE subtree when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready`; FTS query length bound (#279); hyphenated FTS query fix (#277); incremental rename stale-owner fix (#272); cross-process writer flock + meta/pages validation; generational BM25 + parser fallback otherwise — see [`llms.txt`](llms.txt) §2.6
+- **Shadow DB (v2.0.0-alpha.5, opt-in)** — daemon-owned `shadow.sqlite` read cache: FTS5 BM25 + recursive CTE subtree when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready`; CTE depth-truncation status (#289); state API path redaction (#293); FTS query length bound (#279); hyphenated FTS query fix (#277); incremental rename stale-owner fix (#272); cross-process writer flock + meta/pages validation; generational BM25 + parser fallback otherwise — see [`llms.txt`](llms.txt) §2.6
 - **100% local-first** — vault stays on disk; no cloud API key required
 
 ## Tana → Logseq OG migration
@@ -259,6 +259,7 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [**v2.0 preparation**](docs/roadmaps/ROADMAP_V2_PREPARATION.md) | [v2 issues `label:v2.0`](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3Av2.0) · [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md) |
 | [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`docs/integrations/hermes-agent.md`](docs/integrations/hermes-agent.md) |
 | [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
+| [`docs/releases/v2.0.0-alpha.5-GITHUB.md`](docs/releases/v2.0.0-alpha.5-GITHUB.md) | GitHub Release body for v2.0.0-alpha.5 (hardening campaign close) |
 | [`docs/releases/v2.0.0-alpha.4-GITHUB.md`](docs/releases/v2.0.0-alpha.4-GITHUB.md) | GitHub Release body for v2.0.0-alpha.4 (FTS query bound + Axis 4 green) |
 | [`docs/releases/v2.0.0-alpha.3-GITHUB.md`](docs/releases/v2.0.0-alpha.3-GITHUB.md) | GitHub Release body for v2.0.0-alpha.3 (FTS hyphen fix + Axis 4 audit) |
 | [`docs/releases/v2.0.0-alpha.2-GITHUB.md`](docs/releases/v2.0.0-alpha.2-GITHUB.md) | GitHub Release body for v2.0.0-alpha.2 (rename fix + routing audit) |
