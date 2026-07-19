@@ -208,10 +208,6 @@ def test_a5_depth_03_root_anchor_includes_descendants(tmp_path: Path) -> None:
         conn.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P2 #289: max_depth=1 should TRUNCATE when descendants exist (reports COMPLETE)",
-)
 def test_a5_depth_04_max_depth_one_with_child_truncated(tmp_path: Path) -> None:
     """A5-DEPTH-04: max_depth=1 with descendants → TRUNCATED, anchor only."""
     graph = _minimal_graph(tmp_path)
@@ -226,10 +222,6 @@ def test_a5_depth_04_max_depth_one_with_child_truncated(tmp_path: Path) -> None:
         conn.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P2 #289: clamped max_depth=0 behaves like 1 but should TRUNCATE with descendants",
-)
 def test_a5_depth_05_max_depth_zero_clamped_truncated(tmp_path: Path) -> None:
     """A5-DEPTH-05: max_depth=0 clamps to 1; descendants → TRUNCATED."""
     graph = _minimal_graph(tmp_path)
@@ -288,10 +280,6 @@ def test_a5_depth_08_default_cap_truncates_beyond_64_levels(tmp_path: Path) -> N
         conn.close()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P2 #289: clamped max_depth=-5 behaves like 1 but should TRUNCATE with descendants",
-)
 def test_a5_depth_09_negative_max_depth_clamped(tmp_path: Path) -> None:
     """A5-DEPTH-09: negative max_depth clamps to 1; descendants → TRUNCATED."""
     graph = _minimal_graph(tmp_path)
