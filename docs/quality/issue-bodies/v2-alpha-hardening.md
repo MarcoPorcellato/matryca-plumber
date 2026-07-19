@@ -90,15 +90,15 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 5 — CTE subtree
 
-**Status:** audit probes complete (`tests/test_shadow_hardening_axis5_cte.py`) — **38 pass, 2 xfail**.
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis5_cte.py`) — **40 pass, 3 xfail**.
 
-- [x] Extreme depth / `max_depth` limits — **A5-DEPTH-01..09 (A5-DEPTH-04/05 → [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289))**
+- [x] Extreme depth / `max_depth` limits — **A5-DEPTH-01..09 (A5-DEPTH-04/05/09 → [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289))**
 - [x] Sibling `sort_order` + depth-first pre-order — **A5-ORDER-01..04 pass**
 - [x] `max_nodes` truncation + wide subtrees — **A5-NODES-01..06 pass**
 - [x] UTF-8 byte budget + block-boundary truncation — **A5-BYTES-01..06 pass**
 - [x] Cycles, cross-page, orphan anchors — **A5-INTEGRITY-01..06 pass**
 - [x] Markdown parity + routing/fallback — **A5-PARITY-01..06 pass**
-- [x] Concurrency / bootstrapping snapshot — **A5-CONCURRENCY-01..03 pass**
+- [x] Concurrency / snapshot isolation — **A5-CONCURRENCY-01..06 pass** (04–06: reader txn + rebuild window + writer lock)
 
 ### Axis 6 — Security & isolation
 
@@ -192,6 +192,7 @@ uvx --refresh-package matryca-plumber \
 | A4-FAIL-05 | 4 | Writer lock → SQLite error, meta intact | — | `test_a4_fail_05_writer_lock_does_not_corrupt_fts_meta` | — | **pass** |
 | A5-DEPTH-04 | 5 | `max_depth=1` with descendants → reports `COMPLETE` | **P2** | `test_a5_depth_04_max_depth_one_with_child_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
 | A5-DEPTH-05 | 5 | `max_depth=0` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_05_max_depth_zero_clamped_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
+| A5-DEPTH-09 | 5 | `max_depth=-5` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_09_negative_max_depth_clamped` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
 | A5-DEPTH-01 | 5 | 32-block chain under default `max_depth` | — | `test_a5_depth_01_linear_chain_complete_within_default_max` | — | **pass** |
 | A5-DEPTH-02 | 5 | Leaf anchor single node | — | `test_a5_depth_02_leaf_anchor_single_node` | — | **pass** |
 | A5-DEPTH-03 | 5 | Root anchor includes descendants (pre-order) | — | `test_a5_depth_03_root_anchor_includes_descendants` | — | **pass** |
@@ -228,8 +229,11 @@ uvx --refresh-package matryca-plumber \
 | A5-PARITY-05 | 5 | Handler ≡ read port envelope | — | `test_a5_parity_05_handler_matches_port` | — | **pass** |
 | A5-PARITY-06 | 5 | Flag off → Markdown port | — | `test_a5_parity_06_flag_false_uses_markdown_port` | — | **pass** |
 | A5-CONCURRENCY-01 | 5 | Bootstrapping → Markdown port | — | `test_a5_concurrency_01_bootstrapping_uses_markdown_port` | — | **pass** |
-| A5-CONCURRENCY-02 | 5 | Incremental sync then query consistent | — | `test_a5_concurrency_02_incremental_sync_then_query_consistent` | — | **pass** |
+| A5-CONCURRENCY-02 | 5 | Sequential post-sync query sees new blocks | — | `test_a5_concurrency_02_incremental_sync_then_query_consistent` | — | **pass** |
 | A5-CONCURRENCY-03 | 5 | Shadow reads do not mutate Markdown | — | `test_a5_concurrency_03_shadow_reads_do_not_mutate_markdown` | — | **pass** |
+| A5-CONCURRENCY-04 | 5 | Reader txn isolates incremental sync (old vs new conn) | — | `test_a5_concurrency_04_reader_transaction_isolates_incremental_sync` | — | **pass** |
+| A5-CONCURRENCY-05 | 5 | Query during uncommitted rebuild — committed snapshot only | — | `test_a5_concurrency_05_query_during_uncommitted_rebuild_never_hybrid` | — | **pass** |
+| A5-CONCURRENCY-06 | 5 | Reader opened before `BEGIN IMMEDIATE` sees committed subtree | — | `test_a5_concurrency_06_reader_sees_committed_generation_during_writer_lock` | — | **pass** |
 
 ---
 

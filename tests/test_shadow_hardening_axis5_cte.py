@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from unittest.mock import patch
 
@@ -25,8 +26,9 @@ from src.config import MatrycaWikiConfig
 from src.shadow.bootstrap import rebuild_shadow_from_graph
 from src.shadow.connection import open_shadow_db
 from src.shadow.runtime_state import mark_bootstrapping, reset_shadow_runtime_state_for_tests
-from src.shadow.subtree import SubtreeStatus, query_subtree_by_block_uuid
-from src.shadow.sync import sync_page_to_shadow
+from src.shadow.subtree import SubtreeQueryResult, SubtreeStatus, query_subtree_by_block_uuid
+from src.shadow.sync import sync_page_into_connection, sync_page_to_shadow
+from src.shadow.writer_lock import shadow_rebuild_lock
 
 _TRUNCATION_MARKER = "[truncated: output byte limit exceeded]"
 
@@ -91,6 +93,42 @@ def _extract_excerpt(markdown: str) -> str:
 
 def _normalize_excerpt(text: str) -> str:
     return text.replace("\r\n", "\n").rstrip("\n")
+
+
+def _assert_subtree_snapshot_coherent(
+    result: SubtreeQueryResult,
+    *,
+    anchor_uuid: str,
+    allowed_uuids: frozenset[str] | None = None,
+) -> None:
+    """Result is a valid anchor-rooted tree — never a torn hybrid snapshot."""
+    if result.status in {SubtreeStatus.NOT_FOUND, SubtreeStatus.INCONSISTENT}:
+        return
+    assert result.nodes, "COMPLETE/TRUNCATED must include at least the anchor"
+    assert result.nodes[0].block_uuid == anchor_uuid
+    seen_rowids: set[int] = set()
+    seen_uuids: set[str] = set()
+    for index, node in enumerate(result.nodes):
+        assert node.rowid not in seen_rowids, "duplicate rowid in subtree result"
+        seen_rowids.add(node.rowid)
+        assert node.block_uuid not in seen_uuids, "duplicate block_uuid in subtree result"
+        seen_uuids.add(node.block_uuid)
+        if allowed_uuids is not None:
+            assert node.block_uuid in allowed_uuids, "hybrid snapshot: unexpected block_uuid"
+        if node.depth == 0:
+            assert index == 0
+            continue
+        assert node.parent_rowid is not None
+        parent = next(
+            (
+                candidate
+                for candidate in result.nodes[:index]
+                if candidate.rowid == node.parent_rowid
+            ),
+            None,
+        )
+        assert parent is not None, "orphan node in subtree result (possible hybrid snapshot)"
+        assert parent.depth == node.depth - 1
 
 
 def _markdown_fingerprint(graph: Path) -> str:
@@ -250,13 +288,18 @@ def test_a5_depth_08_default_cap_truncates_beyond_64_levels(tmp_path: Path) -> N
         conn.close()
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="P2 #289: clamped max_depth=-5 behaves like 1 but should TRUNCATE with descendants",
+)
 def test_a5_depth_09_negative_max_depth_clamped(tmp_path: Path) -> None:
-    """A5-DEPTH-09: negative max_depth clamps to 1 (contract: no Python recursion blow-up)."""
+    """A5-DEPTH-09: negative max_depth clamps to 1; descendants → TRUNCATED."""
     graph = _minimal_graph(tmp_path)
     root, _, _ = _seed_three_level(graph)
     conn = open_shadow_db(graph)
     try:
         result = query_subtree_by_block_uuid(conn, root, max_depth=-5)
+        assert result.status is SubtreeStatus.TRUNCATED
         assert len(result.nodes) == 1
         assert result.nodes[0].block_uuid == root
     finally:
@@ -801,7 +844,7 @@ def test_a5_concurrency_01_bootstrapping_uses_markdown_port(tmp_path: Path) -> N
 
 
 def test_a5_concurrency_02_incremental_sync_then_query_consistent(tmp_path: Path) -> None:
-    """A5-CONCURRENCY-02: post-incremental sync query sees new blocks."""
+    """A5-CONCURRENCY-02 (sequential): post-incremental sync query sees new blocks."""
     graph = _minimal_graph(tmp_path)
     root = _uuid(1)
     page = _write_page(graph, "pages/Live.md", f"- root\n  id:: {root}\n")
@@ -833,3 +876,179 @@ def test_a5_concurrency_03_shadow_reads_do_not_mutate_markdown(tmp_path: Path) -
     finally:
         conn.close()
     assert _markdown_fingerprint(graph) == before
+
+
+def test_a5_concurrency_04_reader_transaction_isolates_incremental_sync(tmp_path: Path) -> None:
+    """A5-CONCURRENCY-04: open reader txn sees pre-sync snapshot; fresh conn sees post-sync."""
+    graph = _minimal_graph(tmp_path)
+    root = _uuid(1)
+    child_old = _uuid(2)
+    child_new = _uuid(3)
+    old_tail = _uuid(4)
+    new_tail = _uuid(5)
+    page = _write_page(
+        graph,
+        "pages/Live.md",
+        (
+            f"- root\n  id:: {root}\n"
+            f"  - old\n    id:: {child_old}\n"
+            f"  - old-tail\n    id:: {old_tail}\n"
+        ),
+    )
+    rebuild_shadow_from_graph(graph)
+    page.write_text(
+        (
+            f"- root\n  id:: {root}\n"
+            f"  - old\n    id:: {child_old}\n"
+            f"  - added\n    id:: {child_new}\n"
+            f"  - added-tail\n    id:: {new_tail}\n"
+        ),
+        encoding="utf-8",
+    )
+
+    old_uuids = frozenset({root, child_old, old_tail})
+    new_uuids = frozenset({root, child_old, child_new, new_tail})
+
+    reader = open_shadow_db(graph)
+    reader.execute("BEGIN DEFERRED")
+    try:
+        baseline = query_subtree_by_block_uuid(reader, root)
+        _assert_subtree_snapshot_coherent(baseline, anchor_uuid=root, allowed_uuids=old_uuids)
+        assert child_new not in {node.block_uuid for node in baseline.nodes}
+
+        sync_errors: list[BaseException] = []
+
+        def _run_sync() -> None:
+            try:
+                sync_page_to_shadow(graph, page)
+            except BaseException as exc:  # noqa: BLE001
+                sync_errors.append(exc)
+
+        worker = threading.Thread(target=_run_sync)
+        worker.start()
+        worker.join(timeout=10)
+        assert not sync_errors
+
+        during = query_subtree_by_block_uuid(reader, root)
+        _assert_subtree_snapshot_coherent(during, anchor_uuid=root, allowed_uuids=old_uuids)
+        assert frozenset(node.block_uuid for node in during.nodes) == old_uuids
+        assert child_new not in {node.block_uuid for node in during.nodes}
+        assert [node.block_uuid for node in during.nodes] == [
+            node.block_uuid for node in baseline.nodes
+        ]
+    finally:
+        reader.close()
+
+    fresh = open_shadow_db(graph)
+    try:
+        updated = query_subtree_by_block_uuid(fresh, root)
+        _assert_subtree_snapshot_coherent(updated, anchor_uuid=root, allowed_uuids=new_uuids)
+        assert child_new in {node.block_uuid for node in updated.nodes}
+    finally:
+        fresh.close()
+
+
+def test_a5_concurrency_05_query_during_uncommitted_rebuild_never_hybrid(tmp_path: Path) -> None:
+    """A5-CONCURRENCY-05: query during rebuild writer window sees committed snapshot only."""
+    graph = _minimal_graph(tmp_path)
+    root = _uuid(1)
+    child_a = _uuid(2)
+    child_b = _uuid(3)
+    page = _write_page(
+        graph,
+        "pages/Rebuild.md",
+        (f"- root\n  id:: {root}\n  - alpha\n    id:: {child_a}\n  - beta\n    id:: {child_b}\n"),
+    )
+    rebuild_shadow_from_graph(graph)
+
+    child_g = _uuid(10)
+    child_d = _uuid(11)
+    page.write_text(
+        (f"- root\n  id:: {root}\n  - gamma\n    id:: {child_g}\n  - delta\n    id:: {child_d}\n"),
+        encoding="utf-8",
+    )
+
+    old_uuids = frozenset({root, child_a, child_b})
+    new_uuids = frozenset({root, child_g, child_d})
+
+    writer_ready = threading.Event()
+    reader_opened = threading.Event()
+    query_done = threading.Event()
+    writer_errors: list[BaseException] = []
+    query_errors: list[BaseException] = []
+    query_results: list[SubtreeQueryResult] = []
+
+    def _hold_rebuild_window() -> None:
+        try:
+            assert reader_opened.wait(timeout=5)
+            with shadow_rebuild_lock(graph):
+                conn = open_shadow_db(graph)
+                try:
+                    conn.execute("BEGIN IMMEDIATE")
+                    conn.execute("DELETE FROM pages")
+                    writer_ready.set()
+                    assert query_done.wait(timeout=5)
+                    sync_page_into_connection(conn, graph, page)
+                    conn.commit()
+                except BaseException as exc:  # noqa: BLE001
+                    writer_errors.append(exc)
+                    conn.rollback()
+                finally:
+                    conn.close()
+        except BaseException as exc:  # noqa: BLE001
+            writer_errors.append(exc)
+
+    def _query_during_window() -> None:
+        conn = open_shadow_db(graph)
+        reader_opened.set()
+        try:
+            assert writer_ready.wait(timeout=5)
+            result = query_subtree_by_block_uuid(conn, root)
+            query_results.append(result)
+        except BaseException as exc:  # noqa: BLE001
+            query_errors.append(exc)
+        finally:
+            conn.close()
+            query_done.set()
+
+    reader = threading.Thread(target=_query_during_window)
+    writer = threading.Thread(target=_hold_rebuild_window)
+    reader.start()
+    writer.start()
+    writer.join(timeout=10)
+    reader.join(timeout=10)
+    assert not writer_errors
+    assert not query_errors
+    assert len(query_results) == 1
+
+    during = query_results[0]
+    _assert_subtree_snapshot_coherent(during, anchor_uuid=root, allowed_uuids=old_uuids)
+    assert frozenset(node.block_uuid for node in during.nodes) == old_uuids
+
+    after = open_shadow_db(graph)
+    try:
+        committed = query_subtree_by_block_uuid(after, root)
+        _assert_subtree_snapshot_coherent(committed, anchor_uuid=root, allowed_uuids=new_uuids)
+        assert frozenset(node.block_uuid for node in committed.nodes) == new_uuids
+    finally:
+        after.close()
+
+
+def test_a5_concurrency_06_reader_sees_committed_generation_during_writer_lock(
+    tmp_path: Path,
+) -> None:
+    """A5-CONCURRENCY-06: reader opened before ``BEGIN IMMEDIATE`` sees committed subtree."""
+    graph = _minimal_graph(tmp_path)
+    root, child, leaf = _seed_three_level(graph)
+    reader = open_shadow_db(graph)
+    holder = open_shadow_db(graph)
+    holder.execute("BEGIN IMMEDIATE")
+    try:
+        result = query_subtree_by_block_uuid(reader, root)
+        _assert_subtree_snapshot_coherent(result, anchor_uuid=root)
+        assert result.status is SubtreeStatus.COMPLETE
+        assert leaf in {node.block_uuid for node in result.nodes}
+    finally:
+        holder.rollback()
+        holder.close()
+        reader.close()
