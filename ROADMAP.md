@@ -15,7 +15,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | Deliverable | Status |
 |-------------|--------|
 | Hyphenated FTS user tokens ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)) | **Done** |
-| Axis 4 FTS5 audit — 30 probes, **27 pass** + 3 xfail ([#280](https://github.com/MarcoPorcellato/matryca-plumber/pull/280); #277 fixed; [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278), [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) open) | **Done** (audit) |
+| Axis 4 FTS5 audit ([#280](https://github.com/MarcoPorcellato/matryca-plumber/pull/280)) — initial **27 pass + 3 xfail**; alpha.3 gate **28 pass + 2 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278), [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) open) | **Done** (audit + #277 fix) |
 
 **Tag (after merge):** `v2.0.0-alpha.3` · PyPI `matryca-plumber==2.0.0a3` · **supersedes** `v2.0.0-alpha.2` / `2.0.0a2` for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261); Axis 4 findings [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) and [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) remain open.
 

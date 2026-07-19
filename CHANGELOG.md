@@ -2,7 +2,7 @@
 
 ## [2.0.0-alpha.3] - 2026-07-19
 
-**v2.0.0-alpha.3** — Shadow FTS hyphenated query fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)) after **v2.0.0-alpha.2**. Axis 4 FTS5 audit: **27 probes pass**, three original findings tracked ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) fixed here; [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) diacritic fold and [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) query length bound remain open). **Not an RC** — Axes 5–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.2`** / PyPI **`2.0.0a2`** for new installs; prior alphas remain on PyPI (not yanked).
+**v2.0.0-alpha.3** — Shadow FTS hyphenated query fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)) after **v2.0.0-alpha.2**. Axis 4 FTS5 audit ([#280](https://github.com/MarcoPorcellato/matryca-plumber/pull/280)): initial snapshot **27 pass + 3 xfail**; after #277 fix in this release, gate is **28 pass + 2 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) diacritic fold and [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) query length bound remain open). **Not an RC** — Axes 5–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.2`** / PyPI **`2.0.0a2`** for new installs; prior alphas remain on PyPI (not yanked).
 
 ### Fixed
 
@@ -10,7 +10,7 @@
 
 ### Tests / Quality
 
-- **Axis 4 FTS5 audit** — `tests/test_shadow_hardening_axis4_fts5.py`: 30 probes, **27 pass** + **3 xfail** (original findings: #277 fixed; #278 and #279 open).
+- **Axis 4 FTS5 audit** — `tests/test_shadow_hardening_axis4_fts5.py`: 30 probes; audit #280 initial **27 pass + 3 xfail**; alpha.3 gate after #282 **28 pass + 2 xfail** (#278 and #279 open).
 
 ### Documentation
 

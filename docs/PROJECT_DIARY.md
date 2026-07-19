@@ -15,7 +15,7 @@ Entries are chronological (**newest first** within each major release block). Wh
 ### Shipped
 
 1. **Hyphenated FTS (#277 / #282)** — natural compounds like `state-of-the-art` quoted before FTS5 `MATCH`; no spurious generational fallback while shadow is `ready`.
-2. **Axis 4 FTS5 audit (#280)** — 30 probes, **27 pass** + 3 xfail; original findings #277 fixed; **#278** (diacritic fold) and **#279** (query length bound) remain open.
+2. **Axis 4 FTS5 audit (#280)** — 30 probes; initial snapshot **27 pass + 3 xfail**; alpha.3 gate after #282 **28 pass + 2 xfail**; **#278** (diacritic fold) and **#279** (query length bound) remain open.
 3. **Distribution** — tag `v2.0.0-alpha.3`; PyPI `2.0.0a3`; supersedes `v2.0.0-alpha.2` / `2.0.0a2` for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
 
 ### Semver
