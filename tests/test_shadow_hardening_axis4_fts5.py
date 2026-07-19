@@ -289,22 +289,53 @@ def test_a4_query_06_apostrophe_raises_validation_not_sqlite(tmp_path: Path) -> 
         format_shadow_fts_markdown(graph, "don't")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="P2 #278: ASCII fold search should match accented indexed tokens (cafe→caffè)",
+@pytest.mark.parametrize(
+    ("body", "query", "expected_hits"),
+    [
+        pytest.param(
+            "- café beverage\n  id:: 77777777-7777-4777-8777-777777777777\n",
+            "cafe",
+            1,
+            id="cafe-acute",
+        ),
+        pytest.param(
+            "- caffè beverage\n  id:: 88888888-8888-4888-8888-888888888888\n",
+            "caffe",
+            1,
+            id="caffe-grave",
+        ),
+        pytest.param(
+            "- caffè beverage\n  id:: 99999999-9999-4999-8999-999999999999\n",
+            "cafe",
+            0,
+            id="cafe-misses-double-f",
+        ),
+        pytest.param(
+            "- résumé text\n  id:: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\n", "resume", 1, id="resume"
+        ),
+        pytest.param(
+            "- naïve idea\n  id:: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb\n", "naive", 1, id="naive"
+        ),
+    ],
 )
-def test_a4_query_07_unicode_diacritic_fold(tmp_path: Path) -> None:
-    """A4-QUERY-07: de-accented query matches accented block content."""
+def test_a4_query_07_unicode_diacritic_fold(
+    tmp_path: Path,
+    body: str,
+    query: str,
+    expected_hits: int,
+) -> None:
+    """A4-QUERY-07: ``unicode61 remove_diacritics 2`` fold contract (#278).
+
+    Diacritic folding is active (``résumé``→``resume``, ``naïve``→``naive``).
+    ``caffè``→``caffe`` is not the same token as ``cafe`` (consonant-count gap);
+    matching that pair would require fuzzy orthography, not accent removal alone.
+    """
     graph = _minimal_graph(tmp_path)
-    _write_page(
-        graph,
-        "pages/Accent.md",
-        "- caffè beverage\n  id:: 77777777-7777-4777-8777-777777777777\n",
-    )
+    _write_page(graph, "pages/Accent.md", body)
     rebuild_shadow_from_graph(graph)
     conn = open_shadow_db(graph)
     try:
-        assert len(search_blocks_fts(conn, "cafe")) == 1
+        assert len(search_blocks_fts(conn, query)) == expected_hits
     finally:
         conn.close()
 
