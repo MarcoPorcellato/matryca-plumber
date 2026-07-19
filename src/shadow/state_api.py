@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Literal
@@ -27,6 +28,15 @@ from .schema import SHADOW_SCHEMA_VERSION
 
 ShadowDbStateValue = Literal["disabled", "bootstrapping", "ready", "stale", "error"]
 _SHADOW_ERROR_MAX_LEN = 200
+_REDACTED_SYNC_ERROR = "Shadow sync error (path details redacted)"
+# Absolute filesystem paths (POSIX or Windows) must never reach the public API.
+_ABS_FILESYSTEM_PATH = re.compile(
+    r"(?:"
+    r"[A-Za-z]:\\[^\s]+|"  # Windows drive path
+    r"\\\\[^\s]+|"  # UNC path
+    r"/(?:[^/\s]+/)+[^/\s]*"  # POSIX absolute with ≥1 directory segment
+    r")"
+)
 
 
 class ShadowDbStateResponse(BaseModel):
@@ -49,6 +59,8 @@ def _bounded_error_message(raw: str | None) -> str | None:
     cleaned = sanitize_for_console((raw or "").strip())
     if not cleaned:
         return None
+    if _ABS_FILESYSTEM_PATH.search(cleaned):
+        return _REDACTED_SYNC_ERROR
     if len(cleaned) <= _SHADOW_ERROR_MAX_LEN:
         return cleaned
     return cleaned[: _SHADOW_ERROR_MAX_LEN - 1] + "…"

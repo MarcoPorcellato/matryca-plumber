@@ -4,6 +4,7 @@
 
 - **Graph Insights silent LLM fallback ([#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114))** — `run_graph_insights_engine` now emits `logger.exception(...)` before falling back to `_fallback_insights(metrics)` when `llm.generate_graph_insights` raises; `llm_used=False` semantics unchanged. Operators can distinguish LLM-enriched vs deterministic insights in logs.
 - **Shadow CTE subtree depth truncation status (#289)** — `max_depth` clamped to `1` (including `0` and negative inputs) now returns `SubtreeStatus.TRUNCATED` when descendants exist but are excluded; anchor-only excerpt unchanged.
+- **Shadow state API `last_sync_error` path redaction (#293)** — absolute filesystem paths in `META_LAST_SYNC_ERROR` (and SQLite error strings) are replaced with a bounded generic message before the Sovereign UI `/api/state` envelope; graph-relative diagnostics such as `pages/Alpha.md` remain unchanged.
 
 ## [2.0.0-alpha.4] - 2026-07-19
 

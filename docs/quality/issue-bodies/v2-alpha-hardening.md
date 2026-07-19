@@ -102,10 +102,10 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 6 — Security & isolation
 
-**Status:** audit probes complete (`tests/test_shadow_hardening_axis6_security.py`) — **23 pass, 1 xfail** (sanitization checklist incomplete until #293).
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis6_security.py`) — **24 pass, 0 xfail** (post-#293).
 
 - [x] Path traversal and symlink escape — **A6-PATH-01..07 pass** (Unix-only skip on symlink probes; portable probes always run)
-- [ ] Sanitized errors (no vault content leak) — **partial — A6-ERRORS-01..06 pass; A6-ERRORS-07 open under [#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293)**
+- [x] Sanitized errors (no vault content leak) — **A6-ERRORS-01..07 ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) fixed)**
 - [x] Flag `false` must not create/open/mutate SQLite — **A6-FLAG-01..05 pass** (includes pre-existing DB immutability)
 - [x] Shadow DB must never write Markdown — **A6-MD-01..05 pass**
 
@@ -249,7 +249,7 @@ uvx --refresh-package matryca-plumber \
 | A6-ERRORS-04 | 6 | Duplicate UUID sync error omits block bodies | — | `test_a6_errors_04_sync_duplicate_uuid_error_omits_block_content` | — | **pass** |
 | A6-ERRORS-05 | 6 | INCONSISTENT subtree fallback omits SQLite leak | — | `test_a6_errors_05_inconsistent_subtree_falls_back_without_sqlite_leak` | — | **pass** |
 | A6-ERRORS-06 | 6 | FTS backend failure omits injected DB path | — | `test_a6_errors_06_fts_backend_fallback_omits_injected_path` | — | **pass** |
-| A6-ERRORS-07 | 6 | State API `last_sync_error` leaks injected path | **P2** | `test_a6_errors_07_state_api_last_sync_error_omits_injected_path` | [#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) | **open** (`xfail`) |
+| A6-ERRORS-07 | 6 | State API `last_sync_error` leaks injected path | **P2** | `test_a6_errors_07_state_api_last_sync_error_omits_injected_path` | [#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) | **fixed** |
 | A6-FLAG-01 | 6 | Flag off — rebuild skips DB creation | — | `test_a6_flag_01_false_flag_skips_rebuild_db_creation` | — | **pass** |
 | A6-FLAG-02 | 6 | Flag off — incremental sync no-op | — | `test_a6_flag_02_false_flag_skips_incremental_sync` | — | **pass** |
 | A6-FLAG-03 | 6 | Flag off — read port is Markdown | — | `test_a6_flag_03_false_flag_read_port_is_markdown` | — | **pass** |
