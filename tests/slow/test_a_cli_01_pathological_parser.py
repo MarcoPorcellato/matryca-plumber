@@ -5,7 +5,8 @@ tens of seconds under ``LogosParser().parse``, while a same-scale well-formed
 control page stays well under a healthy budget. This is **pathological
 latency**, not an infinite hang / deadlock.
 
-Excluded from default CI (``@pytest.mark.slow`` / ``make perf``).
+Excluded from default CI timing contention: pathological probes skip when ``CI=true``
+unless ``MATRYCA_RUN_A_CLI_01=1`` (set by ``make perf``). Hash/control probes still run.
 Track: https://github.com/MarcoPorcellato/matryca-plumber/issues/297
 """
 
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import multiprocessing as mp
+import os
 import time
 from queue import Empty
 from typing import Any
@@ -33,6 +35,23 @@ _HEALTHY_BUDGET_S = 2.0
 # Hard ceiling: proves completion (latency class), not a process deadlock.
 _HARD_CEILING_S = 90.0
 _TERMINATE_GRACE_S = 5.0
+
+# Ironclad / ``make test-full`` still collect ``tests/slow/`` under ``-n auto`` +
+# coverage; CPU contention can push LogosParser past 90s without a deadlock.
+# Pathological timing probes stay local / ``make perf`` unless explicitly enabled.
+_IN_CI = os.environ.get("CI", "").strip().lower() in {"1", "true", "yes"}
+_RUN_A_CLI_01 = os.environ.get("MATRYCA_RUN_A_CLI_01", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
+_SKIP_PATHOLOGICAL_ON_CI = pytest.mark.skipif(
+    _IN_CI and not _RUN_A_CLI_01,
+    reason=(
+        "A-CLI-01 pathological timing: local/make perf only "
+        "(set MATRYCA_RUN_A_CLI_01=1 to enable on CI)"
+    ),
+)
 
 
 def _child_parse_pathological(text: str, queue: mp.Queue[dict[str, Any]]) -> None:
@@ -115,6 +134,7 @@ def test_a_cli_01_control_page_meets_healthy_budget() -> None:
 
 
 @pytest.mark.slow
+@_SKIP_PATHOLOGICAL_ON_CI
 def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
     """Pathological page must finish within hard ceiling (child process enforced)."""
     result = _parse_pathological_bounded(generate_pathological_page())
@@ -122,6 +142,7 @@ def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
 
 
 @pytest.mark.slow
+@_SKIP_PATHOLOGICAL_ON_CI
 def test_a_cli_01_pathological_page_meets_healthy_budget() -> None:
     """Audit probe: pathological shape should meet the healthy single-page budget.
 
