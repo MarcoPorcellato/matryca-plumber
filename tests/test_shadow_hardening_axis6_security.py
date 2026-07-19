@@ -318,13 +318,6 @@ def test_a6_errors_06_fts_backend_fallback_omits_injected_path(tmp_path: Path) -
     assert "SENSITIVE-FTS-PATH" not in out
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "P2 #293: resolve_shadow_db_state_for_api forwards raw last_sync_error after "
-        "ANSI sanitize only — vault/DB paths in meta reach the public API envelope"
-    ),
-)
 def test_a6_errors_07_state_api_last_sync_error_omits_injected_path(tmp_path: Path) -> None:
     """A6-ERRORS-07: state API ``last_sync_error`` must not echo vault/DB path tokens."""
     graph = _minimal_graph(tmp_path)
