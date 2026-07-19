@@ -1,6 +1,6 @@
 # Matryca Plumber — System Architecture
 
-**Version:** 2.0.0-alpha.2 (rename stale-owner #272, Axis 2–3 audit probes) · builds on 2.0.0-alpha.1 (Shadow DB Axis 1 hardening — writer flock #262, meta/pages health #264) · 1.14.0 (catalog write-safety + leaf-module dependency direction + Tier F env_parse / graph→rag guards), 1.13.1 (parser 1.6.0 alignment), 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
+**Version:** 2.0.0-alpha.3 (FTS hyphenated query #277, Axis 4 audit 27 pass) · builds on 2.0.0-alpha.2 (rename stale-owner #272, Axis 2–3 audit probes) · 2.0.0-alpha.1 (Shadow DB Axis 1 hardening — writer flock #262, meta/pages health #264) · 1.14.0 (catalog write-safety + leaf-module dependency direction + Tier F env_parse / graph→rag guards), 1.13.1 (parser 1.6.0 alignment), 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)  
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 

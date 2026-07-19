@@ -2,9 +2,9 @@
 
 ## Problem Description
 
-`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`. **`v2.0.0-alpha.2`** adds the rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272)) and Axis 2–3 audit probes. Before `v2.0.0-rc`, we need a structured hardening campaign: reproduce real failures and edge cases with minimal tests, then land **surgical PRs** per confirmed finding — no monolithic audit-fix PR.
+`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`. **`v2.0.0-alpha.2`** adds the rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272)) and Axis 2–3 audit probes. **`v2.0.0-alpha.3`** ships the hyphenated FTS fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277)) and completes the Axis 4 audit pass set (27 green; #278 and #279 still open). Before `v2.0.0-rc`, we need a structured hardening campaign: reproduce real failures and edge cases with minimal tests, then land **surgical PRs** per confirmed finding — no monolithic audit-fix PR.
 
-**Baseline:** tag [`v2.0.0-alpha.2`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.2) (release PR pending merge) · prior [`v2.0.0-alpha.1`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.1) superseded for new installs.
+**Baseline:** tag [`v2.0.0-alpha.3`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.3) (release PR pending merge) · prior [`v2.0.0-alpha.2`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.2) superseded for new installs.
 
 **Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
 
@@ -34,7 +34,7 @@ Seven-axis audit with severity classification **P0–P3**. Each **confirmed** fi
 
 ```bash
 make ci
-uvx matryca-plumber@2.0.0-alpha.2 --version   # expect 2.0.0-alpha.2 (PyPI 2.0.0a2)
+uvx matryca-plumber@2.0.0-alpha.3 --version   # expect 2.0.0-alpha.3 (PyPI 2.0.0a3)
 # vault soak (flag off + flag on) — see Epic #20 distribution comment
 ```
 
