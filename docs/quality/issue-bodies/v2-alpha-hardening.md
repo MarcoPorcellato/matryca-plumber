@@ -2,9 +2,9 @@
 
 ## Problem Description
 
-`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`. **`v2.0.0-alpha.2`** adds the rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272)) and Axis 2–3 audit probes. **`v2.0.0-alpha.3`** ships the hyphenated FTS fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277)) and completes the Axis 4 audit pass set (27 green; #278 and #279 still open). Before `v2.0.0-rc`, we need a structured hardening campaign: reproduce real failures and edge cases with minimal tests, then land **surgical PRs** per confirmed finding — no monolithic audit-fix PR.
+`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`. **`v2.0.0-alpha.2`** adds the rename stale-owner fix ([#272](https://github.com/MarcoPorcellato/matryca-plumber/issues/272)) and Axis 2–3 audit probes. **`v2.0.0-alpha.3`** ships the hyphenated FTS fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277)). **`v2.0.0-alpha.4`** ships the FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279)) and completes Axis 4 (**52 pass, 0 xfail**; #278 probe corrected). Before `v2.0.0-rc`, we need a structured hardening campaign: reproduce real failures and edge cases with minimal tests, then land **surgical PRs** per confirmed finding — no monolithic audit-fix PR.
 
-**Baseline:** tag [`v2.0.0-alpha.3`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.3) (release PR pending merge) · prior [`v2.0.0-alpha.2`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.2) superseded for new installs.
+**Baseline:** tag [`v2.0.0-alpha.4`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.4) (release PR pending merge) · prior [`v2.0.0-alpha.3`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.3) superseded for new installs.
 
 **Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
 
@@ -34,7 +34,7 @@ Seven-axis audit with severity classification **P0–P3**. Each **confirmed** fi
 
 ```bash
 make ci
-uvx matryca-plumber@2.0.0-alpha.3 --version   # expect 2.0.0-alpha.3 (PyPI 2.0.0a3)
+uvx matryca-plumber@2.0.0-alpha.4 --version   # expect 2.0.0-alpha.4 (PyPI 2.0.0a4)
 # vault soak (flag off + flag on) — see Epic #20 distribution comment
 ```
 
@@ -77,10 +77,10 @@ uvx matryca-plumber@2.0.0-alpha.3 --version   # expect 2.0.0-alpha.3 (PyPI 2.0.0
 
 ### Axis 4 — FTS5
 
-**Status:** audit probes complete (`tests/test_shadow_hardening_axis4_fts5.py`).
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis4_fts5.py`) — **52 pass, 0 xfail**.
 
-- [x] Special chars, quotes, operators, Unicode — **A4-QUERY-01..09 pass; A4-QUERY-05 fixed (#277); A4-QUERY-07 xfail**
-- [x] Very long queries — **A4-QUERY-10 xfail (unbounded input)**
+- [x] Special chars, quotes, operators, Unicode — **A4-QUERY-01..09 pass; A4-QUERY-05 fixed (#277); A4-QUERY-07 contract corrected (#278)**
+- [x] Very long queries — **A4-QUERY-10 fixed (#279)**
 - [x] Limits and deterministic ordering — **A4-RANK-01..04 pass**
 - [x] MCP/CLI envelope parity — **A4-CONTENT-06 / A4-FAIL envelope probes pass**
 - [x] FTS sync/index parity — **A4-SYNC-01..05 pass**
@@ -154,8 +154,8 @@ uvx matryca-plumber@2.0.0-alpha.3 --version   # expect 2.0.0-alpha.3 (PyPI 2.0.0
 | A3-SURFACE-02 | 3 | CLI subtree ≡ port; selector side-effect free | — | `test_a3_surface_02_subtree_handler_matches_port_and_selector_is_side_effect_free` | — | **pass** |
 | A3-HEALTH-FLIP | 3 | Health flip after port selection → Markdown fallback | — | `test_a3_health_change_between_port_selection_and_subtree_query` | — | **pass** |
 | A4-QUERY-05 | 4 | Unquoted hyphenated query → generational BM25 fallback | **P1** | `test_a4_query_05_hyphenated_phrase_no_generational_fallback` | [#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) | **fixed** (PR pending) |
-| A4-QUERY-07 | 4 | `cafe` misses indexed `caffè` | **P2** | `test_a4_query_07_unicode_diacritic_fold` | [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) | **open** |
-| A4-QUERY-10 | 4 | No bounded max FTS query length | **P2** | `test_a4_query_10_very_long_query_bounded` | [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) | **open** |
+| A4-QUERY-07 | 4 | Invalid probe: `cafe` vs `caffè` (orthography, not diacritics) | **P2** | `test_a4_query_07_unicode_diacritic_fold` | [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) | **invalid expectation** — probe corrected (#287) |
+| A4-QUERY-10 | 4 | No bounded max FTS query length | **P2** | `test_a4_query_10_very_long_query_bounded` | [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) | **fixed** (`v2.0.0-alpha.4`) |
 | A4-QUERY-01 | 4 | Simple token match | — | `test_a4_query_01_simple_token` | — | **pass** |
 | A4-QUERY-02 | 4 | Multi-token implicit AND | — | `test_a4_query_02_multiple_tokens` | — | **pass** |
 | A4-QUERY-03 | 4 | Quoted phrase / hyphenated body | — | `test_a4_query_03_quoted_phrase` | — | **pass** |

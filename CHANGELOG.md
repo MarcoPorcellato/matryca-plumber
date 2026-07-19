@@ -1,12 +1,26 @@
 ## [Unreleased]
 
+## [2.0.0-alpha.4] - 2026-07-19
+
+**v2.0.0-alpha.4** — Shadow FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)) after **v2.0.0-alpha.3**. Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) audit probe corrected in [#287](https://github.com/MarcoPorcellato/matryca-plumber/pull/287)). **Not an RC** — Axes 5–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.3`** / PyPI **`2.0.0a3`** for new installs; prior alphas remain on PyPI (not yanked).
+
+### Fixed
+
+- **Shadow FTS query length bound (#279 / #286)** — user keywords over **512 Unicode characters** (post-`strip`) are rejected with a bounded validation error before FTS preparation or SQLite `MATCH`; no generational BM25 fallback while shadow is `ready`. Shared validation lives in acyclic leaf module `src/shadow/fts_validation.py`.
+
+### Tests / Quality
+
+- **Axis 4 FTS5 audit** — `tests/test_shadow_hardening_axis4_fts5.py`: **52 pass, 0 xfail**; A4-QUERY-07 diacritic contract corrected (#278 / #287 — invalid `cafe`→`caffè` expectation removed).
+
+### Documentation
+
+- **Maintainer surfaces** synced to **v2.0.0-alpha.4** (README, `ROADMAP.md`, `llms.txt`, `docs/ARCHITECTURE.md`, tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261), `docs/releases/v2.0.0-alpha.4-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
+
 ## [2.0.0-alpha.3] - 2026-07-19
 
 **v2.0.0-alpha.3** — Shadow FTS hyphenated query fix ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)) after **v2.0.0-alpha.2**. Axis 4 FTS5 audit ([#280](https://github.com/MarcoPorcellato/matryca-plumber/pull/280)): initial snapshot **27 pass + 3 xfail**; after #277 fix in this release, gate is **28 pass + 2 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) diacritic fold and [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) query length bound remain open). **Not an RC** — Axes 5–7 remain open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261). Supersedes **`v2.0.0-alpha.2`** / PyPI **`2.0.0a2`** for new installs; prior alphas remain on PyPI (not yanked).
 
 ### Fixed
-
-- **Shadow FTS query length bound (#279)** — user keywords over **512 Unicode characters** (post-`strip`) are rejected with a bounded validation error before FTS preparation or SQLite `MATCH`; no generational BM25 fallback while shadow is `ready`.
 
 - **Shadow FTS hyphenated keywords (#277 / #282)** — natural compound tokens such as `state-of-the-art` are quoted before FTS5 `MATCH`, so shadow search no longer mis-parses interior hyphens as boolean `NOT` or falls back to generational BM25 while health is `ready`.
 

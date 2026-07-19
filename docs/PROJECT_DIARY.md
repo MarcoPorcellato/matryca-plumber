@@ -1,12 +1,29 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.3** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.3]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.4** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.4]`).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-19] v2.0.0-alpha.4 — Shadow FTS query length bound
+
+### Shipped
+
+1. **FTS query length bound (#279 / #286)** — keywords over **512 Unicode characters** (post-`strip`) rejected before FTS preparation or SQLite `MATCH`; validation in acyclic `fts_validation.py` leaf module.
+2. **Axis 4 FTS5 gate complete** — **52 pass, 0 xfail**; A4-QUERY-07 probe corrected (#278 / #287 — invalid `cafe`→`caffè` expectation).
+3. **Distribution** — tag `v2.0.0-alpha.4`; PyPI `2.0.0a4`; supersedes `v2.0.0-alpha.3` / `2.0.0a3` for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
+
+### Semver
+
+| Milestone | Scope |
+|-----------|--------|
+| **pre-release 2.0.0-alpha.4** | FTS query bound; no schema migration; default-off flag unchanged |
+| **pre-release 2.0.0-rc** | Blocked until [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261) P0/P1 clear |
 
 ---
 
