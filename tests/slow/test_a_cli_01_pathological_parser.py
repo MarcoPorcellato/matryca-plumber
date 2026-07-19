@@ -56,28 +56,12 @@ def _child_parse_pathological(text: str, queue: mp.Queue[dict[str, Any]]) -> Non
         )
 
 
-@pytest.mark.slow
-def test_a_cli_01_generator_hash_contract() -> None:
-    text = generate_pathological_page()
-    assert text.count("\n") == PATHOLOGICAL_PAGE_LINE_COUNT
-    assert len(text.encode("utf-8")) == PATHOLOGICAL_PAGE_BYTE_COUNT
-    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PATHOLOGICAL_PAGE_SHA256
+def _parse_pathological_bounded(text: str) -> dict[str, Any]:
+    """Run LogosParser in a spawn child; enforce hard ceiling or fail.
 
-
-@pytest.mark.slow
-def test_a_cli_01_control_page_meets_healthy_budget() -> None:
-    text = generate_control_page(line_count=PATHOLOGICAL_PAGE_LINE_COUNT)
-    started = time.perf_counter()
-    page = LogosParser().parse(text)
-    elapsed = time.perf_counter() - started
-    assert page is not None
-    assert elapsed < _HEALTHY_BUDGET_S, f"control page too slow: {elapsed:.3f}s"
-
-
-@pytest.mark.slow
-def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
-    """Pathological page must finish within hard ceiling (child process enforced)."""
-    text = generate_pathological_page()
+    Overrun/deadlock → terminate/kill + ``pytest.fail`` (never hangs the suite).
+    Successful completion → minimal ``{ok, s}`` status dict.
+    """
     ctx = mp.get_context("spawn")
     queue: mp.Queue[dict[str, Any]] = ctx.Queue(maxsize=1)
     proc = ctx.Process(target=_child_parse_pathological, args=(text, queue))
@@ -103,7 +87,7 @@ def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
         except Empty:
             pytest.fail("child produced no status")
         assert result.get("ok") is True, f"child parse failed: {result}"
-        assert float(result["s"]) < _HARD_CEILING_S
+        return result
     finally:
         if proc.is_alive():
             proc.kill()
@@ -113,18 +97,43 @@ def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    reason="A-CLI-01: LogosParser pathological latency on structural synthetic page (#297)",
-)
-def test_a_cli_01_pathological_page_meets_healthy_budget() -> None:
-    """Audit probe: pathological shape should meet the healthy single-page budget."""
+def test_a_cli_01_generator_hash_contract() -> None:
     text = generate_pathological_page()
+    assert text.count("\n") == PATHOLOGICAL_PAGE_LINE_COUNT
+    assert len(text.encode("utf-8")) == PATHOLOGICAL_PAGE_BYTE_COUNT
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PATHOLOGICAL_PAGE_SHA256
+
+
+@pytest.mark.slow
+def test_a_cli_01_control_page_meets_healthy_budget() -> None:
+    text = generate_control_page(line_count=PATHOLOGICAL_PAGE_LINE_COUNT)
     started = time.perf_counter()
     page = LogosParser().parse(text)
     elapsed = time.perf_counter() - started
     assert page is not None
-    assert elapsed < _HEALTHY_BUDGET_S, (
-        f"pathological latency: {elapsed:.3f}s exceeds healthy budget "
-        f"{_HEALTHY_BUDGET_S:.1f}s (expected until parser fix)"
-    )
+    assert elapsed < _HEALTHY_BUDGET_S, f"control page too slow: {elapsed:.3f}s"
+
+
+@pytest.mark.slow
+def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
+    """Pathological page must finish within hard ceiling (child process enforced)."""
+    result = _parse_pathological_bounded(generate_pathological_page())
+    assert float(result["s"]) < _HARD_CEILING_S
+
+
+@pytest.mark.slow
+def test_a_cli_01_pathological_page_meets_healthy_budget() -> None:
+    """Audit probe: pathological shape should meet the healthy single-page budget.
+
+    Uses the same spawn hard ceiling as the completion probe so a deadlock cannot
+    hang ``make perf``. Pathological latency (≥2s) is reported via ``pytest.xfail``
+    (not ``@pytest.mark.xfail``), so overrun remains a hard failure.
+    """
+    result = _parse_pathological_bounded(generate_pathological_page())
+    duration = float(result["s"])
+    if duration >= _HEALTHY_BUDGET_S:
+        pytest.xfail(
+            "A-CLI-01: LogosParser pathological latency "
+            f"{duration:.3f}s exceeds healthy budget {_HEALTHY_BUDGET_S:.1f}s (#297)"
+        )
+    assert duration < _HEALTHY_BUDGET_S
