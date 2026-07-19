@@ -90,10 +90,15 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 5 — CTE subtree
 
-- [ ] Extreme depth / large sibling sets
-- [ ] Artificial cycles and cross-page parents
-- [ ] UTF-8 byte truncation
-- [ ] Property-based parity vs parser Markdown reads
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis5_cte.py`) — **40 pass, 3 xfail**.
+
+- [x] Extreme depth / `max_depth` limits — **A5-DEPTH-01..09 (A5-DEPTH-04/05/09 → [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289))**
+- [x] Sibling `sort_order` + depth-first pre-order — **A5-ORDER-01..04 pass**
+- [x] `max_nodes` truncation + wide subtrees — **A5-NODES-01..06 pass**
+- [x] UTF-8 byte budget + block-boundary truncation — **A5-BYTES-01..06 pass**
+- [x] Cycles, cross-page, orphan anchors — **A5-INTEGRITY-01..06 pass**
+- [x] Markdown parity + routing/fallback — **A5-PARITY-01..06 pass**
+- [x] Concurrency / snapshot isolation — **A5-CONCURRENCY-01..06 pass** (04–06: reader txn + rebuild window + writer lock)
 
 ### Axis 6 — Security & isolation
 
@@ -185,6 +190,50 @@ uvx --refresh-package matryca-plumber \
 | A4-FAIL-03 | 4 | Health `error` skips shadow FTS | — | `test_a4_fail_03_health_not_ready_skips_shadow_fts` | — | **pass** |
 | A4-FAIL-04 | 4 | Validation errors bounded, no secret leak | — | `test_a4_fail_04_backend_exception_bounded_public_error` | — | **pass** |
 | A4-FAIL-05 | 4 | Writer lock → SQLite error, meta intact | — | `test_a4_fail_05_writer_lock_does_not_corrupt_fts_meta` | — | **pass** |
+| A5-DEPTH-04 | 5 | `max_depth=1` with descendants → reports `COMPLETE` | **P2** | `test_a5_depth_04_max_depth_one_with_child_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
+| A5-DEPTH-05 | 5 | `max_depth=0` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_05_max_depth_zero_clamped_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
+| A5-DEPTH-09 | 5 | `max_depth=-5` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_09_negative_max_depth_clamped` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
+| A5-DEPTH-01 | 5 | 32-block chain under default `max_depth` | — | `test_a5_depth_01_linear_chain_complete_within_default_max` | — | **pass** |
+| A5-DEPTH-02 | 5 | Leaf anchor single node | — | `test_a5_depth_02_leaf_anchor_single_node` | — | **pass** |
+| A5-DEPTH-03 | 5 | Root anchor includes descendants (pre-order) | — | `test_a5_depth_03_root_anchor_includes_descendants` | — | **pass** |
+| A5-DEPTH-06 | 5 | `max_depth` matching chain length | — | `test_a5_depth_06_exact_depth_limit_on_chain` | — | **pass** |
+| A5-DEPTH-07 | 5 | Chain longer than `max_depth` → `TRUNCATED` | — | `test_a5_depth_07_depth_limit_plus_one_truncated` | — | **pass** |
+| A5-DEPTH-08 | 5 | Default `max_depth=64` caps deep chain | — | `test_a5_depth_08_default_cap_truncates_beyond_64_levels` | — | **pass** |
+| A5-DEPTH-09 | 5 | Negative `max_depth` clamped | — | `test_a5_depth_09_negative_max_depth_clamped` | — | **pass** |
+| A5-ORDER-01 | 5 | Siblings ordered by `sort_order` | — | `test_a5_order_01_siblings_follow_sort_order` | — | **pass** |
+| A5-ORDER-02 | 5 | Depth-first pre-order | — | `test_a5_order_02_depth_first_preorder` | — | **pass** |
+| A5-ORDER-03 | 5 | Ordering stable across connections | — | `test_a5_order_03_stable_across_connections` | — | **pass** |
+| A5-ORDER-04 | 5 | Incremental ≡ full rebuild order | — | `test_a5_order_04_full_rebuild_matches_incremental` | — | **pass** |
+| A5-NODES-01 | 5 | `max_nodes=1` anchor only | — | `test_a5_nodes_01_max_nodes_one_returns_anchor_only` | — | **pass** |
+| A5-NODES-02 | 5 | Exact `max_nodes` → `COMPLETE` | — | `test_a5_nodes_02_exact_node_limit_complete` | — | **pass** |
+| A5-NODES-03 | 5 | `max_nodes` limit+1 → `TRUNCATED` | — | `test_a5_nodes_03_node_limit_plus_one_truncated` | — | **pass** |
+| A5-NODES-04 | 5 | Wide subtree many siblings | — | `test_a5_nodes_04_wide_subtree_many_siblings` | — | **pass** |
+| A5-NODES-05 | 5 | Node-limit sets `TRUNCATED` status | — | `test_a5_nodes_05_truncation_status_when_node_limited` | — | **pass** |
+| A5-NODES-06 | 5 | No duplicate nodes in result | — | `test_a5_nodes_06_no_duplicate_nodes_in_result` | — | **pass** |
+| A5-BYTES-01 | 5 | Under byte limit → `COMPLETE` | — | `test_a5_bytes_01_under_limit_complete` | — | **pass** |
+| A5-BYTES-02 | 5 | Over limit truncates on block boundary | — | `test_a5_bytes_02_over_limit_truncates_on_block_boundary` | — | **pass** |
+| A5-BYTES-03 | 5 | UTF-8 multibyte valid after truncation | — | `test_a5_bytes_03_utf8_multibyte_valid_after_truncation` | — | **pass** |
+| A5-BYTES-04 | 5 | Emoji not split mid-codepoint | — | `test_a5_bytes_04_emoji_codepoints_not_split` | — | **pass** |
+| A5-BYTES-05 | 5 | Deterministic excerpt across calls | — | `test_a5_bytes_05_deterministic_excerpt_across_calls` | — | **pass** |
+| A5-BYTES-06 | 5 | Truncation marker soft budget (documented contract) | — | `test_a5_bytes_06_truncation_notice_documented_soft_budget` | — | **pass** |
+| A5-INTEGRITY-01 | 5 | Missing anchor UUID → `NOT_FOUND` | — | `test_a5_integrity_01_missing_anchor_uuid` | — | **pass** |
+| A5-INTEGRITY-02 | 5 | Empty anchor UUID → `NOT_FOUND` | — | `test_a5_integrity_02_empty_anchor_uuid` | — | **pass** |
+| A5-INTEGRITY-03 | 5 | Cross-page child → `INCONSISTENT` | — | `test_a5_integrity_03_cross_page_child_inconsistent` | — | **pass** |
+| A5-INTEGRITY-04 | 5 | Parent cycle → `INCONSISTENT` | — | `test_a5_integrity_04_parent_cycle_inconsistent` | — | **pass** |
+| A5-INTEGRITY-05 | 5 | Self-cycle → `INCONSISTENT` | — | `test_a5_integrity_05_self_cycle_inconsistent` | — | **pass** |
+| A5-INTEGRITY-06 | 5 | Dangling `parent_rowid` on anchor — bounded walk | — | `test_a5_integrity_06_orphan_parent_rowid_excluded_from_walk` | — | **pass** |
+| A5-PARITY-01 | 5 | Shadow excerpt ≡ Markdown repository | — | `test_a5_parity_01_shadow_excerpt_matches_markdown_repository` | — | **pass** |
+| A5-PARITY-02 | 5 | `NOT_FOUND` — no Markdown fallback | — | `test_a5_parity_02_not_found_no_markdown_fallback` | — | **pass** |
+| A5-PARITY-03 | 5 | `INCONSISTENT` → Markdown fallback | — | `test_a5_parity_03_inconsistent_shadow_falls_back_to_markdown` | — | **pass** |
+| A5-PARITY-04 | 5 | SQLite error → Markdown fallback | — | `test_a5_parity_04_sqlite_error_falls_back_to_markdown` | — | **pass** |
+| A5-PARITY-05 | 5 | Handler ≡ read port envelope | — | `test_a5_parity_05_handler_matches_port` | — | **pass** |
+| A5-PARITY-06 | 5 | Flag off → Markdown port | — | `test_a5_parity_06_flag_false_uses_markdown_port` | — | **pass** |
+| A5-CONCURRENCY-01 | 5 | Bootstrapping → Markdown port | — | `test_a5_concurrency_01_bootstrapping_uses_markdown_port` | — | **pass** |
+| A5-CONCURRENCY-02 | 5 | Sequential post-sync query sees new blocks | — | `test_a5_concurrency_02_incremental_sync_then_query_consistent` | — | **pass** |
+| A5-CONCURRENCY-03 | 5 | Shadow reads do not mutate Markdown | — | `test_a5_concurrency_03_shadow_reads_do_not_mutate_markdown` | — | **pass** |
+| A5-CONCURRENCY-04 | 5 | Reader txn isolates incremental sync (old vs new conn) | — | `test_a5_concurrency_04_reader_transaction_isolates_incremental_sync` | — | **pass** |
+| A5-CONCURRENCY-05 | 5 | Query during uncommitted rebuild — committed snapshot only | — | `test_a5_concurrency_05_query_during_uncommitted_rebuild_never_hybrid` | — | **pass** |
+| A5-CONCURRENCY-06 | 5 | Reader opened before `BEGIN IMMEDIATE` sees committed subtree | — | `test_a5_concurrency_06_reader_sees_committed_generation_during_writer_lock` | — | **pass** |
 
 ---
 
