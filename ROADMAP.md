@@ -6,18 +6,29 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-alpha.3** (2026-07-19) — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v2.0.0-alpha.4** (2026-07-19) — issue numbers link to GitHub; scope may shift as milestones close.*
 
 ---
 
-## v2.0.0-alpha.3 — Shadow FTS hyphenated query fix (release PR)
+## v2.0.0-alpha.4 — Shadow FTS query length bound (release PR)
+
+| Deliverable | Status |
+|-------------|--------|
+| FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)) | **Done** |
+| Axis 4 FTS5 gate fully green ([#287](https://github.com/MarcoPorcellato/matryca-plumber/pull/287) — #278 probe corrected) | **Done** — **52 pass, 0 xfail** |
+
+**Tag (after merge):** `v2.0.0-alpha.4` · PyPI `matryca-plumber==2.0.0a4` · **supersedes** `v2.0.0-alpha.3` / `2.0.0a3` for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
+
+---
+
+## v2.0.0-alpha.3 — Shadow FTS hyphenated query fix ✓ tagged
 
 | Deliverable | Status |
 |-------------|--------|
 | Hyphenated FTS user tokens ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)) | **Done** |
 | Axis 4 FTS5 audit ([#280](https://github.com/MarcoPorcellato/matryca-plumber/pull/280)) — initial **27 pass + 3 xfail**; alpha.3 gate **28 pass + 2 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278), [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) open) | **Done** (audit + #277 fix) |
 
-**Tag (after merge):** `v2.0.0-alpha.3` · PyPI `matryca-plumber==2.0.0a3` · **supersedes** `v2.0.0-alpha.2` / `2.0.0a2` for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261); Axis 4 findings [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) and [#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) remain open.
+**Tag (after merge):** `v2.0.0-alpha.3` · PyPI `matryca-plumber==2.0.0a3` · **superseded by v2.0.0-alpha.4** for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261); Axis 4 completed in alpha.4 ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) fix + [#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) probe correction).
 
 ---
 
