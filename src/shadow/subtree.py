@@ -346,8 +346,6 @@ def _has_depth_or_node_truncation(
         )
         if total > fetched_count:
             return True
-    if max_depth <= 1:
-        return False
     deepest = max_depth - 1
     row = connection.execute(
         """

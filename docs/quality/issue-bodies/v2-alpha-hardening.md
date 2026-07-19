@@ -90,9 +90,9 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 5 — CTE subtree
 
-**Status:** audit probes complete (`tests/test_shadow_hardening_axis5_cte.py`) — **40 pass, 3 xfail**.
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis5_cte.py`) — **43 pass, 0 xfail** (post-#289 fix).
 
-- [x] Extreme depth / `max_depth` limits — **A5-DEPTH-01..09 (A5-DEPTH-04/05/09 → [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289))**
+- [x] Extreme depth / `max_depth` limits — **A5-DEPTH-01..09 ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) fixed)**
 - [x] Sibling `sort_order` + depth-first pre-order — **A5-ORDER-01..04 pass**
 - [x] `max_nodes` truncation + wide subtrees — **A5-NODES-01..06 pass**
 - [x] UTF-8 byte budget + block-boundary truncation — **A5-BYTES-01..06 pass**
@@ -190,9 +190,9 @@ uvx --refresh-package matryca-plumber \
 | A4-FAIL-03 | 4 | Health `error` skips shadow FTS | — | `test_a4_fail_03_health_not_ready_skips_shadow_fts` | — | **pass** |
 | A4-FAIL-04 | 4 | Validation errors bounded, no secret leak | — | `test_a4_fail_04_backend_exception_bounded_public_error` | — | **pass** |
 | A4-FAIL-05 | 4 | Writer lock → SQLite error, meta intact | — | `test_a4_fail_05_writer_lock_does_not_corrupt_fts_meta` | — | **pass** |
-| A5-DEPTH-04 | 5 | `max_depth=1` with descendants → reports `COMPLETE` | **P2** | `test_a5_depth_04_max_depth_one_with_child_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
-| A5-DEPTH-05 | 5 | `max_depth=0` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_05_max_depth_zero_clamped_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
-| A5-DEPTH-09 | 5 | `max_depth=-5` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_09_negative_max_depth_clamped` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **open** (`xfail`) |
+| A5-DEPTH-04 | 5 | `max_depth=1` with descendants → reports `COMPLETE` | **P2** | `test_a5_depth_04_max_depth_one_with_child_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **fixed** |
+| A5-DEPTH-05 | 5 | `max_depth=0` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_05_max_depth_zero_clamped_truncated` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **fixed** |
+| A5-DEPTH-09 | 5 | `max_depth=-5` (clamped to 1) same truncation status gap | **P2** | `test_a5_depth_09_negative_max_depth_clamped` | [#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) | **fixed** |
 | A5-DEPTH-01 | 5 | 32-block chain under default `max_depth` | — | `test_a5_depth_01_linear_chain_complete_within_default_max` | — | **pass** |
 | A5-DEPTH-02 | 5 | Leaf anchor single node | — | `test_a5_depth_02_leaf_anchor_single_node` | — | **pass** |
 | A5-DEPTH-03 | 5 | Root anchor includes descendants (pre-order) | — | `test_a5_depth_03_root_anchor_includes_descendants` | — | **pass** |
