@@ -15,6 +15,7 @@
 ### Documentation
 
 - **Maintainer surfaces** synced to **v2.0.0-alpha.4** (README, `ROADMAP.md`, `llms.txt`, `docs/ARCHITECTURE.md`, tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261), `docs/releases/v2.0.0-alpha.4-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
+- **Operational smoke** — `scripts/smoke_release_alpha4_fts279_bound.py` (public `handle_search_bm25` overlong bound) and `scripts/smoke_release_alpha4_upgrade.py` (PyPI `2.0.0a3` → local `2.0.0a4` wheel).
 
 ## [2.0.0-alpha.3] - 2026-07-19
 

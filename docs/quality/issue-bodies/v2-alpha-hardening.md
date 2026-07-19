@@ -34,7 +34,9 @@ Seven-axis audit with severity classification **P0–P3**. Each **confirmed** fi
 
 ```bash
 make ci
-uvx matryca-plumber@2.0.0-alpha.4 --version   # expect 2.0.0-alpha.4 (PyPI 2.0.0a4)
+uvx --refresh-package matryca-plumber \
+  matryca-plumber@2.0.0-alpha.4 read --help
+# PyPI normalizes the pin to matryca-plumber==2.0.0a4 (PEP 440); help output does not print version.
 # vault soak (flag off + flag on) — see Epic #20 distribution comment
 ```
 
