@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from src.shadow.connection import open_shadow_db
+from src.shadow.fts_format import FtsQueryValidationError
 from src.shadow.query import prepare_fts_user_query, search_blocks_fts
 from src.shadow.sync import sync_page_to_shadow
 
@@ -72,6 +73,14 @@ def test_prepare_fts_user_query_quotes_natural_hyphen_compounds() -> None:
     assert prepare_fts_user_query("needle state-of-the-art") == 'needle "state-of-the-art"'
     assert prepare_fts_user_query("alpha OR beta") == "alpha OR beta"
     assert prepare_fts_user_query('"state-of-the-art"') == '"state-of-the-art"'
+
+
+def test_validate_fts_match_query_rejects_overlong_input() -> None:
+    from src.shadow.fts_format import MAX_FTS_MATCH_QUERY_CHARS, validate_fts_match_query
+
+    validate_fts_match_query("n" * MAX_FTS_MATCH_QUERY_CHARS)
+    with pytest.raises(FtsQueryValidationError, match="exceeds max length"):
+        validate_fts_match_query("n" * (MAX_FTS_MATCH_QUERY_CHARS + 1))
 
 
 def test_search_blocks_fts_hyphenated_user_query(tmp_path: Path) -> None:

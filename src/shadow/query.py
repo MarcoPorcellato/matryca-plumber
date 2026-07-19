@@ -6,6 +6,8 @@ import re
 import sqlite3
 from dataclasses import dataclass
 
+from .fts_validation import check_fts_query_length_bounded
+
 # ASCII hyphen + common Unicode dash code points (en/em/figure dashes).
 _HYPHEN_DASH_CLASS = "-\u2010\u2011\u2012\u2013\u2014"
 _FTS_RESERVED_TOKENS = frozenset({"OR", "AND", "NOT", "NEAR"})
@@ -92,9 +94,11 @@ def search_blocks_fts(
     should supply FTS5 query syntax (plain tokens are fine for simple search).
     Empty / whitespace-only queries return an empty list.
     """
-    q = prepare_fts_user_query(query)
-    if not q:
+    stripped = query.strip()
+    if not stripped:
         return []
+    check_fts_query_length_bounded(stripped)
+    q = prepare_fts_user_query(query)
     capped = max(1, min(int(limit), 500))
     rows = connection.execute(
         """

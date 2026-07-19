@@ -6,6 +6,8 @@
 
 ### Fixed
 
+- **Shadow FTS query length bound (#279)** — user keywords over **512 Unicode characters** (post-`strip`) are rejected with a bounded validation error before FTS preparation or SQLite `MATCH`; no generational BM25 fallback while shadow is `ready`.
+
 - **Shadow FTS hyphenated keywords (#277 / #282)** — natural compound tokens such as `state-of-the-art` are quoted before FTS5 `MATCH`, so shadow search no longer mis-parses interior hyphens as boolean `NOT` or falls back to generational BM25 while health is `ready`.
 
 ### Tests / Quality

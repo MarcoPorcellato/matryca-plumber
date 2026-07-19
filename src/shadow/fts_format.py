@@ -11,27 +11,15 @@ from ..graph.path_sandbox import resolved_graph_root
 from ..rag.local_query import format_keyword_query_markdown
 from .config import shadow_db_enabled
 from .connection import open_shadow_db
+from .fts_validation import (
+    _FTS_VALIDATION_PREFIX,
+    MAX_FTS_MATCH_QUERY_CHARS,
+    FtsQueryValidationError,
+    check_fts_query_length_bounded,
+    validate_fts_match_query,
+)
 from .health import ShadowHealthState, resolve_shadow_health
 from .query import BlockHit, search_blocks_fts
-
-_FTS_VALIDATION_PREFIX = "Invalid FTS query for `method=bm25`"
-
-
-class FtsQueryValidationError(ValueError):
-    """User-supplied keyword is not a valid FTS5 ``MATCH`` expression."""
-
-
-def validate_fts_match_query(keyword: str) -> None:
-    """Reject obviously invalid FTS5 query syntax before hitting SQLite."""
-    q = keyword.strip()
-    if not q:
-        raise FtsQueryValidationError(
-            f"{_FTS_VALIDATION_PREFIX}: query is empty after trimming whitespace."
-        )
-    if q.count('"') % 2 != 0:
-        raise FtsQueryValidationError(
-            f"{_FTS_VALIDATION_PREFIX}: unbalanced double quotes in {q!r}."
-        )
 
 
 def _page_rows_for_hits(
@@ -132,6 +120,8 @@ def resolve_bm25_search_markdown(
 
 __all__ = [
     "FtsQueryValidationError",
+    "MAX_FTS_MATCH_QUERY_CHARS",
+    "check_fts_query_length_bounded",
     "format_shadow_fts_markdown",
     "resolve_bm25_search_markdown",
     "validate_fts_match_query",
