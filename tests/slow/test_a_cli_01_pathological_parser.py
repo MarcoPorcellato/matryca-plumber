@@ -12,7 +12,10 @@ Track: https://github.com/MarcoPorcellato/matryca-plumber/issues/297
 from __future__ import annotations
 
 import hashlib
+import multiprocessing as mp
 import time
+from queue import Empty
+from typing import Any
 
 import pytest
 from logseq_matryca_parser import LogosParser
@@ -29,6 +32,28 @@ from tests.a_cli_01_generator import (
 _HEALTHY_BUDGET_S = 2.0
 # Hard ceiling: proves completion (latency class), not a process deadlock.
 _HARD_CEILING_S = 90.0
+_TERMINATE_GRACE_S = 5.0
+
+
+def _child_parse_pathological(text: str, queue: mp.Queue[dict[str, Any]]) -> None:
+    """Parse in a child process; report minimal status (no AST payload)."""
+    started = time.perf_counter()
+    try:
+        page = LogosParser().parse(text)
+        queue.put(
+            {
+                "ok": page is not None,
+                "s": round(time.perf_counter() - started, 3),
+            }
+        )
+    except Exception as exc:  # noqa: BLE001 - surface type only to parent
+        queue.put(
+            {
+                "ok": False,
+                "error": type(exc).__name__,
+                "s": round(time.perf_counter() - started, 3),
+            }
+        )
 
 
 @pytest.mark.slow
@@ -51,13 +76,40 @@ def test_a_cli_01_control_page_meets_healthy_budget() -> None:
 
 @pytest.mark.slow
 def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
-    """Pathological page must finish (bounded latency), not hang forever."""
+    """Pathological page must finish within hard ceiling (child process enforced)."""
     text = generate_pathological_page()
-    started = time.perf_counter()
-    page = LogosParser().parse(text)
-    elapsed = time.perf_counter() - started
-    assert page is not None
-    assert elapsed < _HARD_CEILING_S, f"exceeded hard ceiling: {elapsed:.3f}s"
+    ctx = mp.get_context("spawn")
+    queue: mp.Queue[dict[str, Any]] = ctx.Queue(maxsize=1)
+    proc = ctx.Process(target=_child_parse_pathological, args=(text, queue))
+    proc.start()
+    try:
+        proc.join(timeout=_HARD_CEILING_S)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join(timeout=_TERMINATE_GRACE_S)
+            if proc.is_alive():
+                proc.kill()
+                proc.join(timeout=_TERMINATE_GRACE_S)
+            assert not proc.is_alive(), (
+                "child still alive after terminate/kill — hard ceiling unenforceable"
+            )
+            pytest.fail(
+                f"pathological LogosParser exceeded {_HARD_CEILING_S:.0f}s hard ceiling "
+                "(child terminated)"
+            )
+        assert proc.exitcode == 0, f"child exitcode={proc.exitcode}"
+        try:
+            result = queue.get(timeout=1.0)
+        except Empty:
+            pytest.fail("child produced no status")
+        assert result.get("ok") is True, f"child parse failed: {result}"
+        assert float(result["s"]) < _HARD_CEILING_S
+    finally:
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=_TERMINATE_GRACE_S)
+        queue.close()
+        queue.join_thread()
 
 
 @pytest.mark.slow
