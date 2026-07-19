@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Changed
+
+- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); no runtime containment yet.
+
 ## [2.0.0-alpha.5] - 2026-07-19
 
 **v2.0.0-alpha.5** — closes the v2-alpha Shadow DB hardening campaign ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) after **v2.0.0-alpha.4**. Ships CTE depth-truncation status fix ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)), state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)), and Axes 5–7 audit probes. Hardening gates Axis 1–7 green with **no open P0/P1**. **Not an RC** — Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) continues toward beta/RC after post-publish soak. Supersedes **`v2.0.0-alpha.4`** / PyPI **`2.0.0a4`** for new installs; prior alphas remain on PyPI (not yanked).
