@@ -102,10 +102,10 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 6 — Security & isolation
 
-**Status:** audit probes complete (`tests/test_shadow_hardening_axis6_security.py`) — **23 pass, 1 xfail**.
+**Status:** audit probes complete (`tests/test_shadow_hardening_axis6_security.py`) — **23 pass, 1 xfail** (sanitization checklist incomplete until #293).
 
 - [x] Path traversal and symlink escape — **A6-PATH-01..07 pass** (Unix-only skip on symlink probes; portable probes always run)
-- [x] Sanitized errors (no vault content leak) — **A6-ERRORS-01..06 pass; A6-ERRORS-07 → [#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293)**
+- [ ] Sanitized errors (no vault content leak) — **partial — A6-ERRORS-01..06 pass; A6-ERRORS-07 open under [#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293)**
 - [x] Flag `false` must not create/open/mutate SQLite — **A6-FLAG-01..05 pass** (includes pre-existing DB immutability)
 - [x] Shadow DB must never write Markdown — **A6-MD-01..05 pass**
 
