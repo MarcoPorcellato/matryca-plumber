@@ -111,10 +111,26 @@ uvx --refresh-package matryca-plumber \
 
 ### Axis 7 — Performance
 
-- [ ] Bootstrap at 1k / 10k / 50k blocks
-- [ ] FTS/CTE latency p50/p95
-- [ ] Memory and lock hold duration
-- [ ] Watcher cost on file bursts
+**Status:** audit probes started (`tests/test_shadow_hardening_axis7_performance.py`) — **7 pass** in default CI; **2 slow** (10k/50k bootstrap) deselected.
+
+- [x] Bootstrap at 1k blocks (CI) — **A7-BOOT-01 pass**; 10k/50k under `@pytest.mark.slow`
+- [x] FTS/CTE latency p50/p95 — **A7-FTS-01 / A7-CTE-01 pass** (soft ceilings)
+- [x] Memory and lock hold duration — **A7-MEM-01 / A7-LOCK-01 pass**
+- [x] Watcher cost on file bursts — **A7-WATCH-01 pass**
+
+### Axis 7 findings
+
+| ID | Axis | Repro | Sev | Minimal test | Child issue | Status |
+|----|------|-------|-----|--------------|-------------|--------|
+| A7-BOOT-01 | 7 | ~1k-block full rebuild soft ceiling | — | `test_a7_boot_01_rebuild_1k_blocks_within_bound` | — | **pass** |
+| A7-BOOT-02 | 7 | ~10k-block rebuild (`slow`) | — | `test_a7_boot_02_rebuild_10k_blocks_within_bound` | — | **slow** |
+| A7-BOOT-03 | 7 | ~50k-block rebuild (`slow`) | — | `test_a7_boot_03_rebuild_50k_blocks_within_bound` | — | **slow** |
+| A7-FTS-01 | 7 | FTS p50/p95 soft ceiling | — | `test_a7_fts_01_query_latency_p50_p95_bounded` | — | **pass** |
+| A7-CTE-01 | 7 | CTE p50/p95 soft ceiling | — | `test_a7_cte_01_subtree_latency_p50_p95_bounded` | — | **pass** |
+| A7-MEM-01 | 7 | Repeated reads RSS growth bound | — | `test_a7_mem_01_repeated_reads_rss_growth_bounded` | — | **pass** |
+| A7-LOCK-01 | 7 | Incremental sync duration bound | — | `test_a7_lock_01_incremental_sync_lock_hold_bounded` | — | **pass** |
+| A7-WATCH-01 | 7 | 40-page sync burst coherent | — | `test_a7_watch_01_file_burst_sync_completes_coherent` | — | **pass** |
+| A7-STATS-01 | 7 | Percentile helper sanity | — | `test_a7_stats_01_latency_samples_are_deterministic_ordering` | — | **pass** |
 
 ---
 
