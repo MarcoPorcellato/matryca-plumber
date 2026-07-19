@@ -1,11 +1,12 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha.4)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha.5)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
-> **v2.0.0-alpha.4 headline:** **Shadow FTS query length bound** — keywords over **512 Unicode characters** (post-`strip`) are rejected before FTS preparation or SQLite `MATCH` ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)); Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail** ([#278](https://github.com/MarcoPorcellato/matryca-plumber/issues/278) probe corrected in [#287](https://github.com/MarcoPorcellato/matryca-plumber/pull/287)); builds on alpha.3 hyphen fix + alpha.2 rename fix; `MATRYCA_SHADOW_DB_ENABLED=false` by default. **Not an RC** — Axes 5–7 open ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)). Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
+> **v2.0.0-alpha.5 headline:** **Shadow hardening campaign closed** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) — CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)); state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)); Axes 5–7 audit probes green; `MATRYCA_SHADOW_DB_ENABLED=false` by default. **Not an RC** — post-publish soak before beta/RC. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
+> **v2.0.0-alpha.4 headline:** **Shadow FTS query length bound** — keywords over **512 Unicode characters** (post-`strip`) are rejected before FTS preparation or SQLite `MATCH` ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)); Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail**.
 > **v2.0.0-alpha.3 headline:** **Shadow FTS hyphenated queries** — natural compounds like `state-of-the-art` route through shadow FTS5 without spurious generational fallback ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)).
 > **v1.13.1 headline:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** newline splice safety, resilient X-Ray reload, SYNAPSE cyclic-embed truncation; `_headless_append_child` mirrors parser newline normalization. Architecture: `docs/ARCHITECTURE.md`.
 > **v1.13.0 headline:** **Daemon & dispatch modularization** — `maintenance_daemon` split into focused `daemon_*` modules ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry + **`GraphReadPort`** (v2 Phase 1, [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)). Maintainer map: `docs/CLEAN_CODE_ARCHITECTURE.md` · `docs/ARCHITECTURE.md`.
@@ -16,7 +17,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-Matryca Plumber v2.0.0-alpha.4 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+Matryca Plumber v2.0.0-alpha.5 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -54,7 +55,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (verified v2.0.0-alpha.4)
+## 2. Core CLI (verified v2.0.0-alpha.5)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.
@@ -218,7 +219,7 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB (v2.0.0-alpha.4 — experimental, opt-in)
+### 2.6 Shadow DB (v2.0.0-alpha.5 — experimental, opt-in)
 
 Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
 

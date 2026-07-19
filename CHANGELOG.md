@@ -1,10 +1,25 @@
 ## [Unreleased]
 
+## [2.0.0-alpha.5] - 2026-07-19
+
+**v2.0.0-alpha.5** — closes the v2-alpha Shadow DB hardening campaign ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) after **v2.0.0-alpha.4**. Ships CTE depth-truncation status fix ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)), state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)), and Axes 5–7 audit probes. Hardening gates Axis 1–7 green with **no open P0/P1**. **Not an RC** — Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) continues toward beta/RC after post-publish soak. Supersedes **`v2.0.0-alpha.4`** / PyPI **`2.0.0a4`** for new installs; prior alphas remain on PyPI (not yanked).
+
 ### Fixed
 
 - **Graph Insights silent LLM fallback ([#114](https://github.com/MarcoPorcellato/matryca-plumber/issues/114))** — `run_graph_insights_engine` now emits `logger.exception(...)` before falling back to `_fallback_insights(metrics)` when `llm.generate_graph_insights` raises; `llm_used=False` semantics unchanged. Operators can distinguish LLM-enriched vs deterministic insights in logs.
-- **Shadow CTE subtree depth truncation status (#289)** — `max_depth` clamped to `1` (including `0` and negative inputs) now returns `SubtreeStatus.TRUNCATED` when descendants exist but are excluded; anchor-only excerpt unchanged.
-- **Shadow state API `last_sync_error` path redaction (#293)** — absolute filesystem paths in `META_LAST_SYNC_ERROR` (and SQLite error strings) are replaced with a bounded generic message before the Sovereign UI `/api/state` envelope; graph-relative diagnostics such as `pages/Alpha.md` remain unchanged.
+- **Shadow CTE subtree depth truncation status (#289 / #291)** — `max_depth` clamped to `1` (including `0` and negative inputs) now returns `SubtreeStatus.TRUNCATED` when descendants exist but are excluded; anchor-only excerpt unchanged.
+- **Shadow state API `last_sync_error` path redaction (#293 / #294)** — absolute filesystem paths in `META_LAST_SYNC_ERROR` (and SQLite error strings) are replaced with a bounded generic message before the Sovereign UI `/api/state` envelope; graph-relative diagnostics such as `pages/Alpha.md` remain unchanged.
+
+### Tests / Quality
+
+- **Axis 5 CTE audit** — `tests/test_shadow_hardening_axis5_cte.py`: **43 pass, 0 xfail** (post-#289).
+- **Axis 6 security audit** — `tests/test_shadow_hardening_axis6_security.py`: **24 pass, 0 xfail** (post-#293).
+- **Axis 7 performance audit** — `tests/test_shadow_hardening_axis7_performance.py`: **7 pass** in default CI; slow 10k/50k rebuild probes verified locally (soft ceilings).
+- **Campaign [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)** — Axes 1–7 complete; no residual P0/P1 findings.
+
+### Documentation
+
+- **Maintainer surfaces** synced to **v2.0.0-alpha.5** (README, `ROADMAP.md`, `llms.txt`, `docs/ARCHITECTURE.md`, tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261), `docs/releases/v2.0.0-alpha.5-GITHUB.md`, `SYSTEM_PROMPT.md` via `make build-system-prompt`).
 
 ## [2.0.0-alpha.4] - 2026-07-19
 

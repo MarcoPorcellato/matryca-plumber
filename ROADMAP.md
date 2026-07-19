@@ -6,18 +6,31 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-alpha.4** (2026-07-19) — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v2.0.0-alpha.5** (2026-07-19) — issue numbers link to GitHub; scope may shift as milestones close.*
 
 ---
 
-## v2.0.0-alpha.4 — Shadow FTS query length bound (release PR)
+## v2.0.0-alpha.5 — Hardening campaign close (#261)
+
+| Deliverable | Status |
+|-------------|--------|
+| CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)) | **Done** |
+| State API path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)) | **Done** |
+| Axes 5–7 audit probes ([#290](https://github.com/MarcoPorcellato/matryca-plumber/pull/290), [#292](https://github.com/MarcoPorcellato/matryca-plumber/pull/292), [#295](https://github.com/MarcoPorcellato/matryca-plumber/pull/295)) | **Done** |
+| Tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261) closed — no open P0/P1 | **Done** |
+
+**Tag (after merge):** `v2.0.0-alpha.5` · PyPI `matryca-plumber==2.0.0a5` · **supersedes** `v2.0.0-alpha.4` / `2.0.0a4` for new installs. **Not an RC** — post-publish soak recommended before beta/RC (Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)).
+
+---
+
+## v2.0.0-alpha.4 — Shadow FTS query length bound ✓ tagged
 
 | Deliverable | Status |
 |-------------|--------|
 | FTS query length bound ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)) | **Done** |
 | Axis 4 FTS5 gate fully green ([#287](https://github.com/MarcoPorcellato/matryca-plumber/pull/287) — #278 probe corrected) | **Done** — **52 pass, 0 xfail** |
 
-**Tag (after merge):** `v2.0.0-alpha.4` · PyPI `matryca-plumber==2.0.0a4` · **supersedes** `v2.0.0-alpha.3` / `2.0.0a3` for new installs. **Not an RC** — Axes 5–7 open on [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
+**Tag:** `v2.0.0-alpha.4` · PyPI `matryca-plumber==2.0.0a4` · **superseded by v2.0.0-alpha.5** for new installs. Hardening Axes 5–7 completed in alpha.5 ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)).
 
 ---
 
