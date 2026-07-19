@@ -124,10 +124,10 @@ def prepare_matryca_runtime(
     Args:
         graph_root: Resolved Logseq vault root (``pages/`` parent), or ``None``.
         wiki_config: Optional wiki orchestration config.
-        eager_graph: When ``True`` (daemon, CLI, UI), load the in-memory AST index and
-            identity config immediately. When ``False`` (MCP stdio lifespan), defer
-            heavy graph parsing until the first tool call that needs the graph — so
-            MCP ``initialize`` / ``tools/list`` complete in seconds.
+        eager_graph: When ``True`` (daemon, most CLI), load the in-memory AST index and
+            identity config immediately. When ``False`` (MCP stdio, Sovereign UI,
+            CLI ``search bm25``), defer heavy graph parsing until a caller needs the
+            AST — so BM25 / initialize stay free of LogosParser cold cost (#297).
     """
     ensure_plumber_log_directories()
     if graph_root is None:
@@ -160,8 +160,9 @@ def try_prepare_matryca_runtime_from_env(*, eager_graph: bool = True) -> None:
     """Provision runtime dirs from the current process environment (idempotent).
 
     Args:
-        eager_graph: When ``False`` (Sovereign UI, MCP stdio), defer AST parsing until
-            the first graph read. When ``True`` (daemon, agent CLI), load immediately.
+        eager_graph: When ``False`` (Sovereign UI, MCP stdio, CLI ``search bm25``),
+            defer AST parsing until the first graph read that needs it. When ``True``
+            (daemon, other agent CLI commands), load immediately.
     """
     ensure_repo_dotenv_from_example()
     from ..agent.plumber_config import reload_plumber_dotenv
