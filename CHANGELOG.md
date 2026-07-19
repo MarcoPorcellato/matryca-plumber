@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **Bounded page-parse worker (PR2B infra, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). No Shadow/`GraphAstCache` integration yet; overhead measurement via `scripts/measure_bounded_page_parse_overhead.py`.
+
 ### Fixed
 
 - **CLI `search bm25` no longer eager-bootstraps AST (#297 / A-CLI-01)** — `matryca search bm25` prepares runtime with `eager_graph=False`, so LogosParser cold load cannot hang BM25 (raw Markdown / Shadow FTS). Other CLI commands keep eager AST warm-up.
