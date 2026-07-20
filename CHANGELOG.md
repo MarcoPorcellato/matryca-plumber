@@ -2,7 +2,7 @@
 
 ### Added
 
-- **Bounded page-parse worker (PR2B infra, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). Fork-safe PID ownership (`register_at_fork` where available); `BoundedParseResult.page` is `repr=False` (diagnostics only in logs). No Shadow/`GraphAstCache` integration yet. Overhead script requires `--graph PATH` (optional `--output`).
+- **Bounded page-parse worker (PR2B infra, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). Fork-safe PID ownership (`register_at_fork` where available); `BoundedParseResult.page` is `repr=False` (diagnostics only in logs). Request/result correlation via monotonic `request_id` + echoed `content_hash` (mismatch → `protocol_mismatch`, AST never accepted). No Shadow/`GraphAstCache` integration yet. Overhead script requires `--graph PATH` (optional `--output`).
 
 ### Fixed
 

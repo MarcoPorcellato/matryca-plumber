@@ -29,6 +29,7 @@ from loguru import logger
 from ..utils.env_parse import env_float_clamped
 
 ParseMode = Literal["logos", "stack"]
+_VALID_MODES: frozenset[str] = frozenset({"logos", "stack"})
 
 _TIMEOUT_ENV = "MATRYCA_PAGE_PARSE_TIMEOUT_S"
 _DEFAULT_TIMEOUT_S = 15.0
@@ -77,9 +78,16 @@ class BoundedParseResult:
     content_hash: str
     byte_count: int
     line_count: int
-    mode: ParseMode
+    mode: str
     error: str | None = None
     page: Any | None = field(default=None, repr=False)
+
+
+def _echo_fields(msg: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "request_id": msg.get("request_id"),
+        "content_hash": msg.get("content_hash"),
+    }
 
 
 def _worker_loop(
@@ -94,13 +102,24 @@ def _worker_loop(
         op = str(msg.get("op", ""))
         if op == "shutdown":
             break
+        echo = _echo_fields(msg)
         if op != "parse":
-            out_q.put({"ok": False, "error": "unknown_op", "s": 0.0})
+            out_q.put({**echo, "ok": False, "error": "unknown_op", "s": 0.0})
             continue
-        mode = str(msg.get("mode", "logos"))
+        mode = str(msg.get("mode", ""))
         text = str(msg.get("text", ""))
         title = str(msg.get("title", "Page"))
         started = time.perf_counter()
+        if mode not in _VALID_MODES:
+            out_q.put(
+                {
+                    **echo,
+                    "ok": False,
+                    "error": "invalid_mode",
+                    "s": round(time.perf_counter() - started, 6),
+                }
+            )
+            continue
         try:
             if mode == "stack":
                 from logseq_matryca_parser.graph import StackMachineParser
@@ -113,6 +132,7 @@ def _worker_loop(
             blob = pickle.dumps(page, protocol=pickle.HIGHEST_PROTOCOL)
             out_q.put(
                 {
+                    **echo,
                     "ok": True,
                     "blob": blob,
                     "s": round(time.perf_counter() - started, 6),
@@ -121,6 +141,7 @@ def _worker_loop(
         except Exception as exc:  # noqa: BLE001 - bounded type name only
             out_q.put(
                 {
+                    **echo,
                     "ok": False,
                     "error": type(exc).__name__,
                     "s": round(time.perf_counter() - started, 6),
@@ -138,12 +159,15 @@ class BoundedPageParseWorker:
     def __init__(self) -> None:
         self._lock = threading.RLock()
         self._owner_pid = os.getpid()
+        self._next_request_id = 0
         self._proc: Any | None = None
         self._in_q: Any | None = None
         self._out_q: Any | None = None
 
     @property
     def pid(self) -> int | None:
+        if os.getpid() != self._owner_pid:
+            return None
         proc = self._proc
         return proc.pid if proc is not None and proc.is_alive() else None
 
@@ -229,6 +253,31 @@ class BoundedPageParseWorker:
                 self._proc = None
                 self._discard_queues_unlocked()
 
+    def _protocol_mismatch_unlocked(
+        self,
+        *,
+        digest: str,
+        byte_count: int,
+        line_count: int,
+        mode: ParseMode,
+        elapsed_s: float,
+    ) -> BoundedParseResult:
+        logger.bind(content_hash=digest, mode=mode).warning(
+            "bounded page parse protocol mismatch; terminating worker"
+        )
+        self._kill_worker_unlocked()
+        return BoundedParseResult(
+            ok=False,
+            timed_out=False,
+            elapsed_s=elapsed_s,
+            content_hash=digest,
+            byte_count=byte_count,
+            line_count=line_count,
+            mode=mode,
+            error="protocol_mismatch",
+            page=None,
+        )
+
     def parse_text(
         self,
         text: str,
@@ -238,12 +287,29 @@ class BoundedPageParseWorker:
         timeout_s: float | None = None,
     ) -> BoundedParseResult:
         """Parse ``text`` in the worker; kill the worker on deadline overrun."""
-        deadline = page_parse_timeout_s() if timeout_s is None else float(timeout_s)
-        deadline = min(_MAX_TIMEOUT_S, max(_MIN_TIMEOUT_S, deadline))
-
         digest = content_hash16(text)
         byte_count = len(text.encode("utf-8"))
         line_count = page_line_count(text)
+
+        if mode == "logos":
+            parse_mode: ParseMode = "logos"
+        elif mode == "stack":
+            parse_mode = "stack"
+        else:
+            return BoundedParseResult(
+                ok=False,
+                timed_out=False,
+                elapsed_s=0.0,
+                content_hash=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=str(mode),
+                error="invalid_mode",
+                page=None,
+            )
+
+        deadline = page_parse_timeout_s() if timeout_s is None else float(timeout_s)
+        deadline = min(_MAX_TIMEOUT_S, max(_MIN_TIMEOUT_S, deadline))
 
         with self._lock:
             self._ensure_worker_unlocked()
@@ -251,15 +317,27 @@ class BoundedPageParseWorker:
             assert self._out_q is not None
             assert self._proc is not None
 
-            while True:
-                try:
-                    self._out_q.get_nowait()
-                except Empty:
-                    break
+            # Leftover output with no outstanding task = protocol corruption.
+            try:
+                unexpected = self._out_q.get_nowait()
+            except Empty:
+                unexpected = None
+            if unexpected is not None:
+                return self._protocol_mismatch_unlocked(
+                    digest=digest,
+                    byte_count=byte_count,
+                    line_count=line_count,
+                    mode=parse_mode,
+                    elapsed_s=0.0,
+                )
 
+            self._next_request_id += 1
+            request_id = self._next_request_id
             request = {
                 "op": "parse",
-                "mode": mode,
+                "request_id": request_id,
+                "content_hash": digest,
+                "mode": parse_mode,
                 "text": text,
                 "title": page_title,
             }
@@ -273,8 +351,9 @@ class BoundedPageParseWorker:
                     content_hash=digest,
                     byte_count=byte_count,
                     line_count=line_count,
-                    mode=mode,
+                    mode=parse_mode,
                     timeout_s=deadline,
+                    request_id=request_id,
                 ).warning("bounded page parse timed out; terminating worker")
                 self._kill_worker_unlocked()
                 return BoundedParseResult(
@@ -284,12 +363,21 @@ class BoundedPageParseWorker:
                     content_hash=digest,
                     byte_count=byte_count,
                     line_count=line_count,
-                    mode=mode,
+                    mode=parse_mode,
                     error="timeout",
                     page=None,
                 )
 
             wall = round(time.perf_counter() - wall0, 6)
+            if raw.get("request_id") != request_id or raw.get("content_hash") != digest:
+                return self._protocol_mismatch_unlocked(
+                    digest=digest,
+                    byte_count=byte_count,
+                    line_count=line_count,
+                    mode=parse_mode,
+                    elapsed_s=wall,
+                )
+
             if not raw.get("ok"):
                 err = str(raw.get("error") or "parse_error")
                 if "/" in err or "\\" in err:
@@ -301,7 +389,7 @@ class BoundedPageParseWorker:
                     content_hash=digest,
                     byte_count=byte_count,
                     line_count=line_count,
-                    mode=mode,
+                    mode=parse_mode,
                     error=err,
                     page=None,
                 )
@@ -317,7 +405,7 @@ class BoundedPageParseWorker:
                     content_hash=digest,
                     byte_count=byte_count,
                     line_count=line_count,
-                    mode=mode,
+                    mode=parse_mode,
                     error="unpickle_error",
                     page=None,
                 )
@@ -328,7 +416,7 @@ class BoundedPageParseWorker:
                 content_hash=digest,
                 byte_count=byte_count,
                 line_count=line_count,
-                mode=mode,
+                mode=parse_mode,
                 error=None,
                 page=page,
             )
