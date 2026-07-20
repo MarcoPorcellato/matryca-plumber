@@ -4,6 +4,10 @@ Every parse that must not hang indefinitely runs in a persistent child process
 with a hard deadline. The parent never relies on thread interruption.
 
 No Shadow / GraphAstCache integration in this module's callers yet — infra only.
+
+Privacy: diagnostic fields on :class:`BoundedParseResult` are content-free
+(hash / byte / line counts only). The optional ``page`` AST is ``repr=False``
+and must never be serialized or logged by callers — treat it as vault content.
 """
 
 from __future__ import annotations
@@ -12,11 +16,11 @@ import atexit
 import contextlib
 import hashlib
 import multiprocessing as mp
+import os
 import pickle
 import threading
 import time
-from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from queue import Empty
 from typing import Any, Literal
 
@@ -59,7 +63,13 @@ def page_line_count(text: str) -> int:
 
 @dataclass(frozen=True, slots=True)
 class BoundedParseResult:
-    """Outcome of a bounded page parse (never includes vault paths or body text)."""
+    """Outcome of a bounded page parse.
+
+    Diagnostic fields (``ok``, ``timed_out``, ``elapsed_s``, ``content_hash``,
+    ``byte_count``, ``line_count``, ``mode``, ``error``) are content-free: no
+    vault paths and no body text. ``page`` holds the AST when ``ok`` and is
+    excluded from ``repr``; callers must not log or serialize ``page``.
+    """
 
     ok: bool
     timed_out: bool
@@ -69,7 +79,7 @@ class BoundedParseResult:
     line_count: int
     mode: ParseMode
     error: str | None = None
-    page: Any | None = None
+    page: Any | None = field(default=None, repr=False)
 
 
 def _worker_loop(
@@ -119,10 +129,15 @@ def _worker_loop(
 
 
 class BoundedPageParseWorker:
-    """Persistent spawn worker; one outstanding parse at a time (lock-serialized)."""
+    """Persistent spawn worker; one outstanding parse at a time (lock-serialized).
+
+    Ownership is tied to the creating process PID. After ``os.fork``, inherited
+    handles must be abandoned without terminating the parent's worker.
+    """
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
+        self._owner_pid = os.getpid()
         self._proc: Any | None = None
         self._in_q: Any | None = None
         self._out_q: Any | None = None
@@ -131,6 +146,10 @@ class BoundedPageParseWorker:
     def pid(self) -> int | None:
         proc = self._proc
         return proc.pid if proc is not None and proc.is_alive() else None
+
+    @property
+    def owner_pid(self) -> int:
+        return self._owner_pid
 
     def _start_unlocked(self) -> None:
         self._in_q = _CTX.Queue(maxsize=1)
@@ -143,7 +162,24 @@ class BoundedPageParseWorker:
         )
         self._proc.start()
 
+    def _abandon_inherited_unlocked(self) -> None:
+        """Drop inherited refs after fork; do not terminate the parent's worker."""
+        self._proc = None
+        self._in_q = None
+        self._out_q = None
+
+    def abandon_inherited_handles(self) -> None:
+        """Public: discard fork-inherited handles without killing the parent worker."""
+        with self._lock:
+            self._abandon_inherited_unlocked()
+            self._owner_pid = os.getpid()
+
     def _ensure_worker_unlocked(self) -> None:
+        if os.getpid() != self._owner_pid:
+            self._abandon_inherited_unlocked()
+            self._owner_pid = os.getpid()
+            self._start_unlocked()
+            return
         if self._proc is not None and self._proc.is_alive():
             return
         self._discard_queues_unlocked()
@@ -175,8 +211,12 @@ class BoundedPageParseWorker:
         self._discard_queues_unlocked()
 
     def shutdown(self) -> None:
-        """Stop the worker process (idempotent)."""
+        """Stop the worker process (idempotent). Skip kill if we are a forked child."""
         with self._lock:
+            if os.getpid() != self._owner_pid:
+                self._abandon_inherited_unlocked()
+                self._owner_pid = os.getpid()
+                return
             proc = self._proc
             in_q = self._in_q
             if proc is not None and proc.is_alive() and in_q is not None:
@@ -296,24 +336,39 @@ class BoundedPageParseWorker:
 
 _worker_lock = threading.Lock()
 _worker: BoundedPageParseWorker | None = None
+_worker_owner_pid: int | None = None
 
 
 def get_bounded_page_parse_worker() -> BoundedPageParseWorker:
-    """Process-wide singleton worker."""
-    global _worker
+    """Process-wide singleton worker (recreated after fork in the child)."""
+    global _worker, _worker_owner_pid
     with _worker_lock:
-        if _worker is None:
-            _worker = BoundedPageParseWorker()
+        pid = os.getpid()
+        if _worker is not None and _worker_owner_pid == pid:
+            return _worker
+        if _worker is not None:
+            # Forked child (or stale owner): drop inherited handles; do not kill.
+            _worker.abandon_inherited_handles()
+            _worker = None
+            _worker_owner_pid = None
+        _worker = BoundedPageParseWorker()
+        _worker_owner_pid = pid
         return _worker
 
 
 def reset_bounded_page_parse_worker_for_tests() -> None:
-    """Shutdown and drop the singleton (tests only)."""
-    global _worker
+    """Shutdown and drop the singleton (tests only; owner PID only)."""
+    global _worker, _worker_owner_pid
     with _worker_lock:
-        if _worker is not None:
+        if _worker is None:
+            _worker_owner_pid = None
+            return
+        if _worker_owner_pid == os.getpid():
             _worker.shutdown()
-            _worker = None
+        else:
+            _worker.abandon_inherited_handles()
+        _worker = None
+        _worker_owner_pid = None
 
 
 def parse_page_text_bounded(
@@ -336,7 +391,20 @@ def _atexit_shutdown() -> None:
     reset_bounded_page_parse_worker_for_tests()
 
 
+def _after_fork_in_child() -> None:
+    """Drop singleton after fork so the child never shares parent's queues/worker."""
+    global _worker, _worker_owner_pid
+    # register_at_fork after_in_child: avoid waiting on locks held by parent threads.
+    inherited = _worker
+    _worker = None
+    _worker_owner_pid = None
+    if inherited is not None:
+        inherited._abandon_inherited_unlocked()  # noqa: SLF001 - fork path only
+
+
 atexit.register(_atexit_shutdown)
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_after_fork_in_child)
 
 __all__ = [
     "BoundedParseResult",

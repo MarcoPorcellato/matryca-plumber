@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Measure bounded page-parse worker overhead on a local vault (privacy-safe).
+"""Measure bounded page-parse worker overhead on an explicit local vault.
 
-Writes aggregated timing only (no paths, titles, or content). Default corpus:
-Caches soak/diag vault (~1009 pages). In-process LogosParser is used solely as
-a measurement baseline — not as a production API path.
+Privacy-safe: aggregated timing only (no paths, titles, or content in the report).
+In-process LogosParser is used solely as a measurement baseline — not as a
+production API path.
 
 Usage::
 
-    uv run python scripts/measure_bounded_page_parse_overhead.py
-    uv run python scripts/measure_bounded_page_parse_overhead.py --limit 200
+    uv run python scripts/measure_bounded_page_parse_overhead.py \\
+        --graph /path/to/vault
+    uv run python scripts/measure_bounded_page_parse_overhead.py \\
+        --graph ./vault --output report.json
+    uv run python scripts/measure_bounded_page_parse_overhead.py \\
+        --graph ./vault --limit 200
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import sys
 import time
 from pathlib import Path
 
@@ -24,26 +29,6 @@ from src.graph.bounded_page_parse import (
     BoundedPageParseWorker,
     reset_bounded_page_parse_worker_for_tests,
 )
-
-
-def _discover_vault() -> Path | None:
-    bases = [
-        Path.home() / "Library/Caches/mp-beta-soak-a5",
-        Path.home() / "Library/Caches/mp-cli-diag-a5",
-    ]
-    best: tuple[int, Path] | None = None
-    for base in bases:
-        if not base.is_dir():
-            continue
-        for pages in base.rglob("pages"):
-            if not pages.is_dir():
-                continue
-            n = len(list(pages.glob("*.md")))
-            if n < 10:
-                continue
-            if best is None or n > best[0]:
-                best = (n, pages.parent)
-    return best[1] if best else None
 
 
 def _pct(xs: list[float], p: float) -> float:
@@ -70,8 +55,20 @@ def _summarize(xs: list[float]) -> dict[str, float | int]:
     }
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--graph",
+        type=Path,
+        required=True,
+        help="Logseq graph root (must contain pages/*.md)",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional path to write JSON report (default: stdout only)",
+    )
     parser.add_argument("--limit", type=int, default=0, help="Max pages (0=all)")
     parser.add_argument(
         "--baseline-max-bytes",
@@ -85,18 +82,23 @@ def main() -> None:
         default=30.0,
         help="Per-page worker deadline for this measurement run",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    vault = _discover_vault()
-    if vault is None:
-        raise SystemExit("no soak/diag vault found under Library/Caches")
+    vault = args.graph.expanduser().resolve()
+    pages_dir = vault / "pages"
+    if not pages_dir.is_dir():
+        print(f"error: missing pages/ under {vault}", file=sys.stderr)
+        return 2
 
-    files: list[Path] = sorted((vault / "pages").glob("*.md"))
+    files: list[Path] = sorted(pages_dir.glob("*.md"))
     journals = vault / "journals"
     if journals.is_dir():
         files.extend(sorted(journals.glob("*.md")))
     if args.limit > 0:
         files = files[: args.limit]
+    if not files:
+        print(f"error: no markdown pages under {vault}", file=sys.stderr)
+        return 2
 
     worker = BoundedPageParseWorker()
     worker_times: list[float] = []
@@ -151,22 +153,14 @@ def main() -> None:
             "uses the spawn worker (no unbounded LogosParser path)."
         ),
     }
-    print(json.dumps(report, indent=2))
-
-    out_dirs = [
-        Path.home() / "Library/Caches/mp-beta-soak-a5/report",
-        Path.home() / "Library/Application Support/mp-beta-soak-a5/latest/report",
-    ]
-    for d in out_dirs:
-        try:
-            d.mkdir(parents=True, exist_ok=True)
-            (d / "A_CLI_01_BOUNDED_PARSE_OVERHEAD.json").write_text(
-                json.dumps(report, indent=2) + "\n",
-                encoding="utf-8",
-            )
-        except OSError:
-            pass
+    payload = json.dumps(report, indent=2) + "\n"
+    sys.stdout.write(payload)
+    if args.output is not None:
+        out = args.output.expanduser()
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(payload, encoding="utf-8")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
