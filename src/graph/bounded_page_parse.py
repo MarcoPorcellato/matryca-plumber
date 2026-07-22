@@ -16,9 +16,13 @@ from __future__ import annotations
 import atexit
 import contextlib
 import hashlib
+import json
 import multiprocessing as mp
 import os
 import pickle
+import struct
+import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
@@ -38,6 +42,8 @@ _MIN_TIMEOUT_S = 2.0
 _MAX_TIMEOUT_S = 120.0
 _TERMINATE_GRACE_S = 5.0
 _SHUTDOWN_JOIN_S = 5.0
+_SUBPROCESS_MODULE = "src.graph.bounded_page_parse_child"
+_SUBPROCESS_HEADER_BYTES = 4
 
 _CTX = mp.get_context("spawn")
 
@@ -91,6 +97,55 @@ def _echo_fields(msg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _parse_request_message(msg: dict[str, Any]) -> dict[str, Any]:
+    """Parse one trusted local request and return a content-free response envelope.
+
+    The AST is serialized separately as bytes.  This lets the daemon-parent
+    fallback verify response correlation before unpickling the AST payload.
+    """
+    op = str(msg.get("op", ""))
+    echo = _echo_fields(msg)
+    if op != "parse":
+        return {**echo, "ok": False, "error": "unknown_op", "s": 0.0}
+    mode = str(msg.get("mode", ""))
+    text = str(msg.get("text", ""))
+    title = str(msg.get("title", "Page"))
+    tab_size = int(msg.get("tab_size", 2))
+    started = time.perf_counter()
+    if mode not in _VALID_MODES:
+        return {
+            **echo,
+            "ok": False,
+            "error": "invalid_mode",
+            "s": round(time.perf_counter() - started, 6),
+        }
+    try:
+        if mode == "stack":
+            from logseq_matryca_parser.graph import StackMachineParser
+
+            page = StackMachineParser(tab_size=tab_size).parse(
+                text,
+                page_title=title,
+            )
+        else:
+            from logseq_matryca_parser import LogosParser
+
+            page = LogosParser().parse(text)
+        return {
+            **echo,
+            "ok": True,
+            "blob": pickle.dumps(page, protocol=pickle.HIGHEST_PROTOCOL),
+            "s": round(time.perf_counter() - started, 6),
+        }
+    except Exception as exc:  # noqa: BLE001 - bounded type name only
+        return {
+            **echo,
+            "ok": False,
+            "error": type(exc).__name__,
+            "s": round(time.perf_counter() - started, 6),
+        }
+
+
 def _worker_loop(
     in_q: mp.Queue[dict[str, Any] | None],
     out_q: mp.Queue[dict[str, Any]],
@@ -100,58 +155,9 @@ def _worker_loop(
         msg = in_q.get()
         if msg is None:
             break
-        op = str(msg.get("op", ""))
-        if op == "shutdown":
+        if str(msg.get("op", "")) == "shutdown":
             break
-        echo = _echo_fields(msg)
-        if op != "parse":
-            out_q.put({**echo, "ok": False, "error": "unknown_op", "s": 0.0})
-            continue
-        mode = str(msg.get("mode", ""))
-        text = str(msg.get("text", ""))
-        title = str(msg.get("title", "Page"))
-        tab_size = int(msg.get("tab_size", 2))
-        started = time.perf_counter()
-        if mode not in _VALID_MODES:
-            out_q.put(
-                {
-                    **echo,
-                    "ok": False,
-                    "error": "invalid_mode",
-                    "s": round(time.perf_counter() - started, 6),
-                }
-            )
-            continue
-        try:
-            if mode == "stack":
-                from logseq_matryca_parser.graph import StackMachineParser
-
-                page = StackMachineParser(tab_size=tab_size).parse(
-                    text,
-                    page_title=title,
-                )
-            else:
-                from logseq_matryca_parser import LogosParser
-
-                page = LogosParser().parse(text)
-            blob = pickle.dumps(page, protocol=pickle.HIGHEST_PROTOCOL)
-            out_q.put(
-                {
-                    **echo,
-                    "ok": True,
-                    "blob": blob,
-                    "s": round(time.perf_counter() - started, 6),
-                }
-            )
-        except Exception as exc:  # noqa: BLE001 - bounded type name only
-            out_q.put(
-                {
-                    **echo,
-                    "ok": False,
-                    "error": type(exc).__name__,
-                    "s": round(time.perf_counter() - started, 6),
-                }
-            )
+        out_q.put(_parse_request_message(msg))
 
 
 class BoundedPageParseWorker:
@@ -283,6 +289,177 @@ class BoundedPageParseWorker:
             page=None,
         )
 
+    def _daemon_subprocess_result_unlocked(
+        self,
+        *,
+        request: dict[str, Any],
+        request_id: int,
+        digest: str,
+        byte_count: int,
+        line_count: int,
+        mode: ParseMode,
+        deadline: float,
+    ) -> BoundedParseResult:
+        """Run one parse in a terminable subprocess for a daemon parent.
+
+        ``multiprocessing`` blocks ``spawn`` from a daemon pool worker.  The
+        fallback intentionally does not parse in-process: it starts a fresh
+        interpreter without a shell and exchanges one binary framed response.
+        The frame header is validated before the AST blob is unpickled.
+        """
+        started = time.perf_counter()
+        proc: subprocess.Popen[bytes] | None = None
+        try:
+            proc = subprocess.Popen(
+                [sys.executable, "-m", _SUBPROCESS_MODULE],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+            request_bytes = json.dumps(
+                request,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+            output, _ = proc.communicate(input=request_bytes, timeout=deadline)
+        except subprocess.TimeoutExpired:
+            wall = round(time.perf_counter() - started, 6)
+            if proc is None:  # Defensive guard for static analysis and startup failures.
+                raise
+            proc.terminate()
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                proc.wait(timeout=_TERMINATE_GRACE_S)
+            if proc.poll() is None:
+                proc.kill()
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    proc.wait(timeout=_TERMINATE_GRACE_S)
+            logger.bind(
+                content_hash=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                timeout_s=deadline,
+                request_id=request_id,
+            ).warning("bounded page parse timed out; terminating subprocess child")
+            return BoundedParseResult(
+                ok=False,
+                timed_out=True,
+                elapsed_s=wall,
+                content_hash=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                error="timeout",
+                page=None,
+            )
+        except OSError:
+            return BoundedParseResult(
+                ok=False,
+                timed_out=False,
+                elapsed_s=round(time.perf_counter() - started, 6),
+                content_hash=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                error="subprocess_error",
+                page=None,
+            )
+
+        wall = round(time.perf_counter() - started, 6)
+        if proc.returncode != 0 or len(output) < _SUBPROCESS_HEADER_BYTES:
+            return self._protocol_mismatch_unlocked(
+                digest=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                elapsed_s=wall,
+            )
+        header_size = struct.unpack("!I", output[:_SUBPROCESS_HEADER_BYTES])[0]
+        header_end = _SUBPROCESS_HEADER_BYTES + header_size
+        if header_end > len(output):
+            return self._protocol_mismatch_unlocked(
+                digest=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                elapsed_s=wall,
+            )
+        try:
+            header = json.loads(output[_SUBPROCESS_HEADER_BYTES:header_end].decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return self._protocol_mismatch_unlocked(
+                digest=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                elapsed_s=wall,
+            )
+        if not isinstance(header, dict):
+            return self._protocol_mismatch_unlocked(
+                digest=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                elapsed_s=wall,
+            )
+        if header.get("request_id") != request_id or header.get("content_hash") != digest:
+            return self._protocol_mismatch_unlocked(
+                digest=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                elapsed_s=wall,
+            )
+        if not header.get("ok"):
+            error = str(header.get("error") or "parse_error")
+            if "/" in error or "\\" in error:
+                error = "parse_error"
+            return BoundedParseResult(
+                ok=False,
+                timed_out=False,
+                elapsed_s=float(header.get("s", wall)),
+                content_hash=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                error=error,
+                page=None,
+            )
+        blob = output[header_end:]
+        if header.get("blob_length") != len(blob):
+            return self._protocol_mismatch_unlocked(
+                digest=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                elapsed_s=wall,
+            )
+        try:
+            page = pickle.loads(blob)
+        except Exception:  # noqa: BLE001 - AST payload is untrusted until correlation
+            return BoundedParseResult(
+                ok=False,
+                timed_out=False,
+                elapsed_s=float(header.get("s", wall)),
+                content_hash=digest,
+                byte_count=byte_count,
+                line_count=line_count,
+                mode=mode,
+                error="unpickle_error",
+                page=None,
+            )
+        return BoundedParseResult(
+            ok=True,
+            timed_out=False,
+            elapsed_s=float(header.get("s", wall)),
+            content_hash=digest,
+            byte_count=byte_count,
+            line_count=line_count,
+            mode=mode,
+            error=None,
+            page=page,
+        )
+
     def parse_text(
         self,
         text: str,
@@ -318,6 +495,28 @@ class BoundedPageParseWorker:
         deadline = min(_MAX_TIMEOUT_S, max(_MIN_TIMEOUT_S, deadline))
 
         with self._lock:
+            self._next_request_id += 1
+            request_id = self._next_request_id
+            request = {
+                "op": "parse",
+                "request_id": request_id,
+                "content_hash": digest,
+                "mode": parse_mode,
+                "text": text,
+                "title": page_title,
+                "tab_size": tab_size,
+            }
+            if mp.current_process().daemon:
+                return self._daemon_subprocess_result_unlocked(
+                    request=request,
+                    request_id=request_id,
+                    digest=digest,
+                    byte_count=byte_count,
+                    line_count=line_count,
+                    mode=parse_mode,
+                    deadline=deadline,
+                )
+
             self._ensure_worker_unlocked()
             assert self._in_q is not None
             assert self._out_q is not None
@@ -337,17 +536,6 @@ class BoundedPageParseWorker:
                     elapsed_s=0.0,
                 )
 
-            self._next_request_id += 1
-            request_id = self._next_request_id
-            request = {
-                "op": "parse",
-                "request_id": request_id,
-                "content_hash": digest,
-                "mode": parse_mode,
-                "text": text,
-                "title": page_title,
-                "tab_size": tab_size,
-            }
             wall0 = time.perf_counter()
             self._in_q.put(request)
             try:

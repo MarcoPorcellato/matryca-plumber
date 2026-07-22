@@ -13,17 +13,27 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from logseq_matryca_parser.graph import StackMachineParser
 from logseq_matryca_parser.logos_core import LogseqNode, LogseqPage
 from loguru import logger
 
+from ..graph.bounded_ast_graph import parse_graph_page_bounded
 from ..graph.page_path import page_title_from_path
 from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
 from ..graph.post_write import PageWrittenEvent, register_page_written_handler
 from .config import shadow_db_enabled
 from .connection import open_shadow_db
-from .errors import ShadowSyncError, format_duplicate_block_uuid_error
-from .meta import META_LAST_INCREMENTAL_SYNC_AT, set_meta
+from .errors import (
+    ShadowPageParseError,
+    ShadowSyncError,
+    format_bounded_page_parse_error,
+    format_duplicate_block_uuid_error,
+)
+from .meta import (
+    META_LAST_INCREMENTAL_SYNC_AT,
+    META_LAST_SYNC_ERROR,
+    ensure_meta_defaults,
+    set_meta,
+)
 from .runtime_state import defer_sync_path, is_shadow_bootstrapping
 from .writer_lock import shadow_writer_lock
 
@@ -162,8 +172,19 @@ def sync_page_into_connection(
         return
 
     stat = path.stat()
-    text = path.read_text(encoding="utf-8")
-    page: LogseqPage = StackMachineParser().parse(text, page_title=title)
+    parse_result = parse_graph_page_bounded(path, root)
+    if not parse_result.ok or not isinstance(parse_result.page, LogseqPage):
+        failure = parse_result.failure
+        raise ShadowPageParseError(
+            format_bounded_page_parse_error(
+                category=failure.error if failure else "parse_error",
+                content_hash=failure.content_hash if failure else "",
+                byte_count=failure.byte_count if failure else 0,
+                line_count=failure.line_count if failure else 0,
+                mode="stack",
+            )
+        )
+    page = parse_result.page
     synced_at = _utc_now_iso()
     is_journal = 1 if _is_journal_relpath(rel) else 0
     props_json = _props_json(dict(page.properties or {}))
@@ -240,15 +261,37 @@ def sync_page_to_shadow(graph_root: Path | str, page_path: Path | str) -> None:
 
     with shadow_writer_lock(root):
         conn = open_shadow_db(root)
+        parse_error: ShadowPageParseError | None = None
         try:
             sync_page_into_connection(conn, root, path)
             set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
             conn.commit()
+        except ShadowPageParseError as exc:
+            conn.rollback()
+            parse_error = exc
         except Exception:
             conn.rollback()
             raise
         finally:
             conn.close()
+
+        if parse_error is not None:
+            _record_incremental_parse_error(root, str(parse_error))
+            raise parse_error
+
+
+def _record_incremental_parse_error(graph_root: Path, message: str) -> None:
+    """Persist a bounded parse failure after its page transaction has rolled back."""
+    conn = open_shadow_db(graph_root)
+    try:
+        ensure_meta_defaults(conn)
+        set_meta(conn, META_LAST_SYNC_ERROR, message)
+        conn.commit()
+    except Exception:  # noqa: BLE001 - sync failure must still propagate to caller
+        conn.rollback()
+        logger.exception("Failed to persist bounded shadow parse error")
+    finally:
+        conn.close()
 
 
 def _on_shadow_page_written(event: PageWrittenEvent) -> None:
@@ -256,6 +299,8 @@ def _on_shadow_page_written(event: PageWrittenEvent) -> None:
         return
     try:
         sync_page_to_shadow(event.graph_root, event.path)
+    except ShadowPageParseError as exc:
+        logger.warning("Shadow sync rejected after write: {}", exc)
     except Exception:  # noqa: BLE001 — fail-safe like AST bridge
         logger.exception("Shadow sync failed after write to {}", event.path)
 

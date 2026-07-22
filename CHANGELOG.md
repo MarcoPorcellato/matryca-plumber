@@ -6,7 +6,7 @@
 
 ### Added
 
-- **Bounded AST cache parsing (PR2B/PR2C, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s); `GraphAstCache` now stages complete graph generations, atomically publishes bounded bootstrap/incremental results, and preserves the last good graph on timeout/error with hash-only diagnostics. Shadow integration remains a separate transactional follow-up. Overhead script requires `--graph PATH` (optional `--output`).
+- **Bounded AST and Shadow parsing (PR2B/PR2C, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). `GraphAstCache` atomically publishes complete bounded generations and preserves its last good graph on failure; Shadow rebuilds roll back, incremental sync keeps the prior page, persists hash-only diagnostics, and routes reads to Markdown/BM25 until a successful recovery rebuild. Overhead script requires `--graph PATH` (optional `--output`).
 
 ### Fixed
 
@@ -16,7 +16,7 @@
 
 ### Changed
 
-- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); bounded parser worker / Shadow containment still follow-up (PR2B/C).
+- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); bounded AST/Shadow containment now covers bootstrap and incremental paths.
 
 ## [2.0.0-alpha.5] - 2026-07-19
 

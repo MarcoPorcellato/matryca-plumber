@@ -16,6 +16,8 @@ from src.graph.bounded_ast_graph import (
 )
 from src.graph.bounded_page_parse import get_bounded_page_parse_worker
 
+from tests.a_cli_01_generator import generate_pathological_page
+
 
 @pytest.fixture(autouse=True)
 def _clean_cache_and_worker() -> Iterator[None]:
@@ -78,6 +80,26 @@ def test_bootstrap_failure_does_not_publish_partial_graph(
     assert "0123456789abcdef" in rendered
     assert "private pathological body" not in rendered
     assert "Zulu.md" not in rendered
+    assert str(tmp_path) not in rendered
+
+
+def test_real_pathological_page_is_bounded_without_partial_publication(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "2")
+    _write_page(tmp_path, "Alpha.md", "- ordinary\n")
+    _write_page(tmp_path, "Pathological.md", generate_pathological_page())
+    cache = GraphAstCache(tmp_path)
+
+    with pytest.raises(GraphAstParseError) as caught:
+        cache.bootstrap()
+
+    assert caught.value.failure.timed_out is True
+    assert caught.value.failure.error == "timeout"
+    assert cache._graph is None
+    rendered = str(caught.value)
+    assert "Pathological.md" not in rendered
     assert str(tmp_path) not in rendered
 
 

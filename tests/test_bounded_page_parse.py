@@ -50,6 +50,21 @@ def _page_raw(page: Any) -> str:
     return raw if isinstance(raw, str) else ""
 
 
+def _daemon_pool_parse_probe(text: str) -> dict[str, object]:
+    """Pool workers are daemon processes and cannot create mp children."""
+    import multiprocessing as mp
+
+    result = parse_page_text_bounded(text, mode="stack", timeout_s=15.0)
+    return {
+        "daemon": bool(mp.current_process().daemon),
+        "ok": result.ok,
+        "timed_out": result.timed_out,
+        "content_hash": result.content_hash,
+        "error": result.error,
+        "page_present": result.page is not None,
+    }
+
+
 def test_page_parse_timeout_clamped(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "0.5")
     assert page_parse_timeout_s() == 2.0
@@ -69,6 +84,25 @@ def test_control_page_parses_ok_logos_and_stack() -> None:
         assert result.page is not None
         assert result.content_hash == content_hash16(text)
         assert result.error is None
+
+
+def test_daemon_pool_worker_uses_terminable_subprocess_fallback() -> None:
+    """A daemon Pool worker must retain hard process isolation without mp.spawn."""
+    import multiprocessing as mp
+
+    text = "- parser fallback from daemon pool\n"
+    ctx = mp.get_context("spawn")
+    with ctx.Pool(processes=1) as pool:
+        payload = pool.apply(_daemon_pool_parse_probe, (text,))
+
+    assert payload == {
+        "daemon": True,
+        "ok": True,
+        "timed_out": False,
+        "content_hash": content_hash16(text),
+        "error": None,
+        "page_present": True,
+    }
 
 
 def test_invalid_mode_rejected_without_silent_logos() -> None:
