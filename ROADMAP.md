@@ -6,7 +6,23 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-alpha.5** (2026-07-19) — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **v2.0.0-alpha.5** (2026-07-22) — issue numbers link to GitHub; scope may shift as milestones close.*
+
+---
+
+## v2.0.0-beta.1 — Shadow read-path candidate (not released)
+
+`v2.0.0-beta.1` is a candidate for the **opt-in Shadow read path only**. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and every non-ready Shadow state falls back to the existing Markdown/BM25 paths. Biological memory and the Logseq DB Safe-Sync bridge remain Phase 4 work and are excluded.
+
+| Release gate | Status |
+|--------------|--------|
+| Bounded page-parse containment ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)) with no partial cache publication and safe fallback | Pending merge and installed-wheel smoke |
+| No open P0/P1 defects in beta scope | Pending final triage |
+| Sanitized real-vault soak: at least 24h, preferably 3–7 days; flag-off/on, restart, watcher CRUD, recovery, and Markdown fingerprints | In progress |
+| Installed-wheel upgrade `2.0.0a5` → `2.0.0b1`, including schema mismatch and recovery | Pending |
+| Full CI and final code audit against the release candidate | Pending |
+
+**Decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](docs/quality/issue-bodies/v2-beta-readiness.md). A tag, PyPI publication, or default-on change happens only after every gate is satisfied and reviewed.
 
 ---
 
@@ -19,7 +35,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | Axes 5–7 audit probes ([#290](https://github.com/MarcoPorcellato/matryca-plumber/pull/290), [#292](https://github.com/MarcoPorcellato/matryca-plumber/pull/292), [#295](https://github.com/MarcoPorcellato/matryca-plumber/pull/295)) | **Done** |
 | Tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261) closed — no open P0/P1 | **Done** |
 
-**Tag (after merge):** `v2.0.0-alpha.5` · PyPI `matryca-plumber==2.0.0a5` · **supersedes** `v2.0.0-alpha.4` / `2.0.0a4` for new installs. **Not an RC** — post-publish soak recommended before beta/RC (Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)).
+**Published:** [`v2.0.0-alpha.5`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.5) · PyPI `matryca-plumber==2.0.0a5` · **supersedes** `v2.0.0-alpha.4` / `2.0.0a4` for new installs. **Not an RC** — beta remains gated by the readiness record above.
 
 ---
 
@@ -210,7 +226,8 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | Biological memory layer | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Nacre-inspired decay/recall in `shadow.sqlite` — [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | Phase 4 |
 | GraphRepository abstraction | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | Coexistent Markdown / SQLite backends | read port **done** |
 | Hardware Profiler & LLM Recommender | [#23](https://github.com/MarcoPorcellato/matryca-plumber/issues/23) | Sovereign UI guidance for 16 GB CPU-only laptops | planned |
-| **v2.0.0-alpha** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Experimental `shadow.sqlite` behind opt-in env flag | **tagged** |
+| **v2.0.0-alpha.5** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Experimental `shadow.sqlite` behind opt-in env flag | **published** |
+| **v2.0.0-beta.1** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Shadow read-path candidate; flag remains default-off | **not released — gated** |
 
 Deeper maintainer checklists (completed or in flight):
 

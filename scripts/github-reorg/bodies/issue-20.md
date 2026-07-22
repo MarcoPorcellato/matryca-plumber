@@ -72,9 +72,24 @@ Phase tracking issues and slices: see [`v2_preparation_blueprints.md`](v2_prepar
 
 | Track | Target | Status |
 |-------|--------|--------|
-| v2.0.0-alpha | Experimental `shadow.sqlite` + opt-in env flag | **tagged** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) (2026-07-18) |
+| v2.0.0-alpha.5 | Experimental `shadow.sqlite` + opt-in env flag | **published** (PyPI `2.0.0a5`); hardening baseline |
+| v2.0.0-beta.1 | Shadow read-path candidate only | **not released — readiness-gated**; flag remains default-off |
 | v2.0.0-rc | MCP read traffic routed to Shadow DB by default | planned |
 | v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path | planned |
+
+## v2.0.0-beta.1 readiness (candidate only)
+
+`v2.0.0-beta.1` does not expand the v2 scope: it covers the existing Shadow read path only. Logseq Markdown remains the system of record; non-ready Shadow states fall back to the established Markdown/BM25 paths; biological memory and Logseq DB Safe-Sync remain Phase 4 work.
+
+| Gate | Required evidence |
+|------|-------------------|
+| Bounded parse containment | [#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297) merged; timeout or parser failure cannot publish a partial AST or Shadow generation; public diagnostics remain sanitized; installed-wheel smoke passes |
+| Defect triage | No open P0/P1 issue in beta scope at cut time |
+| Real-vault soak | Sanitized evidence for at least 24h, preferably 3–7 days: flag-off/on, restarts, watcher CRUD, recovery, and stable Markdown fingerprints |
+| Upgrade and recovery | Installed-wheel `2.0.0a5` → `2.0.0b1` smoke preserves compatible data and fails safely on schema mismatch/recovery injection |
+| Release gates | Full CI and final code audit pass against the release candidate |
+
+The local SSOT for this gate is [`docs/quality/issue-bodies/v2-beta-readiness.md`](docs/quality/issue-bodies/v2-beta-readiness.md). No tag, PyPI upload, or default-on routing change is authorized by this section alone.
 
 ## Diagnostics note
 
