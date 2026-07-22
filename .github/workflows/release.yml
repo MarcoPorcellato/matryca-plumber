@@ -89,6 +89,44 @@ jobs:
       - name: Build sdist and wheel
         run: uv build
 
+      - name: Verify distribution archives exclude compiled Python artifacts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          import tarfile
+          import zipfile
+
+          dist = Path("dist")
+          wheels = sorted(dist.glob("*.whl"))
+          sdists = sorted(dist.glob("*.tar.gz"))
+          if not wheels or not sdists:
+              sys.exit("Both a wheel and source distribution are required in dist/.")
+          archives = [*wheels, *sdists]
+
+          forbidden = []
+          for archive in archives:
+              if archive.suffix == ".whl":
+                  with zipfile.ZipFile(archive) as bundle:
+                      members = bundle.namelist()
+              else:
+                  with tarfile.open(archive, "r:gz") as bundle:
+                      members = bundle.getnames()
+
+              forbidden.extend(
+                  f"{archive}: {member}"
+                  for member in members
+                  if "__pycache__" in Path(member).parts
+                  or Path(member).suffix in {".pyc", ".pyo", ".pyd"}
+              )
+
+          if forbidden:
+              sys.exit(
+                  "Compiled Python artifacts are not permitted in release archives:\n"
+                  + "\n".join(forbidden)
+              )
+          PY
+
       - name: Extract release notes from CHANGELOG
         run: |
           uv run python scripts/extract_changelog.py "${GITHUB_REF_NAME}" > release_notes.md
