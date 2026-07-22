@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- **Dependency security advisories (Dependabot #28–#31)** — require MCP Python SDK `>=1.28.1` to include task/session isolation and WebSocket transport fixes, and refresh the frontend lock to patched `brace-expansion>=5.0.7`. Matryca's MCP entrypoint remains stdio-only; no HTTP, WebSocket, or experimental task transport is enabled.
 - **CLI `search bm25` no longer eager-bootstraps AST (#297 / A-CLI-01)** — `matryca search bm25` prepares runtime with `eager_graph=False`, so LogosParser cold load cannot hang BM25 (raw Markdown / Shadow FTS). Other CLI commands keep eager AST warm-up.
 
 ### Changed
