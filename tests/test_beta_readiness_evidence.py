@@ -394,6 +394,7 @@ def test_wheel_requires_exact_daily_source_fingerprint(tmp_path: Path) -> None:
             wheel_path=wheel,
             source_vault=source,
             expected_source_file=fingerprint,
+            page_parse_timeout_seconds=60,
         )
 
 
@@ -412,6 +413,7 @@ def test_wheel_rejects_source_symlinks(tmp_path: Path) -> None:
             wheel_path=wheel,
             source_vault=source,
             expected_source_file=fingerprint,
+            page_parse_timeout_seconds=60,
         )
 
 
@@ -421,10 +423,13 @@ def test_safe_environment_uses_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_pa
     monkeypatch.setenv("LLM_API_KEY", "secret")
     monkeypatch.setenv("GITHUB_TOKEN", "secret")
     monkeypatch.setenv("PYTHONPATH", "/unsafe/import")
-    environment = wheel_module._safe_environment(tmp_path, enabled=True)
+    environment = wheel_module._safe_environment(
+        tmp_path, enabled=True, page_parse_timeout_seconds=60
+    )
     assert environment["PATH"] == "/safe/bin"
     assert environment["LOGSEQ_GRAPH_PATH"] == str(tmp_path)
     assert environment["MATRYCA_SHADOW_DB_ENABLED"] == "1"
+    assert environment["MATRYCA_PAGE_PARSE_TIMEOUT_S"] == "60"
     assert "LLM_API_KEY" not in environment
     assert "GITHUB_TOKEN" not in environment
     assert "PYTHONPATH" not in environment
@@ -440,6 +445,7 @@ def test_wheel_records_only_sanitized_pass_and_keeps_source_untouched(tmp_path: 
         wheel_path=wheel,
         source_vault=source,
         expected_source_file=fingerprint,
+        page_parse_timeout_seconds=60,
         command_runner=_successful_command,
         probe_runner=lambda *_args, **_kwargs: _probe_payload(),
     )
@@ -473,6 +479,7 @@ def _code_audit_prerequisites(
         wheel_path=wheel,
         source_vault=source,
         expected_source_file=fingerprint,
+        page_parse_timeout_seconds=60,
         command_runner=_successful_command,
         probe_runner=lambda *_args, **_kwargs: _probe_payload(),
     )
@@ -562,6 +569,7 @@ def test_report_is_ready_after_collected_code_audit_and_soak(tmp_path: Path) -> 
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "soak-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=1,
             max_cycles=1,
             interval_seconds=0,
@@ -590,15 +598,18 @@ def test_wheel_timeout_and_malformed_probe_record_safe_failures(tmp_path: Path) 
         wheel_path=wheel,
         source_vault=source,
         expected_source_file=fingerprint,
+        page_parse_timeout_seconds=60,
         command_runner=timeout,
     )
     assert timed_out.status == "FAIL"
     assert timed_out.details["failure_category"] == "command_timeout"
+    assert timed_out.details["page_parse_timeout_seconds"] == 60
     malformed = module.collect_wheel(
         tmp_path / "malformed",
         wheel_path=wheel,
         source_vault=source,
         expected_source_file=fingerprint,
+        page_parse_timeout_seconds=60,
         command_runner=_successful_command,
         probe_runner=lambda *_args, **_kwargs: {"schema_version": 1},
     )
@@ -622,9 +633,48 @@ def test_wheel_cli_fails_closed_on_source_mismatch(tmp_path: Path) -> None:
         str(source),
         "--expected-source-realpath-file",
         str(fingerprint),
+        "--page-parse-timeout-seconds",
+        "60",
     )
     assert result.returncode == 2
     assert result.stderr.strip() == "beta evidence: source_fingerprint_mismatch"
+
+
+def test_wheel_cli_requires_an_explicit_page_parse_deadline(tmp_path: Path) -> None:
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    result = _run(
+        "wheel",
+        "--output",
+        str(tmp_path / "evidence"),
+        "--wheel",
+        str(wheel),
+        "--source-vault",
+        str(source),
+        "--expected-source-realpath-file",
+        str(fingerprint),
+    )
+    assert result.returncode == 2
+    assert "--page-parse-timeout-seconds" in result.stderr
+
+
+def test_soak_cli_requires_an_explicit_page_parse_deadline() -> None:
+    cli = importlib.import_module("beta_evidence.cli")
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(
+            [
+                "soak",
+                "--output",
+                "/evidence",
+                "--candidate-python",
+                "/candidate/python",
+                "--source-vault",
+                "/source",
+                "--expected-source-realpath-file",
+                "/source.realpath",
+                "--working-root",
+                "/working",
+            ]
+        )
 
 
 def _soak_payload() -> dict[str, object]:
@@ -654,6 +704,7 @@ def test_soak_persists_only_sanitized_trends_after_explicit_short_duration(tmp_p
         source_vault=source,
         expected_source_file=fingerprint,
         working_root=tmp_path / "durable-copy",
+        page_parse_timeout_seconds=60,
         duration_seconds=1,
         max_cycles=2,
         interval_seconds=0,
@@ -669,6 +720,7 @@ def test_soak_persists_only_sanitized_trends_after_explicit_short_duration(tmp_p
     assert [trend["elapsed_ms"] for trend in state["trends"]] == [12.5, 12.5]
     assert state["source_copy_snapshot_fingerprint"] == source_before
     assert state["source_unchanged_during_copy"] is True
+    assert state["page_parse_timeout_seconds"] == 60
     for artifact in (
         "checkpoint.json",
         "evidence.json",
@@ -685,6 +737,12 @@ def test_soak_persists_only_sanitized_trends_after_explicit_short_duration(tmp_p
         encoding="utf-8"
     )
     assert record.details["beta_qualified"] is False
+    assert record.details["page_parse_timeout_seconds"] == 60
+    result = json.loads((tmp_path / "evidence" / "soak-result.json").read_text(encoding="utf-8"))
+    assert result["page_parse_timeout_seconds"] == 60
+    assert "Page parse timeout seconds: 60" in (
+        tmp_path / "evidence" / "soak-summary.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_soak_rejects_source_symlinks_and_never_creates_working_copy(tmp_path: Path) -> None:
@@ -701,6 +759,7 @@ def test_soak_rejects_source_symlinks_and_never_creates_working_copy(tmp_path: P
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=work,
+            page_parse_timeout_seconds=60,
             duration_seconds=60,
             max_cycles=1,
             interval_seconds=0,
@@ -723,6 +782,7 @@ def test_soak_accepts_source_change_between_interrupted_runs(tmp_path: Path) -> 
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=1,
             max_cycles=2,
             interval_seconds=1,
@@ -738,6 +798,7 @@ def test_soak_accepts_source_change_between_interrupted_runs(tmp_path: Path) -> 
         source_vault=source,
         expected_source_file=fingerprint,
         working_root=tmp_path / "durable-copy",
+        page_parse_timeout_seconds=60,
         duration_seconds=1,
         max_cycles=2,
         interval_seconds=1,
@@ -773,6 +834,7 @@ def test_soak_rejects_source_change_during_copy_before_probe(tmp_path: Path) -> 
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=1,
             max_cycles=1,
             interval_seconds=0,
@@ -787,7 +849,9 @@ def test_soak_rejects_working_copy_drift_after_probe(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, _wheel = _wheel_source(tmp_path)
 
-    def mutate_work(_python: Path, work: Path, _timeout: int, _cycle: int) -> dict[str, object]:
+    def mutate_work(
+        _python: Path, work: Path, _timeout: int, _page_parse_timeout: int, _cycle: int
+    ) -> dict[str, object]:
         (work / "pages" / "daily.md").write_text("- leaked fixture\n", encoding="utf-8")
         return _soak_payload()
 
@@ -798,6 +862,7 @@ def test_soak_rejects_working_copy_drift_after_probe(tmp_path: Path) -> None:
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=60,
             max_cycles=1,
             interval_seconds=0,
@@ -821,6 +886,7 @@ def test_soak_rejects_candidate_version_mismatch_before_copy(tmp_path: Path) -> 
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=work,
+            page_parse_timeout_seconds=60,
             duration_seconds=60,
             max_cycles=1,
             interval_seconds=0,
@@ -843,6 +909,7 @@ def test_soak_rejects_candidate_provenance_change_on_resume(tmp_path: Path) -> N
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=60,
             max_cycles=2,
             interval_seconds=1,
@@ -858,6 +925,7 @@ def test_soak_rejects_candidate_provenance_change_on_resume(tmp_path: Path) -> N
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=60,
             max_cycles=2,
             interval_seconds=1,
@@ -875,6 +943,7 @@ def test_soak_does_not_pass_before_configured_duration(tmp_path: Path) -> None:
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
             duration_seconds=60,
             max_cycles=1,
             interval_seconds=0,
@@ -899,14 +968,139 @@ def test_soak_runs_flag_on_before_non_vacuous_flag_off(monkeypatch: pytest.Monke
         cycle: int,
         enabled: bool,
         timeout_seconds: int,
+        page_parse_timeout_seconds: int,
     ) -> dict[str, object]:
         assert cycle == 0
         assert timeout_seconds == 1
+        assert page_parse_timeout_seconds == 60
         calls.append(enabled)
         if enabled:
             return _soak_payload()
         return {"flag_off": True, "rss_kib": 1}
 
     monkeypatch.setattr(soak, "_run_process", fake_process)
-    soak._run_soak_probe(Path(sys.executable), Path("/unused"), 1, 0)
+    soak._run_soak_probe(Path(sys.executable), Path("/unused"), 1, 60, 0)
     assert calls == [True, False]
+
+
+def test_wheel_deadline_is_hashed_recorded_and_cannot_change_on_resume(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    record = module.collect_wheel(
+        output,
+        wheel_path=wheel,
+        source_vault=source,
+        expected_source_file=fingerprint,
+        page_parse_timeout_seconds=60,
+        command_runner=_successful_command,
+        probe_runner=lambda *_args, **_kwargs: _probe_payload(),
+    )
+    assert record.details["page_parse_timeout_seconds"] == 60
+    with pytest.raises(module.EvidenceError, match="gate_resume_mismatch"):
+        module.collect_wheel(
+            output,
+            wheel_path=wheel,
+            source_vault=source,
+            expected_source_file=fingerprint,
+            page_parse_timeout_seconds=61,
+            command_runner=_successful_command,
+            probe_runner=lambda *_args, **_kwargs: _probe_payload(),
+        )
+
+
+def test_wheel_keeps_page_parse_and_subprocess_deadlines_distinct(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    command_timeouts: list[int] = []
+    probe_deadlines: list[tuple[int, int]] = []
+
+    def command(
+        *_args: object, timeout_seconds: int, **_kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        command_timeouts.append(timeout_seconds)
+        return _successful_command()
+
+    def probe(
+        *_args: object,
+        timeout_seconds: int,
+        page_parse_timeout_seconds: int,
+        **_kwargs: object,
+    ) -> dict[str, object]:
+        probe_deadlines.append((timeout_seconds, page_parse_timeout_seconds))
+        return _probe_payload()
+
+    record = module.collect_wheel(
+        tmp_path / "evidence",
+        wheel_path=wheel,
+        source_vault=source,
+        expected_source_file=fingerprint,
+        page_parse_timeout_seconds=60,
+        timeout_seconds=19,
+        command_runner=command,
+        probe_runner=probe,
+    )
+    assert record.status == "PASS"
+    assert command_timeouts == [19, 19, 19]
+    assert probe_deadlines == [(19, 60), (19, 60)]
+
+
+@pytest.mark.parametrize("value", (1, 121))
+def test_collectors_reject_page_parse_deadlines_outside_bounds(tmp_path: Path, value: int) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    with pytest.raises(module.EvidenceError, match="page_parse_timeout_invalid"):
+        module.collect_wheel(
+            tmp_path / "wheel-evidence",
+            wheel_path=wheel,
+            source_vault=source,
+            expected_source_file=fingerprint,
+            page_parse_timeout_seconds=value,
+        )
+    with pytest.raises(module.EvidenceError, match="page_parse_timeout_invalid"):
+        module.collect_soak(
+            tmp_path / "soak-evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=value,
+        )
+
+
+def test_soak_deadline_change_rejects_an_interrupted_resume(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+
+    def interrupt(_seconds: float) -> None:
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
+            duration_seconds=60,
+            max_cycles=2,
+            interval_seconds=1,
+            probe_runner=lambda *_args: _soak_payload(),
+            candidate_verifier=lambda _python: "candidate-digest",
+            clock=iter((0.0, 0.1)).__next__,
+            sleeper=interrupt,
+        )
+    with pytest.raises(module.EvidenceError, match="soak_resume_mismatch"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=61,
+            duration_seconds=60,
+            max_cycles=2,
+            interval_seconds=1,
+            candidate_verifier=lambda _python: "candidate-digest",
+        )
