@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import json
 import subprocess
 import sys
@@ -12,15 +12,13 @@ from types import ModuleType
 import pytest
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "beta_readiness_evidence.py"
+_SCRIPTS = _SCRIPT.parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
 
 
 def _module() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("beta_readiness_evidence", _SCRIPT)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    return importlib.import_module("beta_evidence")
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -343,3 +341,165 @@ def test_cli_rejects_repo_root_override(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert "unrecognized arguments: --repo-root" in result.stderr
+
+
+def _wheel_source(tmp_path: Path) -> tuple[Path, Path, Path]:
+    source = tmp_path / "daily-vault"
+    for directory in ("pages", "journals", "logseq"):
+        (source / directory).mkdir(parents=True, exist_ok=True)
+    (source / "pages" / "daily.md").write_text("- daily note\n", encoding="utf-8")
+    fingerprint = tmp_path / "daily-vault.realpath"
+    fingerprint.write_text(f"{source.resolve()}\n", encoding="utf-8")
+    wheel = tmp_path / "matryca_plumber-2.0.0b1-py3-none-any.whl"
+    wheel.write_bytes(b"wheel-fixture")
+    return source, fingerprint, wheel
+
+
+def _probe_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "baseline": {"ready": True, "generation_hash": "a" * 64, "duration_ms": 1},
+        "candidate": {
+            "metadata_version_ok": True,
+            "import_from_site_packages": True,
+            "warm_ready": True,
+            "generation_preserved": True,
+            "fts_ok": True,
+            "cte_ok": True,
+            "flag_off_noop": True,
+            "schema_recovery_ok": True,
+            "duplicate_failure_non_ready": True,
+            "duplicate_fallback_ok": True,
+            "duplicate_preserved_generation": True,
+            "duplicate_recovery_ok": True,
+            "working_markdown_unchanged": True,
+            "duration_ms": 1,
+        },
+    }
+
+
+def _successful_command(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+
+def test_wheel_requires_exact_daily_source_fingerprint(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    other = tmp_path / "other-vault"
+    other.mkdir()
+    fingerprint.write_text(f"{other.resolve()}\n", encoding="utf-8")
+    with pytest.raises(module.EvidenceError, match="source_fingerprint_mismatch"):
+        module.collect_wheel(
+            tmp_path / "evidence",
+            wheel_path=wheel,
+            source_vault=source,
+            expected_source_file=fingerprint,
+        )
+
+
+def test_wheel_rejects_source_symlinks(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    external = tmp_path / "external.md"
+    external.write_text("- external\n", encoding="utf-8")
+    try:
+        (source / "pages" / "linked.md").symlink_to(external)
+    except OSError as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+    with pytest.raises(module.EvidenceError, match="source_symlink_unsupported"):
+        module.collect_wheel(
+            tmp_path / "evidence",
+            wheel_path=wheel,
+            source_vault=source,
+            expected_source_file=fingerprint,
+        )
+
+
+def test_safe_environment_uses_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    wheel_module = importlib.import_module("beta_evidence.wheel")
+    monkeypatch.setenv("PATH", "/safe/bin")
+    monkeypatch.setenv("LLM_API_KEY", "secret")
+    monkeypatch.setenv("GITHUB_TOKEN", "secret")
+    monkeypatch.setenv("PYTHONPATH", "/unsafe/import")
+    environment = wheel_module._safe_environment(tmp_path, enabled=True)
+    assert environment["PATH"] == "/safe/bin"
+    assert environment["LOGSEQ_GRAPH_PATH"] == str(tmp_path)
+    assert environment["MATRYCA_SHADOW_DB_ENABLED"] == "1"
+    assert "LLM_API_KEY" not in environment
+    assert "GITHUB_TOKEN" not in environment
+    assert "PYTHONPATH" not in environment
+    assert set(environment).isdisjoint({"LLM_API_KEY", "GITHUB_TOKEN", "PYTHONPATH"})
+
+
+def test_wheel_records_only_sanitized_pass_and_keeps_source_untouched(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    source_before = module._markdown_fingerprint(source)
+    record = module.collect_wheel(
+        tmp_path / "evidence",
+        wheel_path=wheel,
+        source_vault=source,
+        expected_source_file=fingerprint,
+        command_runner=_successful_command,
+        probe_runner=lambda *_args, **_kwargs: _probe_payload(),
+    )
+    assert record.status == "PASS"
+    assert module._markdown_fingerprint(source) == source_before
+    evidence = (tmp_path / "evidence" / "evidence.json").read_text(encoding="utf-8")
+    assert str(source) not in evidence
+    assert "daily note" not in evidence
+    assert "9c1ca0c6" not in evidence
+    module.collect_report(tmp_path / "evidence")
+    assert "| wheel | PASS |" in (tmp_path / "evidence" / "summary.md").read_text(encoding="utf-8")
+    assert "## Verdict: NOT READY" in (tmp_path / "evidence" / "summary.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_wheel_timeout_and_malformed_probe_record_safe_failures(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+
+    def timeout(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
+        raise module.EvidenceError("command_timeout")
+
+    timed_out = module.collect_wheel(
+        tmp_path / "timeout",
+        wheel_path=wheel,
+        source_vault=source,
+        expected_source_file=fingerprint,
+        command_runner=timeout,
+    )
+    assert timed_out.status == "FAIL"
+    assert timed_out.details["failure_category"] == "command_timeout"
+    malformed = module.collect_wheel(
+        tmp_path / "malformed",
+        wheel_path=wheel,
+        source_vault=source,
+        expected_source_file=fingerprint,
+        command_runner=_successful_command,
+        probe_runner=lambda *_args, **_kwargs: {"schema_version": 1},
+    )
+    assert malformed.status == "FAIL"
+    assert malformed.details["failure_category"] == "probe_invalid"
+
+
+def test_wheel_cli_fails_closed_on_source_mismatch(tmp_path: Path) -> None:
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    other = tmp_path / "not-daily"
+    for directory in ("pages", "journals", "logseq"):
+        (other / directory).mkdir(parents=True, exist_ok=True)
+    fingerprint.write_text(f"{other.resolve()}\n", encoding="utf-8")
+    result = _run(
+        "wheel",
+        "--output",
+        str(tmp_path / "evidence"),
+        "--wheel",
+        str(wheel),
+        "--source-vault",
+        str(source),
+        "--expected-source-realpath-file",
+        str(fingerprint),
+    )
+    assert result.returncode == 2
+    assert result.stderr.strip() == "beta evidence: source_fingerprint_mismatch"
