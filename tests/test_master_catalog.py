@@ -23,6 +23,7 @@ from src.graph.master_catalog import (
     SEMANTIC_INDEX_HEADER,
     CatalogEntry,
     CatalogLoadError,
+    CatalogSaveError,
     MasterCatalog,
     build_master_index_markdown,
     clear_master_catalog_cache,
@@ -329,6 +330,106 @@ def test_save_merges_concurrent_page_deltas_without_clobber(graph_root: Path) ->
     merged = load_master_catalog(graph_root, force_reload=True)
     assert merged.pages["PageA"].summary == "Alpha v2"
     assert merged.pages["PageB"].summary == "Beta"
+
+
+@pytest.mark.parametrize("corrupt_payload", ["{not-json", "[]"])
+def test_merge_save_aborts_without_overwriting_unreadable_catalog(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    corrupt_payload: str,
+) -> None:
+    """A stale in-memory merge must never replace an unreadable on-disk catalog (#198)."""
+    catalog = MasterCatalog(graph_root=graph_root)
+    catalog.upsert(
+        "Pending",
+        CatalogEntry(summary="pending", domain="", tags=[], last_mtime=1, orphan=False),
+    )
+    path = MasterCatalog.catalog_path(graph_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(corrupt_payload, encoding="utf-8")
+
+    def _unexpected_atomic_write(*args: object, **kwargs: object) -> None:
+        raise AssertionError("merge-save must not write after a catalog read failure")
+
+    monkeypatch.setattr("src.graph.master_catalog.atomic_write_bytes", _unexpected_atomic_write)
+
+    with pytest.raises(CatalogSaveError) as exc_info:
+        catalog.save()
+
+    assert corrupt_payload not in str(exc_info.value)
+    assert catalog.persist_allowed is False
+    assert catalog.get("Pending") is not None
+    assert not path.exists()
+    assert list(path.parent.glob(f"{path.name}.corrupt.*"))
+
+
+def test_merge_save_aborts_when_catalog_quarantine_fails(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed quarantine is still never permission to overwrite unreadable state."""
+    catalog = MasterCatalog(graph_root=graph_root)
+    catalog.upsert(
+        "Pending",
+        CatalogEntry(summary="pending", domain="", tags=[], last_mtime=1, orphan=False),
+    )
+    path = MasterCatalog.catalog_path(graph_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{not-json", encoding="utf-8")
+
+    def _quarantine_failure(_path: Path) -> Path:
+        raise OSError("simulated quarantine failure")
+
+    def _unexpected_atomic_write(*args: object, **kwargs: object) -> None:
+        raise AssertionError("merge-save must not write after quarantine failure")
+
+    monkeypatch.setattr("src.graph.master_catalog._quarantine_corrupt_catalog", _quarantine_failure)
+    monkeypatch.setattr("src.graph.master_catalog.atomic_write_bytes", _unexpected_atomic_write)
+
+    with pytest.raises(CatalogSaveError):
+        catalog.save()
+
+    assert catalog.persist_allowed is False
+    assert path.read_text(encoding="utf-8") == "{not-json"
+
+
+def test_force_reload_recovers_persistibility_after_merge_save_abort(graph_root: Path) -> None:
+    """After quarantine, a force reload may establish a fresh safe catalog."""
+    path = MasterCatalog.catalog_path(graph_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{not-json", encoding="utf-8")
+    stale = MasterCatalog(graph_root=graph_root)
+
+    with pytest.raises(CatalogSaveError):
+        stale.save()
+
+    recovered = load_master_catalog(graph_root, force_reload=True)
+    assert recovered.persist_allowed is True
+    recovered.upsert(
+        "Recovered",
+        CatalogEntry(summary="recovered", domain="", tags=[], last_mtime=1, orphan=False),
+    )
+    recovered.save()
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["pages"]["Recovered"]["summary"] == "recovered"
+
+
+def test_replace_save_remains_explicit_overwrite_for_unreadable_catalog(graph_root: Path) -> None:
+    """Replace mode is intentionally distinct from safe merge-save."""
+    path = MasterCatalog.catalog_path(graph_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("[]", encoding="utf-8")
+    catalog = MasterCatalog(graph_root=graph_root)
+    catalog.upsert(
+        "Replacement",
+        CatalogEntry(summary="replacement", domain="", tags=[], last_mtime=1, orphan=False),
+    )
+
+    catalog.save(replace=True)
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["pages"]["Replacement"]["summary"] == "replacement"
 
 
 def test_save_replace_mode_drops_pages_for_prune(graph_root: Path) -> None:

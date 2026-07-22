@@ -1,17 +1,22 @@
 ## [Unreleased]
 
+### Security
+
+- **GitPython dependency hardening** — require `GitPython>=3.1.52` and lock `3.1.54` to include the current dependency security fixes.
+
 ### Added
 
-- **Bounded page-parse worker (PR2B infra, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). Fork-safe PID ownership (`register_at_fork` where available); `BoundedParseResult.page` is `repr=False` (diagnostics only in logs). Request/result correlation via monotonic `request_id` + echoed `content_hash` (mismatch → `protocol_mismatch`, AST never accepted). No Shadow/`GraphAstCache` integration yet. Overhead script requires `--graph PATH` (optional `--output`).
+- **Bounded AST and Shadow parsing (PR2B/PR2C, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). `GraphAstCache` atomically publishes complete bounded generations and preserves its last good graph on failure; Shadow rebuilds roll back, incremental sync keeps the prior page, persists hash-only diagnostics, and routes reads to Markdown/BM25 until a successful recovery rebuild. Overhead script requires `--graph PATH` (optional `--output`).
 
 ### Fixed
 
+- **Catalog merge-save corruption guard (#198)** — `MasterCatalog.save(replace=False)` now aborts after quarantining unreadable or non-object `master_catalog.json` state instead of merging a stale in-memory snapshot with an empty fallback and overwriting unseen catalog rows; explicit `replace=True` remains available for deliberate rebuilds.
 - **Dependency security advisories (Dependabot #28–#31)** — require MCP Python SDK `>=1.28.1` to include task/session isolation and WebSocket transport fixes, and refresh the frontend lock to patched `brace-expansion>=5.0.7`. Matryca's MCP entrypoint remains stdio-only; no HTTP, WebSocket, or experimental task transport is enabled.
 - **CLI `search bm25` no longer eager-bootstraps AST (#297 / A-CLI-01)** — `matryca search bm25` prepares runtime with `eager_graph=False`, so LogosParser cold load cannot hang BM25 (raw Markdown / Shadow FTS). Other CLI commands keep eager AST warm-up.
 
 ### Changed
 
-- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); bounded parser worker / Shadow containment still follow-up (PR2B/C).
+- **A-CLI-01 audit reproducer** — deterministic generator + `@pytest.mark.slow` parser-only probes for LogosParser pathological latency ([#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297)); bounded AST/Shadow containment now covers bootstrap and incremental paths.
 
 ## [2.0.0-alpha.5] - 2026-07-19
 

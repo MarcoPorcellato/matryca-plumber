@@ -1079,15 +1079,17 @@ def test_get_state_shadow_db_error_from_meta(
     page = graph_root / "pages" / "Alpha.md"
     page.write_text("- alpha\n  id:: 11111111-1111-4111-8111-111111111111\n", encoding="utf-8")
     rebuild_shadow_from_graph(graph_root)
-    conn = open_shadow_db(graph_root)
-    try:
-        set_meta(conn, META_LAST_SYNC_ERROR, "sync failed")
-        conn.commit()
-    finally:
-        conn.close()
     save_daemon_state(graph_root, DaemonState(status="idle"))
 
     with TestClient(app) as client:
+        # Startup intentionally rebuilds a generation carrying an earlier error.
+        # Set the error inside the lifespan to exercise the API's live error shape.
+        conn = open_shadow_db(graph_root)
+        try:
+            set_meta(conn, META_LAST_SYNC_ERROR, "sync failed")
+            conn.commit()
+        finally:
+            conn.close()
         response = client.get("/api/state", headers=auth_headers)
 
     shadow_db = response.json()["shadow_db"]

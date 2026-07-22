@@ -10,7 +10,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from loguru import logger
 
@@ -44,6 +44,10 @@ _catalog_mtime_ns: dict[str, int] = {}
 
 class CatalogLoadError(OSError):
     """Raised when ``master_catalog.json`` cannot be read and no safe cache exists."""
+
+
+class CatalogSaveError(OSError):
+    """Raised when merge-save cannot safely read the existing master catalog."""
 
 
 def normalize_stored_mtime_ns(stored_mtime: int) -> int:
@@ -159,7 +163,12 @@ class MasterCatalog:
             if replace:
                 merged_pages = pending
             else:
-                disk_pages = _load_catalog_pages_unlocked(path, self.graph_root)
+                try:
+                    disk_pages = _load_catalog_pages_unlocked(path, self.graph_root)
+                except CatalogSaveError:
+                    with self._lock:
+                        self.persist_allowed = False
+                    raise
                 merged_pages = _merge_catalog_page_deltas(disk_pages, pending)
                 for title in removals:
                     merged_pages.pop(title, None)
@@ -282,22 +291,25 @@ def _load_catalog_pages_unlocked(path: Path, root: Path) -> dict[str, CatalogEnt
         return {}
     try:
         payload = read_bounded_json(path)
-    except BoundedJsonError as exc:
+    except BoundedJsonError:
         logger.warning(
-            "[METADATA CORRUPTION DETECTED] Unreadable master catalog at {} during merge-save: {}",
+            "[METADATA CORRUPTION DETECTED] Unreadable master catalog at {} during merge-save.",
             path,
-            exc,
         )
-        _quarantine_or_warn(path)
-        return {}
+        _abort_merge_save(path)
     if not isinstance(payload, dict):
         logger.warning(
             "[METADATA CORRUPTION DETECTED] Non-dict master catalog payload at {} (merge-save)",
             path,
         )
-        _quarantine_or_warn(path)
-        return {}
+        _abort_merge_save(path)
     return dict(MasterCatalog.from_json(root, payload).pages)
+
+
+def _abort_merge_save(path: Path) -> NoReturn:
+    """Quarantine malformed state best-effort, then stop the unsafe merge-save."""
+    _quarantine_or_warn(path)
+    raise CatalogSaveError("Cannot safely merge the existing master catalog during save.")
 
 
 def _quarantine_or_warn(path: Path) -> None:
@@ -635,6 +647,7 @@ def write_master_index_page(graph_root: Path, catalog: MasterCatalog) -> Path:
 __all__ = [
     "CATALOG_FILENAME",
     "CatalogLoadError",
+    "CatalogSaveError",
     "CatalogEntry",
     "MASTER_INDEX_PAGE_TITLE",
     "MATRYCA_GENERATED_INDEX_TITLES",
