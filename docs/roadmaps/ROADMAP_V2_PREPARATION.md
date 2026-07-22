@@ -10,7 +10,7 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 
 ---
 
-## Where we are today (2026-07-18)
+## Where we are today (2026-07-22)
 
 | Layer | Shipped | In tree (not fully operational) | Not wired yet |
 |-------|---------|----------------------------------|---------------|
@@ -19,7 +19,7 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 | **Shadow query** | `search_blocks_fts` + FTS5 dispatch ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183), [#250](https://github.com/MarcoPorcellato/matryca-plumber/issues/250)) | — | — |
 | **Memory algorithms** | — | [`src/memory/decay.py`](../../src/memory/decay.py) | recall, consolidate, MCP `recall` |
 | **Repository port** | `GraphReadPort`, `MarkdownGraphRepository`, `ShadowGraphRepository`, subtree CTE routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), [#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253), [#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255)) | — | — |
-| **Read path** | Default: `master_catalog.json` + in-memory BM25; opt-in shadow FTS5/CTE when `MATRYCA_SHADOW_DB_ENABLED=true` ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | — | shadow default-on (rc) |
+| **Read path** | Default: `master_catalog.json` + in-memory BM25; opt-in shadow FTS5/CTE when `MATRYCA_SHADOW_DB_ENABLED=true` ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | — | beta.1 candidate remains default-off; default-on is not considered before RC |
 | **Write path (OG)** | OCC + `.md` + `page_rmw_lock` | — | — |
 | **Write path (Logseq DB)** | — | — | official CLI/API bridge ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
 | **Operator health** | Sovereign UI `/api/state.shadow_db` ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)) | — | — |
@@ -95,7 +95,7 @@ flowchart LR
 
 Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`, page counts, `lag_pages`, `last_sync_error`). No `matryca doctor` — see `llms.txt` §2.5–§2.6.
 
-**Known alpha hardening:** [#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251) duplicate block UUID pre-insert diagnostics (`v2.0.0-alpha`); Axis 1 writer flock + meta/pages health ([#262](https://github.com/MarcoPorcellato/matryca-plumber/issues/262), [#264](https://github.com/MarcoPorcellato/matryca-plumber/issues/264)) in **`v2.0.0-alpha.1`** — tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261).
+**Published hardening baseline:** [`v2.0.0-alpha.5`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.5) closes tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261): duplicate UUID diagnostics, writer coordination, health validation, FTS5, CTE, security, and performance probes are green. The `v2.0.0-beta.1` candidate remains unreleased and retains the default-off flag, global fallback, and Markdown system of record.
 
 **Verify:** `uv run pytest tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py tests/test_shadow_state_api.py tests/test_shadow_bootstrap.py tests/test_ui_server.py -q`
 
@@ -111,10 +111,12 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 
 | Track | Operator impact | Agent / MCP impact |
 |-------|-----------------|-------------------|
-| **v2.0.0-alpha.1** | Axis 1 hardening (#262, #264) | Pin `@2.0.0-alpha.1`; supersedes alpha | **release PR** 2026-07-18 |
-| **v2.0.0-alpha** | Opt-in `MATRYCA_SHADOW_DB_ENABLED` | BM25 remains default; shadow experimental | **tagged** 2026-07-18 (superseded) |
+| **v2.0.0-alpha.5** | Seven-axis hardening baseline | Pin `@2.0.0-alpha.5`; shadow remains opt-in | **published** 2026-07-19 |
+| **v2.0.0-beta.1** | Candidate Shadow read path only | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **not released — readiness-gated** |
 | **v2.0.0-rc** | Shadow health in UI | MCP read traffic prefers shadow |
 | **v2.0.0-stable** | Deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
+
+**Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). A beta tag is considered only after bounded-parse containment, a sanitized soak, installed-wheel upgrade/recovery smoke, full CI, and a final code audit all pass.
 
 ---
 
@@ -152,6 +154,7 @@ Full spec: [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) · [`../openspec/llm-os-
 - Use SQLite as **system of record** for graph content (violates Phase 4 / [`CONTRIBUTING.md`](../../CONTRIBUTING.md) philosophy).
 - Rewrite entire `graph_dispatch` or `maintenance_daemon` in one PR — use slices ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58), [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)).
 - Enable shadow reads without BM25/AST **fallback** until v2.0.0-rc.
+- Treat `v2.0.0-beta.1` as released, enable Shadow by default, or include Phase 4 memory/Safe-Sync work before its explicit readiness gates are complete.
 - Duplicate tracking issues for #17, #24, #25 — extend them or link slice issues underneath.
 
 ---
