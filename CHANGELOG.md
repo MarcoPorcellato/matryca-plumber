@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **Final beta code audit gate** — add a fail-closed `code-audit` evidence command that records only sanitized candidate diff, build, CI, scope, and finding summaries after matching the verified candidate wheel.
+
 ### Security
 
 - **GitPython dependency hardening** — require `GitPython>=3.1.52` and lock `3.1.54` to include the current dependency security fixes.

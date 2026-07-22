@@ -4,6 +4,7 @@ from .cli import main
 from .core import (
     EvidenceError,
     GateRecord,
+    collect_final_code_audit,
     collect_issues,
     collect_preflight,
     collect_report,
@@ -16,6 +17,7 @@ from .wheel import _markdown_fingerprint, collect_wheel
 __all__ = [
     "EvidenceError",
     "GateRecord",
+    "collect_final_code_audit",
     "collect_issues",
     "collect_preflight",
     "collect_report",
