@@ -1,0 +1,345 @@
+"""Contract tests for the local, privacy-safe beta evidence harness."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+
+_SCRIPT = Path(__file__).parents[1] / "scripts" / "beta_readiness_evidence.py"
+
+
+def _module() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("beta_readiness_evidence", _SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+
+def _inputs(
+    tmp_path: Path, *, issues: list[dict[str, object]], dispositions: list[dict[str, object]]
+) -> tuple[Path, Path]:
+    issues_path = tmp_path / "issues.json"
+    dispositions_path = tmp_path / "dispositions.json"
+    _write_json(issues_path, {"schema_version": 1, "issues": issues})
+    _write_json(dispositions_path, {"schema_version": 1, "dispositions": dispositions})
+    return issues_path, dispositions_path
+
+
+def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(_SCRIPT), *arguments], check=False, text=True, capture_output=True
+    )
+
+
+def test_output_rejects_repo_and_vault_containment(tmp_path: Path) -> None:
+    module = _module()
+    repo = tmp_path / "repo"
+    vault = tmp_path / "vault"
+    repo.mkdir()
+    vault.mkdir()
+    with pytest.raises(module.EvidenceError, match="output_unsafe"):
+        module.validate_output_directory(repo / "evidence", repo_root=repo, protected_roots=[vault])
+    with pytest.raises(module.EvidenceError, match="output_unsafe"):
+        module.validate_output_directory(
+            vault / "evidence", repo_root=repo, protected_roots=[vault]
+        )
+    assert module.validate_output_directory(
+        tmp_path / "outside", repo_root=repo, protected_roots=[vault]
+    ) == (tmp_path / "outside")
+
+
+@pytest.mark.parametrize(
+    ("display", "package"),
+    [("2.0.0-beta.1", "2.0.0b1"), ("2.0.0-alpha.5", "2.0.0a5"), ("2.0.0-rc.2", "2.0.0rc2")],
+)
+def test_display_versions_normalize_to_python_packages(display: str, package: str) -> None:
+    assert _module().display_to_package_version(display) == package
+
+
+def test_atomic_resume_is_idempotent(tmp_path: Path) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    first = module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    checkpoint_before = (output / "checkpoint.json").read_text(encoding="utf-8")
+    second = module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    assert first == second
+    assert (output / "checkpoint.json").read_text(encoding="utf-8") == checkpoint_before
+    assert "gate_resumed" in (output / "events.jsonl").read_text(encoding="utf-8")
+
+
+def test_preflight_requires_the_explicit_beta_candidate(tmp_path: Path) -> None:
+    record = _module().collect_preflight(
+        tmp_path / "evidence",
+        candidate_display="2.0.0-alpha.5",
+        candidate_package="2.0.0a5",
+        baseline_package="2.0.0a5",
+    )
+    assert record.status == "FAIL"
+    assert record.details["candidate_matches_release"] is False
+
+
+def test_corrupted_checkpoint_fails_closed(tmp_path: Path) -> None:
+    output = tmp_path / "evidence"
+    output.mkdir()
+    (output / "checkpoint.json").write_text("not-json", encoding="utf-8")
+    result = _run(
+        "preflight",
+        "--output",
+        str(output),
+        "--candidate-display",
+        "2.0.0-beta.1",
+        "--candidate-package",
+        "2.0.0b1",
+        "--baseline-package",
+        "2.0.0a5",
+    )
+    assert result.returncode == 2
+    assert result.stderr.strip() == "beta evidence: checkpoint_invalid"
+
+
+def test_corrupted_evidence_fails_closed_on_resume(tmp_path: Path) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    (output / "evidence.json").write_text("not-json", encoding="utf-8")
+    with pytest.raises(module.EvidenceError, match="evidence_invalid"):
+        module.collect_preflight(
+            output,
+            candidate_display="2.0.0-beta.1",
+            candidate_package="2.0.0b1",
+            baseline_package="2.0.0a5",
+        )
+
+
+def test_tampered_checkpoint_fails_closed_on_resume(tmp_path: Path) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    checkpoint = json.loads((output / "checkpoint.json").read_text(encoding="utf-8"))
+    checkpoint["gates"]["preflight"]["details"]["platform"]["system"] = "untrusted"
+    _write_json(output / "checkpoint.json", checkpoint)
+    with pytest.raises(module.EvidenceError, match="evidence_invalid"):
+        module.collect_preflight(
+            output,
+            candidate_display="2.0.0-beta.1",
+            candidate_package="2.0.0b1",
+            baseline_package="2.0.0a5",
+        )
+
+
+def test_open_p0_or_p1_fails_gate(tmp_path: Path) -> None:
+    module = _module()
+    issues_path, dispositions_path = _inputs(
+        tmp_path,
+        issues=[{"number": 1, "severity": "P1", "state": "open", "in_scope": True}],
+        dispositions=[],
+    )
+    record = module.collect_issues(
+        tmp_path / "evidence", issues_path=issues_path, dispositions_path=dispositions_path
+    )
+    assert record.status == "FAIL"
+
+
+def test_open_p2_needs_disposition_and_then_passes(tmp_path: Path) -> None:
+    module = _module()
+    issues = [{"number": 2, "severity": "P2", "state": "open", "in_scope": True}]
+    missing, empty = _inputs(tmp_path / "missing", issues=issues, dispositions=[])
+    missing_record = module.collect_issues(
+        tmp_path / "missing-evidence", issues_path=missing, dispositions_path=empty
+    )
+    assert missing_record.status == "FAIL"
+    issue_path, disposition_path = _inputs(
+        tmp_path / "accepted", issues=issues, dispositions=[{"number": 2, "status": "accepted"}]
+    )
+    accepted = module.collect_issues(
+        tmp_path / "accepted-evidence", issues_path=issue_path, dispositions_path=disposition_path
+    )
+    assert accepted.status == "PASS"
+    stored = json.loads(
+        (tmp_path / "accepted-evidence" / "evidence.json").read_text(encoding="utf-8")
+    )
+    assert stored["gates"]["issues"]["details"]["issues"] == [
+        {
+            "number": 2,
+            "severity": "P2",
+            "state": "open",
+            "in_scope": True,
+            "disposition_status": "accepted",
+        }
+    ]
+
+
+def test_report_stays_not_ready_without_wheel_soak_and_final_audit(tmp_path: Path) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    issue_path, disposition_path = _inputs(tmp_path, issues=[], dispositions=[])
+    module.collect_issues(output, issues_path=issue_path, dispositions_path=disposition_path)
+    module.collect_report(output)
+    summary = (output / "summary.md").read_text(encoding="utf-8")
+    assert "| wheel | PENDING |" in summary
+    assert "| soak | PENDING |" in summary
+    assert "| final_code_audit | PENDING |" in summary
+    assert "## Verdict: NOT READY" in summary
+
+
+def test_report_rejects_pass_gates_injected_only_into_evidence(tmp_path: Path) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    issue_path, disposition_path = _inputs(tmp_path, issues=[], dispositions=[])
+    module.collect_issues(output, issues_path=issue_path, dispositions_path=disposition_path)
+    module.collect_report(output)
+    evidence_path = output / "evidence.json"
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    for gate_id in ("wheel", "soak", "final_code_audit"):
+        evidence["gates"][gate_id] = {
+            "gate_id": gate_id,
+            "input_hash": "0" * 64,
+            "status": "PASS",
+            "details": {},
+        }
+    _write_json(evidence_path, evidence)
+    with pytest.raises(module.EvidenceError, match="evidence_invalid"):
+        module.collect_report(output)
+    assert "## Verdict: READY" not in (output / "summary.md").read_text(encoding="utf-8")
+
+
+def test_cli_storage_error_for_non_directory_output(tmp_path: Path) -> None:
+    output_file = tmp_path / "not-a-directory"
+    output_file.write_text("x", encoding="utf-8")
+    result = _run("report", "--output", str(output_file))
+    assert result.returncode == 2
+    assert result.stderr.strip() == "beta evidence: storage_error"
+
+
+def test_publishable_artifacts_contain_no_absolute_paths(tmp_path: Path) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    issue_path, disposition_path = _inputs(tmp_path, issues=[], dispositions=[])
+    assert (
+        module.main(
+            [
+                "run",
+                "--output",
+                str(output),
+                "--candidate-display",
+                "2.0.0-beta.1",
+                "--candidate-package",
+                "2.0.0b1",
+                "--baseline-package",
+                "2.0.0a5",
+                "--issues-json",
+                str(issue_path),
+                "--p2-dispositions",
+                str(disposition_path),
+            ]
+        )
+        == 2
+    )
+    forbidden = {str(tmp_path), str(output), str(issue_path), str(disposition_path)}
+    for artifact in ("evidence.json", "checkpoint.json", "events.jsonl", "summary.md"):
+        text = (output / artifact).read_text(encoding="utf-8")
+        assert not any(value in text for value in forbidden)
+
+
+def test_cli_exit_codes_for_success_and_failed_issues(tmp_path: Path) -> None:
+    issue_path, disposition_path = _inputs(
+        tmp_path,
+        issues=[{"number": 3, "severity": "P0", "state": "open", "in_scope": True}],
+        dispositions=[],
+    )
+    failed = _run(
+        "run",
+        "--output",
+        str(tmp_path / "failed"),
+        "--candidate-display",
+        "2.0.0-beta.1",
+        "--candidate-package",
+        "2.0.0b1",
+        "--baseline-package",
+        "2.0.0a5",
+        "--issues-json",
+        str(issue_path),
+        "--p2-dispositions",
+        str(disposition_path),
+    )
+    assert failed.returncode == 2
+    assert failed.stderr.strip() == "beta evidence: gate_failed"
+    assert (tmp_path / "failed" / "summary.md").exists()
+    _write_json(issue_path, {"schema_version": 1, "issues": []})
+    passed = _run(
+        "run",
+        "--output",
+        str(tmp_path / "passed"),
+        "--candidate-display",
+        "2.0.0-beta.1",
+        "--candidate-package",
+        "2.0.0b1",
+        "--baseline-package",
+        "2.0.0a5",
+        "--issues-json",
+        str(issue_path),
+        "--p2-dispositions",
+        str(disposition_path),
+    )
+    assert passed.returncode == 2
+    assert passed.stderr.strip() == "beta evidence: readiness_incomplete"
+    assert "## Verdict: NOT READY" in (tmp_path / "passed" / "summary.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_cli_rejects_repo_root_override(tmp_path: Path) -> None:
+    result = _run(
+        "report",
+        "--output",
+        str(tmp_path / "evidence"),
+        "--repo-root",
+        str(tmp_path),
+    )
+    assert result.returncode == 2
+    assert "unrecognized arguments: --repo-root" in result.stderr
