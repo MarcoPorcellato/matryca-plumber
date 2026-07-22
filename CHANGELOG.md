@@ -6,6 +6,7 @@
 
 ### Added
 
+- **Beta-readiness evidence harness** — add a resumable, privacy-bounded maintainer CLI that validates beta/package versions, evaluates sanitized P0–P2 disposition input, and emits schema-versioned JSON/checkpoints plus a path-free Markdown verdict; uncollected wheel, soak, and final code-audit gates fail closed as `NOT READY`.
 - **Bounded AST and Shadow parsing (PR2B/PR2C, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). `GraphAstCache` atomically publishes complete bounded generations and preserves its last good graph on failure; Shadow rebuilds roll back, incremental sync keeps the prior page, persists hash-only diagnostics, and routes reads to Markdown/BM25 until a successful recovery rebuild. Overhead script requires `--graph PATH` (optional `--output`).
 
 ### Fixed
