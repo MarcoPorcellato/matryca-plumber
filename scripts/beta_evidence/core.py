@@ -28,6 +28,8 @@ _PHASE_TO_PACKAGE = {"alpha": "a", "beta": "b", "rc": "rc"}
 _VALID_SEVERITIES = frozenset({"P0", "P1", "P2", "P3"})
 _VALID_STATES = frozenset({"open", "closed"})
 _VALID_DISPOSITION_STATUSES = frozenset({"accepted", "deferred", "fixed", "not_applicable"})
+_VALID_AUDIT_STATUSES = frozenset({"PASS", "FAIL"})
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _REQUIRED_GATES = ("preflight", "issues", "wheel", "soak", "final_code_audit")
 
 
@@ -352,6 +354,120 @@ def collect_issues(output: Path, *, issues_path: Path, dispositions_path: Path) 
             _canonical_hash({"issues": issues, "dispositions": dispositions}),
             "FAIL" if failed else "PASS",
             {"issues": summaries},
+        ),
+    )
+
+
+def _parse_final_code_audit(payload: dict[str, Any]) -> dict[str, object]:
+    expected = {
+        "schema_version",
+        "candidate_package",
+        "wheel_sha256",
+        "candidate_diff_sha256",
+        "diff_verified",
+        "build_verified",
+        "ci_verified",
+        "scope_verified",
+        "audit_status",
+        "blocking_findings",
+        "advisory_findings",
+    }
+    if set(payload) != expected or payload.get("schema_version") != SCHEMA_VERSION:
+        raise EvidenceError("code_audit_input_invalid")
+    candidate_package = payload.get("candidate_package")
+    wheel_sha256 = payload.get("wheel_sha256")
+    candidate_diff_sha256 = payload.get("candidate_diff_sha256")
+    audit_status = payload.get("audit_status")
+    boolean_fields = ("diff_verified", "build_verified", "ci_verified", "scope_verified")
+    count_fields = ("blocking_findings", "advisory_findings")
+    if (
+        not isinstance(candidate_package, str)
+        or _PACKAGE_VERSION.fullmatch(candidate_package) is None
+        or not isinstance(wheel_sha256, str)
+        or _SHA256.fullmatch(wheel_sha256) is None
+        or not isinstance(candidate_diff_sha256, str)
+        or _SHA256.fullmatch(candidate_diff_sha256) is None
+        or audit_status not in _VALID_AUDIT_STATUSES
+        or any(not isinstance(payload.get(field), bool) for field in boolean_fields)
+        or any(
+            not isinstance(payload.get(field), int)
+            or isinstance(payload.get(field), bool)
+            or payload[field] < 0
+            for field in count_fields
+        )
+    ):
+        raise EvidenceError("code_audit_input_invalid")
+    return {
+        "candidate_package": candidate_package,
+        "wheel_sha256": wheel_sha256,
+        "candidate_diff_sha256": candidate_diff_sha256,
+        "diff_verified": payload["diff_verified"],
+        "build_verified": payload["build_verified"],
+        "ci_verified": payload["ci_verified"],
+        "scope_verified": payload["scope_verified"],
+        "audit_status": audit_status,
+        "blocking_findings": payload["blocking_findings"],
+        "advisory_findings": payload["advisory_findings"],
+    }
+
+
+def _code_audit_prerequisites(output: Path) -> tuple[str, str]:
+    checkpoint, evidence = _load_checkpoint(output), _load_evidence(output)
+    checkpoint_gates, evidence_gates = checkpoint["gates"], evidence["gates"]
+    _validate_gate_records(checkpoint_gates)
+    _validate_gate_records(evidence_gates)
+    if checkpoint_gates != evidence_gates:
+        raise EvidenceError("evidence_invalid")
+    records = {gate_id: checkpoint_gates.get(gate_id) for gate_id in ("preflight", "wheel")}
+    if any(
+        not isinstance(record, dict) or record.get("status") != "PASS"
+        for record in records.values()
+    ):
+        raise EvidenceError("code_audit_prerequisite_missing")
+    preflight_details = cast(dict[str, Any], records["preflight"])["details"]
+    wheel_details = cast(dict[str, Any], records["wheel"])["details"]
+    candidate_package = preflight_details.get("candidate_package")
+    wheel_sha256 = wheel_details.get("wheel_sha256")
+    if (
+        not isinstance(candidate_package, str)
+        or _PACKAGE_VERSION.fullmatch(candidate_package) is None
+        or not isinstance(wheel_sha256, str)
+        or _SHA256.fullmatch(wheel_sha256) is None
+    ):
+        raise EvidenceError("code_audit_prerequisite_invalid")
+    return candidate_package, wheel_sha256
+
+
+def collect_final_code_audit(output: Path, *, audit_path: Path) -> GateRecord:
+    """Record a sanitized, fail-closed code audit for the candidate wheel."""
+
+    audit = _parse_final_code_audit(_load_json(audit_path, category="code_audit_input_unavailable"))
+    candidate_package, wheel_sha256 = _code_audit_prerequisites(output)
+    failure_reasons: list[str] = []
+    if audit["candidate_package"] != candidate_package:
+        failure_reasons.append("candidate_package_mismatch")
+    if audit["wheel_sha256"] != wheel_sha256:
+        failure_reasons.append("wheel_sha256_mismatch")
+    if audit["diff_verified"] is not True:
+        failure_reasons.append("diff_unverified")
+    if audit["build_verified"] is not True:
+        failure_reasons.append("build_unverified")
+    if audit["ci_verified"] is not True:
+        failure_reasons.append("ci_unverified")
+    if audit["scope_verified"] is not True:
+        failure_reasons.append("scope_unverified")
+    if audit["audit_status"] != "PASS":
+        failure_reasons.append("audit_not_passed")
+    if audit["blocking_findings"] != 0:
+        failure_reasons.append("blocking_findings_present")
+    details = {**audit, "failure_reasons": failure_reasons}
+    return _record_gate(
+        output,
+        GateRecord(
+            "final_code_audit",
+            _canonical_hash(audit),
+            "FAIL" if failure_reasons else "PASS",
+            details,
         ),
     )
 

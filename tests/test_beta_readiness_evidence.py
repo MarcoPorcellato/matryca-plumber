@@ -456,6 +456,128 @@ def test_wheel_records_only_sanitized_pass_and_keeps_source_untouched(tmp_path: 
     )
 
 
+def _code_audit_prerequisites(
+    tmp_path: Path,
+) -> tuple[ModuleType, Path, Path, Path, str]:
+    module = _module()
+    output = tmp_path / "evidence"
+    module.collect_preflight(
+        output,
+        candidate_display="2.0.0-beta.1",
+        candidate_package="2.0.0b1",
+        baseline_package="2.0.0a5",
+    )
+    source, fingerprint, wheel = _wheel_source(tmp_path)
+    record = module.collect_wheel(
+        output,
+        wheel_path=wheel,
+        source_vault=source,
+        expected_source_file=fingerprint,
+        command_runner=_successful_command,
+        probe_runner=lambda *_args, **_kwargs: _probe_payload(),
+    )
+    assert record.status == "PASS"
+    evidence = json.loads((output / "evidence.json").read_text(encoding="utf-8"))
+    wheel_sha256 = evidence["gates"]["wheel"]["details"]["wheel_sha256"]
+    return module, output, source, fingerprint, wheel_sha256
+
+
+def _code_audit_payload(wheel_sha256: str, **overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "schema_version": 1,
+        "candidate_package": "2.0.0b1",
+        "wheel_sha256": wheel_sha256,
+        "candidate_diff_sha256": "d" * 64,
+        "diff_verified": True,
+        "build_verified": True,
+        "ci_verified": True,
+        "scope_verified": True,
+        "audit_status": "PASS",
+        "blocking_findings": 0,
+        "advisory_findings": 0,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_code_audit_requires_valid_preflight_and_wheel_evidence(tmp_path: Path) -> None:
+    module = _module()
+    audit_path = tmp_path / "audit.json"
+    _write_json(audit_path, _code_audit_payload("a" * 64))
+    with pytest.raises(module.EvidenceError, match="code_audit_prerequisite_missing"):
+        module.collect_final_code_audit(tmp_path / "evidence", audit_path=audit_path)
+
+
+def test_code_audit_rejects_malformed_input(tmp_path: Path) -> None:
+    module, output, _source, _fingerprint, wheel_sha256 = _code_audit_prerequisites(tmp_path)
+    audit_path = tmp_path / "audit.json"
+    malformed = _code_audit_payload(wheel_sha256)
+    del malformed["ci_verified"]
+    _write_json(audit_path, malformed)
+    with pytest.raises(module.EvidenceError, match="code_audit_input_invalid"):
+        module.collect_final_code_audit(output, audit_path=audit_path)
+
+
+def test_code_audit_records_sanitized_pass_and_resumes(tmp_path: Path) -> None:
+    module, output, _source, _fingerprint, wheel_sha256 = _code_audit_prerequisites(tmp_path)
+    audit_path = tmp_path / "audit.json"
+    payload = _code_audit_payload(wheel_sha256)
+    _write_json(audit_path, payload)
+    first = module.collect_final_code_audit(output, audit_path=audit_path)
+    checkpoint_before = (output / "checkpoint.json").read_text(encoding="utf-8")
+    second = module.collect_final_code_audit(output, audit_path=audit_path)
+    expected = {key: value for key, value in payload.items() if key != "schema_version"}
+    assert first.status == "PASS"
+    assert first == second
+    assert first.details == {**expected, "failure_reasons": []}
+    assert (output / "checkpoint.json").read_text(encoding="utf-8") == checkpoint_before
+    evidence = (output / "evidence.json").read_text(encoding="utf-8")
+    assert str(tmp_path) not in evidence
+    assert "audit.json" not in evidence
+    assert "gate_resumed" in (output / "events.jsonl").read_text(encoding="utf-8")
+
+
+def test_code_audit_records_mismatch_as_failed_gate_and_cli_fails(tmp_path: Path) -> None:
+    module, output, _source, _fingerprint, wheel_sha256 = _code_audit_prerequisites(tmp_path)
+    audit_path = tmp_path / "audit.json"
+    _write_json(audit_path, _code_audit_payload(wheel_sha256, build_verified=False))
+    record = module.collect_final_code_audit(output, audit_path=audit_path)
+    assert record.status == "FAIL"
+    assert record.details["failure_reasons"] == ["build_unverified"]
+    assert (
+        module.main(["code-audit", "--output", str(output), "--audit-json", str(audit_path)]) == 2
+    )
+
+
+def test_report_is_ready_after_collected_code_audit_and_soak(tmp_path: Path) -> None:
+    module, output, source, fingerprint, wheel_sha256 = _code_audit_prerequisites(tmp_path)
+    audit_path = tmp_path / "audit.json"
+    _write_json(audit_path, _code_audit_payload(wheel_sha256))
+    assert module.collect_final_code_audit(output, audit_path=audit_path).status == "PASS"
+    ticks = iter((0.0, 1.0))
+    assert (
+        module.collect_soak(
+            output,
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "soak-copy",
+            duration_seconds=1,
+            max_cycles=1,
+            interval_seconds=0,
+            candidate_verifier=lambda _: "e" * 64,
+            probe_runner=lambda *_args: _soak_payload(),
+            clock=lambda: next(ticks),
+            sleeper=lambda _: None,
+        ).status
+        == "PASS"
+    )
+    issue_path, disposition_path = _inputs(tmp_path, issues=[], dispositions=[])
+    module.collect_issues(output, issues_path=issue_path, dispositions_path=disposition_path)
+    module.collect_report(output)
+    assert "## Verdict: READY" in (output / "summary.md").read_text(encoding="utf-8")
+
+
 def test_wheel_timeout_and_malformed_probe_record_safe_failures(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, wheel = _wheel_source(tmp_path)

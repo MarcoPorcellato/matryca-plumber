@@ -11,6 +11,7 @@ from .core import (
     EvidenceError,
     GateRecord,
     _repo_root_from_script,
+    collect_final_code_audit,
     collect_issues,
     collect_preflight,
     collect_report,
@@ -163,6 +164,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=_DEFAULT_INTERVAL_SECONDS,
         help="Delay between cycles, default 600 seconds.",
     )
+    code_audit = subcommands.add_parser(
+        "code-audit", help="Record sanitized final code audit evidence for the candidate wheel."
+    )
+    _add_output_arguments(code_audit)
+    code_audit.add_argument(
+        "--audit-json",
+        required=True,
+        help="Path to the documented schema-version 1 code audit input.",
+    )
     run = subcommands.add_parser(
         "run", help="Run preflight, issue evaluation, and report in order."
     )
@@ -240,6 +250,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     interval_seconds=args.interval_seconds,
                 )
             )
+        elif args.command == "code-audit":
+            _require_success(collect_final_code_audit(output, audit_path=Path(args.audit_json)))
         elif args.command == "run":
             preflight = _run_preflight(args, output)
             issues = collect_issues(
