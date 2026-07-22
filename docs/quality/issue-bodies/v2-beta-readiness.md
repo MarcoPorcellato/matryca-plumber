@@ -6,6 +6,8 @@
 
 The beta scope is limited to the existing Shadow read path: bootstrap and reconciliation, FTS5 BM25, recursive CTE subtree reads, health-gated routing, and their Markdown/BM25 fallbacks. Logseq Markdown remains the system of record. Biological memory and Logseq DB Safe-Sync are Phase 4 work and are excluded from beta. `MATRYCA_SHADOW_DB_ENABLED` remains opt-in and default-off.
 
+The product's `MATRYCA_PAGE_PARSE_TIMEOUT_S` default remains **15 seconds**. A timeout must make health non-ready and route reads to the established Markdown/BM25 fallback. The private beta-evidence `wheel` and `soak` commands require an explicit bounded deadline (2–120 seconds) for their child probes; **60 seconds** is allowed for evidence collection only and does not demonstrate readiness at the 15-second product default.
+
 ## Proposed Architectural Solution
 
 Use this record as the release decision gate for `v2.0.0-beta.1`. A gate is complete only when its evidence is sanitized and reproducible; a green unit test alone does not replace an installed-wheel or real-vault check.

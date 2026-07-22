@@ -187,6 +187,14 @@ def _record_gate(
     return record
 
 
+def _require_matching_gate_input(output: Path, *, gate_id: str, input_hash: str) -> None:
+    """Reject attempts to resume a recorded gate with different sanitized inputs."""
+
+    existing = _load_checkpoint(output)["gates"].get(gate_id)
+    if isinstance(existing, dict) and existing.get("input_hash") != input_hash:
+        raise EvidenceError("gate_resume_mismatch")
+
+
 def display_to_package_version(display: str) -> str:
     """Normalize a SemVer display prerelease to its Python package version."""
 

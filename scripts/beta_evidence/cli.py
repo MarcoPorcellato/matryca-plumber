@@ -126,6 +126,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=_WHEEL_TIMEOUT_SECONDS,
         help="Per-subprocess timeout, bounded to 1-600 seconds.",
     )
+    wheel.add_argument(
+        "--page-parse-timeout-seconds",
+        required=True,
+        type=int,
+        help="Required child page-parse deadline, bounded to 2-120 seconds.",
+    )
     soak = subcommands.add_parser(
         "soak", help="Collect resumable, sanitized Shadow DB evidence from a durable vault copy."
     )
@@ -163,6 +169,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=_DEFAULT_INTERVAL_SECONDS,
         help="Delay between cycles, default 600 seconds.",
+    )
+    soak.add_argument(
+        "--page-parse-timeout-seconds",
+        required=True,
+        type=int,
+        help="Required child page-parse deadline, bounded to 2-120 seconds.",
     )
     code_audit = subcommands.add_parser(
         "code-audit", help="Record sanitized final code audit evidence for the candidate wheel."
@@ -234,6 +246,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     wheel_path=Path(args.wheel),
                     source_vault=Path(args.source_vault),
                     expected_source_file=Path(args.expected_source_realpath_file),
+                    page_parse_timeout_seconds=args.page_parse_timeout_seconds,
                     timeout_seconds=args.timeout_seconds,
                 )
             )
@@ -248,6 +261,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     duration_seconds=args.duration_seconds,
                     max_cycles=args.max_cycles,
                     interval_seconds=args.interval_seconds,
+                    page_parse_timeout_seconds=args.page_parse_timeout_seconds,
                 )
             )
         elif args.command == "code-audit":

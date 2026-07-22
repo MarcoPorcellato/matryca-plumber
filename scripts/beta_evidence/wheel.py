@@ -23,6 +23,7 @@ from .core import (
     _is_within,
     _record_gate,
     _repo_root_from_script,
+    _require_matching_gate_input,
     validate_output_directory,
 )
 
@@ -65,7 +66,13 @@ class CommandRunner(Protocol):
 
 class WheelProbeRunner(Protocol):
     def __call__(
-        self, python: Path, graph_root: Path, *, phase: str, timeout_seconds: int
+        self,
+        python: Path,
+        graph_root: Path,
+        *,
+        phase: str,
+        timeout_seconds: int,
+        page_parse_timeout_seconds: int,
     ) -> dict[str, Any]: ...
 
 
@@ -84,12 +91,15 @@ def _markdown_fingerprint(root: Path) -> str:
     return digest.hexdigest()
 
 
-def _safe_environment(graph_root: Path, *, enabled: bool) -> dict[str, str]:
+def _safe_environment(
+    graph_root: Path, *, enabled: bool, page_parse_timeout_seconds: int
+) -> dict[str, str]:
     environment = {
         name: value for name, value in os.environ.items() if name in _PROCESS_ENV_ALLOWLIST
     }
     environment["LOGSEQ_GRAPH_PATH"] = str(graph_root)
     environment["MATRYCA_SHADOW_DB_ENABLED"] = "1" if enabled else "0"
+    environment["MATRYCA_PAGE_PARSE_TIMEOUT_S"] = str(page_parse_timeout_seconds)
     return environment
 
 
@@ -222,13 +232,22 @@ def _validate_probe_payload(payload: object) -> dict[str, Any]:
 
 
 def _run_wheel_probe(
-    python: Path, graph_root: Path, *, phase: str, timeout_seconds: int
+    python: Path,
+    graph_root: Path,
+    *,
+    phase: str,
+    timeout_seconds: int,
+    page_parse_timeout_seconds: int,
 ) -> dict[str, Any]:
     wrapper = Path(__file__).resolve().parents[1] / "beta_readiness_evidence.py"
     result = _run_command(
         [str(python), str(wrapper), "_wheel-probe", "--vault", str(graph_root), "--phase", phase],
         cwd=Path(tempfile.gettempdir()),
-        environment=_safe_environment(graph_root, enabled=True),
+        environment=_safe_environment(
+            graph_root,
+            enabled=True,
+            page_parse_timeout_seconds=page_parse_timeout_seconds,
+        ),
         timeout_seconds=timeout_seconds,
     )
     _require_command_success(result)
@@ -246,6 +265,7 @@ def _wheel_details(
     source_after: str,
     baseline: dict[str, Any],
     candidate: dict[str, Any],
+    page_parse_timeout_seconds: int,
 ) -> dict[str, Any]:
     return {
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
@@ -253,6 +273,7 @@ def _wheel_details(
         "source_markdown_count": sum(
             1 for path in source.rglob("*.md") if ".matryca_semantic_cache" not in path.parts
         ),
+        "page_parse_timeout_seconds": page_parse_timeout_seconds,
         "baseline": baseline,
         "candidate": candidate,
     }
@@ -264,6 +285,7 @@ def collect_wheel(
     wheel_path: Path,
     source_vault: Path,
     expected_source_file: Path,
+    page_parse_timeout_seconds: int,
     timeout_seconds: int = _WHEEL_TIMEOUT_SECONDS,
     command_runner: CommandRunner = _run_command,
     probe_runner: WheelProbeRunner = _run_wheel_probe,
@@ -272,6 +294,8 @@ def collect_wheel(
     """Collect isolated baseline-to-wheel evidence without writing the source vault."""
     if not 1 <= timeout_seconds <= 600:
         raise EvidenceError("timeout_invalid")
+    if not 2 <= page_parse_timeout_seconds <= 120:
+        raise EvidenceError("page_parse_timeout_invalid")
     source = _resolve_source_vault(source_vault, expected_source_file)
     wheel = _resolve_candidate_wheel(wheel_path, source)
     resolved_output = validate_output_directory(
@@ -288,7 +312,13 @@ def collect_wheel(
         ).hexdigest(),
         "baseline": _WHEEL_BASELINE,
         "candidate": _WHEEL_CANDIDATE,
+        "page_parse_timeout_seconds": page_parse_timeout_seconds,
     }
+    _require_matching_gate_input(
+        resolved_output,
+        gate_id="wheel",
+        input_hash=_canonical_hash(fingerprint_input),
+    )
     temporary_root: Path | None = None
     try:
         resolved_output.mkdir(parents=True, exist_ok=True)
@@ -300,7 +330,11 @@ def collect_wheel(
         _add_synthetic_probe_pages(working_vault)
         working_before, python = _markdown_fingerprint(working_vault), venv / "bin" / "python"
         environment, cwd = (
-            _safe_environment(working_vault, enabled=True),
+            _safe_environment(
+                working_vault,
+                enabled=True,
+                page_parse_timeout_seconds=page_parse_timeout_seconds,
+            ),
             Path(tempfile.gettempdir()),
         )
         for command in (
@@ -320,7 +354,13 @@ def collect_wheel(
                 )
             )
         baseline = _validate_probe_payload(
-            probe_runner(python, working_vault, phase="baseline", timeout_seconds=timeout_seconds)
+            probe_runner(
+                python,
+                working_vault,
+                phase="baseline",
+                timeout_seconds=timeout_seconds,
+                page_parse_timeout_seconds=page_parse_timeout_seconds,
+            )
         )["baseline"]
         _require_command_success(
             command_runner(
@@ -331,7 +371,13 @@ def collect_wheel(
             )
         )
         candidate = _validate_probe_payload(
-            probe_runner(python, working_vault, phase="candidate", timeout_seconds=timeout_seconds)
+            probe_runner(
+                python,
+                working_vault,
+                phase="candidate",
+                timeout_seconds=timeout_seconds,
+                page_parse_timeout_seconds=page_parse_timeout_seconds,
+            )
         )["candidate"]
         candidate["working_markdown_unchanged"] = (
             candidate["working_markdown_unchanged"]
@@ -344,6 +390,7 @@ def collect_wheel(
             source_after=_markdown_fingerprint(source),
             baseline=baseline,
             candidate=candidate,
+            page_parse_timeout_seconds=page_parse_timeout_seconds,
         )
         checks = [
             details["source_unchanged"],
@@ -364,6 +411,7 @@ def collect_wheel(
         failure = {
             "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
             "source_unchanged": source_before == _markdown_fingerprint(source),
+            "page_parse_timeout_seconds": page_parse_timeout_seconds,
             "failure_category": exc.category,
         }
         return _record_gate(

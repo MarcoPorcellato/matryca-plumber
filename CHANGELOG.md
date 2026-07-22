@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Explicit beta-evidence parse deadline** — `wheel` and `soak` now require a sanitized, bounded 2–120 second child-only page-parse deadline, record it in resumable evidence, and reject a resume when it changes; this harness setting does not alter the product default of 15 seconds.
 - **Final beta code audit gate** — add a fail-closed `code-audit` evidence command that records only sanitized candidate diff, build, CI, scope, and finding summaries after matching the verified candidate wheel.
 
 ### Security

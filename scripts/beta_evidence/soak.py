@@ -22,6 +22,7 @@ from .core import (
     _is_within,
     _record_gate,
     _repo_root_from_script,
+    _require_matching_gate_input,
     validate_output_directory,
 )
 from .wheel import (
@@ -45,7 +46,7 @@ _HEARTBEAT_FILE = "soak-heartbeat.json"
 _RESULT_FILE = "soak-result.json"
 _SUMMARY_FILE = "soak-summary.md"
 
-type ProbeRunner = Callable[[Path, Path, int, int], dict[str, object]]
+type ProbeRunner = Callable[[Path, Path, int, int, int], dict[str, object]]
 type Clock = Callable[[], float]
 type Sleeper = Callable[[float], None]
 type Copier = Callable[[Path, Path], None]
@@ -274,9 +275,12 @@ def _load_state(output: Path) -> dict[str, Any] | None:
         and isinstance(state.get("elapsed_seconds"), (int, float))
         and not isinstance(state.get("elapsed_seconds"), bool)
         and isinstance(state.get("target_duration_seconds"), int)
+        and isinstance(state.get("page_parse_timeout_seconds"), int)
     ):
         raise EvidenceError("soak_state_invalid")
     if state["completed_cycles"] < 0 or state["status"] not in {"RUNNING", "PASS", "FAIL"}:
+        raise EvidenceError("soak_state_invalid")
+    if not 2 <= state["page_parse_timeout_seconds"] <= 120:
         raise EvidenceError("soak_state_invalid")
     if not all(isinstance(item, dict) for item in state["trends"]):
         raise EvidenceError("soak_state_invalid")
@@ -350,9 +354,20 @@ def _resolve_working_root(working_root: Path, *, source: Path, output: Path) -> 
 
 
 def _run_process(
-    python: Path, graph: Path, code: str, *, cycle: int, enabled: bool, timeout_seconds: int
+    python: Path,
+    graph: Path,
+    code: str,
+    *,
+    cycle: int,
+    enabled: bool,
+    timeout_seconds: int,
+    page_parse_timeout_seconds: int,
 ) -> dict[str, object]:
-    environment = _safe_environment(graph, enabled=enabled)
+    environment = _safe_environment(
+        graph,
+        enabled=enabled,
+        page_parse_timeout_seconds=page_parse_timeout_seconds,
+    )
     environment["MATRYCA_SOAK_CYCLE"] = str(cycle)
     try:
         completed = subprocess.run(
@@ -412,7 +427,11 @@ def _nonnegative_number(payload: Mapping[str, object], name: str) -> float | int
 
 
 def _run_soak_probe(
-    candidate_python: Path, working_root: Path, timeout_seconds: int, cycle: int
+    candidate_python: Path,
+    working_root: Path,
+    timeout_seconds: int,
+    page_parse_timeout_seconds: int,
+    cycle: int,
 ) -> dict[str, object]:
     started = time.monotonic()
     on = _run_process(
@@ -422,6 +441,7 @@ def _run_soak_probe(
         cycle=cycle,
         enabled=True,
         timeout_seconds=timeout_seconds,
+        page_parse_timeout_seconds=page_parse_timeout_seconds,
     )
     off = _run_process(
         candidate_python,
@@ -430,6 +450,7 @@ def _run_soak_probe(
         cycle=cycle,
         enabled=False,
         timeout_seconds=timeout_seconds,
+        page_parse_timeout_seconds=page_parse_timeout_seconds,
     )
     payload = {**off, **on, "elapsed_ms": round((time.monotonic() - started) * 1000, 3)}
     validated = _validate_probe_payload(payload)
@@ -465,6 +486,7 @@ def _summary_details(state: Mapping[str, Any]) -> dict[str, object]:
         "source_unchanged_during_copy": state["source_unchanged_during_copy"],
         "observed_duration_seconds": round(float(state["elapsed_seconds"]), 3),
         "target_duration_seconds": state["target_duration_seconds"],
+        "page_parse_timeout_seconds": state["page_parse_timeout_seconds"],
         "duration_target_reached": state["elapsed_seconds"] >= state["target_duration_seconds"],
         "beta_qualified": (
             state["elapsed_seconds"] >= _DEFAULT_DURATION_SECONDS
@@ -492,6 +514,7 @@ def _render_summary(result: Mapping[str, object]) -> str:
         f"Status: {result['status']}",
         f"Cycles completed: {result['cycles_completed']}",
         f"Observed duration seconds: {result['observed_duration_seconds']}",
+        f"Page parse timeout seconds: {result['page_parse_timeout_seconds']}",
         f"Beta-qualified duration: {result['beta_qualified']}",
         f"Source unchanged during copy: {result['source_unchanged_during_copy']}",
         f"FTS/subtree checks: {result['subtree_checks']} pass, {result['subtree_skipped']} skipped",
@@ -534,6 +557,7 @@ def collect_soak(
     source_vault: Path,
     expected_source_file: Path,
     working_root: Path,
+    page_parse_timeout_seconds: int,
     duration_seconds: int = _DEFAULT_DURATION_SECONDS,
     max_cycles: int = _DEFAULT_MAX_CYCLES,
     interval_seconds: int = _DEFAULT_INTERVAL_SECONDS,
@@ -550,6 +574,8 @@ def collect_soak(
     )
     if not 1 <= probe_timeout_seconds <= _PROBE_TIMEOUT_SECONDS:
         raise EvidenceError("timeout_invalid")
+    if not 2 <= page_parse_timeout_seconds <= 120:
+        raise EvidenceError("page_parse_timeout_invalid")
     source = _resolve_source_vault(source_vault, expected_source_file)
     candidate = _resolve_candidate_python(candidate_python)
     candidate_digest = candidate_verifier(candidate)
@@ -567,7 +593,13 @@ def collect_soak(
             "duration_seconds": duration_seconds,
             "max_cycles": max_cycles,
             "interval_seconds": interval_seconds,
+            "page_parse_timeout_seconds": page_parse_timeout_seconds,
         }
+    )
+    _require_matching_gate_input(
+        resolved_output,
+        gate_id="soak",
+        input_hash=input_hash,
     )
     resolved_output.mkdir(parents=True, exist_ok=True)
     state = _load_state(resolved_output)
@@ -596,6 +628,7 @@ def collect_soak(
             "candidate_provenance_digest": candidate_digest,
             "elapsed_seconds": 0.0,
             "target_duration_seconds": duration_seconds,
+            "page_parse_timeout_seconds": page_parse_timeout_seconds,
             "started_at": _now(),
             "updated_at": _now(),
         }
@@ -605,6 +638,7 @@ def collect_soak(
         or state["status"] != "RUNNING"
         or state["target_duration_seconds"] != duration_seconds
         or state["candidate_provenance_digest"] != candidate_digest
+        or state["page_parse_timeout_seconds"] != page_parse_timeout_seconds
     ):
         raise EvidenceError("soak_resume_mismatch")
     elif not work.is_dir():
@@ -620,7 +654,13 @@ def collect_soak(
             state["completed_cycles"] < max_cycles and state["elapsed_seconds"] < duration_seconds
         ):
             payload = _validate_probe_payload(
-                probe_runner(candidate, work, probe_timeout_seconds, state["completed_cycles"])
+                probe_runner(
+                    candidate,
+                    work,
+                    probe_timeout_seconds,
+                    page_parse_timeout_seconds,
+                    state["completed_cycles"],
+                )
             )
             if _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
                 raise EvidenceError("working_copy_changed")
