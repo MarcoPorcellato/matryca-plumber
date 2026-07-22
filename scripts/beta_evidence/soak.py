@@ -267,7 +267,8 @@ def _load_state(output: Path) -> dict[str, Any] | None:
         and isinstance(state.get("completed_cycles"), int)
         and isinstance(state.get("trends"), list)
         and isinstance(state.get("status"), str)
-        and isinstance(state.get("source_markdown_fingerprint"), str)
+        and isinstance(state.get("source_copy_snapshot_fingerprint"), str)
+        and state.get("source_unchanged_during_copy") is True
         and isinstance(state.get("working_markdown_fingerprint"), str)
         and isinstance(state.get("candidate_provenance_digest"), str)
         and isinstance(state.get("elapsed_seconds"), (int, float))
@@ -454,14 +455,14 @@ def _trend(payload: Mapping[str, object]) -> dict[str, object]:
     }
 
 
-def _summary_details(state: Mapping[str, Any], *, source_unchanged: bool) -> dict[str, object]:
+def _summary_details(state: Mapping[str, Any]) -> dict[str, object]:
     trends = state["trends"]
     if not isinstance(trends, list) or not trends:
         raise EvidenceError("soak_state_invalid")
     numeric = ("source_count", "indexed_count", "rss_kib", "elapsed_ms")
     details: dict[str, object] = {
         "cycles_completed": state["completed_cycles"],
-        "source_unchanged": source_unchanged,
+        "source_unchanged_during_copy": state["source_unchanged_during_copy"],
         "observed_duration_seconds": round(float(state["elapsed_seconds"]), 3),
         "target_duration_seconds": state["target_duration_seconds"],
         "duration_target_reached": state["elapsed_seconds"] >= state["target_duration_seconds"],
@@ -492,7 +493,7 @@ def _render_summary(result: Mapping[str, object]) -> str:
         f"Cycles completed: {result['cycles_completed']}",
         f"Observed duration seconds: {result['observed_duration_seconds']}",
         f"Beta-qualified duration: {result['beta_qualified']}",
-        f"Source unchanged: {result['source_unchanged']}",
+        f"Source unchanged during copy: {result['source_unchanged_during_copy']}",
         f"FTS/subtree checks: {result['subtree_checks']} pass, {result['subtree_skipped']} skipped",
         f"Synthetic CRUD checks: {result['synthetic_crud_checks']} pass",
         f"RSS KiB range: {result['rss_kib_min']}–{result['rss_kib_max']}",
@@ -506,11 +507,10 @@ def _finish(
     output: Path,
     state: dict[str, Any],
     *,
-    source_unchanged: bool,
     status: str,
     failure_category: str | None = None,
 ) -> GateRecord:
-    details = _summary_details(state, source_unchanged=source_unchanged)
+    details = _summary_details(state)
     details["status"] = status
     if failure_category is not None:
         details["failure_category"] = failure_category
@@ -559,7 +559,6 @@ def collect_soak(
         output, repo_root=_repo_root_from_script(), protected_roots=[source]
     )
     work = _resolve_working_root(working_root, source=source, output=resolved_output)
-    source_before = _markdown_fingerprint(source)
     input_hash = _canonical_hash(
         {
             "source_realpath_sha256": hashlib.sha256(str(source).encode()).hexdigest(),
@@ -575,8 +574,15 @@ def collect_soak(
     if state is None:
         if work.exists():
             raise EvidenceError("working_copy_exists")
+        source_before = _markdown_fingerprint(source)
         copier(source, work)
+        source_after = _markdown_fingerprint(source)
+        if source_after != source_before:
+            raise EvidenceError("source_changed_during_copy")
         if not work.is_dir() or work.resolve() == source:
+            raise EvidenceError("working_copy_invalid")
+        working_snapshot = _markdown_fingerprint(work)
+        if working_snapshot != source_before:
             raise EvidenceError("working_copy_invalid")
         state = {
             "schema_version": _SOAK_SCHEMA_VERSION,
@@ -584,8 +590,9 @@ def collect_soak(
             "status": "RUNNING",
             "completed_cycles": 0,
             "trends": [],
-            "source_markdown_fingerprint": source_before,
-            "working_markdown_fingerprint": _markdown_fingerprint(work),
+            "source_copy_snapshot_fingerprint": source_before,
+            "source_unchanged_during_copy": True,
+            "working_markdown_fingerprint": working_snapshot,
             "candidate_provenance_digest": candidate_digest,
             "elapsed_seconds": 0.0,
             "target_duration_seconds": duration_seconds,
@@ -602,8 +609,6 @@ def collect_soak(
         raise EvidenceError("soak_resume_mismatch")
     elif not work.is_dir():
         raise EvidenceError("working_copy_missing")
-    elif _markdown_fingerprint(source) != state["source_markdown_fingerprint"]:
-        raise EvidenceError("source_changed")
     elif _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
         raise EvidenceError("working_copy_changed")
 
@@ -617,9 +622,6 @@ def collect_soak(
             payload = _validate_probe_payload(
                 probe_runner(candidate, work, probe_timeout_seconds, state["completed_cycles"])
             )
-            source_unchanged = _markdown_fingerprint(source) == state["source_markdown_fingerprint"]
-            if not source_unchanged:
-                raise EvidenceError("source_changed")
             if _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
                 raise EvidenceError("working_copy_changed")
             current_clock = clock()
@@ -635,9 +637,6 @@ def collect_soak(
                 and state["elapsed_seconds"] < duration_seconds
             ):
                 sleeper(float(interval_seconds))
-        source_unchanged = _markdown_fingerprint(source) == state["source_markdown_fingerprint"]
-        if not source_unchanged:
-            raise EvidenceError("source_changed")
         if _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
             raise EvidenceError("working_copy_changed")
         if state["elapsed_seconds"] < duration_seconds:
@@ -649,18 +648,15 @@ def collect_soak(
         return _finish(
             resolved_output,
             state,
-            source_unchanged=source_unchanged,
             status="PASS",
         )
     except EvidenceError as exc:
         if exc.category == "duration_incomplete":
             raise
-        source_unchanged = _markdown_fingerprint(source) == state["source_markdown_fingerprint"]
         if state["trends"]:
             return _finish(
                 resolved_output,
                 state,
-                source_unchanged=source_unchanged,
                 status="FAIL",
                 failure_category=exc.category,
             )
