@@ -545,11 +545,20 @@ def test_soak_persists_only_sanitized_trends_after_explicit_short_duration(tmp_p
     assert state["completed_cycles"] == 2
     assert len(state["trends"]) == 2
     assert [trend["elapsed_ms"] for trend in state["trends"]] == [12.5, 12.5]
-    assert state["source_markdown_fingerprint"] == source_before
-    evidence = (tmp_path / "evidence" / "evidence.json").read_text(encoding="utf-8")
-    assert str(source) not in evidence
-    assert "daily note" not in evidence
-    assert "9c1ca0c6" not in evidence
+    assert state["source_copy_snapshot_fingerprint"] == source_before
+    assert state["source_unchanged_during_copy"] is True
+    for artifact in (
+        "checkpoint.json",
+        "evidence.json",
+        "soak-heartbeat.json",
+        "soak-result.json",
+        "soak-state.json",
+        "soak-summary.md",
+    ):
+        evidence = (tmp_path / "evidence" / artifact).read_text(encoding="utf-8")
+        assert str(source) not in evidence
+        assert "daily note" not in evidence
+        assert "9c1ca0c6" not in evidence
     assert "RSS KiB range" in (tmp_path / "evidence" / "soak-summary.md").read_text(
         encoding="utf-8"
     )
@@ -578,7 +587,7 @@ def test_soak_rejects_source_symlinks_and_never_creates_working_copy(tmp_path: P
     assert not work.exists()
 
 
-def test_soak_rejects_source_change_between_interrupted_runs(tmp_path: Path) -> None:
+def test_soak_accepts_source_change_between_interrupted_runs(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, _wheel = _wheel_source(tmp_path)
 
@@ -592,7 +601,7 @@ def test_soak_rejects_source_change_between_interrupted_runs(tmp_path: Path) -> 
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
-            duration_seconds=60,
+            duration_seconds=1,
             max_cycles=2,
             interval_seconds=1,
             probe_runner=lambda *_args: _soak_payload(),
@@ -601,18 +610,55 @@ def test_soak_rejects_source_change_between_interrupted_runs(tmp_path: Path) -> 
             sleeper=interrupt,
         )
     (source / "pages" / "daily.md").write_text("- changed outside soak\n", encoding="utf-8")
-    with pytest.raises(module.EvidenceError, match="source_changed"):
+    record = module.collect_soak(
+        tmp_path / "evidence",
+        candidate_python=Path(sys.executable),
+        source_vault=source,
+        expected_source_file=fingerprint,
+        working_root=tmp_path / "durable-copy",
+        duration_seconds=1,
+        max_cycles=2,
+        interval_seconds=1,
+        probe_runner=lambda *_args: _soak_payload(),
+        candidate_verifier=lambda _python: "candidate-digest",
+        clock=iter((0.0, 1.0)).__next__,
+    )
+    assert record.status == "PASS"
+    assert record.details["source_unchanged_during_copy"] is True
+
+
+def test_soak_rejects_source_change_during_copy_before_probe(tmp_path: Path) -> None:
+    module = _module()
+    soak = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    probe_calls = 0
+
+    def changing_copier(source_root: Path, destination: Path) -> None:
+        soak._copy_vault_without_cache(source_root, destination)
+        (source_root / "pages" / "daily.md").write_text(
+            "- legitimate concurrent edit\n", encoding="utf-8"
+        )
+
+    def probe(*_args: object) -> dict[str, object]:
+        nonlocal probe_calls
+        probe_calls += 1
+        return _soak_payload()
+
+    with pytest.raises(module.EvidenceError, match="source_changed_during_copy"):
         module.collect_soak(
             tmp_path / "evidence",
             candidate_python=Path(sys.executable),
             source_vault=source,
             expected_source_file=fingerprint,
             working_root=tmp_path / "durable-copy",
-            duration_seconds=60,
-            max_cycles=2,
-            interval_seconds=1,
+            duration_seconds=1,
+            max_cycles=1,
+            interval_seconds=0,
+            probe_runner=probe,
+            copier=changing_copier,
             candidate_verifier=lambda _python: "candidate-digest",
         )
+    assert probe_calls == 0
 
 
 def test_soak_rejects_working_copy_drift_after_probe(tmp_path: Path) -> None:
