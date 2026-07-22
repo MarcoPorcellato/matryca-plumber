@@ -1,10 +1,11 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha.5)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-beta.1 candidate)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
+> **v2.0.0-beta.1 candidate:** local source version `2.0.0-beta.1` / wheel version `2.0.0b1` is **not tagged, published, or available on PyPI**. Do not pin or install it from PyPI. The published baseline is `v2.0.0-alpha.5` / `2.0.0a5`; `MATRYCA_SHADOW_DB_ENABLED=false` by default, Markdown remains authoritative, and the installed-wheel recovery, sanitized soak, and final code audit gates remain pending. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.5 headline:** **Shadow hardening campaign closed** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) — CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)); state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)); Axes 5–7 audit probes green; `MATRYCA_SHADOW_DB_ENABLED=false` by default. **Not an RC** — post-publish soak before beta/RC. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.4 headline:** **Shadow FTS query length bound** — keywords over **512 Unicode characters** (post-`strip`) are rejected before FTS preparation or SQLite `MATCH` ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)); Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail**.
 > **v2.0.0-alpha.3 headline:** **Shadow FTS hyphenated queries** — natural compounds like `state-of-the-art` route through shadow FTS5 without spurious generational fallback ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)).
@@ -17,7 +18,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-Matryca Plumber v2.0.0-alpha.5 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+The v2.0.0-beta.1 candidate does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -55,7 +56,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (verified v2.0.0-alpha.5)
+## 2. Core CLI (candidate documentation: v2.0.0-beta.1)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.
@@ -219,7 +220,7 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB (v2.0.0-alpha.5 — experimental, opt-in)
+### 2.6 Shadow DB (v2.0.0-beta.1 candidate — experimental, opt-in)
 
 Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
 
@@ -232,7 +233,7 @@ Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_sema
 
 **Operator health (no `doctor`):** Sovereign UI `status` → sidebar **Shadow DB** row (sourced from `GET /api/state.shadow_db`: `state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`).
 
-**Agent default unchanged:** With flag unset/false, MCP/CLI behavior matches v1.14.x (BM25 + parser subtree). Enable only when explicitly testing v2 alpha on a vault backup.
+**Agent default unchanged:** With flag unset/false, MCP/CLI behavior matches v1.14.x (BM25 + parser subtree). The `v2.0.0-beta.1` candidate is not published; enable Shadow only when explicitly testing a release candidate on a vault backup.
 
 Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md` · Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
 

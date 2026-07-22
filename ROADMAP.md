@@ -6,13 +6,13 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-alpha.5** (2026-07-22) — issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of the refreshed local **v2.0.0-beta.1 candidate** (2026-07-23) — the published baseline remains `v2.0.0-alpha.5`; issue numbers link to GitHub; scope may shift as milestones close.*
 
 ---
 
 ## v2.0.0-beta.1 — Shadow read-path candidate (not released)
 
-`v2.0.0-beta.1` is a candidate for the **opt-in Shadow read path only**. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and every non-ready Shadow state falls back to the existing Markdown/BM25 paths. Biological memory and the Logseq DB Safe-Sync bridge remain Phase 4 work and are excluded.
+`v2.0.0-beta.1` is a locally prepared candidate for the **opt-in Shadow read path only**. It is not tagged, published, or available from PyPI. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and every non-ready Shadow state falls back to the existing Markdown/BM25 paths. Biological memory and the Logseq DB Safe-Sync bridge remain Phase 4 work and are excluded.
 
 | Release gate | Status |
 |--------------|--------|
@@ -227,7 +227,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | GraphRepository abstraction | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | Coexistent Markdown / SQLite backends | read port **done** |
 | Hardware Profiler & LLM Recommender | [#23](https://github.com/MarcoPorcellato/matryca-plumber/issues/23) | Sovereign UI guidance for 16 GB CPU-only laptops | planned |
 | **v2.0.0-alpha.5** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Experimental `shadow.sqlite` behind opt-in env flag | **published** |
-| **v2.0.0-beta.1** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Shadow read-path candidate; flag remains default-off | **not released — gated** |
+| **v2.0.0-beta.1** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Local Shadow read-path candidate; flag remains default-off | **not released — gated** |
 
 Deeper maintainer checklists (completed or in flight):
 

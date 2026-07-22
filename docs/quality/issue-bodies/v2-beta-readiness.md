@@ -2,9 +2,9 @@
 
 ## Problem Description
 
-`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. `v2.0.0-beta.1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
+`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. The local source version `v2.0.0-beta.1` / wheel version `2.0.0b1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
 
-Supporting experiment results are summarized in [`V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md`](../V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md). That sanitized ledger is not a gate-completion record: the checklist in this file remains the local source of truth for the beta decision. The post-[#317](https://github.com/MarcoPorcellato/matryca-plumber/pull/317) r4 installed-wheel gate is current; r3 remains historical only.
+Supporting experiment results are summarized in [`V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md`](../V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md). That sanitized ledger is not a gate-completion record: the checklist in this file remains the local source of truth for the beta decision. The r3/r4 installed-wheel observations are historical because the candidate and its evidence binding changed afterward; the refreshed candidate requires a new installed-wheel run followed by a digest-bound soak.
 
 The beta scope is limited to the existing Shadow read path: bootstrap and reconciliation, FTS5 BM25, recursive CTE subtree reads, health-gated routing, and their Markdown/BM25 fallbacks. Logseq Markdown remains the system of record. Biological memory and Logseq DB Safe-Sync are Phase 4 work and are excluded from beta. `MATRYCA_SHADOW_DB_ENABLED` remains opt-in and default-off.
 
@@ -26,7 +26,7 @@ Use this record as the release decision gate for `v2.0.0-beta.1`. A gate is comp
 
 The beta does not change the default read path, vault write authority, or Phase 4 scope. Operators who leave `MATRYCA_SHADOW_DB_ENABLED` unset or false retain the established Markdown and generational-BM25 behavior. Operators who opt in receive Shadow reads only while health is `ready`; otherwise fallback remains mandatory.
 
-The previous r4 observation remains sanitized historical behavior evidence, but it is not a completed candidate gate while artifact discovery is non-hermetic and the soak does not bind to the wheel digest. See [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](../BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md) for the draft root-cause record and required rerun protocol.
+The previous r4 observation remains sanitized historical behavior evidence, not a completed candidate gate. The artifact builder and wheel-to-soak provenance binding were remediated in the release-readiness tooling, but the refreshed candidate must still execute the full rerun protocol. See [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](../BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md).
 
 ## Files Involved
 

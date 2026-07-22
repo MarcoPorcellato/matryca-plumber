@@ -1,9 +1,8 @@
 ## [Unreleased]
 
-### Added
+## [2.0.0-beta.1] - 2026-07-23
 
-- **Explicit beta-evidence parse deadline** — `wheel` and `soak` now require a sanitized, bounded 2–120 second child-only page-parse deadline, record it in resumable evidence, and reject a resume when it changes; this harness setting does not alter the product default of 15 seconds.
-- **Final beta code audit gate** — add a fail-closed `code-audit` evidence command that records only sanitized candidate diff, build, CI, scope, and finding summaries after matching the verified candidate wheel; wheel and soak evidence now share a canonical SHA-256 provenance binding, so absent, malformed, or mismatched bindings cannot become release-ready.
+**v2.0.0-beta.1 candidate** — local release-candidate preparation for the opt-in Shadow DB read path. This version is **not tagged, published, or available on PyPI**. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and Markdown/BM25 fallback remains mandatory. The installed-wheel recovery, sanitized real-vault soak, and final code audit gates remain pending; do not promote this candidate until their recorded evidence is complete.
 
 ### Security
 
@@ -11,7 +10,9 @@
 
 ### Added
 
-- **Beta-readiness evidence harness** — add a resumable, privacy-bounded maintainer CLI that validates beta/package versions, evaluates sanitized P0–P2 disposition input, and emits schema-versioned JSON/checkpoints plus a path-free Markdown verdict. The `wheel` collector fail-closes against a one-line daily-vault realpath fingerprint, probes a disposable copy through PyPI `2.0.0a5` → explicit `2.0.0b1` wheel upgrade/recovery scenarios, and records only sanitized evidence; uncollected soak and final code-audit gates remain `NOT READY`.
+- **Explicit beta-evidence parse deadline** — `wheel` and `soak` require a sanitized, bounded 2–120 second child-only page-parse deadline, record it in resumable evidence, and reject a resume when it changes; this harness setting does not alter the product default of 15 seconds.
+- **Final beta code audit gate** — add a fail-closed `code-audit` evidence command that records only sanitized candidate diff, build, CI, scope, and finding summaries after matching the verified candidate wheel; wheel and soak evidence now share a canonical SHA-256 provenance binding, so absent, malformed, or mismatched bindings cannot become release-ready.
+- **Beta-readiness evidence harness** — add a resumable, privacy-bounded maintainer CLI that validates beta/package versions, evaluates sanitized P0–P2 disposition input, and emits schema-versioned JSON/checkpoints plus a path-free Markdown verdict. The `wheel` collector fail-closes against a one-line daily-vault realpath fingerprint, probes a disposable copy through PyPI `2.0.0a5` → explicit `2.0.0b1` wheel upgrade/recovery scenarios, and records only sanitized evidence; uncollected soak and final code audit gates remain `NOT READY`.
 - **Sanitized beta soak collector** — add the bounded `soak` collector for an explicit, fingerprint-matched source vault and separate durable copy. It verifies source stability only across the one-time copy, then records resumable heartbeats, strict working-copy integrity, flag-off/on/restart/FTS/subtree/watcher CRUD/recovery probes, and sanitized count/RSS/timing trends without persisting vault content, identifiers, paths, secrets, or subprocess diagnostics.
 - **Bounded AST and Shadow parsing (PR2B/PR2C, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s). `GraphAstCache` atomically publishes complete bounded generations and preserves its last good graph on failure; Shadow rebuilds roll back, incremental sync keeps the prior page, persists hash-only diagnostics, and routes reads to Markdown/BM25 until a successful recovery rebuild. Overhead script requires `--graph PATH` (optional `--output`).
 

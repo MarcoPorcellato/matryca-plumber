@@ -73,14 +73,14 @@ That run is **not final release evidence**: the candidate changed after [#317](h
 
 ### r4 — historical installed-wheel observation
 
-The post-#317 r4 run passed against the rebuilt `2.0.0b1` wheel (SHA-256 `04fd22584499917119d9fcef5ca52e2c56dc8f60adc46a8059ea605a735c0e74`). Baseline `2.0.0a5` readiness took 185,072 ms and the candidate probe took 380,540 ms across 3,367 source Markdown files. Upgrade-generation preservation, warm readiness, FTS, CTE, schema recovery, duplicate failure/recovery, fallback, flag-off no-op, installed-package provenance, working-copy Markdown integrity, and source immutability all passed.
+The post-#317 r4 run passed against its rebuilt `2.0.0b1` wheel (SHA-256 `04fd22584499917119d9fcef5ca52e2c56dc8f60adc46a8059ea605a735c0e74`). Baseline `2.0.0a5` readiness took 185,072 ms and the candidate probe took 380,540 ms across 3,367 source Markdown files. Upgrade-generation preservation, warm readiness, FTS, CTE, schema recovery, duplicate failure/recovery, fallback, flag-off no-op, installed-package provenance, working-copy Markdown integrity, and source immutability all passed. This is historical behavior evidence only: later artifact-provenance and soak-state changes require a fresh run from the final candidate wheel.
 
-The 60-second page-parse deadline was an evidence-collection setting, not the product's 15-second default and not an SLA. This observation does not close the candidate gate: the current root-cause investigation found non-hermetic artifact discovery and no wheel-to-soak identity binding. It must be rerun after the remediation described in [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md). This gate does not by itself make the beta ready.
+The 60-second page-parse deadline was an evidence-collection setting, not the product's 15-second default and not an SLA. This observation does not close the candidate gate. The artifact builder and wheel-to-soak provenance binding have since been remediated, but both gates must be rerun from the refreshed candidate as described in [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md).
 
 ## Outstanding beta gates
 
+- Rebuild the refreshed candidate from committed source, rerun the installed-wheel gate, and bind the resulting wheel digest to the soak state.
 - Complete the minimum 24-hour sanitized soak on a daily-use vault copy, including flag-off/on, restarts, watcher convergence, recovery, and unchanged-source checks.
-- Build from a sealed input, bind the installed-wheel and soak records to the same wheel digest, and rerun both gates after the reproducibility remediation.
 - Complete the final code audit and full CI for the final candidate scope.
 - Record only the sanitized result in the beta-readiness decision record before any tag or publication decision.
 

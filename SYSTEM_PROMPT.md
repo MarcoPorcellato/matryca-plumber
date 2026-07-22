@@ -2,7 +2,7 @@
 
 <!-- build-hash: 969c6712a3dc5bda5bd4e7b800efa72002aa83724849a441049ea2c30d58d8cd -->
 
-<!-- package-version: v2.0.0-alpha.5 -->
+<!-- package-version: v2.0.0-beta.1 -->
 
 
 

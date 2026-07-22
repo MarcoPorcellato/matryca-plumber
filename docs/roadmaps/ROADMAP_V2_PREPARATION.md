@@ -10,7 +10,7 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 
 ---
 
-## Where we are today (2026-07-22)
+## Where we are today (2026-07-23)
 
 | Layer | Shipped | In tree (not fully operational) | Not wired yet |
 |-------|---------|----------------------------------|---------------|
@@ -95,7 +95,7 @@ flowchart LR
 
 Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`, page counts, `lag_pages`, `last_sync_error`). No `matryca doctor` — see `llms.txt` §2.5–§2.6.
 
-**Published hardening baseline:** [`v2.0.0-alpha.5`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.5) closes tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261): duplicate UUID diagnostics, writer coordination, health validation, FTS5, CTE, security, and performance probes are green. The `v2.0.0-beta.1` candidate remains unreleased and retains the default-off flag, global fallback, and Markdown system of record.
+**Published hardening baseline:** [`v2.0.0-alpha.5`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.5) closes tracker [#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261): duplicate UUID diagnostics, writer coordination, health validation, FTS5, CTE, security, and performance probes are green. The locally prepared `v2.0.0-beta.1` / `2.0.0b1` candidate remains unreleased and retains the default-off flag, global fallback, and Markdown system of record.
 
 **Verify:** `uv run pytest tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py tests/test_shadow_state_api.py tests/test_shadow_bootstrap.py tests/test_ui_server.py -q`
 

@@ -1,12 +1,20 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.5** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.5]`).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; published line **v2.0.0-alpha.5** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.5]`; local **v2.0.0-beta.1** remains a candidate only).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-07-23] v2.0.0-beta.1 — refreshed local candidate preparation (not published)
+
+1. **Candidate boundary** — prepare source package version `2.0.0-beta.1` / wheel version `2.0.0b1` for the opt-in Shadow DB read path only. The flag remains default-off; Logseq Markdown remains authoritative; every non-ready Shadow state retains Markdown/BM25 fallback.
+2. **Evidence boundary** — the installed-wheel upgrade/recovery, sanitized real-vault soak, and final code audit gates remain pending in [`quality/issue-bodies/v2-beta-readiness.md`](quality/issue-bodies/v2-beta-readiness.md). This candidate must not be treated as a release, enabled by default, tagged, or published.
+3. **Distribution** — no tag or PyPI publication is associated with this entry. The current published baseline remains `v2.0.0-alpha.5` / `2.0.0a5`.
 
 ---
 
