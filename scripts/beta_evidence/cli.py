@@ -16,6 +16,12 @@ from .core import (
     collect_report,
     validate_output_directory,
 )
+from .soak import (
+    _DEFAULT_DURATION_SECONDS,
+    _DEFAULT_INTERVAL_SECONDS,
+    _DEFAULT_MAX_CYCLES,
+    collect_soak,
+)
 from .wheel import _WHEEL_TIMEOUT_SECONDS, collect_wheel, wheel_probe_main
 
 
@@ -119,6 +125,44 @@ def build_parser() -> argparse.ArgumentParser:
         default=_WHEEL_TIMEOUT_SECONDS,
         help="Per-subprocess timeout, bounded to 1-600 seconds.",
     )
+    soak = subcommands.add_parser(
+        "soak", help="Collect resumable, sanitized Shadow DB evidence from a durable vault copy."
+    )
+    _add_output_arguments(soak)
+    soak.add_argument(
+        "--candidate-python", required=True, help="Explicit candidate virtualenv Python."
+    )
+    soak.add_argument("--source-vault", required=True, help="Explicit read-only source vault.")
+    soak.add_argument(
+        "--expected-source-realpath-file",
+        required=True,
+        help="Private one-line file containing the resolved source-vault path.",
+    )
+    soak.add_argument(
+        "--working-root",
+        required=True,
+        help=(
+            "Empty durable working-copy directory outside source, repository, and evidence output."
+        ),
+    )
+    soak.add_argument(
+        "--duration-seconds",
+        type=int,
+        default=_DEFAULT_DURATION_SECONDS,
+        help="Bounded total collection duration, default 24 hours (maximum 7 days).",
+    )
+    soak.add_argument(
+        "--max-cycles",
+        type=int,
+        default=_DEFAULT_MAX_CYCLES,
+        help=f"Bounded probe cycles, default {_DEFAULT_MAX_CYCLES}.",
+    )
+    soak.add_argument(
+        "--interval-seconds",
+        type=int,
+        default=_DEFAULT_INTERVAL_SECONDS,
+        help="Delay between cycles, default 600 seconds.",
+    )
     run = subcommands.add_parser(
         "run", help="Run preflight, issue evaluation, and report in order."
     )
@@ -181,6 +225,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                     source_vault=Path(args.source_vault),
                     expected_source_file=Path(args.expected_source_realpath_file),
                     timeout_seconds=args.timeout_seconds,
+                )
+            )
+        elif args.command == "soak":
+            _require_success(
+                collect_soak(
+                    output,
+                    candidate_python=Path(args.candidate_python),
+                    source_vault=Path(args.source_vault),
+                    expected_source_file=Path(args.expected_source_realpath_file),
+                    working_root=Path(args.working_root),
+                    duration_seconds=args.duration_seconds,
+                    max_cycles=args.max_cycles,
+                    interval_seconds=args.interval_seconds,
                 )
             )
         elif args.command == "run":

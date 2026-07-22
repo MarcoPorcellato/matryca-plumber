@@ -503,3 +503,242 @@ def test_wheel_cli_fails_closed_on_source_mismatch(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert result.stderr.strip() == "beta evidence: source_fingerprint_mismatch"
+
+
+def _soak_payload() -> dict[str, object]:
+    return {
+        "flag_off": True,
+        "flag_on": True,
+        "restart_health": True,
+        "fts": True,
+        "subtree": "PASS",
+        "synthetic_crud": "PASS",
+        "recovery": True,
+        "source_count": 3,
+        "indexed_count": 3,
+        "rss_kib": 128,
+        "elapsed_ms": 12.5,
+    }
+
+
+def test_soak_persists_only_sanitized_trends_after_explicit_short_duration(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    source_before = module._markdown_fingerprint(source)
+    ticks = iter((0.0, 0.4, 1.2))
+    record = module.collect_soak(
+        tmp_path / "evidence",
+        candidate_python=Path(sys.executable),
+        source_vault=source,
+        expected_source_file=fingerprint,
+        working_root=tmp_path / "durable-copy",
+        duration_seconds=1,
+        max_cycles=2,
+        interval_seconds=0,
+        probe_runner=lambda *_args: _soak_payload(),
+        candidate_verifier=lambda _python: "candidate-digest",
+        clock=lambda: next(ticks),
+    )
+    assert record.status == "PASS"
+    assert source_before == module._markdown_fingerprint(source)
+    state = json.loads((tmp_path / "evidence" / "soak-state.json").read_text(encoding="utf-8"))
+    assert state["completed_cycles"] == 2
+    assert len(state["trends"]) == 2
+    assert [trend["elapsed_ms"] for trend in state["trends"]] == [12.5, 12.5]
+    assert state["source_markdown_fingerprint"] == source_before
+    evidence = (tmp_path / "evidence" / "evidence.json").read_text(encoding="utf-8")
+    assert str(source) not in evidence
+    assert "daily note" not in evidence
+    assert "9c1ca0c6" not in evidence
+    assert "RSS KiB range" in (tmp_path / "evidence" / "soak-summary.md").read_text(
+        encoding="utf-8"
+    )
+    assert record.details["beta_qualified"] is False
+
+
+def test_soak_rejects_source_symlinks_and_never_creates_working_copy(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    target = source / "pages" / "target.md"
+    target.write_text("- private\n", encoding="utf-8")
+    (source / "pages" / "linked.md").symlink_to(target)
+    work = tmp_path / "durable-copy"
+    with pytest.raises(module.EvidenceError, match="source_symlink_unsupported"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=work,
+            duration_seconds=60,
+            max_cycles=1,
+            interval_seconds=0,
+            probe_runner=lambda *_args: _soak_payload(),
+        )
+    assert not work.exists()
+
+
+def test_soak_rejects_source_change_between_interrupted_runs(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+
+    def interrupt(_seconds: float) -> None:
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            duration_seconds=60,
+            max_cycles=2,
+            interval_seconds=1,
+            probe_runner=lambda *_args: _soak_payload(),
+            candidate_verifier=lambda _python: "candidate-digest",
+            clock=iter((0.0, 0.1)).__next__,
+            sleeper=interrupt,
+        )
+    (source / "pages" / "daily.md").write_text("- changed outside soak\n", encoding="utf-8")
+    with pytest.raises(module.EvidenceError, match="source_changed"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            duration_seconds=60,
+            max_cycles=2,
+            interval_seconds=1,
+            candidate_verifier=lambda _python: "candidate-digest",
+        )
+
+
+def test_soak_rejects_working_copy_drift_after_probe(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+
+    def mutate_work(_python: Path, work: Path, _timeout: int, _cycle: int) -> dict[str, object]:
+        (work / "pages" / "daily.md").write_text("- leaked fixture\n", encoding="utf-8")
+        return _soak_payload()
+
+    with pytest.raises(module.EvidenceError, match="working_copy_changed"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            duration_seconds=60,
+            max_cycles=1,
+            interval_seconds=0,
+            probe_runner=mutate_work,
+            candidate_verifier=lambda _python: "candidate-digest",
+        )
+
+
+def test_soak_rejects_candidate_version_mismatch_before_copy(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    work = tmp_path / "durable-copy"
+
+    def reject_candidate(_python: Path) -> str:
+        raise module.EvidenceError("candidate_version_mismatch")
+
+    with pytest.raises(module.EvidenceError, match="candidate_version_mismatch"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=work,
+            duration_seconds=60,
+            max_cycles=1,
+            interval_seconds=0,
+            candidate_verifier=reject_candidate,
+        )
+    assert not work.exists()
+
+
+def test_soak_rejects_candidate_provenance_change_on_resume(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+
+    def interrupt(_seconds: float) -> None:
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            duration_seconds=60,
+            max_cycles=2,
+            interval_seconds=1,
+            probe_runner=lambda *_args: _soak_payload(),
+            candidate_verifier=lambda _python: "first-candidate-digest",
+            clock=iter((0.0, 0.1)).__next__,
+            sleeper=interrupt,
+        )
+    with pytest.raises(module.EvidenceError, match="soak_resume_mismatch"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            duration_seconds=60,
+            max_cycles=2,
+            interval_seconds=1,
+            candidate_verifier=lambda _python: "replacement-candidate-digest",
+        )
+
+
+def test_soak_does_not_pass_before_configured_duration(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    with pytest.raises(module.EvidenceError, match="duration_incomplete"):
+        module.collect_soak(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            duration_seconds=60,
+            max_cycles=1,
+            interval_seconds=0,
+            probe_runner=lambda *_args: _soak_payload(),
+            candidate_verifier=lambda _python: "candidate-digest",
+            clock=iter((0.0, 0.1)).__next__,
+        )
+    state = json.loads((tmp_path / "evidence" / "soak-state.json").read_text(encoding="utf-8"))
+    assert state["status"] == "RUNNING"
+    assert state["last_failure_category"] == "duration_incomplete"
+
+
+def test_soak_runs_flag_on_before_non_vacuous_flag_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    soak = importlib.import_module("beta_evidence.soak")
+    calls: list[bool] = []
+
+    def fake_process(
+        _python: Path,
+        _graph: Path,
+        _code: str,
+        *,
+        cycle: int,
+        enabled: bool,
+        timeout_seconds: int,
+    ) -> dict[str, object]:
+        assert cycle == 0
+        assert timeout_seconds == 1
+        calls.append(enabled)
+        if enabled:
+            return _soak_payload()
+        return {"flag_off": True, "rss_kib": 1}
+
+    monkeypatch.setattr(soak, "_run_process", fake_process)
+    soak._run_soak_probe(Path(sys.executable), Path("/unused"), 1, 0)
+    assert calls == [True, False]

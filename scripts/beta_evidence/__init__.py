@@ -10,6 +10,7 @@ from .core import (
     display_to_package_version,
     validate_output_directory,
 )
+from .soak import collect_soak
 from .wheel import _markdown_fingerprint, collect_wheel
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "collect_issues",
     "collect_preflight",
     "collect_report",
+    "collect_soak",
     "collect_wheel",
     "display_to_package_version",
     "main",
