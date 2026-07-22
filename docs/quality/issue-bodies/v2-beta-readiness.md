@@ -2,7 +2,7 @@
 
 ## Problem Description
 
-`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. `v2.0.0-beta.1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
+`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. The local source version `v2.0.0-beta.1` / wheel version `2.0.0b1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
 
 The beta scope is limited to the existing Shadow read path: bootstrap and reconciliation, FTS5 BM25, recursive CTE subtree reads, health-gated routing, and their Markdown/BM25 fallbacks. Logseq Markdown remains the system of record. Biological memory and Logseq DB Safe-Sync are Phase 4 work and are excluded from beta. `MATRYCA_SHADOW_DB_ENABLED` remains opt-in and default-off.
 
