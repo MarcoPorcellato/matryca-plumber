@@ -3,7 +3,8 @@
 Every parse that must not hang indefinitely runs in a persistent child process
 with a hard deadline. The parent never relies on thread interruption.
 
-No Shadow / GraphAstCache integration in this module's callers yet — infra only.
+``GraphAstCache`` uses this worker for bounded bootstrap and incremental page
+parsing. Shadow integration remains a separate transactional follow-up.
 
 Privacy: diagnostic fields on :class:`BoundedParseResult` are content-free
 (hash / byte / line counts only). The optional ``page`` AST is ``repr=False``
@@ -109,6 +110,7 @@ def _worker_loop(
         mode = str(msg.get("mode", ""))
         text = str(msg.get("text", ""))
         title = str(msg.get("title", "Page"))
+        tab_size = int(msg.get("tab_size", 2))
         started = time.perf_counter()
         if mode not in _VALID_MODES:
             out_q.put(
@@ -124,7 +126,10 @@ def _worker_loop(
             if mode == "stack":
                 from logseq_matryca_parser.graph import StackMachineParser
 
-                page = StackMachineParser().parse(text, page_title=title)
+                page = StackMachineParser(tab_size=tab_size).parse(
+                    text,
+                    page_title=title,
+                )
             else:
                 from logseq_matryca_parser import LogosParser
 
@@ -284,6 +289,7 @@ class BoundedPageParseWorker:
         *,
         mode: ParseMode = "logos",
         page_title: str = "Page",
+        tab_size: int = 2,
         timeout_s: float | None = None,
     ) -> BoundedParseResult:
         """Parse ``text`` in the worker; kill the worker on deadline overrun."""
@@ -340,6 +346,7 @@ class BoundedPageParseWorker:
                 "mode": parse_mode,
                 "text": text,
                 "title": page_title,
+                "tab_size": tab_size,
             }
             wall0 = time.perf_counter()
             self._in_q.put(request)
@@ -464,6 +471,7 @@ def parse_page_text_bounded(
     *,
     mode: ParseMode = "logos",
     page_title: str = "Page",
+    tab_size: int = 2,
     timeout_s: float | None = None,
 ) -> BoundedParseResult:
     """Public API: always process-isolated; never an unbounded in-process LogosParser call."""
@@ -471,6 +479,7 @@ def parse_page_text_bounded(
         text,
         mode=mode,
         page_title=page_title,
+        tab_size=tab_size,
         timeout_s=timeout_s,
     )
 

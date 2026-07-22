@@ -1,4 +1,4 @@
-"""PR2B — bounded page parse worker (no Shadow/AST integration)."""
+"""PR2B — bounded page parse worker contracts."""
 
 from __future__ import annotations
 
