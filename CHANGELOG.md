@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Security
+
+- **GitPython dependency hardening** — require `GitPython>=3.1.52` and lock `3.1.54` to include the current dependency security fixes.
+
 ### Added
 
 - **Bounded AST cache parsing (PR2B/PR2C, #297)** — `src/graph/bounded_page_parse.py` runs Logos/StackMachine parse in a terminable `spawn` worker with `MATRYCA_PAGE_PARSE_TIMEOUT_S` (clamped 2–120s); `GraphAstCache` now stages complete graph generations, atomically publishes bounded bootstrap/incremental results, and preserves the last good graph on timeout/error with hash-only diagnostics. Shadow integration remains a separate transactional follow-up. Overhead script requires `--graph PATH` (optional `--output`).
