@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build release archives from a clean, tracked source snapshot."""
+"""Build release archives from a clean, tracked source snapshot.
+
+The isolated snapshot is the release provenance boundary, not merely a staging
+directory populated from the maintainer worktree.
+"""
 
 from __future__ import annotations
 
