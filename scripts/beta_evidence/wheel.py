@@ -91,6 +91,17 @@ def _markdown_fingerprint(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _is_imported_from_venv_site_packages(imported: Path, venv_prefix: Path) -> bool:
+    """Require the candidate module to resolve under this virtual environment."""
+    try:
+        module_path = imported.resolve(strict=True)
+        virtual_environment = venv_prefix.resolve(strict=True)
+        relative_module = module_path.relative_to(virtual_environment)
+    except (OSError, ValueError):
+        return False
+    return "site-packages" in relative_module.parts
+
+
 def _safe_environment(
     graph_root: Path, *, enabled: bool, page_parse_timeout_seconds: int
 ) -> dict[str, str]:
@@ -479,12 +490,9 @@ def wheel_probe_main(vault: Path, phase: str) -> int:
         candidate["metadata_version_ok"] = version("matryca-plumber") == _WHEEL_CANDIDATE
         import src as installed_src
 
-        imported, venv_root = (
-            Path(installed_src.__file__ or "").resolve(),
-            Path(sys.executable).resolve().parents[1],
-        )
-        candidate["import_from_site_packages"] = (
-            _is_within(imported, venv_root) and "site-packages" in imported.parts
+        candidate["import_from_site_packages"] = _is_imported_from_venv_site_packages(
+            Path(installed_src.__file__ or ""),
+            Path(sys.prefix),
         )
         candidate["warm_ready"], candidate["generation_preserved"] = (
             resolve_shadow_health(graph) is ShadowHealthState.READY,
