@@ -19,12 +19,14 @@ Use this record as the release decision gate for `v2.0.0-beta.1`. A gate is comp
 | Bounded parser containment | [#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297) is merged; a timed-out or failed page parse cannot publish a partial AST cache or Shadow generation; the last good incremental page remains usable; health becomes non-ready and routing falls back; diagnostics expose only bounded metadata | [ ] |
 | Defect threshold | No open P0/P1 defect in beta scope; every remaining P2 has an explicit disposition | [ ] |
 | Sanitized real-vault soak | At least 24 hours, preferably 3–7 days: flag-off/on cycles, restarts, watcher create/edit/rename/delete convergence, controlled recovery, and unchanged Markdown fingerprints outside explicit fixture changes | [ ] |
-| Installed-wheel upgrade and recovery | `2.0.0a5` → `2.0.0b1` on a copied vault; compatible generation/meta preserved; schema mismatch and injected rebuild failure recover safely without partial reads or Markdown writes | [x] — r4 |
+| Installed-wheel upgrade and recovery | `2.0.0a5` → `2.0.0b1` on a copied vault; compatible generation/meta preserved; schema mismatch and injected rebuild failure recover safely without partial reads or Markdown writes; wheel identity is reproducibly built and bound to the subsequent soak | [ ] — rerun after the reproducibility remediation |
 | Final release evidence | Full CI passes, final code audit matches the intended scope, and the candidate wheel is built and smoke-tested outside the checkout | [ ] |
 
 ## Estimated Impact
 
 The beta does not change the default read path, vault write authority, or Phase 4 scope. Operators who leave `MATRYCA_SHADOW_DB_ENABLED` unset or false retain the established Markdown and generational-BM25 behavior. Operators who opt in receive Shadow reads only while health is `ready`; otherwise fallback remains mandatory.
+
+The previous r4 observation remains sanitized historical behavior evidence, but it is not a completed candidate gate while artifact discovery is non-hermetic and the soak does not bind to the wheel digest. See [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](../BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md) for the draft root-cause record and required rerun protocol.
 
 ## Files Involved
 
