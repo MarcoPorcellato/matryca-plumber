@@ -1010,6 +1010,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md",
+      "type": "Audit",
+      "title": "V2 alpha/beta experiment evidence ledger",
+      "description": "This is a sanitized supporting record for the v2 Shadow read-cache experiments.",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Sanitized supporting record; not an architecture or beta-decision SSOT.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
@@ -1671,7 +1690,8 @@
       "destination": "docs/artifacts/issue-bodies/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Local SSOT for the v2.0.0-beta.1 release decision; GitHub issue body is derived from this record."
+      "notes": "Local SSOT for the v2.0.0-beta.1 release decision; GitHub issue body is derived from this record.",
+      "missing": false
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase0-prerequisites.md",
