@@ -896,6 +896,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md",
+      "type": "Audit",
+      "title": "Beta evidence reproducibility root-cause analysis — draft",
+      "description": "Sanitized draft root-cause analysis and rerun protocol for beta-evidence reproducibility.",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Investigation draft; not a release or beta-decision SSOT."
+    },
+    {
       "path": "docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md",
       "type": "Audit",
       "title": "Claude Architectural Audit — Triage (2026-06-24)",
