@@ -436,6 +436,28 @@ def test_safe_environment_uses_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert set(environment).isdisjoint({"LLM_API_KEY", "GITHUB_TOKEN", "PYTHONPATH"})
 
 
+def test_wheel_provenance_uses_venv_prefix_when_interpreter_is_symlinked(
+    tmp_path: Path,
+) -> None:
+    wheel_module = importlib.import_module("beta_evidence.wheel")
+    base_python = tmp_path / "uv-managed" / "bin" / "python"
+    imported = tmp_path / "venv" / "lib" / "python3.12" / "site-packages" / "src" / "__init__.py"
+    base_python.parent.mkdir(parents=True)
+    imported.parent.mkdir(parents=True)
+    base_python.touch()
+    imported.touch()
+    venv_python = tmp_path / "venv" / "bin" / "python"
+    venv_python.parent.mkdir()
+    try:
+        venv_python.symlink_to(base_python)
+    except OSError as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+
+    old_root = venv_python.resolve().parents[1]
+    assert not wheel_module._is_within(imported.resolve(), old_root)
+    assert wheel_module._is_imported_from_venv_site_packages(imported, tmp_path / "venv")
+
+
 def test_wheel_records_only_sanitized_pass_and_keeps_source_untouched(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, wheel = _wheel_source(tmp_path)
