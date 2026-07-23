@@ -17,6 +17,7 @@
 
 ### Fixed
 
+- **Beta soak candidate interpreter provenance** — preserve the requested virtual-environment Python invocation path when it symlinks to a managed interpreter, so soak verification retains the venv's installed site-packages while rejecting non-executable candidates.
 - **Beta wheel provenance with symlinked interpreters** — validate installed-module provenance against the active virtual-environment prefix instead of the resolved interpreter target, preventing false evidence failures when the venv executable links to a managed Python installation.
 - **Distribution archive hygiene** — release builds exclude Python bytecode and cache directories from wheel and source distributions; CI rejects any that remain.
 - **Catalog merge-save corruption guard (#198)** — `MasterCatalog.save(replace=False)` now aborts after quarantining unreadable or non-object `master_catalog.json` state instead of merging a stale in-memory snapshot with an empty fallback and overwriting unseen catalog rows; explicit `replace=True` remains available for deliberate rebuilds.

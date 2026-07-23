@@ -314,12 +314,12 @@ def _validate_limits(*, duration_seconds: int, max_cycles: int, interval_seconds
 
 def _resolve_candidate_python(candidate_python: Path) -> Path:
     try:
-        resolved = candidate_python.expanduser().resolve(strict=True)
+        candidate = candidate_python.expanduser().absolute()
     except OSError as exc:
         raise EvidenceError("candidate_python_invalid") from exc
-    if not resolved.is_file():
+    if not candidate.is_file() or not os.access(candidate, os.X_OK):
         raise EvidenceError("candidate_python_invalid")
-    return resolved
+    return candidate
 
 
 def _verify_candidate_python(candidate_python: Path) -> str:
