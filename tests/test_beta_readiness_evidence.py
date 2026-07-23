@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import subprocess
 import sys
+import venv
 from pathlib import Path
 from types import ModuleType
 
@@ -456,6 +458,56 @@ def test_wheel_provenance_uses_venv_prefix_when_interpreter_is_symlinked(
     old_root = venv_python.resolve().parents[1]
     assert not wheel_module._is_within(imported.resolve(), old_root)
     assert wheel_module._is_imported_from_venv_site_packages(imported, tmp_path / "venv")
+
+
+def test_soak_candidate_uses_venv_python_symlink_and_its_site_packages(tmp_path: Path) -> None:
+    soak_module = importlib.import_module("beta_evidence.soak")
+    venv_root = tmp_path / "candidate-venv"
+    venv.EnvBuilder(with_pip=False, symlinks=True).create(venv_root)
+    executable = "python.exe" if os.name == "nt" else "python"
+    candidate_python = venv_root / ("Scripts" if os.name == "nt" else "bin") / executable
+    if not candidate_python.is_symlink():
+        pytest.skip("venv Python is not symlinked on this platform")
+
+    site_packages_probe = "import sysconfig; print(sysconfig.get_paths()['purelib'])"
+    site_packages = Path(
+        subprocess.run(
+            [str(candidate_python), "-c", site_packages_probe],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
+    (site_packages / "src").mkdir(parents=True)
+    (site_packages / "src" / "__init__.py").write_text("", encoding="utf-8")
+    distribution = site_packages / "matryca_plumber-2.0.0b1.dist-info"
+    distribution.mkdir()
+    (distribution / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: matryca-plumber\nVersion: 2.0.0b1\n",
+        encoding="utf-8",
+    )
+    (distribution / "RECORD").write_text(
+        "matryca_plumber-2.0.0b1.dist-info/METADATA,,\n"
+        "matryca_plumber-2.0.0b1.dist-info/RECORD,,\n",
+        encoding="utf-8",
+    )
+
+    resolved = soak_module._resolve_candidate_python(candidate_python)
+
+    assert resolved == candidate_python
+    assert resolved != candidate_python.resolve()
+    assert len(soak_module._verify_candidate_python(resolved)) == 64
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX executable permission contract")
+def test_soak_rejects_non_executable_candidate_python(tmp_path: Path) -> None:
+    soak_module = importlib.import_module("beta_evidence.soak")
+    candidate_python = tmp_path / "python"
+    candidate_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    candidate_python.chmod(0o600)
+
+    with pytest.raises(soak_module.EvidenceError, match="candidate_python_invalid"):
+        soak_module._resolve_candidate_python(candidate_python)
 
 
 def test_wheel_records_only_sanitized_pass_and_keeps_source_untouched(tmp_path: Path) -> None:
