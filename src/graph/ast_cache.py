@@ -12,10 +12,31 @@ from logseq_matryca_parser.logos_core import LogseqNode
 from logseq_matryca_parser.logseq_paths import discover_graph_files
 from loguru import logger
 
+from .bounded_ast_graph import (
+    BoundedGraphParseFailure,
+    build_graph_from_bounded_pages,
+    parse_graph_page_bounded,
+    replace_graph_page_by_source_path,
+)
+from .bounded_page_parse import reset_bounded_page_parse_worker_for_tests
+
 FileEventKind = Literal["created", "modified", "deleted"]
 
 _cache_lock = threading.Lock()
 _caches: dict[str, GraphAstCache] = {}
+
+
+class GraphAstParseError(RuntimeError):
+    """A bounded page parse failed without exposing its path or content."""
+
+    def __init__(self, failure: BoundedGraphParseFailure) -> None:
+        self.failure = failure
+        super().__init__(
+            "AST page parse failed "
+            f"(error={failure.error}, content_hash={failure.content_hash}, "
+            f"bytes={failure.byte_count}, lines={failure.line_count}, "
+            f"mode=stack)"
+        )
 
 
 def count_graph_markdown_files(graph_root: Path) -> int:
@@ -33,19 +54,35 @@ class GraphAstCache:
         self._graph: LogseqGraph | None = None
 
     def bootstrap(self) -> LogseqGraph:
-        """Full vault load on first access (idempotent, thread-safe)."""
+        """Build and atomically publish a complete bounded-parsed graph."""
         with self._lock:
             if self._graph is None:
-                markdown_files = count_graph_markdown_files(self.graph_root)
+                markdown_paths = discover_graph_files(self.graph_root)
+                markdown_files = len(markdown_paths)
                 logger.bind(
                     graph=str(self.graph_root),
                     markdown_files=markdown_files,
                     phase="start",
                 ).info("AST cache bootstrap started")
                 started = time.perf_counter()
-                self._graph = LogseqGraph.load_directory(self.graph_root)
+                pages = []
+                for path in markdown_paths:
+                    result = parse_graph_page_bounded(path, self.graph_root)
+                    if result.page is None or result.failure is not None:
+                        failure = result.failure or BoundedGraphParseFailure(
+                            content_hash="",
+                            byte_count=0,
+                            line_count=0,
+                            timed_out=False,
+                            elapsed_s=0.0,
+                            error="parse_error",
+                        )
+                        raise GraphAstParseError(failure)
+                    pages.append(result.page)
+                staged = build_graph_from_bounded_pages(self.graph_root, pages)
+                self._graph = staged
                 elapsed_s = round(time.perf_counter() - started, 3)
-                page_count = len(self._graph.pages)
+                page_count = len(staged.pages)
                 logger.bind(
                     graph=str(self.graph_root),
                     markdown_files=markdown_files,
@@ -60,25 +97,32 @@ class GraphAstCache:
         return self.bootstrap()
 
     def apply_file_event(self, path: Path, kind: FileEventKind) -> None:
-        """Apply a filesystem delta to the in-memory index."""
+        """Atomically apply a bounded filesystem delta to the in-memory index."""
         resolved = path.expanduser().resolve(strict=False)
         with self._lock:
             graph = self.bootstrap()
             if kind == "deleted" or not resolved.is_file():
-                logger.bind(path=str(resolved), kind=kind).debug(
-                    "AST cache full reload after delete or missing file",
-                )
-                self._graph = LogseqGraph.load_directory(self.graph_root)
+                self._graph = replace_graph_page_by_source_path(graph, resolved, None)
+                return
+            result = parse_graph_page_bounded(resolved, self.graph_root)
+            if result.page is None or result.failure is not None:
+                failure = result.failure
+                logger.bind(
+                    content_hash=failure.content_hash if failure else "",
+                    byte_count=failure.byte_count if failure else 0,
+                    line_count=failure.line_count if failure else 0,
+                    mode="stack",
+                    error=failure.error if failure else "parse_error",
+                ).warning("AST cache page reload rejected; preserving last complete graph")
                 return
             try:
-                graph.invalidate_and_reload_page(resolved)
-            except Exception as exc:  # noqa: BLE001 - parser edge cases
-                logger.warning(
-                    "AST cache page reload failed for {} ({}); full reload",
-                    resolved,
-                    exc,
+                staged = replace_graph_page_by_source_path(graph, resolved, result.page)
+            except Exception as exc:  # noqa: BLE001 - parser compatibility boundary
+                logger.bind(error=type(exc).__name__).warning(
+                    "AST cache page reindex failed; preserving last complete graph"
                 )
-                self._graph = LogseqGraph.load_directory(self.graph_root)
+                return
+            self._graph = staged
 
     def get_block_by_uuid(self, block_uuid: str) -> LogseqNode | None:
         """Resolve a block by registry UUID or on-disk ``id::`` embed ref."""
@@ -139,11 +183,13 @@ def clear_graph_ast_cache() -> None:
         _caches.clear()
     with _ast_bridge_lock:
         _ast_write_bridge_registered = False
+    reset_bounded_page_parse_worker_for_tests()
 
 
 __all__ = [
     "FileEventKind",
     "GraphAstCache",
+    "GraphAstParseError",
     "clear_graph_ast_cache",
     "count_graph_markdown_files",
     "get_graph_ast_cache",

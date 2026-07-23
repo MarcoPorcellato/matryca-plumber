@@ -12,7 +12,7 @@ from ..graph.alias_index import iter_alias_source_paths
 from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
 from .config import shadow_db_enabled
 from .connection import open_shadow_db, shadow_db_path
-from .errors import ShadowSyncError
+from .errors import ShadowPageParseError, ShadowSyncError
 from .meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_AT,
@@ -52,6 +52,8 @@ def shadow_needs_bootstrap(graph_root: Path | str) -> bool:
 
         schema_raw = get_meta(conn, "schema_version")
         if schema_raw != str(SHADOW_SCHEMA_VERSION):
+            return True
+        if (get_meta(conn, META_LAST_SYNC_ERROR) or "").strip():
             return True
         completed = (get_meta(conn, "last_full_sync_completed") or "").strip().lower()
         return completed != "true"
@@ -120,6 +122,8 @@ def _replay_deferred_syncs(graph_root: Path) -> None:
     for rel in pop_deferred_sync_paths(graph_root):
         try:
             sync_page_to_shadow(graph_root, graph_root / rel)
+        except ShadowPageParseError as exc:
+            logger.warning("Deferred shadow sync rejected: {}", exc)
         except Exception:  # noqa: BLE001
             logger.exception("Deferred shadow sync failed for {}", rel)
 
@@ -139,6 +143,8 @@ def ensure_shadow_runtime_at_startup(graph_root: Path | str) -> None:
         if shadow_needs_bootstrap(root):
             rebuild_shadow_from_graph(root)
         _BOOTSTRAP_CHECKED.add(key)
+    except ShadowPageParseError as exc:
+        logger.warning("Shadow bootstrap rejected: {}", exc)
     except Exception:  # noqa: BLE001 — must not block MCP/CLI/daemon startup
         logger.exception("Shadow bootstrap failed for {}", root)
 
@@ -170,6 +176,8 @@ def handle_shadow_watchdog_change(
             delete_shadow_page_by_file_path(root, rel)
             return
         sync_page_to_shadow(root, safe)
+    except ShadowPageParseError as exc:
+        logger.warning("Shadow watchdog sync rejected: {}", exc)
     except Exception:  # noqa: BLE001 — fail-safe like AST bridge
         logger.exception("Shadow watchdog sync failed for {} ({})", path, kind)
 

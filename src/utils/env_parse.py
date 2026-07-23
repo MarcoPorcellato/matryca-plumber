@@ -64,9 +64,44 @@ def env_float(key: str, default: float) -> float:
         return default
 
 
+def env_float_clamped(
+    key: str,
+    default: float,
+    *,
+    minimum: float,
+    maximum: float,
+) -> float:
+    """Parse a float env var and clamp to ``[minimum, maximum]``."""
+    value = env_float(key, default)
+    if value < minimum:
+        logger.warning(
+            "Float for {}={} below minimum {}; clamping",
+            key,
+            value,
+            minimum,
+        )
+        return minimum
+    if value > maximum:
+        logger.warning(
+            "Float for {}={} above maximum {}; clamping",
+            key,
+            value,
+            maximum,
+        )
+        return maximum
+    return value
+
+
 def env_str(key: str, default: str = "") -> str:
     raw = os.environ.get(key, "").strip().lower()
     return raw if raw else default
 
 
-__all__ = ["env_bool", "env_float", "env_int", "env_int_clamped", "env_str"]
+__all__ = [
+    "env_bool",
+    "env_float",
+    "env_float_clamped",
+    "env_int",
+    "env_int_clamped",
+    "env_str",
+]

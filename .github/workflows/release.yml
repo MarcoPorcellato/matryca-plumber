@@ -80,14 +80,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build React cockpit
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
-
-      - name: Build sdist and wheel
-        run: uv build
+      - name: Build verified release archives from a clean source snapshot
+        run: make release-build
 
       - name: Extract release notes from CHANGELOG
         run: |
