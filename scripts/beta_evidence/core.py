@@ -195,6 +195,83 @@ def _require_matching_gate_input(output: Path, *, gate_id: str, input_hash: str)
         raise EvidenceError("gate_resume_mismatch")
 
 
+def _candidate_wheel_binding_digest(
+    wheel_sha256: object, candidate_provenance_digest: object
+) -> str:
+    """Return the canonical, privacy-safe binding for a verified candidate wheel."""
+
+    if not (
+        isinstance(wheel_sha256, str)
+        and _SHA256.fullmatch(wheel_sha256) is not None
+        and isinstance(candidate_provenance_digest, str)
+        and _SHA256.fullmatch(candidate_provenance_digest) is not None
+    ):
+        raise EvidenceError("candidate_wheel_binding_invalid")
+    return _canonical_hash(
+        {
+            "candidate_provenance_digest": candidate_provenance_digest,
+            "wheel_sha256": wheel_sha256,
+        }
+    )
+
+
+def _require_bound_wheel(output: Path, candidate_provenance_digest: object) -> str:
+    """Require a passed wheel gate bound to the live candidate provenance digest."""
+
+    checkpoint, evidence = _load_checkpoint(output), _load_evidence(output)
+    checkpoint_gates, evidence_gates = checkpoint["gates"], evidence["gates"]
+    _validate_gate_records(checkpoint_gates)
+    _validate_gate_records(evidence_gates)
+    if checkpoint_gates != evidence_gates:
+        raise EvidenceError("evidence_invalid")
+    wheel = checkpoint_gates.get("wheel")
+    if not isinstance(wheel, dict) or wheel.get("status") != "PASS":
+        raise EvidenceError("soak_wheel_binding_missing")
+    details = wheel.get("details")
+    if not isinstance(details, dict):
+        raise EvidenceError("soak_wheel_binding_invalid")
+    try:
+        expected = _candidate_wheel_binding_digest(
+            details.get("wheel_sha256"), details.get("candidate_provenance_digest")
+        )
+    except EvidenceError as exc:
+        raise EvidenceError("soak_wheel_binding_invalid") from exc
+    if details.get("candidate_wheel_binding_digest") != expected:
+        raise EvidenceError("soak_wheel_binding_invalid")
+    if details.get("candidate_provenance_digest") != candidate_provenance_digest:
+        raise EvidenceError("soak_candidate_provenance_mismatch")
+    return expected
+
+
+def _has_valid_bound_wheel_soak(gates: dict[str, Any]) -> bool:
+    """Return whether passed wheel and soak gates refer to the same candidate wheel."""
+
+    wheel, soak = gates.get("wheel"), gates.get("soak")
+    if not (
+        isinstance(wheel, dict)
+        and isinstance(soak, dict)
+        and wheel.get("status") == "PASS"
+        and soak.get("status") == "PASS"
+        and isinstance(wheel.get("details"), dict)
+        and isinstance(soak.get("details"), dict)
+    ):
+        return False
+    wheel_details = cast(dict[str, Any], wheel["details"])
+    soak_details = cast(dict[str, Any], soak["details"])
+    try:
+        binding = _candidate_wheel_binding_digest(
+            wheel_details.get("wheel_sha256"), wheel_details.get("candidate_provenance_digest")
+        )
+    except EvidenceError:
+        return False
+    return (
+        wheel_details.get("candidate_wheel_binding_digest") == binding
+        and soak_details.get("candidate_wheel_binding_digest") == binding
+        and soak_details.get("candidate_provenance_digest")
+        == wheel_details.get("candidate_provenance_digest")
+    )
+
+
 def display_to_package_version(display: str) -> str:
     """Normalize a SemVer display prerelease to its Python package version."""
 
@@ -506,7 +583,11 @@ def render_summary(evidence: dict[str, Any]) -> str:
         rows.append((gate_id, status))
         statuses.append(status)
     readiness = (
-        "READY" if statuses and all(status == "PASS" for status in statuses) else "NOT READY"
+        "READY"
+        if statuses
+        and all(status == "PASS" for status in statuses)
+        and _has_valid_bound_wheel_soak(gates)
+        else "NOT READY"
     )
     metadata = evidence.get("metadata", {})
     lines = [

@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import suppress
 from pathlib import Path
 from typing import Any, Protocol, cast
@@ -19,6 +19,7 @@ from typing import Any, Protocol, cast
 from .core import (
     EvidenceError,
     GateRecord,
+    _candidate_wheel_binding_digest,
     _canonical_hash,
     _is_within,
     _record_gate,
@@ -52,6 +53,31 @@ _PROCESS_ENV_ALLOWLIST = frozenset(
     }
 )
 
+_CANDIDATE_PROBE = f"""
+import hashlib
+from importlib.metadata import distribution, version
+from pathlib import Path
+import sys
+
+import src
+
+origin = Path(src.__file__).resolve()
+prefix = Path(sys.prefix).resolve()
+assert origin.is_relative_to(prefix)
+assert any(part in ("site-packages", "dist-packages") for part in origin.parts)
+assert version("matryca-plumber") == {_WHEEL_CANDIDATE!r}
+installed = distribution("matryca-plumber")
+files = installed.files or ()
+artifacts = sorted(
+    file for file in files if str(file).endswith((".dist-info/METADATA", ".dist-info/RECORD"))
+)
+assert len(artifacts) == 2
+digest = hashlib.sha256()
+for artifact in artifacts:
+    digest.update(installed.locate_file(artifact).read_bytes())
+print(digest.hexdigest())
+"""
+
 
 class CommandRunner(Protocol):
     def __call__(
@@ -78,6 +104,9 @@ class WheelProbeRunner(Protocol):
 
 class VaultCopier(Protocol):
     def __call__(self, source: Path, destination: Path) -> None: ...
+
+
+type CandidateVerifier = Callable[[Path], str]
 
 
 def _markdown_fingerprint(root: Path) -> str:
@@ -268,6 +297,29 @@ def _run_wheel_probe(
         raise EvidenceError("probe_invalid") from exc
 
 
+def _verify_candidate_python(candidate_python: Path) -> str:
+    """Verify the installed candidate and return its sanitized provenance digest."""
+
+    try:
+        completed = subprocess.run(
+            [str(candidate_python), "-c", _CANDIDATE_PROBE],
+            cwd=tempfile.gettempdir(),
+            env={"PATH": os.environ.get("PATH", ""), "PYTHONNOUSERSITE": "1"},
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise EvidenceError("candidate_python_invalid") from exc
+    if completed.returncode != 0:
+        raise EvidenceError("candidate_version_mismatch")
+    digest = completed.stdout.strip()
+    if re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise EvidenceError("candidate_provenance_invalid")
+    return digest
+
+
 def _wheel_details(
     *,
     wheel: Path,
@@ -276,10 +328,14 @@ def _wheel_details(
     source_after: str,
     baseline: dict[str, Any],
     candidate: dict[str, Any],
+    candidate_provenance_digest: str,
+    candidate_wheel_binding_digest: str,
     page_parse_timeout_seconds: int,
 ) -> dict[str, Any]:
     return {
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
+        "candidate_provenance_digest": candidate_provenance_digest,
+        "candidate_wheel_binding_digest": candidate_wheel_binding_digest,
         "source_unchanged": source_before == source_after,
         "source_markdown_count": sum(
             1 for path in source.rglob("*.md") if ".matryca_semantic_cache" not in path.parts
@@ -301,6 +357,7 @@ def collect_wheel(
     command_runner: CommandRunner = _run_command,
     probe_runner: WheelProbeRunner = _run_wheel_probe,
     copier: VaultCopier = _copy_vault_without_cache,
+    candidate_verifier: CandidateVerifier | None = None,
 ) -> GateRecord:
     """Collect isolated baseline-to-wheel evidence without writing the source vault."""
     if not 1 <= timeout_seconds <= 600:
@@ -309,6 +366,7 @@ def collect_wheel(
         raise EvidenceError("page_parse_timeout_invalid")
     source = _resolve_source_vault(source_vault, expected_source_file)
     wheel = _resolve_candidate_wheel(wheel_path, source)
+    verifier = _verify_candidate_python if candidate_verifier is None else candidate_verifier
     resolved_output = validate_output_directory(
         output, repo_root=_repo_root_from_script(), protected_roots=[source]
     )
@@ -394,6 +452,10 @@ def collect_wheel(
             candidate["working_markdown_unchanged"]
             and _markdown_fingerprint(working_vault) == working_before
         )
+        candidate_provenance_digest = verifier(python)
+        candidate_wheel_binding_digest = _candidate_wheel_binding_digest(
+            hashlib.sha256(wheel.read_bytes()).hexdigest(), candidate_provenance_digest
+        )
         details = _wheel_details(
             wheel=wheel,
             source=source,
@@ -401,6 +463,8 @@ def collect_wheel(
             source_after=_markdown_fingerprint(source),
             baseline=baseline,
             candidate=candidate,
+            candidate_provenance_digest=candidate_provenance_digest,
+            candidate_wheel_binding_digest=candidate_wheel_binding_digest,
             page_parse_timeout_seconds=page_parse_timeout_seconds,
         )
         checks = [

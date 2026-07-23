@@ -23,15 +23,16 @@ from .core import (
     _is_within,
     _record_gate,
     _repo_root_from_script,
+    _require_bound_wheel,
     _require_matching_gate_input,
     validate_output_directory,
 )
 from .wheel import (
-    _WHEEL_CANDIDATE,
     _copy_vault_without_cache,
     _markdown_fingerprint,
     _resolve_source_vault,
     _safe_environment,
+    _verify_candidate_python,
 )
 
 _SOAK_SCHEMA_VERSION = 2
@@ -74,31 +75,6 @@ _LEGACY_TREND_FIELDS = (
     "subtree",
     "synthetic_crud",
 )
-
-_CANDIDATE_PROBE = f"""
-import hashlib
-from importlib.metadata import distribution, version
-from pathlib import Path
-import sys
-
-import src
-
-origin = Path(src.__file__).resolve()
-prefix = Path(sys.prefix).resolve()
-assert origin.is_relative_to(prefix)
-assert any(part in ("site-packages", "dist-packages") for part in origin.parts)
-assert version("matryca-plumber") == {_WHEEL_CANDIDATE!r}
-installed = distribution("matryca-plumber")
-files = installed.files or ()
-artifacts = sorted(
-    file for file in files if str(file).endswith((".dist-info/METADATA", ".dist-info/RECORD"))
-)
-assert len(artifacts) == 2
-digest = hashlib.sha256()
-for artifact in artifacts:
-    digest.update(installed.locate_file(artifact).read_bytes())
-print(digest.hexdigest())
-"""
 
 _OFF_PROBE = r"""
 import json
@@ -298,6 +274,8 @@ def _load_state(output: Path) -> dict[str, Any] | None:
         and state.get("source_unchanged_during_copy") is True
         and isinstance(state.get("working_markdown_fingerprint"), str)
         and isinstance(state.get("candidate_provenance_digest"), str)
+        and isinstance(state.get("candidate_wheel_binding_digest"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", state["candidate_wheel_binding_digest"]) is not None
         and isinstance(state.get("elapsed_seconds"), (int, float))
         and not isinstance(state.get("elapsed_seconds"), bool)
         and isinstance(state.get("target_duration_seconds"), int)
@@ -464,27 +442,6 @@ def _resolve_candidate_python(candidate_python: Path) -> Path:
     if not candidate.is_file() or not os.access(candidate, os.X_OK):
         raise EvidenceError("candidate_python_invalid")
     return candidate
-
-
-def _verify_candidate_python(candidate_python: Path) -> str:
-    try:
-        completed = subprocess.run(
-            [str(candidate_python), "-c", _CANDIDATE_PROBE],
-            cwd=tempfile.gettempdir(),
-            env={"PATH": os.environ.get("PATH", ""), "PYTHONNOUSERSITE": "1"},
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise EvidenceError("candidate_python_invalid") from exc
-    if completed.returncode != 0:
-        raise EvidenceError("candidate_version_mismatch")
-    digest = completed.stdout.strip()
-    if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
-        raise EvidenceError("candidate_provenance_invalid")
-    return digest
 
 
 def _resolve_working_root(working_root: Path, *, source: Path, output: Path) -> Path:
@@ -707,6 +664,8 @@ def _summary_details(state: Mapping[str, Any]) -> dict[str, object]:
             state["elapsed_seconds"] >= _DEFAULT_DURATION_SECONDS
             and state["target_duration_seconds"] >= _DEFAULT_DURATION_SECONDS
         ),
+        "candidate_provenance_digest": state["candidate_provenance_digest"],
+        "candidate_wheel_binding_digest": state["candidate_wheel_binding_digest"],
         "subtree_checks": sum(item["subtree"] == "PASS" for item in trends),
         "subtree_skipped": sum(item["subtree"] == "SKIPPED" for item in trends),
         "synthetic_crud_checks": sum(item["synthetic_crud"] == "PASS" for item in trends),
@@ -804,17 +763,17 @@ def collect_soak(
     source = _resolve_source_vault(source_vault, expected_source_file)
     candidate = _resolve_candidate_python(candidate_python)
     candidate_digest = candidate_verifier(candidate)
-    if not candidate_digest:
-        raise EvidenceError("candidate_provenance_invalid")
     resolved_output = validate_output_directory(
         output, repo_root=_repo_root_from_script(), protected_roots=[source]
     )
+    candidate_wheel_binding_digest = _require_bound_wheel(resolved_output, candidate_digest)
     work = _resolve_working_root(working_root, source=source, output=resolved_output)
     input_hash = _canonical_hash(
         {
             "source_realpath_sha256": hashlib.sha256(str(source).encode()).hexdigest(),
             "expected_source_sha256": hashlib.sha256(expected_source_file.read_bytes()).hexdigest(),
             "candidate_provenance_digest": candidate_digest,
+            "candidate_wheel_binding_digest": candidate_wheel_binding_digest,
             "duration_seconds": duration_seconds,
             "max_cycles": max_cycles,
             "interval_seconds": interval_seconds,
@@ -854,6 +813,7 @@ def collect_soak(
             "source_unchanged_during_copy": True,
             "working_markdown_fingerprint": working_snapshot,
             "candidate_provenance_digest": candidate_digest,
+            "candidate_wheel_binding_digest": candidate_wheel_binding_digest,
             "elapsed_seconds": 0.0,
             "target_duration_seconds": duration_seconds,
             "page_parse_timeout_seconds": page_parse_timeout_seconds,
@@ -866,6 +826,7 @@ def collect_soak(
         or state["status"] not in {"RUNNING", "READY"}
         or state["target_duration_seconds"] != duration_seconds
         or state["candidate_provenance_digest"] != candidate_digest
+        or state["candidate_wheel_binding_digest"] != candidate_wheel_binding_digest
         or state["page_parse_timeout_seconds"] != page_parse_timeout_seconds
     ):
         raise EvidenceError("soak_resume_mismatch")
