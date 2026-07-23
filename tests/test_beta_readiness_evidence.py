@@ -385,6 +385,32 @@ def _successful_command(*_: object, **__: object) -> subprocess.CompletedProcess
     return subprocess.CompletedProcess([], 0, stdout="", stderr="")
 
 
+_TEST_CANDIDATE_DIGEST = "c" * 64
+
+
+@pytest.fixture(autouse=True)
+def _isolated_provenance_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep legacy collector tests focused on their own injected process behavior."""
+
+    wheel = importlib.import_module("beta_evidence.wheel")
+    soak = importlib.import_module("beta_evidence.soak")
+    core = importlib.import_module("beta_evidence.core")
+    monkeypatch.setattr(wheel, "_verify_candidate_python", lambda _python: _TEST_CANDIDATE_DIGEST)
+
+    def binding(output: Path, candidate_digest: object) -> str:
+        checkpoint = core._load_checkpoint(output)
+        wheel_record = checkpoint["gates"].get("wheel")
+        if isinstance(wheel_record, dict) and isinstance(wheel_record.get("details"), dict):
+            details = wheel_record["details"]
+            return cast(
+                str,
+                core._candidate_wheel_binding_digest(details.get("wheel_sha256"), candidate_digest),
+            )
+        return "b" * 64
+
+    monkeypatch.setattr(soak, "_require_bound_wheel", binding)
+
+
 def test_wheel_requires_exact_daily_source_fingerprint(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, wheel = _wheel_source(tmp_path)
@@ -648,7 +674,7 @@ def test_report_is_ready_after_collected_code_audit_and_soak(tmp_path: Path) -> 
             duration_seconds=1,
             max_cycles=1,
             interval_seconds=0,
-            candidate_verifier=lambda _: "e" * 64,
+            candidate_verifier=lambda _: _TEST_CANDIDATE_DIGEST,
             probe_runner=lambda *_args: _soak_payload(),
             clock=lambda: next(ticks),
             sleeper=lambda _: None,
@@ -659,6 +685,148 @@ def test_report_is_ready_after_collected_code_audit_and_soak(tmp_path: Path) -> 
     module.collect_issues(output, issues_path=issue_path, dispositions_path=disposition_path)
     module.collect_report(output)
     assert "## Verdict: READY" in (output / "summary.md").read_text(encoding="utf-8")
+
+
+def _record_bound_wheel(
+    module: ModuleType,
+    output: Path,
+    *,
+    provenance_digest: str = _TEST_CANDIDATE_DIGEST,
+    status: str = "PASS",
+) -> str:
+    core = importlib.import_module("beta_evidence.core")
+    wheel_sha256 = "a" * 64
+    binding = core._candidate_wheel_binding_digest(wheel_sha256, provenance_digest)
+    core._record_gate(
+        output,
+        module.GateRecord(
+            "wheel",
+            "f" * 64,
+            status,
+            {
+                "wheel_sha256": wheel_sha256,
+                "candidate_provenance_digest": provenance_digest,
+                "candidate_wheel_binding_digest": binding,
+            },
+        ),
+    )
+    return cast(str, binding)
+
+
+def test_soak_requires_a_passing_bound_wheel_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak = importlib.import_module("beta_evidence.soak")
+    core = importlib.import_module("beta_evidence.core")
+    monkeypatch.setattr(soak, "_require_bound_wheel", core._require_bound_wheel)
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    arguments = {
+        "candidate_python": Path(sys.executable),
+        "source_vault": source,
+        "expected_source_file": fingerprint,
+        "working_root": tmp_path / "soak-copy",
+        "page_parse_timeout_seconds": 60,
+        "duration_seconds": 1,
+        "max_cycles": 1,
+        "interval_seconds": 0,
+        "candidate_verifier": lambda _python: _TEST_CANDIDATE_DIGEST,
+    }
+    with pytest.raises(module.EvidenceError, match="^soak_wheel_binding_missing$"):
+        module.collect_soak(output, **arguments)
+    _record_bound_wheel(module, output, status="FAIL")
+    with pytest.raises(module.EvidenceError, match="^soak_wheel_binding_missing$"):
+        module.collect_soak(output, **arguments)
+    malformed_output = tmp_path / "malformed-evidence"
+    core._record_gate(
+        malformed_output,
+        module.GateRecord(
+            "wheel",
+            "e" * 64,
+            "PASS",
+            {
+                "wheel_sha256": "a" * 64,
+                "candidate_provenance_digest": _TEST_CANDIDATE_DIGEST,
+                "candidate_wheel_binding_digest": "malformed",
+            },
+        ),
+    )
+    with pytest.raises(module.EvidenceError, match="^soak_wheel_binding_invalid$"):
+        module.collect_soak(malformed_output, **arguments)
+
+
+def test_bound_soak_matches_live_candidate_and_persists_only_sanitized_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak = importlib.import_module("beta_evidence.soak")
+    core = importlib.import_module("beta_evidence.core")
+    monkeypatch.setattr(soak, "_require_bound_wheel", core._require_bound_wheel)
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    binding = _record_bound_wheel(module, output)
+    with pytest.raises(module.EvidenceError, match="^soak_candidate_provenance_mismatch$"):
+        module.collect_soak(
+            output,
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "mismatch-copy",
+            page_parse_timeout_seconds=60,
+            duration_seconds=1,
+            max_cycles=1,
+            interval_seconds=0,
+            candidate_verifier=lambda _python: "d" * 64,
+        )
+    record = module.collect_soak(
+        output,
+        candidate_python=Path(sys.executable),
+        source_vault=source,
+        expected_source_file=fingerprint,
+        working_root=tmp_path / "bound-copy",
+        page_parse_timeout_seconds=60,
+        duration_seconds=1,
+        max_cycles=1,
+        interval_seconds=0,
+        candidate_verifier=lambda _python: _TEST_CANDIDATE_DIGEST,
+        probe_runner=lambda *_args: _soak_payload(),
+        clock=iter((0.0, 1.0)).__next__,
+        sleeper=lambda _seconds: None,
+    )
+    assert record.status == "PASS"
+    assert record.details["candidate_wheel_binding_digest"] == binding
+    assert record.details["candidate_provenance_digest"] == _TEST_CANDIDATE_DIGEST
+    for artifact in ("checkpoint.json", "evidence.json", "soak-state.json", "soak-result.json"):
+        content = (output / artifact).read_text(encoding="utf-8")
+        assert str(source) not in content
+        assert str(Path(sys.executable)) not in content
+        assert "daily note" not in content
+
+
+def test_report_rejects_legacy_or_malformed_wheel_soak_bindings() -> None:
+    core = importlib.import_module("beta_evidence.core")
+    wheel_sha256 = "a" * 64
+    binding = core._candidate_wheel_binding_digest(wheel_sha256, _TEST_CANDIDATE_DIGEST)
+    gates = {gate_id: {"status": "PASS", "details": {}} for gate_id in core._REQUIRED_GATES}
+    gates["wheel"] = {
+        "status": "PASS",
+        "details": {
+            "wheel_sha256": wheel_sha256,
+            "candidate_provenance_digest": _TEST_CANDIDATE_DIGEST,
+            "candidate_wheel_binding_digest": binding,
+        },
+    }
+    gates["soak"] = {"status": "PASS", "details": {}}
+    assert "## Verdict: NOT READY" in core.render_summary({"gates": gates})
+    gates["soak"] = {
+        "status": "PASS",
+        "details": {
+            "candidate_provenance_digest": _TEST_CANDIDATE_DIGEST,
+            "candidate_wheel_binding_digest": "not-a-sha256",
+        },
+    }
+    assert "## Verdict: NOT READY" in core.render_summary({"gates": gates})
 
 
 def test_wheel_timeout_and_malformed_probe_record_safe_failures(tmp_path: Path) -> None:
