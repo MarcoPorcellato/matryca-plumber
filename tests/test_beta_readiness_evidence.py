@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import base64
+import csv
+import hashlib
 import importlib
 import json
 import os
@@ -16,6 +19,7 @@ import pytest
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "beta_readiness_evidence.py"
 _SCRIPTS = _SCRIPT.parent
+type RecordEntry = tuple[str, bytes, str | None, str | None]
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
@@ -487,6 +491,148 @@ def test_wheel_provenance_uses_venv_prefix_when_interpreter_is_symlinked(
     assert wheel_module._is_imported_from_venv_site_packages(imported, tmp_path / "venv")
 
 
+def _record_hash(payload: bytes, algorithm: str = "sha256") -> str:
+    digest = hashlib.new(algorithm, payload).digest()
+    encoded = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+    return f"{algorithm}={encoded}"
+
+
+def _candidate_probe_digest(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    entries: list[RecordEntry],
+) -> str:
+    """Execute the isolated candidate probe against a synthetic installed distribution."""
+
+    wheel_module = importlib.import_module("beta_evidence.wheel")
+    prefix = tmp_path / "venv"
+    site_packages = prefix / "lib" / "python3.12" / "site-packages"
+    record = "matryca_plumber-2.0.0b1.dist-info/RECORD"
+    locations: dict[str, Path] = {}
+    rows: list[list[str]] = []
+    for path, payload, hash_spec, size in entries:
+        location = (
+            tmp_path / "outside" / path.replace("../", "outside/")
+            if path.startswith("../")
+            else site_packages / path
+        )
+        location.parent.mkdir(parents=True, exist_ok=True)
+        location.write_bytes(payload)
+        locations[path] = location
+        rows.append(
+            [
+                path,
+                _record_hash(payload) if hash_spec is None else hash_spec,
+                str(len(payload)) if size is None else size,
+            ]
+        )
+    record_location = site_packages / record
+    record_location.parent.mkdir(parents=True, exist_ok=True)
+    with record_location.open("w", encoding="utf-8", newline="") as output:
+        csv.writer(output).writerows(rows)
+    locations[record] = record_location
+
+    class Distribution:
+        files = (record,)
+
+        @staticmethod
+        def locate_file(path: object) -> Path:
+            return locations[str(path)]
+
+    metadata_module = importlib.import_module("importlib.metadata")
+    src_module = ModuleType("src")
+    src_module.__file__ = str(site_packages / "src" / "__init__.py")
+    monkeypatch.setattr(sys, "prefix", str(prefix))
+    monkeypatch.setattr(metadata_module, "distribution", lambda _name: Distribution())
+    monkeypatch.setattr(metadata_module, "version", lambda _name: "2.0.0b1")
+    monkeypatch.setitem(sys.modules, "src", src_module)
+
+    exec(wheel_module._CANDIDATE_PROBE, {})
+    return capsys.readouterr().out.strip()
+
+
+def test_candidate_provenance_digest_ignores_record_order_and_generated_entries(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    stable: list[RecordEntry] = [
+        ("matryca_plumber-2.0.0b1.dist-info/METADATA", b"Name: matryca-plumber\n", None, None),
+        ("src/__init__.py", b"__version__ = '2.0.0b1'\n", None, None),
+    ]
+    generated: list[RecordEntry] = [
+        ("../../../bin/matryca", b"#!/different/venv/bin/python\n", "", ""),
+        ("matryca_plumber-2.0.0b1.dist-info/INSTALLER", b"uv\n", "", ""),
+        ("matryca_plumber-2.0.0b1.dist-info/REQUESTED", b"", "", ""),
+        ("matryca_plumber-2.0.0b1.dist-info/direct_url.json", b"{}\n", "", ""),
+        ("matryca_plumber-2.0.0b1.dist-info/uv_cache.json", b"{}\n", "", ""),
+        ("matryca_plumber-2.0.0b1.dist-info/RECORD", b"", "", ""),
+    ]
+
+    first = _candidate_probe_digest(monkeypatch, capsys, tmp_path / "first", stable + generated)
+    second = _candidate_probe_digest(
+        monkeypatch,
+        capsys,
+        tmp_path / "second",
+        list(reversed(stable)) + list(reversed(generated)),
+    )
+
+    assert first == second
+    assert len(first) == 64
+
+
+def test_candidate_provenance_digest_tracks_payload_and_record_hashes(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    metadata = ("matryca_plumber-2.0.0b1.dist-info/METADATA", b"Name: matryca-plumber\n")
+    payload = ("src/__init__.py", b"__version__ = '2.0.0b1'\n")
+    baseline: list[RecordEntry] = [
+        (metadata[0], metadata[1], None, None),
+        (*payload, None, None),
+    ]
+    first = _candidate_probe_digest(monkeypatch, capsys, tmp_path / "first", baseline)
+    payload_changed = _candidate_probe_digest(
+        monkeypatch,
+        capsys,
+        tmp_path / "payload-changed",
+        [
+            (metadata[0], metadata[1], None, None),
+            (payload[0], b"__version__ = 'changed'\n", None, None),
+        ],
+    )
+    hash_changed = _candidate_probe_digest(
+        monkeypatch,
+        capsys,
+        tmp_path / "hash-changed",
+        [
+            (metadata[0], metadata[1], _record_hash(metadata[1], "sha512"), None),
+            (*payload, None, None),
+        ],
+    )
+
+    assert first != payload_changed
+    assert first != hash_changed
+
+
+def test_candidate_provenance_digest_rejects_missing_stable_entry_evidence(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    with pytest.raises(AssertionError):
+        _candidate_probe_digest(
+            monkeypatch,
+            capsys,
+            tmp_path,
+            [
+                (
+                    "matryca_plumber-2.0.0b1.dist-info/METADATA",
+                    b"Name: matryca-plumber\n",
+                    None,
+                    None,
+                ),
+                ("src/__init__.py", b"payload\n", _record_hash(b"payload\n"), ""),
+            ],
+        )
+
+
 def test_soak_candidate_uses_venv_python_symlink_and_its_site_packages(tmp_path: Path) -> None:
     soak_module = importlib.import_module("beta_evidence.soak")
     venv_root = tmp_path / "candidate-venv"
@@ -509,12 +655,11 @@ def test_soak_candidate_uses_venv_python_symlink_and_its_site_packages(tmp_path:
     (site_packages / "src" / "__init__.py").write_text("", encoding="utf-8")
     distribution = site_packages / "matryca_plumber-2.0.0b1.dist-info"
     distribution.mkdir()
-    (distribution / "METADATA").write_text(
-        "Metadata-Version: 2.1\nName: matryca-plumber\nVersion: 2.0.0b1\n",
-        encoding="utf-8",
-    )
+    metadata = b"Metadata-Version: 2.1\nName: matryca-plumber\nVersion: 2.0.0b1\n"
+    (distribution / "METADATA").write_bytes(metadata)
     (distribution / "RECORD").write_text(
-        "matryca_plumber-2.0.0b1.dist-info/METADATA,,\n"
+        f"matryca_plumber-2.0.0b1.dist-info/METADATA,{_record_hash(metadata)},{len(metadata)}\n"
+        f"src/__init__.py,{_record_hash(b'')},0\n"
         "matryca_plumber-2.0.0b1.dist-info/RECORD,,\n",
         encoding="utf-8",
     )
