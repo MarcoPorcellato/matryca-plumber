@@ -10,6 +10,7 @@ import sys
 import venv
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 
 import pytest
 
@@ -1111,14 +1112,17 @@ def test_soak_process_failure_persists_only_sanitized_probe_stage(tmp_path: Path
         page_parse_timeout_seconds: int,
         cycle: int,
     ) -> dict[str, object]:
-        return soak._run_process(
-            candidate,
-            graph,
-            code,
-            cycle=cycle,
-            enabled=False,
-            timeout_seconds=timeout_seconds,
-            page_parse_timeout_seconds=page_parse_timeout_seconds,
+        return cast(
+            dict[str, object],
+            soak._run_process(
+                candidate,
+                graph,
+                code,
+                cycle=cycle,
+                enabled=False,
+                timeout_seconds=timeout_seconds,
+                page_parse_timeout_seconds=page_parse_timeout_seconds,
+            ),
         )
 
     with pytest.raises(soak.EvidenceError, match="^probe_flag_off_failed$") as raised:
