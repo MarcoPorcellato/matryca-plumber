@@ -10,6 +10,7 @@ import sys
 import venv
 from pathlib import Path
 from types import ModuleType
+from typing import Any, cast
 
 import pytest
 
@@ -384,6 +385,32 @@ def _successful_command(*_: object, **__: object) -> subprocess.CompletedProcess
     return subprocess.CompletedProcess([], 0, stdout="", stderr="")
 
 
+_TEST_CANDIDATE_DIGEST = "c" * 64
+
+
+@pytest.fixture(autouse=True)
+def _isolated_provenance_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep legacy collector tests focused on their own injected process behavior."""
+
+    wheel = importlib.import_module("beta_evidence.wheel")
+    soak = importlib.import_module("beta_evidence.soak")
+    core = importlib.import_module("beta_evidence.core")
+    monkeypatch.setattr(wheel, "_verify_candidate_python", lambda _python: _TEST_CANDIDATE_DIGEST)
+
+    def binding(output: Path, candidate_digest: object) -> str:
+        checkpoint = core._load_checkpoint(output)
+        wheel_record = checkpoint["gates"].get("wheel")
+        if isinstance(wheel_record, dict) and isinstance(wheel_record.get("details"), dict):
+            details = wheel_record["details"]
+            return cast(
+                str,
+                core._candidate_wheel_binding_digest(details.get("wheel_sha256"), candidate_digest),
+            )
+        return "b" * 64
+
+    monkeypatch.setattr(soak, "_require_bound_wheel", binding)
+
+
 def test_wheel_requires_exact_daily_source_fingerprint(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, wheel = _wheel_source(tmp_path)
@@ -647,7 +674,7 @@ def test_report_is_ready_after_collected_code_audit_and_soak(tmp_path: Path) -> 
             duration_seconds=1,
             max_cycles=1,
             interval_seconds=0,
-            candidate_verifier=lambda _: "e" * 64,
+            candidate_verifier=lambda _: _TEST_CANDIDATE_DIGEST,
             probe_runner=lambda *_args: _soak_payload(),
             clock=lambda: next(ticks),
             sleeper=lambda _: None,
@@ -658,6 +685,148 @@ def test_report_is_ready_after_collected_code_audit_and_soak(tmp_path: Path) -> 
     module.collect_issues(output, issues_path=issue_path, dispositions_path=disposition_path)
     module.collect_report(output)
     assert "## Verdict: READY" in (output / "summary.md").read_text(encoding="utf-8")
+
+
+def _record_bound_wheel(
+    module: ModuleType,
+    output: Path,
+    *,
+    provenance_digest: str = _TEST_CANDIDATE_DIGEST,
+    status: str = "PASS",
+) -> str:
+    core = importlib.import_module("beta_evidence.core")
+    wheel_sha256 = "a" * 64
+    binding = core._candidate_wheel_binding_digest(wheel_sha256, provenance_digest)
+    core._record_gate(
+        output,
+        module.GateRecord(
+            "wheel",
+            "f" * 64,
+            status,
+            {
+                "wheel_sha256": wheel_sha256,
+                "candidate_provenance_digest": provenance_digest,
+                "candidate_wheel_binding_digest": binding,
+            },
+        ),
+    )
+    return cast(str, binding)
+
+
+def test_soak_requires_a_passing_bound_wheel_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak = importlib.import_module("beta_evidence.soak")
+    core = importlib.import_module("beta_evidence.core")
+    monkeypatch.setattr(soak, "_require_bound_wheel", core._require_bound_wheel)
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    arguments = {
+        "candidate_python": Path(sys.executable),
+        "source_vault": source,
+        "expected_source_file": fingerprint,
+        "working_root": tmp_path / "soak-copy",
+        "page_parse_timeout_seconds": 60,
+        "duration_seconds": 1,
+        "max_cycles": 1,
+        "interval_seconds": 0,
+        "candidate_verifier": lambda _python: _TEST_CANDIDATE_DIGEST,
+    }
+    with pytest.raises(module.EvidenceError, match="^soak_wheel_binding_missing$"):
+        module.collect_soak(output, **arguments)
+    _record_bound_wheel(module, output, status="FAIL")
+    with pytest.raises(module.EvidenceError, match="^soak_wheel_binding_missing$"):
+        module.collect_soak(output, **arguments)
+    malformed_output = tmp_path / "malformed-evidence"
+    core._record_gate(
+        malformed_output,
+        module.GateRecord(
+            "wheel",
+            "e" * 64,
+            "PASS",
+            {
+                "wheel_sha256": "a" * 64,
+                "candidate_provenance_digest": _TEST_CANDIDATE_DIGEST,
+                "candidate_wheel_binding_digest": "malformed",
+            },
+        ),
+    )
+    with pytest.raises(module.EvidenceError, match="^soak_wheel_binding_invalid$"):
+        module.collect_soak(malformed_output, **arguments)
+
+
+def test_bound_soak_matches_live_candidate_and_persists_only_sanitized_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak = importlib.import_module("beta_evidence.soak")
+    core = importlib.import_module("beta_evidence.core")
+    monkeypatch.setattr(soak, "_require_bound_wheel", core._require_bound_wheel)
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    binding = _record_bound_wheel(module, output)
+    with pytest.raises(module.EvidenceError, match="^soak_candidate_provenance_mismatch$"):
+        module.collect_soak(
+            output,
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "mismatch-copy",
+            page_parse_timeout_seconds=60,
+            duration_seconds=1,
+            max_cycles=1,
+            interval_seconds=0,
+            candidate_verifier=lambda _python: "d" * 64,
+        )
+    record = module.collect_soak(
+        output,
+        candidate_python=Path(sys.executable),
+        source_vault=source,
+        expected_source_file=fingerprint,
+        working_root=tmp_path / "bound-copy",
+        page_parse_timeout_seconds=60,
+        duration_seconds=1,
+        max_cycles=1,
+        interval_seconds=0,
+        candidate_verifier=lambda _python: _TEST_CANDIDATE_DIGEST,
+        probe_runner=lambda *_args: _soak_payload(),
+        clock=iter((0.0, 1.0)).__next__,
+        sleeper=lambda _seconds: None,
+    )
+    assert record.status == "PASS"
+    assert record.details["candidate_wheel_binding_digest"] == binding
+    assert record.details["candidate_provenance_digest"] == _TEST_CANDIDATE_DIGEST
+    for artifact in ("checkpoint.json", "evidence.json", "soak-state.json", "soak-result.json"):
+        content = (output / artifact).read_text(encoding="utf-8")
+        assert str(source) not in content
+        assert str(Path(sys.executable)) not in content
+        assert "daily note" not in content
+
+
+def test_report_rejects_legacy_or_malformed_wheel_soak_bindings() -> None:
+    core = importlib.import_module("beta_evidence.core")
+    wheel_sha256 = "a" * 64
+    binding = core._candidate_wheel_binding_digest(wheel_sha256, _TEST_CANDIDATE_DIGEST)
+    gates = {gate_id: {"status": "PASS", "details": {}} for gate_id in core._REQUIRED_GATES}
+    gates["wheel"] = {
+        "status": "PASS",
+        "details": {
+            "wheel_sha256": wheel_sha256,
+            "candidate_provenance_digest": _TEST_CANDIDATE_DIGEST,
+            "candidate_wheel_binding_digest": binding,
+        },
+    }
+    gates["soak"] = {"status": "PASS", "details": {}}
+    assert "## Verdict: NOT READY" in core.render_summary({"gates": gates})
+    gates["soak"] = {
+        "status": "PASS",
+        "details": {
+            "candidate_provenance_digest": _TEST_CANDIDATE_DIGEST,
+            "candidate_wheel_binding_digest": "not-a-sha256",
+        },
+    }
+    assert "## Verdict: NOT READY" in core.render_summary({"gates": gates})
 
 
 def test_wheel_timeout_and_malformed_probe_record_safe_failures(tmp_path: Path) -> None:
@@ -765,6 +934,33 @@ def _soak_payload() -> dict[str, object]:
         "rss_kib": 128,
         "elapsed_ms": 12.5,
     }
+
+
+def _soak_phase_payload(phase: str) -> dict[str, object]:
+    payload = _soak_payload()
+    if phase == "ON":
+        return {
+            name: value for name, value in payload.items() if name not in {"flag_off", "elapsed_ms"}
+        }
+    return {"flag_off": True, "rss_kib": 64}
+
+
+def _collect_test_soak(
+    module: ModuleType, output: Path, source: Path, fingerprint: Path, **overrides: Any
+) -> Any:
+    arguments: dict[str, Any] = {
+        "candidate_python": Path(sys.executable),
+        "source_vault": source,
+        "expected_source_file": fingerprint,
+        "working_root": output.parent / "durable-copy",
+        "page_parse_timeout_seconds": 60,
+        "duration_seconds": 1,
+        "max_cycles": 1,
+        "interval_seconds": 0,
+        "candidate_verifier": lambda _python: "candidate-digest",
+    }
+    arguments.update(overrides)
+    return module.collect_soak(output, **arguments)
 
 
 def test_soak_persists_only_sanitized_trends_after_explicit_short_duration(tmp_path: Path) -> None:
@@ -929,20 +1125,21 @@ def test_soak_rejects_working_copy_drift_after_probe(tmp_path: Path) -> None:
         (work / "pages" / "daily.md").write_text("- leaked fixture\n", encoding="utf-8")
         return _soak_payload()
 
-    with pytest.raises(module.EvidenceError, match="working_copy_changed"):
-        module.collect_soak(
-            tmp_path / "evidence",
-            candidate_python=Path(sys.executable),
-            source_vault=source,
-            expected_source_file=fingerprint,
-            working_root=tmp_path / "durable-copy",
-            page_parse_timeout_seconds=60,
-            duration_seconds=60,
-            max_cycles=1,
-            interval_seconds=0,
-            probe_runner=mutate_work,
-            candidate_verifier=lambda _python: "candidate-digest",
-        )
+    record = module.collect_soak(
+        tmp_path / "evidence",
+        candidate_python=Path(sys.executable),
+        source_vault=source,
+        expected_source_file=fingerprint,
+        working_root=tmp_path / "durable-copy",
+        page_parse_timeout_seconds=60,
+        duration_seconds=60,
+        max_cycles=1,
+        interval_seconds=0,
+        probe_runner=mutate_work,
+        candidate_verifier=lambda _python: "candidate-digest",
+    )
+    assert record.status == "FAIL"
+    assert record.details["failure_category"] == "working_copy_changed"
 
 
 def test_soak_rejects_candidate_version_mismatch_before_copy(tmp_path: Path) -> None:
@@ -1055,6 +1252,335 @@ def test_soak_runs_flag_on_before_non_vacuous_flag_off(monkeypatch: pytest.Monke
     monkeypatch.setattr(soak, "_run_process", fake_process)
     soak._run_soak_probe(Path(sys.executable), Path("/unused"), 1, 60, 0)
     assert calls == [True, False]
+
+
+def test_soak_embedded_probes_run_against_synthetic_graph(tmp_path: Path) -> None:
+    soak = importlib.import_module("beta_evidence.soak")
+    graph = tmp_path / "synthetic-graph"
+    pages = graph / "pages"
+    pages.mkdir(parents=True)
+    (pages / "daily.md").write_text("- synthetic soak graph\n", encoding="utf-8")
+
+    payload = soak._run_soak_probe(Path(sys.executable), graph, 60, 60, 0)
+
+    assert payload["flag_off"] is True
+    assert payload["flag_on"] is True
+    assert payload["restart_health"] is True
+    assert payload["fts"] is True
+    assert payload["subtree"] == "PASS"
+    assert payload["synthetic_crud"] == "PASS"
+    assert payload["recovery"] is True
+
+
+def test_soak_process_failure_persists_only_sanitized_probe_stage(tmp_path: Path) -> None:
+    soak = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    raw_secret = "do-not-persist-child-secret"
+    raw_path = "/private/do-not-persist/child-path"
+    raw_message = "do-not-persist-child-message"
+    code = (
+        "import sys; "
+        f"print({raw_secret!r}); "
+        f"print({raw_path!r}, file=sys.stderr); "
+        f"raise RuntimeError({raw_message!r})"
+    )
+
+    with pytest.raises(soak.EvidenceError, match="^probe_flag_on_failed$") as on_raised:
+        soak._run_process(
+            Path(sys.executable),
+            tmp_path,
+            code,
+            cycle=0,
+            enabled=True,
+            timeout_seconds=1,
+            page_parse_timeout_seconds=60,
+        )
+    assert str(on_raised.value) == "probe_flag_on_failed"
+    assert raw_secret not in str(on_raised.value)
+    assert raw_path not in str(on_raised.value)
+    assert raw_message not in str(on_raised.value)
+
+    def failing_probe(
+        candidate: Path,
+        graph: Path,
+        timeout_seconds: int,
+        page_parse_timeout_seconds: int,
+        cycle: int,
+    ) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            soak._run_process(
+                candidate,
+                graph,
+                code,
+                cycle=cycle,
+                enabled=False,
+                timeout_seconds=timeout_seconds,
+                page_parse_timeout_seconds=page_parse_timeout_seconds,
+            ),
+        )
+
+    with pytest.raises(soak.EvidenceError, match="^probe_flag_off_failed$") as raised:
+        _collect_test_soak(
+            soak,
+            output,
+            source,
+            fingerprint,
+            probe_runner=failing_probe,
+            clock=lambda: 0.0,
+        )
+
+    assert str(raised.value) == "probe_flag_off_failed"
+    state = json.loads((output / "soak-state.json").read_text(encoding="utf-8"))
+    assert state["status"] == "RUNNING"
+    assert state["completed_cycles"] == 0
+    assert state["last_failure_category"] == "probe_flag_off_failed"
+    assert state["attempt_history"][-1]["category"] == "probe_flag_off_failed"
+    for artifact in ("soak-state.json", "soak-heartbeat.json"):
+        evidence = (output / artifact).read_text(encoding="utf-8")
+        assert raw_secret not in evidence
+        assert raw_path not in evidence
+        assert raw_message not in evidence
+
+    record = _collect_test_soak(
+        soak,
+        output,
+        source,
+        fingerprint,
+        probe_runner=lambda *_args: _soak_payload(),
+        clock=iter((0.0, 1.0)).__next__,
+    )
+    assert record.status == "PASS"
+    integrity_state = json.loads((output / "soak-state.json").read_text(encoding="utf-8"))
+    integrity_state["attempt_history"][0]["outcome"] = "PASS"
+    previous_digest = ""
+    for attempt in integrity_state["attempt_history"]:
+        attempt["previous_digest"] = previous_digest
+        attempt["digest"] = soak._attempt_digest(
+            previous_digest, {key: value for key, value in attempt.items() if key != "digest"}
+        )
+        previous_digest = attempt["digest"]
+    integrity_state["attempt_cursor"] = previous_digest
+    (output / "soak-state.json").write_text(json.dumps(integrity_state), encoding="utf-8")
+    assert soak._load_state(output) is not None
+    integrity_state["attempt_history"][0]["outcome"] = "FAIL"
+    (output / "soak-state.json").write_text(json.dumps(integrity_state), encoding="utf-8")
+    with pytest.raises(soak.EvidenceError, match="^soak_state_invalid$"):
+        _collect_test_soak(soak, output, source, fingerprint, clock=lambda: 0.0)
+
+
+def test_soak_attempt_history_limit_finishes_without_unbounded_growth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+
+    def fail_phase(*_args: object) -> dict[str, object]:
+        raise module.EvidenceError("probe_timeout")
+
+    monkeypatch.setattr(soak, "_ATTEMPT_HISTORY_LIMIT", 2)
+    monkeypatch.setattr(soak, "_run_soak_phase", fail_phase)
+    for _ in range(2):
+        with pytest.raises(module.EvidenceError, match="^probe_timeout$"):
+            _collect_test_soak(module, output, source, fingerprint, clock=lambda: 0.0)
+    record = _collect_test_soak(module, output, source, fingerprint, clock=lambda: 0.0)
+    state = json.loads((output / "soak-state.json").read_text(encoding="utf-8"))
+    assert record.status == "FAIL"
+    assert record.details["failure_category"] == "soak_attempt_limit"
+    assert len(state["attempt_history"]) == 2
+
+
+def test_soak_interrupt_between_phases_restarts_the_whole_pair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak_module = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    calls: list[tuple[int, str]] = []
+    raw_secret = "never-store-phase-payload"
+    interrupted = False
+
+    def phases(
+        _python: Path, _work: Path, _timeout: int, _parse_timeout: int, cycle: int, phase: str
+    ) -> dict[str, object]:
+        nonlocal interrupted
+        calls.append((cycle, phase))
+        if phase == "OFF" and not interrupted:
+            interrupted = True
+            raise KeyboardInterrupt
+        payload = _soak_phase_payload(phase)
+        payload["untrusted_detail"] = raw_secret
+        return payload
+
+    output = tmp_path / "evidence"
+    monkeypatch.setattr(soak_module, "_run_soak_phase", phases)
+    monkeypatch.setattr(soak_module.time, "monotonic", iter((10.0, 20.0, 20.125)).__next__)
+    with pytest.raises(KeyboardInterrupt):
+        _collect_test_soak(
+            module,
+            output,
+            source,
+            fingerprint,
+            clock=lambda: 0.0,
+        )
+    interrupted_state = json.loads((output / "soak-state.json").read_text(encoding="utf-8"))
+    assert interrupted_state["next_phase"] == "OFF"
+    assert interrupted_state["trends"] == []
+    assert [attempt["phase"] for attempt in interrupted_state["attempt_history"]] == ["ON"]
+
+    record = _collect_test_soak(
+        module,
+        output,
+        source,
+        fingerprint,
+        clock=iter((0.0, 1.0)).__next__,
+    )
+    assert record.status == "PASS"
+    state = json.loads((output / "soak-state.json").read_text(encoding="utf-8"))
+    assert calls == [(0, "ON"), (0, "OFF"), (0, "ON"), (0, "OFF")]
+    assert [attempt["phase"] for attempt in state["attempt_history"]] == ["ON", "OFF", "ON", "OFF"]
+    assert state["attempt_history"][1]["outcome"] == "FAIL"
+    assert state["attempt_history"][1]["category"] == "probe_interrupted"
+    assert len(state["trends"]) == 1
+    assert state["trends"][0]["elapsed_ms"] == 125.0
+    assert raw_secret not in (output / "soak-state.json").read_text(encoding="utf-8")
+
+
+def test_soak_cycle_n_recoverable_failure_preserves_completed_pairs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak_module = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+
+    def phases(
+        _python: Path, _work: Path, _timeout: int, _parse_timeout: int, cycle: int, phase: str
+    ) -> dict[str, object]:
+        if cycle == 1 and phase == "ON":
+            raise module.EvidenceError("probe_timeout")
+        return _soak_phase_payload(phase)
+
+    monkeypatch.setattr(soak_module, "_run_soak_phase", phases)
+    with pytest.raises(module.EvidenceError, match="^probe_timeout$"):
+        _collect_test_soak(
+            module,
+            tmp_path / "evidence",
+            source,
+            fingerprint,
+            duration_seconds=2,
+            max_cycles=2,
+            clock=iter((0.0, 0.5)).__next__,
+        )
+    state = json.loads((tmp_path / "evidence" / "soak-state.json").read_text(encoding="utf-8"))
+    assert state["status"] == "RUNNING"
+    assert state["completed_cycles"] == 1
+    assert len(state["trends"]) == 1
+    assert state["attempt_history"][-1] == {
+        "sequence": 2,
+        "cycle": 1,
+        "phase": "ON",
+        "outcome": "FAIL",
+        "category": "probe_timeout",
+        "previous_digest": state["attempt_history"][-2]["digest"],
+        "digest": state["attempt_cursor"],
+    }
+
+
+def test_soak_migrates_running_v1_trends_as_legacy_combined(tmp_path: Path) -> None:
+    module = _module()
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    with pytest.raises(module.EvidenceError, match="^duration_incomplete$"):
+        _collect_test_soak(
+            module,
+            output,
+            source,
+            fingerprint,
+            duration_seconds=60,
+            probe_runner=lambda *_args: _soak_payload(),
+            clock=iter((0.0, 0.1)).__next__,
+        )
+    state_path = output / "soak-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["schema_version"] = 1
+    state["trends"] = [{key: value for key, value in state["trends"][0].items() if key != "phase"}]
+    state.pop("next_phase")
+    state.pop("attempt_history")
+    state.pop("attempt_cursor")
+    raw_legacy_detail = "never-migrate-this-detail"
+    state["trends"][0]["untrusted_detail"] = raw_legacy_detail
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    with pytest.raises(module.EvidenceError, match="^soak_state_invalid$"):
+        _collect_test_soak(
+            module,
+            output,
+            source,
+            fingerprint,
+            duration_seconds=60,
+            probe_runner=lambda *_args: _soak_payload(),
+            clock=lambda: 0.0,
+        )
+    state["trends"][0].pop("untrusted_detail")
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    with pytest.raises(module.EvidenceError, match="^duration_incomplete$"):
+        _collect_test_soak(
+            module,
+            output,
+            source,
+            fingerprint,
+            duration_seconds=60,
+            probe_runner=lambda *_args: _soak_payload(),
+            clock=lambda: 0.0,
+        )
+    migrated = json.loads(state_path.read_text(encoding="utf-8"))
+    assert migrated["schema_version"] == 2
+    assert migrated["trends"][0]["phase"] == "legacy_combined"
+    assert migrated["attempt_history"][0]["phase"] == "legacy_combined"
+    assert set(migrated["trends"][0]) == {
+        "phase",
+        "source_count",
+        "indexed_count",
+        "rss_kib",
+        "elapsed_ms",
+        "subtree",
+        "synthetic_crud",
+    }
+    assert raw_legacy_detail not in json.dumps(migrated)
+
+
+def test_soak_terminal_working_integrity_failure_renders_zero_cycle_fail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    soak_module = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+
+    def mutate_work(
+        _python: Path, work: Path, _timeout: int, _parse_timeout: int, _cycle: int, phase: str
+    ) -> dict[str, object]:
+        if phase == "ON":
+            (work / "pages" / "daily.md").write_text("- mutated\n", encoding="utf-8")
+        return _soak_phase_payload(phase)
+
+    output = tmp_path / "evidence"
+    monkeypatch.setattr(soak_module, "_run_soak_phase", mutate_work)
+    record = _collect_test_soak(
+        module,
+        output,
+        source,
+        fingerprint,
+        clock=lambda: 0.0,
+    )
+    result = json.loads((output / "soak-result.json").read_text(encoding="utf-8"))
+    assert record.status == "FAIL"
+    assert result["failure_category"] == "working_copy_changed"
+    assert result["cycles_completed"] == 0
+    assert result["rss_kib_min"] is None
 
 
 def test_wheel_deadline_is_hashed_recorded_and_cannot_change_on_resume(tmp_path: Path) -> None:

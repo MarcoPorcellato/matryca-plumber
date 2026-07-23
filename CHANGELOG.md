@@ -3,7 +3,7 @@
 ### Added
 
 - **Explicit beta-evidence parse deadline** — `wheel` and `soak` now require a sanitized, bounded 2–120 second child-only page-parse deadline, record it in resumable evidence, and reject a resume when it changes; this harness setting does not alter the product default of 15 seconds.
-- **Final beta code audit gate** — add a fail-closed `code-audit` evidence command that records only sanitized candidate diff, build, CI, scope, and finding summaries after matching the verified candidate wheel.
+- **Final beta code audit gate** — add a fail-closed `code-audit` evidence command that records only sanitized candidate diff, build, CI, scope, and finding summaries after matching the verified candidate wheel; wheel and soak evidence now share a canonical SHA-256 provenance binding, so absent, malformed, or mismatched bindings cannot become release-ready.
 
 ### Security
 
@@ -17,9 +17,10 @@
 
 ### Fixed
 
+- **Beta soak flag-off probe import and failure hygiene** — resolve the Shadow DB path from its connection module so both embedded probes run; persist only stable phase categories without subprocess diagnostics; and resume recoverable ON/OFF probe failures from integrity-checked, corruption-detecting sanitized state without treating a partial pair as a completed trend.
 - **Beta soak candidate interpreter provenance** — preserve the requested virtual-environment Python invocation path when it symlinks to a managed interpreter, so soak verification retains the venv's installed site-packages while rejecting non-executable candidates.
 - **Beta wheel provenance with symlinked interpreters** — validate installed-module provenance against the active virtual-environment prefix instead of the resolved interpreter target, preventing false evidence failures when the venv executable links to a managed Python installation.
-- **Distribution archive hygiene** — release builds exclude Python bytecode and cache directories from wheel and source distributions; CI rejects any that remain.
+- **Distribution archive hygiene** — release builds stage a clean committed-source snapshot, rebuild the frontend there, build an sdist, and derive the wheel from that sdist; compiled caches and stale ignored assets cannot reach published distributions, and CI rejects any that remain.
 - **Catalog merge-save corruption guard (#198)** — `MasterCatalog.save(replace=False)` now aborts after quarantining unreadable or non-object `master_catalog.json` state instead of merging a stale in-memory snapshot with an empty fallback and overwriting unseen catalog rows; explicit `replace=True` remains available for deliberate rebuilds.
 - **Dependency security advisories (Dependabot #28–#31)** — require MCP Python SDK `>=1.28.1` to include task/session isolation and WebSocket transport fixes, and refresh the frontend lock to patched `brace-expansion>=5.0.7`. Matryca's MCP entrypoint remains stdio-only; no HTTP, WebSocket, or experimental task transport is enabled.
 - **CLI `search bm25` no longer eager-bootstraps AST (#297 / A-CLI-01)** — `matryca search bm25` prepares runtime with `eager_graph=False`, so LogosParser cold load cannot hang BM25 (raw Markdown / Shadow FTS). Other CLI commands keep eager AST warm-up.

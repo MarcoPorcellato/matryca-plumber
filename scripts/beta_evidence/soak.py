@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -22,18 +23,19 @@ from .core import (
     _is_within,
     _record_gate,
     _repo_root_from_script,
+    _require_bound_wheel,
     _require_matching_gate_input,
     validate_output_directory,
 )
 from .wheel import (
-    _WHEEL_CANDIDATE,
     _copy_vault_without_cache,
     _markdown_fingerprint,
     _resolve_source_vault,
     _safe_environment,
+    _verify_candidate_python,
 )
 
-_SOAK_SCHEMA_VERSION = 1
+_SOAK_SCHEMA_VERSION = 2
 _DEFAULT_DURATION_SECONDS = 24 * 60 * 60
 _DEFAULT_MAX_CYCLES = 145
 _DEFAULT_INTERVAL_SECONDS = 10 * 60
@@ -41,6 +43,7 @@ _MAX_DURATION_SECONDS = 7 * 24 * 60 * 60
 _MAX_CYCLES = 10_080
 _MAX_INTERVAL_SECONDS = 60 * 60
 _PROBE_TIMEOUT_SECONDS = 900
+_ATTEMPT_HISTORY_LIMIT = 2 * _MAX_CYCLES + 2
 _STATE_FILE = "soak-state.json"
 _HEARTBEAT_FILE = "soak-heartbeat.json"
 _RESULT_FILE = "soak-result.json"
@@ -52,30 +55,26 @@ type Sleeper = Callable[[float], None]
 type Copier = Callable[[Path, Path], None]
 type CandidateVerifier = Callable[[Path], str]
 
-_CANDIDATE_PROBE = f"""
-import hashlib
-from importlib.metadata import distribution, version
-from pathlib import Path
-import sys
-
-import src
-
-origin = Path(src.__file__).resolve()
-prefix = Path(sys.prefix).resolve()
-assert origin.is_relative_to(prefix)
-assert any(part in ("site-packages", "dist-packages") for part in origin.parts)
-assert version("matryca-plumber") == {_WHEEL_CANDIDATE!r}
-installed = distribution("matryca-plumber")
-files = installed.files or ()
-artifacts = sorted(
-    file for file in files if str(file).endswith((".dist-info/METADATA", ".dist-info/RECORD"))
+_PHASES = ("ON", "OFF")
+_RECOVERABLE_FAILURE_CATEGORIES = frozenset(
+    {
+        "probe_timeout",
+        "probe_launch_failed",
+        "probe_flag_on_failed",
+        "probe_flag_off_failed",
+        "probe_payload_invalid",
+        "probe_invalid",
+    }
 )
-assert len(artifacts) == 2
-digest = hashlib.sha256()
-for artifact in artifacts:
-    digest.update(installed.locate_file(artifact).read_bytes())
-print(digest.hexdigest())
-"""
+_SAFE_CATEGORY = re.compile(r"[a-z0-9_]{1,80}")
+_LEGACY_TREND_FIELDS = (
+    "source_count",
+    "indexed_count",
+    "rss_kib",
+    "elapsed_ms",
+    "subtree",
+    "synthetic_crud",
+)
 
 _OFF_PROBE = r"""
 import json
@@ -86,7 +85,8 @@ import sys
 from pathlib import Path
 
 from src.shadow.bootstrap import rebuild_shadow_from_graph
-from src.shadow.config import shadow_db_enabled, shadow_db_path
+from src.shadow.config import shadow_db_enabled
+from src.shadow.connection import shadow_db_path
 from src.shadow.health import ShadowHealthState, resolve_shadow_health
 
 graph = Path(os.environ["LOGSEQ_GRAPH_PATH"])
@@ -261,6 +261,8 @@ def _load_state(output: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     state = _load_json(path, category="soak_state_invalid")
+    if state.get("schema_version") == 1:
+        return _migrate_v1_running_state(state)
     if state.get("schema_version") != _SOAK_SCHEMA_VERSION:
         raise EvidenceError("soak_state_invalid")
     if not (
@@ -272,19 +274,137 @@ def _load_state(output: Path) -> dict[str, Any] | None:
         and state.get("source_unchanged_during_copy") is True
         and isinstance(state.get("working_markdown_fingerprint"), str)
         and isinstance(state.get("candidate_provenance_digest"), str)
+        and isinstance(state.get("candidate_wheel_binding_digest"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", state["candidate_wheel_binding_digest"]) is not None
         and isinstance(state.get("elapsed_seconds"), (int, float))
         and not isinstance(state.get("elapsed_seconds"), bool)
         and isinstance(state.get("target_duration_seconds"), int)
         and isinstance(state.get("page_parse_timeout_seconds"), int)
+        and state.get("next_phase") in _PHASES
+        and isinstance(state.get("attempt_history"), list)
+        and isinstance(state.get("attempt_cursor"), str)
     ):
         raise EvidenceError("soak_state_invalid")
-    if state["completed_cycles"] < 0 or state["status"] not in {"RUNNING", "PASS", "FAIL"}:
+    if state["completed_cycles"] < 0 or state["status"] not in {"RUNNING", "READY", "PASS", "FAIL"}:
         raise EvidenceError("soak_state_invalid")
     if not 2 <= state["page_parse_timeout_seconds"] <= 120:
         raise EvidenceError("soak_state_invalid")
     if not all(isinstance(item, dict) for item in state["trends"]):
         raise EvidenceError("soak_state_invalid")
+    _validate_attempt_history(state)
     return state
+
+
+def _attempt_digest(previous_digest: str, attempt: Mapping[str, object]) -> str:
+    return _canonical_hash({"previous_digest": previous_digest, **attempt})
+
+
+def _append_attempt(
+    state: dict[str, Any],
+    *,
+    phase: str,
+    outcome: str,
+    category: str | None = None,
+) -> None:
+    if len(state["attempt_history"]) >= _ATTEMPT_HISTORY_LIMIT:
+        raise EvidenceError("soak_attempt_limit")
+    if phase not in (*_PHASES, "legacy_combined") or outcome not in {"PASS", "FAIL"}:
+        raise EvidenceError("soak_state_invalid")
+    if category is not None and _SAFE_CATEGORY.fullmatch(category) is None:
+        raise EvidenceError("soak_state_invalid")
+    previous_digest = str(state["attempt_cursor"])
+    attempt: dict[str, object] = {
+        "sequence": len(state["attempt_history"]),
+        "cycle": state["completed_cycles"],
+        "phase": phase,
+        "outcome": outcome,
+    }
+    if category is not None:
+        attempt["category"] = category
+    attempt["previous_digest"] = previous_digest
+    attempt["digest"] = _attempt_digest(previous_digest, attempt)
+    state["attempt_history"].append(attempt)
+    state["attempt_cursor"] = str(attempt["digest"])
+
+
+def _validate_attempt_history(state: Mapping[str, Any]) -> None:
+    if len(state["attempt_history"]) > _ATTEMPT_HISTORY_LIMIT:
+        raise EvidenceError("soak_state_invalid")
+    cursor = ""
+    for sequence, attempt in enumerate(state["attempt_history"]):
+        if not isinstance(attempt, dict):
+            raise EvidenceError("soak_state_invalid")
+        allowed = {"sequence", "cycle", "phase", "outcome", "previous_digest", "digest"}
+        if "category" in attempt:
+            allowed.add("category")
+        if set(attempt) != allowed:
+            raise EvidenceError("soak_state_invalid")
+        if (
+            attempt.get("sequence") != sequence
+            or not isinstance(attempt.get("cycle"), int)
+            or attempt["cycle"] < 0
+            or attempt.get("phase") not in (*_PHASES, "legacy_combined")
+            or attempt.get("outcome") not in {"PASS", "FAIL"}
+            or attempt.get("previous_digest") != cursor
+            or not isinstance(attempt.get("digest"), str)
+            or (
+                "category" in attempt
+                and (
+                    not isinstance(attempt["category"], str)
+                    or _SAFE_CATEGORY.fullmatch(attempt["category"]) is None
+                )
+            )
+        ):
+            raise EvidenceError("soak_state_invalid")
+        unsigned_attempt = {key: value for key, value in attempt.items() if key != "digest"}
+        expected = _attempt_digest(cursor, unsigned_attempt)
+        if attempt["digest"] != expected:
+            raise EvidenceError("soak_state_invalid")
+        cursor = attempt["digest"]
+    if state["attempt_cursor"] != cursor:
+        raise EvidenceError("soak_state_invalid")
+
+
+def _migrate_v1_running_state(state: dict[str, Any]) -> dict[str, Any]:
+    if (
+        state.get("status") != "RUNNING"
+        or not isinstance(state.get("completed_cycles"), int)
+        or isinstance(state.get("completed_cycles"), bool)
+        or not isinstance(state.get("trends"), list)
+        or state["completed_cycles"] != len(state["trends"])
+    ):
+        raise EvidenceError("soak_state_invalid")
+    migrated = dict(state)
+    migrated["schema_version"] = _SOAK_SCHEMA_VERSION
+    migrated["next_phase"] = "ON"
+    migrated["attempt_history"] = []
+    migrated["attempt_cursor"] = ""
+    legacy_trends: list[dict[str, object]] = []
+    for index, trend in enumerate(migrated["trends"]):
+        if not isinstance(trend, dict) or set(trend) != set(_LEGACY_TREND_FIELDS):
+            raise EvidenceError("soak_state_invalid")
+        if trend["subtree"] not in {"PASS", "SKIPPED"} or trend["synthetic_crud"] not in {
+            "PASS",
+            "SKIPPED",
+        }:
+            raise EvidenceError("soak_state_invalid")
+        legacy_trends.append(
+            {
+                "phase": "legacy_combined",
+                "source_count": _nonnegative_int(trend, "source_count"),
+                "indexed_count": _nonnegative_int(trend, "indexed_count"),
+                "rss_kib": _nonnegative_int(trend, "rss_kib"),
+                "elapsed_ms": _nonnegative_number(trend, "elapsed_ms"),
+                "subtree": trend["subtree"],
+                "synthetic_crud": trend["synthetic_crud"],
+            }
+        )
+        migrated["completed_cycles"] = index
+        _append_attempt(migrated, phase="legacy_combined", outcome="PASS")
+    migrated["trends"] = legacy_trends
+    migrated["completed_cycles"] = len(legacy_trends)
+    _validate_attempt_history(migrated)
+    return migrated
 
 
 def _write_state(output: Path, state: dict[str, Any]) -> None:
@@ -298,6 +418,8 @@ def _write_heartbeat(output: Path, state: Mapping[str, Any]) -> None:
             "schema_version": _SOAK_SCHEMA_VERSION,
             "status": state["status"],
             "completed_cycles": state["completed_cycles"],
+            "next_phase": state["next_phase"],
+            "attempt_cursor": state["attempt_cursor"],
             "updated_at": state["updated_at"],
         },
     )
@@ -320,27 +442,6 @@ def _resolve_candidate_python(candidate_python: Path) -> Path:
     if not candidate.is_file() or not os.access(candidate, os.X_OK):
         raise EvidenceError("candidate_python_invalid")
     return candidate
-
-
-def _verify_candidate_python(candidate_python: Path) -> str:
-    try:
-        completed = subprocess.run(
-            [str(candidate_python), "-c", _CANDIDATE_PROBE],
-            cwd=tempfile.gettempdir(),
-            env={"PATH": os.environ.get("PATH", ""), "PYTHONNOUSERSITE": "1"},
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise EvidenceError("candidate_python_invalid") from exc
-    if completed.returncode != 0:
-        raise EvidenceError("candidate_version_mismatch")
-    digest = completed.stdout.strip()
-    if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
-        raise EvidenceError("candidate_provenance_invalid")
-    return digest
 
 
 def _resolve_working_root(working_root: Path, *, source: Path, output: Path) -> Path:
@@ -384,7 +485,7 @@ def _run_process(
     except OSError as exc:
         raise EvidenceError("probe_launch_failed") from exc
     if completed.returncode != 0:
-        raise EvidenceError("probe_failed")
+        raise EvidenceError("probe_flag_on_failed" if enabled else "probe_flag_off_failed")
     try:
         payload = json.loads(completed.stdout.strip())
     except json.JSONDecodeError as exc:
@@ -426,6 +527,50 @@ def _nonnegative_number(payload: Mapping[str, object], name: str) -> float | int
     return value
 
 
+def _run_soak_phase(
+    candidate_python: Path,
+    working_root: Path,
+    timeout_seconds: int,
+    page_parse_timeout_seconds: int,
+    cycle: int,
+    phase: str,
+) -> dict[str, object]:
+    if phase == "ON":
+        return _run_process(
+            candidate_python,
+            working_root,
+            _ON_PROBE,
+            cycle=cycle,
+            enabled=True,
+            timeout_seconds=timeout_seconds,
+            page_parse_timeout_seconds=page_parse_timeout_seconds,
+        )
+    if phase == "OFF":
+        return _run_process(
+            candidate_python,
+            working_root,
+            _OFF_PROBE,
+            cycle=cycle,
+            enabled=False,
+            timeout_seconds=timeout_seconds,
+            page_parse_timeout_seconds=page_parse_timeout_seconds,
+        )
+    raise EvidenceError("soak_state_invalid")
+
+
+def _validate_phase_payload(phase: str, payload: Mapping[str, object]) -> dict[str, object]:
+    if phase == "ON":
+        validated = _validate_probe_payload({**payload, "flag_off": True, "elapsed_ms": 0.0})
+        return {
+            name: validated[name] for name in validated if name not in {"flag_off", "elapsed_ms"}
+        }
+    if phase == "OFF":
+        if payload.get("flag_off") is not True:
+            raise EvidenceError("probe_invalid")
+        return {"flag_off": True, "rss_kib": _nonnegative_int(payload, "rss_kib")}
+    raise EvidenceError("soak_state_invalid")
+
+
 def _run_soak_probe(
     candidate_python: Path,
     working_root: Path,
@@ -434,23 +579,27 @@ def _run_soak_probe(
     cycle: int,
 ) -> dict[str, object]:
     started = time.monotonic()
-    on = _run_process(
-        candidate_python,
-        working_root,
-        _ON_PROBE,
-        cycle=cycle,
-        enabled=True,
-        timeout_seconds=timeout_seconds,
-        page_parse_timeout_seconds=page_parse_timeout_seconds,
+    on = _validate_phase_payload(
+        "ON",
+        _run_soak_phase(
+            candidate_python,
+            working_root,
+            timeout_seconds,
+            page_parse_timeout_seconds,
+            cycle,
+            "ON",
+        ),
     )
-    off = _run_process(
-        candidate_python,
-        working_root,
-        _OFF_PROBE,
-        cycle=cycle,
-        enabled=False,
-        timeout_seconds=timeout_seconds,
-        page_parse_timeout_seconds=page_parse_timeout_seconds,
+    off = _validate_phase_payload(
+        "OFF",
+        _run_soak_phase(
+            candidate_python,
+            working_root,
+            timeout_seconds,
+            page_parse_timeout_seconds,
+            cycle,
+            "OFF",
+        ),
     )
     payload = {**off, **on, "elapsed_ms": round((time.monotonic() - started) * 1000, 3)}
     validated = _validate_probe_payload(payload)
@@ -462,23 +611,46 @@ def _run_soak_probe(
     return validated
 
 
+def _checkpoint_phase(
+    output: Path,
+    state: dict[str, Any],
+    *,
+    phase: str,
+    outcome: str,
+    next_phase: str,
+    category: str | None = None,
+) -> None:
+    _append_attempt(state, phase=phase, outcome=outcome, category=category)
+    state["next_phase"] = next_phase
+    state["updated_at"] = _now()
+    _write_state(output, state)
+    _write_heartbeat(output, state)
+
+
+def _working_copy_is_intact(work: Path, state: Mapping[str, Any]) -> bool:
+    return work.is_dir() and _markdown_fingerprint(work) == state["working_markdown_fingerprint"]
+
+
 def _trend(payload: Mapping[str, object]) -> dict[str, object]:
     return {
-        name: payload[name]
-        for name in (
-            "source_count",
-            "indexed_count",
-            "rss_kib",
-            "elapsed_ms",
-            "subtree",
-            "synthetic_crud",
-        )
+        "phase": "combined",
+        **{
+            name: payload[name]
+            for name in (
+                "source_count",
+                "indexed_count",
+                "rss_kib",
+                "elapsed_ms",
+                "subtree",
+                "synthetic_crud",
+            )
+        },
     }
 
 
 def _summary_details(state: Mapping[str, Any]) -> dict[str, object]:
     trends = state["trends"]
-    if not isinstance(trends, list) or not trends:
+    if not isinstance(trends, list):
         raise EvidenceError("soak_state_invalid")
     numeric = ("source_count", "indexed_count", "rss_kib", "elapsed_ms")
     details: dict[str, object] = {
@@ -492,12 +664,19 @@ def _summary_details(state: Mapping[str, Any]) -> dict[str, object]:
             state["elapsed_seconds"] >= _DEFAULT_DURATION_SECONDS
             and state["target_duration_seconds"] >= _DEFAULT_DURATION_SECONDS
         ),
+        "candidate_provenance_digest": state["candidate_provenance_digest"],
+        "candidate_wheel_binding_digest": state["candidate_wheel_binding_digest"],
         "subtree_checks": sum(item["subtree"] == "PASS" for item in trends),
         "subtree_skipped": sum(item["subtree"] == "SKIPPED" for item in trends),
         "synthetic_crud_checks": sum(item["synthetic_crud"] == "PASS" for item in trends),
+        "attempts_recorded": len(state["attempt_history"]),
     }
     for name in numeric:
         values = [item[name] for item in trends]
+        if not values:
+            details[f"{name}_min"] = None
+            details[f"{name}_max"] = None
+            continue
         if not all(
             isinstance(value, (int, float)) and not isinstance(value, bool) for value in values
         ):
@@ -519,8 +698,13 @@ def _render_summary(result: Mapping[str, object]) -> str:
         f"Source unchanged during copy: {result['source_unchanged_during_copy']}",
         f"FTS/subtree checks: {result['subtree_checks']} pass, {result['subtree_skipped']} skipped",
         f"Synthetic CRUD checks: {result['synthetic_crud_checks']} pass",
-        f"RSS KiB range: {result['rss_kib_min']}–{result['rss_kib_max']}",
-        f"Probe timing ms range: {result['elapsed_ms_min']}–{result['elapsed_ms_max']}",
+        f"Attempts recorded: {result['attempts_recorded']}",
+        "RSS KiB range: "
+        f"{result['rss_kib_min'] if result['rss_kib_min'] is not None else 'not observed'}–"
+        f"{result['rss_kib_max'] if result['rss_kib_max'] is not None else 'not observed'}",
+        "Probe timing ms range: "
+        f"{result['elapsed_ms_min'] if result['elapsed_ms_min'] is not None else 'not observed'}–"
+        f"{result['elapsed_ms_max'] if result['elapsed_ms_max'] is not None else 'not observed'}",
         "",
     ]
     return "\n".join(lines)
@@ -579,17 +763,17 @@ def collect_soak(
     source = _resolve_source_vault(source_vault, expected_source_file)
     candidate = _resolve_candidate_python(candidate_python)
     candidate_digest = candidate_verifier(candidate)
-    if not candidate_digest:
-        raise EvidenceError("candidate_provenance_invalid")
     resolved_output = validate_output_directory(
         output, repo_root=_repo_root_from_script(), protected_roots=[source]
     )
+    candidate_wheel_binding_digest = _require_bound_wheel(resolved_output, candidate_digest)
     work = _resolve_working_root(working_root, source=source, output=resolved_output)
     input_hash = _canonical_hash(
         {
             "source_realpath_sha256": hashlib.sha256(str(source).encode()).hexdigest(),
             "expected_source_sha256": hashlib.sha256(expected_source_file.read_bytes()).hexdigest(),
             "candidate_provenance_digest": candidate_digest,
+            "candidate_wheel_binding_digest": candidate_wheel_binding_digest,
             "duration_seconds": duration_seconds,
             "max_cycles": max_cycles,
             "interval_seconds": interval_seconds,
@@ -622,10 +806,14 @@ def collect_soak(
             "status": "RUNNING",
             "completed_cycles": 0,
             "trends": [],
+            "next_phase": "ON",
+            "attempt_history": [],
+            "attempt_cursor": "",
             "source_copy_snapshot_fingerprint": source_before,
             "source_unchanged_during_copy": True,
             "working_markdown_fingerprint": working_snapshot,
             "candidate_provenance_digest": candidate_digest,
+            "candidate_wheel_binding_digest": candidate_wheel_binding_digest,
             "elapsed_seconds": 0.0,
             "target_duration_seconds": duration_seconds,
             "page_parse_timeout_seconds": page_parse_timeout_seconds,
@@ -635,35 +823,109 @@ def collect_soak(
         _write_state(resolved_output, state)
     elif (
         state["input_hash"] != input_hash
-        or state["status"] != "RUNNING"
+        or state["status"] not in {"RUNNING", "READY"}
         or state["target_duration_seconds"] != duration_seconds
         or state["candidate_provenance_digest"] != candidate_digest
+        or state["candidate_wheel_binding_digest"] != candidate_wheel_binding_digest
         or state["page_parse_timeout_seconds"] != page_parse_timeout_seconds
     ):
         raise EvidenceError("soak_resume_mismatch")
-    elif not work.is_dir():
-        raise EvidenceError("working_copy_missing")
-    elif _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
-        raise EvidenceError("working_copy_changed")
+    elif not _working_copy_is_intact(work, state):
+        return _finish(
+            resolved_output,
+            state,
+            status="FAIL",
+            failure_category=(
+                "working_copy_missing" if not work.is_dir() else "working_copy_changed"
+            ),
+        )
+    if len(state["attempt_history"]) >= _ATTEMPT_HISTORY_LIMIT:
+        return _finish(
+            resolved_output,
+            state,
+            status="FAIL",
+            failure_category="soak_attempt_limit",
+        )
 
     started = clock()
     checkpoint_clock = started
+    state["status"] = "RUNNING"
+    if state["next_phase"] == "OFF":
+        # A process may have stopped after the ON checkpoint. A resumed cycle is
+        # deliberately restarted from ON so no partial pair can become a trend.
+        _checkpoint_phase(
+            resolved_output,
+            state,
+            phase="OFF",
+            outcome="FAIL",
+            category="probe_interrupted",
+            next_phase="ON",
+        )
     _write_heartbeat(resolved_output, state)
-    try:
-        while (
-            state["completed_cycles"] < max_cycles and state["elapsed_seconds"] < duration_seconds
-        ):
-            payload = _validate_probe_payload(
+    legacy_pair: dict[str, object] | None = None
+
+    def run_phase(phase: str) -> dict[str, object]:
+        nonlocal legacy_pair
+        cycle = int(state["completed_cycles"])
+        if probe_runner is _run_soak_probe:
+            return _validate_phase_payload(
+                phase,
+                _run_soak_phase(
+                    candidate,
+                    work,
+                    probe_timeout_seconds,
+                    page_parse_timeout_seconds,
+                    cycle,
+                    phase,
+                ),
+            )
+        if legacy_pair is None:
+            legacy_pair = _validate_probe_payload(
                 probe_runner(
                     candidate,
                     work,
                     probe_timeout_seconds,
                     page_parse_timeout_seconds,
-                    state["completed_cycles"],
+                    cycle,
                 )
             )
-            if _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
+        return _validate_phase_payload(phase, legacy_pair)
+
+    try:
+        while (
+            state["completed_cycles"] < max_cycles and state["elapsed_seconds"] < duration_seconds
+        ):
+            legacy_pair = None
+            pair_started = time.monotonic()
+            on = run_phase("ON")
+            if not _working_copy_is_intact(work, state):
                 raise EvidenceError("working_copy_changed")
+            _checkpoint_phase(
+                resolved_output,
+                state,
+                phase="ON",
+                outcome="PASS",
+                next_phase="OFF",
+            )
+            off = run_phase("OFF")
+            if not _working_copy_is_intact(work, state):
+                raise EvidenceError("working_copy_changed")
+            _checkpoint_phase(
+                resolved_output,
+                state,
+                phase="OFF",
+                outcome="PASS",
+                next_phase="ON",
+            )
+            elapsed_ms = (
+                legacy_pair["elapsed_ms"]
+                if legacy_pair is not None
+                else round((time.monotonic() - pair_started) * 1000, 3)
+            )
+            payload = _validate_probe_payload({**off, **on, "elapsed_ms": elapsed_ms})
+            payload["rss_kib"] = max(
+                _nonnegative_int(on, "rss_kib"), _nonnegative_int(off, "rss_kib")
+            )
             current_clock = clock()
             state["elapsed_seconds"] += max(0.0, current_clock - checkpoint_clock)
             checkpoint_clock = current_clock
@@ -677,7 +939,7 @@ def collect_soak(
                 and state["elapsed_seconds"] < duration_seconds
             ):
                 sleeper(float(interval_seconds))
-        if _markdown_fingerprint(work) != state["working_markdown_fingerprint"]:
+        if not _working_copy_is_intact(work, state):
             raise EvidenceError("working_copy_changed")
         if state["elapsed_seconds"] < duration_seconds:
             state["last_failure_category"] = "duration_incomplete"
@@ -693,15 +955,25 @@ def collect_soak(
     except EvidenceError as exc:
         if exc.category == "duration_incomplete":
             raise
-        if state["trends"]:
-            return _finish(
+        phase = str(state["next_phase"])
+        if exc.category in _RECOVERABLE_FAILURE_CATEGORIES and _working_copy_is_intact(work, state):
+            _checkpoint_phase(
                 resolved_output,
                 state,
-                status="FAIL",
-                failure_category=exc.category,
+                phase=phase,
+                outcome="FAIL",
+                category=exc.category,
+                next_phase="ON",
             )
-        state["status"] = "FAIL"
-        state["updated_at"] = _now()
-        _write_state(resolved_output, state)
-        _write_heartbeat(resolved_output, state)
-        raise
+            state["status"] = "RUNNING"
+            state["last_failure_category"] = exc.category
+            state["updated_at"] = _now()
+            _write_state(resolved_output, state)
+            _write_heartbeat(resolved_output, state)
+            raise
+        return _finish(
+            resolved_output,
+            state,
+            status="FAIL",
+            failure_category=exc.category,
+        )
