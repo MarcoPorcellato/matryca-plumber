@@ -17,6 +17,7 @@
 
 ### Fixed
 
+- **Beta candidate provenance stability** — canonicalize installed wheel `RECORD` evidence and exclude installer-generated entries, so equivalent candidate installs retain the same soak binding while malformed payload evidence fails closed.
 - **Beta soak flag-off probe import and failure hygiene** — resolve the Shadow DB path from its connection module so both embedded probes run; persist only stable phase categories without subprocess diagnostics; and resume recoverable ON/OFF probe failures from integrity-checked, corruption-detecting sanitized state without treating a partial pair as a completed trend.
 - **Beta soak candidate interpreter provenance** — preserve the requested virtual-environment Python invocation path when it symlinks to a managed interpreter, so soak verification retains the venv's installed site-packages while rejecting non-executable candidates.
 - **Beta wheel provenance with symlinked interpreters** — validate installed-module provenance against the active virtual-environment prefix instead of the resolved interpreter target, preventing false evidence failures when the venv executable links to a managed Python installation.

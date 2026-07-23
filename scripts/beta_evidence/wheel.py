@@ -54,7 +54,10 @@ _PROCESS_ENV_ALLOWLIST = frozenset(
 )
 
 _CANDIDATE_PROBE = f"""
+import base64
+import csv
 import hashlib
+import hmac
 from importlib.metadata import distribution, version
 from pathlib import Path
 import sys
@@ -68,13 +71,79 @@ assert any(part in ("site-packages", "dist-packages") for part in origin.parts)
 assert version("matryca-plumber") == {_WHEEL_CANDIDATE!r}
 installed = distribution("matryca-plumber")
 files = installed.files or ()
-artifacts = sorted(
-    file for file in files if str(file).endswith((".dist-info/METADATA", ".dist-info/RECORD"))
+record_candidates = sorted(
+    str(file) for file in files if str(file).endswith(".dist-info/RECORD")
 )
-assert len(artifacts) == 2
+assert len(record_candidates) == 1
+record_path = record_candidates[0]
+record_location = Path(installed.locate_file(record_path))
+assert record_location.is_file()
+assert record_location.resolve().is_relative_to(prefix)
+
+generated_dist_info_entries = {{
+    "INSTALLER",
+    "REQUESTED",
+    "direct_url.json",
+    "uv_cache.json",
+    "RECORD",
+}}
+entries = []
+metadata_entries = 0
+payload_entries = 0
+with record_location.open(encoding="utf-8", newline="") as record_file:
+    for row in csv.reader(record_file):
+        assert len(row) == 3
+        raw_path, hash_spec, size = row
+        assert raw_path and not raw_path.startswith(("/", "\\\\"))
+        normalized_path = "/".join(
+            part for part in raw_path.replace("\\\\", "/").split("/") if part
+        )
+        assert normalized_path
+        assert not any(character in normalized_path for character in "\\r\\n\\t")
+        parts = normalized_path.split("/")
+        parent_count = 0
+        while parent_count < len(parts) and parts[parent_count] == "..":
+            parent_count += 1
+        if parent_count:
+            assert (
+                len(parts) == parent_count + 2
+                and parts[parent_count] in {{"bin", "Scripts"}}
+                and parts[-1] not in {{"", ".", ".."}}
+            )
+            continue
+        assert ".." not in parts
+        is_dist_info = len(parts) >= 2 and parts[-2].endswith(".dist-info")
+        if is_dist_info and parts[-1] in generated_dist_info_entries:
+            continue
+        location = Path(installed.locate_file(normalized_path)).resolve()
+        assert location.is_relative_to(prefix)
+        assert hash_spec and size.isdecimal()
+        algorithm, separator, encoded_hash = hash_spec.partition("=")
+        assert separator and algorithm and encoded_hash
+        algorithm = algorithm.lower()
+        assert algorithm in {{"sha256", "sha384", "sha512"}}
+        try:
+            expected_hash = base64.b64decode(
+                encoded_hash + "=" * (-len(encoded_hash) % 4), altchars=b"-_", validate=True
+            )
+        except ValueError:
+            raise AssertionError from None
+        assert location.is_file() and location.stat().st_size == int(size)
+        actual_hash = hashlib.new(algorithm, location.read_bytes()).digest()
+        assert hmac.compare_digest(actual_hash, expected_hash)
+        canonical_hash = base64.urlsafe_b64encode(expected_hash).decode("ascii").rstrip("=")
+        entries.append((normalized_path, f"{{algorithm}}={{canonical_hash}}", str(int(size))))
+        if is_dist_info and parts[-1] == "METADATA":
+            metadata_entries += 1
+        elif not is_dist_info:
+            payload_entries += 1
+
+assert metadata_entries == 1
+assert payload_entries >= 1
 digest = hashlib.sha256()
-for artifact in artifacts:
-    digest.update(installed.locate_file(artifact).read_bytes())
+for entry in sorted(entries):
+    digest.update("\\0".join(entry).encode("utf-8"))
+    digest.update(b"\\n")
 print(digest.hexdigest())
 """
 
