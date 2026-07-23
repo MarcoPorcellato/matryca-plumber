@@ -911,7 +911,8 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Investigation draft; not a release or beta-decision SSOT."
+      "notes": "Investigation draft; not a release or beta-decision SSOT.",
+      "missing": false
     },
     {
       "path": "docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md",
@@ -1653,6 +1654,24 @@
       "supersedes": [],
       "notes": "",
       "missing": false
+    },
+    {
+      "path": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
+      "type": "Archive",
+      "title": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
+      "description": "`BoundedPageParseWorker.parse_text` (`src/graph/bounded_page_parse.py`) bounds the wait for a worker response with `self._out_q.get(timeout=deadline)`.",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/issue-bodies/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/quality/issue-bodies/v2-alpha-hardening-a1-meta-01.md",
