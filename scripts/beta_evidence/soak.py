@@ -86,7 +86,8 @@ import sys
 from pathlib import Path
 
 from src.shadow.bootstrap import rebuild_shadow_from_graph
-from src.shadow.config import shadow_db_enabled, shadow_db_path
+from src.shadow.config import shadow_db_enabled
+from src.shadow.connection import shadow_db_path
 from src.shadow.health import ShadowHealthState, resolve_shadow_health
 
 graph = Path(os.environ["LOGSEQ_GRAPH_PATH"])
@@ -384,7 +385,7 @@ def _run_process(
     except OSError as exc:
         raise EvidenceError("probe_launch_failed") from exc
     if completed.returncode != 0:
-        raise EvidenceError("probe_failed")
+        raise EvidenceError("probe_flag_on_failed" if enabled else "probe_flag_off_failed")
     try:
         payload = json.loads(completed.stdout.strip())
     except json.JSONDecodeError as exc:
@@ -701,6 +702,7 @@ def collect_soak(
                 failure_category=exc.category,
             )
         state["status"] = "FAIL"
+        state["last_failure_category"] = exc.category
         state["updated_at"] = _now()
         _write_state(resolved_output, state)
         _write_heartbeat(resolved_output, state)
