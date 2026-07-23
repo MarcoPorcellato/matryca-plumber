@@ -1157,6 +1157,7 @@ def test_completion_with_structured_output_uses_lenient_json_repair(
 ) -> None:
     from src.agent.llm_client import GrammarCapability, LlmBackendProfile
 
+    monkeypatch.delenv("LOGSEQ_GRAPH_PATH", raising=False)
     client = InstructorLLMClient(base_url="http://localhost:1234/v1")
     malformed = (
         '{"ontology_report": "940 pages mapped.", '

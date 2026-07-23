@@ -6,28 +6,44 @@ This file routes coding assistants to the correct instruction layer. **Do not lo
 
 | You are… | Read first | Do not load |
 |----------|------------|-------------|
-| **Cursor agent patching this repo** | [`.cursor/rules/00-karpathy-agent-behavior.mdc`](.cursor/rules/00-karpathy-agent-behavior.mdc), this file, [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/CLEAN_CODE_ARCHITECTURE.md`](docs/CLEAN_CODE_ARCHITECTURE.md) | Full [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) (runtime vault law) |
+| **Repository coding agent** | This file; then activate only the matching [`.agents/skills/`](.agents/skills/) adapter below | Full [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) and broad architecture docs unless the task requires them |
+| **Cursor agent patching this repo** | This file + Cursor's matching [`.cursor/rules/`](.cursor/rules/) selected by glob/trigger | Full [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) (runtime vault law) |
 | **External agent on a user Logseq vault** | [`llms.txt`](llms.txt) → [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md) | [`.cursor/rules/`](.cursor/rules/) |
 | **Maintainer changing MCP/CLI/prompt contracts** | [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md), [`docs/openspec/agent-onboarding.md`](docs/openspec/agent-onboarding.md), [`docs/openspec/agent/`](docs/openspec/agent/), [`docs/openspec/llm-performance.md`](docs/openspec/llm-performance.md), rule `11-prompt-maintainer` | — |
 | **Maintainer planning v2.0 Shadow DB** | [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md), [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md), [Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Full v1.9.x audit triage docs |
 
-## Cursor rule routing
+## Instruction loading strategy
 
-| Rule | When it applies |
-|------|-----------------|
-| [`00-karpathy-agent-behavior.mdc`](.cursor/rules/00-karpathy-agent-behavior.mdc) | Always — investigate, minimal diff, run checks |
-| [`01-core-paradigm.mdc`](.cursor/rules/01-core-paradigm.mdc) | Logseq OG blocks, properties, namespaces → SSOT [`docs/openspec/agent/paradigm.md`](docs/openspec/agent/paradigm.md) |
-| [`02-python-standards.mdc`](.cursor/rules/02-python-standards.mdc) | Any `*.py` edit |
-| [`03-logseq-api.mdc`](.cursor/rules/03-logseq-api.mdc) | `src/**/*.py` — headless file I/O default |
-| [`04-spatial-parser.mdc`](.cursor/rules/04-spatial-parser.mdc) | `src/**/*.py` graph parsing |
-| [`05-release-preparation.mdc`](.cursor/rules/05-release-preparation.mdc) | Semver release (on request) |
-| [`06-auto-changelog.mdc`](.cursor/rules/06-auto-changelog.mdc) | User-visible changes — update `CHANGELOG.md` |
-| [`07-env-example.mdc`](.cursor/rules/07-env-example.mdc) | New/changed `MATRYCA_*` env vars |
-| [`08-github-workflow-standards.mdc`](.cursor/rules/08-github-workflow-standards.mdc) | GitHub issues/PRs (on request) |
-| [`09-github-identity-marco-porcellato.mdc`](.cursor/rules/09-github-identity-marco-porcellato.mdc) | Always — zero Cursor/AI su artefatti GitHub |
-| [`10-tooling-static-analysis-policy.mdc`](.cursor/rules/10-tooling-static-analysis-policy.mdc) | Public docs / CI — vendor-agnostic tooling |
-| [`11-prompt-maintainer.mdc`](.cursor/rules/11-prompt-maintainer.mdc) | Prompt fragments, Tier-1 builders, MCP docstrings (on request) |
-| [`12-clean-code-architecture.mdc`](.cursor/rules/12-clean-code-architecture.mdc) | Clean Code & Clean Architecture — repo-wide boundaries, `env_parse`, layer tests |
+- [`.cursor/rules/`](.cursor/rules/) is the canonical detailed policy set. Do not copy those rules into this file.
+- [`.agents/skills/`](.agents/skills/) contains thin, open Agent Skills adapters. Their metadata is cheap to discover; each adapter loads its canonical `.mdc` only when its task trigger applies.
+- Keep this root file limited to always-on constraints and routing. Do not preload all rules or linked SSOT documents.
+- Do not rely on nested `AGENTS.md` for file-glob behavior: instruction discovery follows the launch directory, not every file later edited. Prefer a task-triggered skill for cross-directory work.
+
+## Always-on working agreements
+
+- Investigate the live repository before editing; state material assumptions and success criteria.
+- Make the smallest scoped change, preserve unrelated work, and run the relevant checks yourself.
+- When the active environment supports subagents, prefer a lower-cost supporting model for bounded, parallelizable evidence gathering, test execution, documentation checks, and routine implementation. Keep final integration, security-sensitive decisions, and high-risk changes with the primary agent; do not delegate when coordination would cost more than doing the task directly.
+- Keep public repository artifacts vendor-neutral. GitHub-visible authorship and prose must be maintainer-only, with no assistant/tool attribution.
+- Before concluding a significant runtime, security, architecture, integration, performance, operator, or public-contract change, activate `matryca-changelog` and apply its decision gate.
+
+## Rule and skill routing
+
+| Canonical Cursor rule | Agent Skill adapter | Activate when |
+|-----------------------|---------------------|---------------|
+| [`00-karpathy-agent-behavior.mdc`](.cursor/rules/00-karpathy-agent-behavior.mdc) | Root summary above | Always |
+| [`01-core-paradigm.mdc`](.cursor/rules/01-core-paradigm.mdc) | `matryca-logseq-paradigm` | Logseq blocks, properties, namespaces, vault content |
+| [`02-python-standards.mdc`](.cursor/rules/02-python-standards.mdc) | `matryca-python-standards` | Any Python source or test edit |
+| [`03-logseq-api.mdc`](.cursor/rules/03-logseq-api.mdc) | `matryca-logseq-io` | Logseq reads/writes or Local HTTP API decisions |
+| [`04-spatial-parser.mdc`](.cursor/rules/04-spatial-parser.mdc) | `matryca-spatial-parser` | Markdown parsing, graph transformation, spatial RAG |
+| [`05-release-preparation.mdc`](.cursor/rules/05-release-preparation.mdc) | `matryca-release` | Prepare, cut, tag, or publish a release |
+| [`06-auto-changelog.mdc`](.cursor/rules/06-auto-changelog.mdc) | `matryca-changelog` | Changelog decision gate before completion |
+| [`07-env-example.mdc`](.cursor/rules/07-env-example.mdc) | `matryca-env` | New or changed environment contract/default |
+| [`08-github-workflow-standards.mdc`](.cursor/rules/08-github-workflow-standards.mdc) | `matryca-github` | GitHub issue, PR, merge, milestone, tag, release |
+| [`09-github-identity-marco-porcellato.mdc`](.cursor/rules/09-github-identity-marco-porcellato.mdc) | Root summary + `matryca-github` | Always for GitHub-visible artifacts |
+| [`10-tooling-static-analysis-policy.mdc`](.cursor/rules/10-tooling-static-analysis-policy.mdc) | Root summary + `matryca-github` | Public docs, CI, commits, GitHub prose |
+| [`11-prompt-maintainer.mdc`](.cursor/rules/11-prompt-maintainer.mdc) | `matryca-prompt-maintainer` | Prompt builders/fragments, MCP tool contracts |
+| [`12-clean-code-architecture.mdc`](.cursor/rules/12-clean-code-architecture.mdc) | `matryca-clean-architecture` | Module boundaries, config architecture, structural refactors |
 
 ## Runtime agent surfaces
 

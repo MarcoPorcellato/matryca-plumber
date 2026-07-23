@@ -1,6 +1,6 @@
 NUM_WORKERS ?= 4
 
-.PHONY: help install format lint typecheck test test-full test-fast test-fast-parallel test-integration test-resilience check clean version-check agents-check build-system-prompt check-system-prompt provision-local reindex-graph
+.PHONY: help install format lint typecheck test test-full test-fast test-fast-parallel test-integration test-resilience check clean version-check agents-check build-system-prompt check-system-prompt provision-local reindex-graph release-build
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -81,6 +81,9 @@ provision-local: ## Scaffold .local/ graph indexer (requires LOCAL_GRAPH_ANALYZE
 
 reindex-graph: ## Re-index repo with local hybrid embeddings (.local/ maintainer tooling)
 	@bash scripts/reindex-code-graph.sh
+
+release-build: ## Build clean release archives from the committed source snapshot
+	uv run python scripts/build_release_artifacts.py --output-dir dist
 
 clean: ## Remove python caches, virtual envs, and build artifacts
 	rm -rf .venv/
