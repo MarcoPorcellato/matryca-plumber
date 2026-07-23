@@ -10,6 +10,7 @@ import sys
 import venv
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 
 import pytest
 
@@ -1055,6 +1056,100 @@ def test_soak_runs_flag_on_before_non_vacuous_flag_off(monkeypatch: pytest.Monke
     monkeypatch.setattr(soak, "_run_process", fake_process)
     soak._run_soak_probe(Path(sys.executable), Path("/unused"), 1, 60, 0)
     assert calls == [True, False]
+
+
+def test_soak_embedded_probes_run_against_synthetic_graph(tmp_path: Path) -> None:
+    soak = importlib.import_module("beta_evidence.soak")
+    graph = tmp_path / "synthetic-graph"
+    pages = graph / "pages"
+    pages.mkdir(parents=True)
+    (pages / "daily.md").write_text("- synthetic soak graph\n", encoding="utf-8")
+
+    payload = soak._run_soak_probe(Path(sys.executable), graph, 60, 60, 0)
+
+    assert payload["flag_off"] is True
+    assert payload["flag_on"] is True
+    assert payload["restart_health"] is True
+    assert payload["fts"] is True
+    assert payload["subtree"] == "PASS"
+    assert payload["synthetic_crud"] == "PASS"
+    assert payload["recovery"] is True
+
+
+def test_soak_process_failure_persists_only_sanitized_probe_stage(tmp_path: Path) -> None:
+    soak = importlib.import_module("beta_evidence.soak")
+    source, fingerprint, _wheel = _wheel_source(tmp_path)
+    output = tmp_path / "evidence"
+    raw_secret = "do-not-persist-child-secret"
+    raw_path = "/private/do-not-persist/child-path"
+    raw_message = "do-not-persist-child-message"
+    code = (
+        "import sys; "
+        f"print({raw_secret!r}); "
+        f"print({raw_path!r}, file=sys.stderr); "
+        f"raise RuntimeError({raw_message!r})"
+    )
+
+    with pytest.raises(soak.EvidenceError, match="^probe_flag_on_failed$") as on_raised:
+        soak._run_process(
+            Path(sys.executable),
+            tmp_path,
+            code,
+            cycle=0,
+            enabled=True,
+            timeout_seconds=1,
+            page_parse_timeout_seconds=60,
+        )
+    assert str(on_raised.value) == "probe_flag_on_failed"
+    assert raw_secret not in str(on_raised.value)
+    assert raw_path not in str(on_raised.value)
+    assert raw_message not in str(on_raised.value)
+
+    def failing_probe(
+        candidate: Path,
+        graph: Path,
+        timeout_seconds: int,
+        page_parse_timeout_seconds: int,
+        cycle: int,
+    ) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            soak._run_process(
+                candidate,
+                graph,
+                code,
+                cycle=cycle,
+                enabled=False,
+                timeout_seconds=timeout_seconds,
+                page_parse_timeout_seconds=page_parse_timeout_seconds,
+            ),
+        )
+
+    with pytest.raises(soak.EvidenceError, match="^probe_flag_off_failed$") as raised:
+        soak.collect_soak(
+            output,
+            candidate_python=Path(sys.executable),
+            source_vault=source,
+            expected_source_file=fingerprint,
+            working_root=tmp_path / "durable-copy",
+            page_parse_timeout_seconds=60,
+            duration_seconds=1,
+            max_cycles=1,
+            interval_seconds=0,
+            probe_runner=failing_probe,
+            candidate_verifier=lambda _python: "candidate-digest",
+            clock=lambda: 0.0,
+        )
+
+    assert str(raised.value) == "probe_flag_off_failed"
+    state = json.loads((output / "soak-state.json").read_text(encoding="utf-8"))
+    assert state["status"] == "FAIL"
+    assert state["last_failure_category"] == "probe_flag_off_failed"
+    for artifact in ("soak-state.json", "soak-heartbeat.json"):
+        evidence = (output / artifact).read_text(encoding="utf-8")
+        assert raw_secret not in evidence
+        assert raw_path not in evidence
+        assert raw_message not in evidence
 
 
 def test_wheel_deadline_is_hashed_recorded_and_cannot_change_on_resume(tmp_path: Path) -> None:

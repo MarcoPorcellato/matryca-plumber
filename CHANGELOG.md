@@ -17,6 +17,7 @@
 
 ### Fixed
 
+- **Beta soak flag-off probe import and failure hygiene** — resolve the Shadow DB path from its connection module so both embedded probes run, while child failures persist only a stable flag-stage category without subprocess diagnostics.
 - **Beta soak candidate interpreter provenance** — preserve the requested virtual-environment Python invocation path when it symlinks to a managed interpreter, so soak verification retains the venv's installed site-packages while rejecting non-executable candidates.
 - **Beta wheel provenance with symlinked interpreters** — validate installed-module provenance against the active virtual-environment prefix instead of the resolved interpreter target, preventing false evidence failures when the venv executable links to a managed Python installation.
 - **Distribution archive hygiene** — release builds exclude Python bytecode and cache directories from wheel and source distributions; CI rejects any that remain.
