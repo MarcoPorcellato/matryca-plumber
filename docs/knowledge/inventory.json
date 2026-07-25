@@ -896,6 +896,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md",
+      "type": "Audit",
+      "title": "Beta evidence reproducibility root-cause analysis — draft",
+      "description": "Sanitized draft root-cause analysis and rerun protocol for beta-evidence reproducibility.",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Investigation draft; not a release or beta-decision SSOT.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md",
       "type": "Audit",
       "title": "Claude Architectural Audit — Triage (2026-06-24)",
@@ -1007,6 +1026,25 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md",
+      "type": "Audit",
+      "title": "V2 alpha/beta experiment evidence ledger",
+      "description": "This is a sanitized supporting record for the v2 Shadow read-cache experiments.",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Sanitized supporting record; not an architecture or beta-decision SSOT.",
       "missing": false
     },
     {
@@ -1618,6 +1656,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
+      "type": "Archive",
+      "title": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
+      "description": "`BoundedPageParseWorker.parse_text` (`src/graph/bounded_page_parse.py`) bounds the wait for a worker response with `self._out_q.get(timeout=deadline)`.",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/issue-bodies/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/issue-bodies/v2-alpha-hardening-a1-meta-01.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-alpha-hardening-a1-meta-01.md",
@@ -1671,7 +1727,8 @@
       "destination": "docs/artifacts/issue-bodies/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Local SSOT for the v2.0.0-beta.1 release decision; GitHub issue body is derived from this record."
+      "notes": "Local SSOT for the v2.0.0-beta.1 release decision; GitHub issue body is derived from this record.",
+      "missing": false
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase0-prerequisites.md",

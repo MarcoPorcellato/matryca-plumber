@@ -49,7 +49,7 @@ git push origin vX.Y.Z
 On tag push, [`.github/workflows/release.yml`](../.github/workflows/release.yml):
 
 1. Builds the Sovereign UI frontend
-2. Builds sdist/wheel with `uv build`
+2. Builds the frontend in a clean tracked-source snapshot, then builds an sdist and derives the wheel from that sdist with `make release-build`
 3. Creates a GitHub Release with notes from `scripts/extract_changelog.py`
 4. Publishes to PyPI (trusted publishing)
 

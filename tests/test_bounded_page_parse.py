@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import random
 import signal
 import time
 from collections.abc import Iterator
@@ -131,6 +132,118 @@ def test_pathological_page_times_out_and_kills_worker() -> None:
         assert "/" not in (result.error or "")
         # Worker must not remain alive after timeout kill.
         assert worker.pid is None
+    finally:
+        worker.shutdown()
+        assert worker.pid is None
+
+
+def test_slow_receive_past_readiness_is_bounded_by_deadline() -> None:
+    """Queue.get(timeout=...) only bounds wait-for-readiness; once the pipe is
+    readable it falls through to an unbounded recv_bytes(). Stub ``_out_q.get``
+    to simulate a response that becomes "ready" instantly but whose full
+    receive stalls well past the deadline, and assert parse_text still enforces
+    the deadline end-to-end instead of blocking for the stub's full duration.
+    """
+    worker = BoundedPageParseWorker()
+    try:
+        with worker._lock:
+            worker._ensure_worker_unlocked()
+            real_out_q: Any = worker._out_q
+        assert real_out_q is not None
+
+        class _StalledQueue:
+            def get_nowait(self) -> Any:
+                return real_out_q.get_nowait()
+
+            def get(self, timeout: float | None = None) -> Any:
+                # Simulate readiness-then-stall: recv_bytes() blocking far
+                # longer than the caller's configured deadline.
+                time.sleep(5.0)
+                return real_out_q.get()
+
+        worker._out_q = cast(Any, _StalledQueue())
+
+        start = time.perf_counter()
+        result = worker.parse_text("- stalled receive\n", mode="logos", timeout_s=1.0)
+        elapsed = time.perf_counter() - start
+
+        assert result.ok is False
+        assert result.timed_out is True
+        assert result.error == "timeout"
+        # Must not wait for the stub's full 5s stall — bounded near the 1s deadline.
+        assert elapsed < 3.0
+        assert worker.pid is None
+    finally:
+        worker.shutdown()
+        assert worker.pid is None
+
+
+@pytest.mark.parametrize("deadline_s", [0.4, 0.75, 1.0, 1.5])
+def test_slow_receive_bounded_across_randomized_stall_lengths(deadline_s: float) -> None:
+    """Same stalled-receive contract as above, but randomize the stall length
+    per deadline (always well past it) across several deadlines, so the
+    bound is verified independent of exactly how long the stall runs.
+    """
+    rng = random.Random(f"bounded-parse-recv-{deadline_s}")
+    stall_s = deadline_s + rng.uniform(2.0, 4.0)
+
+    worker = BoundedPageParseWorker()
+    try:
+        with worker._lock:
+            worker._ensure_worker_unlocked()
+            real_out_q: Any = worker._out_q
+        assert real_out_q is not None
+
+        class _StalledQueue:
+            def get_nowait(self) -> Any:
+                return real_out_q.get_nowait()
+
+            def get(self, timeout: float | None = None) -> Any:
+                time.sleep(stall_s)
+                return real_out_q.get()
+
+        worker._out_q = cast(Any, _StalledQueue())
+
+        start = time.perf_counter()
+        result = worker.parse_text("- randomized stall\n", mode="logos", timeout_s=deadline_s)
+        elapsed = time.perf_counter() - start
+
+        assert result.ok is False
+        assert result.timed_out is True
+        assert result.error == "timeout"
+        # Bound must track the configured deadline, not the (randomized, always
+        # longer) stall duration — generous slack for scheduler/kill overhead.
+        assert elapsed < deadline_s + 2.0
+        assert worker.pid is None
+    finally:
+        worker.shutdown()
+        assert worker.pid is None
+
+
+def test_healthy_parse_survives_random_page_shapes() -> None:
+    """Fuzz the real (non-stubbed) success path with randomized page content —
+    varied line counts, block depths, and both parse modes — to catch shape-
+    dependent regressions the fixed-fixture tests wouldn't surface.
+    """
+    rng = random.Random("bounded-parse-random-page-shapes")
+    worker = BoundedPageParseWorker()
+    try:
+        for _ in range(8):
+            line_count = rng.randint(1, 200)
+            mode: ParseMode = rng.choice(["logos", "stack"])
+            lines = []
+            for i in range(line_count):
+                depth = rng.randint(0, 4)
+                lines.append("  " * depth + f"- item {i} {rng.choice(['a', 'bb', 'ccc'])}")
+            text = "\n".join(lines) + "\n"
+
+            result = worker.parse_text(text, mode=mode, timeout_s=15.0)
+
+            assert result.ok is True, f"mode={mode} line_count={line_count} error={result.error}"
+            assert result.timed_out is False
+            assert result.content_hash == content_hash16(text)
+            assert result.page is not None
+            assert worker.pid is not None
     finally:
         worker.shutdown()
         assert worker.pid is None

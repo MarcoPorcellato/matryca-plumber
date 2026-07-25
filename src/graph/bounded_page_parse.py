@@ -521,10 +521,11 @@ class BoundedPageParseWorker:
             assert self._in_q is not None
             assert self._out_q is not None
             assert self._proc is not None
+            out_q = self._out_q
 
             # Leftover output with no outstanding task = protocol corruption.
             try:
-                unexpected = self._out_q.get_nowait()
+                unexpected = out_q.get_nowait()
             except Empty:
                 unexpected = None
             if unexpected is not None:
@@ -538,9 +539,31 @@ class BoundedPageParseWorker:
 
             wall0 = time.perf_counter()
             self._in_q.put(request)
-            try:
-                raw = self._out_q.get(timeout=deadline)
-            except Empty:
+
+            # Queue.get(timeout=...) only bounds wait-for-readiness; once the
+            # pipe is readable it calls recv_bytes() with no timeout, which
+            # can still block past the deadline while a large/partial
+            # response is still being received. Bound the *entire* receive
+            # by running it on a helper thread and enforcing the deadline
+            # ourselves; a deadline overrun always kills the worker, which
+            # closes the pipe and unblocks the helper thread.
+            received: dict[str, Any] = {}
+            done = threading.Event()
+
+            def _receive() -> None:
+                try:
+                    received["raw"] = out_q.get()
+                except Exception as exc:  # noqa: BLE001
+                    received["exc"] = exc
+                finally:
+                    done.set()
+
+            receiver = threading.Thread(
+                target=_receive, name="matryca-bounded-page-parse-recv", daemon=True
+            )
+            receiver.start()
+
+            if not done.wait(timeout=deadline):
                 wall = round(time.perf_counter() - wall0, 6)
                 logger.bind(
                     content_hash=digest,
@@ -563,6 +586,18 @@ class BoundedPageParseWorker:
                     page=None,
                 )
 
+            if "exc" in received:
+                wall = round(time.perf_counter() - wall0, 6)
+                self._kill_worker_unlocked()
+                return self._protocol_mismatch_unlocked(
+                    digest=digest,
+                    byte_count=byte_count,
+                    line_count=line_count,
+                    mode=parse_mode,
+                    elapsed_s=wall,
+                )
+
+            raw = received["raw"]
             wall = round(time.perf_counter() - wall0, 6)
             if raw.get("request_id") != request_id or raw.get("content_hash") != digest:
                 return self._protocol_mismatch_unlocked(

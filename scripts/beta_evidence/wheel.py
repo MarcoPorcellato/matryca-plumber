@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import suppress
 from pathlib import Path
 from typing import Any, Protocol, cast
@@ -19,6 +19,7 @@ from typing import Any, Protocol, cast
 from .core import (
     EvidenceError,
     GateRecord,
+    _candidate_wheel_binding_digest,
     _canonical_hash,
     _is_within,
     _record_gate,
@@ -52,6 +53,100 @@ _PROCESS_ENV_ALLOWLIST = frozenset(
     }
 )
 
+_CANDIDATE_PROBE = f"""
+import base64
+import csv
+import hashlib
+import hmac
+from importlib.metadata import distribution, version
+from pathlib import Path
+import sys
+
+import src
+
+origin = Path(src.__file__).resolve()
+prefix = Path(sys.prefix).resolve()
+assert origin.is_relative_to(prefix)
+assert any(part in ("site-packages", "dist-packages") for part in origin.parts)
+assert version("matryca-plumber") == {_WHEEL_CANDIDATE!r}
+installed = distribution("matryca-plumber")
+files = installed.files or ()
+record_candidates = sorted(
+    str(file) for file in files if str(file).endswith(".dist-info/RECORD")
+)
+assert len(record_candidates) == 1
+record_path = record_candidates[0]
+record_location = Path(installed.locate_file(record_path))
+assert record_location.is_file()
+assert record_location.resolve().is_relative_to(prefix)
+
+generated_dist_info_entries = {{
+    "INSTALLER",
+    "REQUESTED",
+    "direct_url.json",
+    "uv_cache.json",
+    "RECORD",
+}}
+entries = []
+metadata_entries = 0
+payload_entries = 0
+with record_location.open(encoding="utf-8", newline="") as record_file:
+    for row in csv.reader(record_file):
+        assert len(row) == 3
+        raw_path, hash_spec, size = row
+        assert raw_path and not raw_path.startswith(("/", "\\\\"))
+        normalized_path = "/".join(
+            part for part in raw_path.replace("\\\\", "/").split("/") if part
+        )
+        assert normalized_path
+        assert not any(character in normalized_path for character in "\\r\\n\\t")
+        parts = normalized_path.split("/")
+        parent_count = 0
+        while parent_count < len(parts) and parts[parent_count] == "..":
+            parent_count += 1
+        if parent_count:
+            assert (
+                len(parts) == parent_count + 2
+                and parts[parent_count] in {{"bin", "Scripts"}}
+                and parts[-1] not in {{"", ".", ".."}}
+            )
+            continue
+        assert ".." not in parts
+        is_dist_info = len(parts) >= 2 and parts[-2].endswith(".dist-info")
+        if is_dist_info and parts[-1] in generated_dist_info_entries:
+            continue
+        location = Path(installed.locate_file(normalized_path)).resolve()
+        assert location.is_relative_to(prefix)
+        assert hash_spec and size.isdecimal()
+        algorithm, separator, encoded_hash = hash_spec.partition("=")
+        assert separator and algorithm and encoded_hash
+        algorithm = algorithm.lower()
+        assert algorithm in {{"sha256", "sha384", "sha512"}}
+        try:
+            expected_hash = base64.b64decode(
+                encoded_hash + "=" * (-len(encoded_hash) % 4), altchars=b"-_", validate=True
+            )
+        except ValueError:
+            raise AssertionError from None
+        assert location.is_file() and location.stat().st_size == int(size)
+        actual_hash = hashlib.new(algorithm, location.read_bytes()).digest()
+        assert hmac.compare_digest(actual_hash, expected_hash)
+        canonical_hash = base64.urlsafe_b64encode(expected_hash).decode("ascii").rstrip("=")
+        entries.append((normalized_path, f"{{algorithm}}={{canonical_hash}}", str(int(size))))
+        if is_dist_info and parts[-1] == "METADATA":
+            metadata_entries += 1
+        elif not is_dist_info:
+            payload_entries += 1
+
+assert metadata_entries == 1
+assert payload_entries >= 1
+digest = hashlib.sha256()
+for entry in sorted(entries):
+    digest.update("\\0".join(entry).encode("utf-8"))
+    digest.update(b"\\n")
+print(digest.hexdigest())
+"""
+
 
 class CommandRunner(Protocol):
     def __call__(
@@ -78,6 +173,9 @@ class WheelProbeRunner(Protocol):
 
 class VaultCopier(Protocol):
     def __call__(self, source: Path, destination: Path) -> None: ...
+
+
+type CandidateVerifier = Callable[[Path], str]
 
 
 def _markdown_fingerprint(root: Path) -> str:
@@ -268,6 +366,29 @@ def _run_wheel_probe(
         raise EvidenceError("probe_invalid") from exc
 
 
+def _verify_candidate_python(candidate_python: Path) -> str:
+    """Verify the installed candidate and return its sanitized provenance digest."""
+
+    try:
+        completed = subprocess.run(
+            [str(candidate_python), "-c", _CANDIDATE_PROBE],
+            cwd=tempfile.gettempdir(),
+            env={"PATH": os.environ.get("PATH", ""), "PYTHONNOUSERSITE": "1"},
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise EvidenceError("candidate_python_invalid") from exc
+    if completed.returncode != 0:
+        raise EvidenceError("candidate_version_mismatch")
+    digest = completed.stdout.strip()
+    if re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise EvidenceError("candidate_provenance_invalid")
+    return digest
+
+
 def _wheel_details(
     *,
     wheel: Path,
@@ -276,10 +397,14 @@ def _wheel_details(
     source_after: str,
     baseline: dict[str, Any],
     candidate: dict[str, Any],
+    candidate_provenance_digest: str,
+    candidate_wheel_binding_digest: str,
     page_parse_timeout_seconds: int,
 ) -> dict[str, Any]:
     return {
         "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
+        "candidate_provenance_digest": candidate_provenance_digest,
+        "candidate_wheel_binding_digest": candidate_wheel_binding_digest,
         "source_unchanged": source_before == source_after,
         "source_markdown_count": sum(
             1 for path in source.rglob("*.md") if ".matryca_semantic_cache" not in path.parts
@@ -301,6 +426,7 @@ def collect_wheel(
     command_runner: CommandRunner = _run_command,
     probe_runner: WheelProbeRunner = _run_wheel_probe,
     copier: VaultCopier = _copy_vault_without_cache,
+    candidate_verifier: CandidateVerifier | None = None,
 ) -> GateRecord:
     """Collect isolated baseline-to-wheel evidence without writing the source vault."""
     if not 1 <= timeout_seconds <= 600:
@@ -309,6 +435,7 @@ def collect_wheel(
         raise EvidenceError("page_parse_timeout_invalid")
     source = _resolve_source_vault(source_vault, expected_source_file)
     wheel = _resolve_candidate_wheel(wheel_path, source)
+    verifier = _verify_candidate_python if candidate_verifier is None else candidate_verifier
     resolved_output = validate_output_directory(
         output, repo_root=_repo_root_from_script(), protected_roots=[source]
     )
@@ -394,6 +521,10 @@ def collect_wheel(
             candidate["working_markdown_unchanged"]
             and _markdown_fingerprint(working_vault) == working_before
         )
+        candidate_provenance_digest = verifier(python)
+        candidate_wheel_binding_digest = _candidate_wheel_binding_digest(
+            hashlib.sha256(wheel.read_bytes()).hexdigest(), candidate_provenance_digest
+        )
         details = _wheel_details(
             wheel=wheel,
             source=source,
@@ -401,6 +532,8 @@ def collect_wheel(
             source_after=_markdown_fingerprint(source),
             baseline=baseline,
             candidate=candidate,
+            candidate_provenance_digest=candidate_provenance_digest,
+            candidate_wheel_binding_digest=candidate_wheel_binding_digest,
             page_parse_timeout_seconds=page_parse_timeout_seconds,
         )
         checks = [

@@ -46,41 +46,55 @@ def _translate_js_style_replacement(repl: str) -> str:
     return re.sub(r"\$(\d+)", lambda m: f"\\g<{m.group(1)}>", out)
 
 
-def _apply_pattern(
+def _apply_regex_pattern(
     text: str,
     search: str,
     replacement: str,
     *,
-    use_regex: bool,
     replace_all: bool,
     case_sensitive: bool,
 ) -> tuple[str, int]:
-    """Return (new_text, match_count)."""
     flags = 0 if case_sensitive else re.IGNORECASE
-    if use_regex:
-        repl_py = _translate_js_style_replacement(replacement)
-        try:
-            rx = validate_regex_pattern(search, flags)
-        except ValueError as exc:
-            raise ValueError(str(exc)) from exc
-        if replace_all:
-            new_text, n = rx.subn(repl_py, text)
-            return new_text, n
-        m = rx.search(text)
-        if not m:
-            return text, 0
-        chunk = text[m.start() : m.end()]
-        replaced = rx.sub(repl_py, chunk, count=1)
-        new_text = text[: m.start()] + replaced + text[m.end() :]
-        return new_text, 1
-    if case_sensitive:
-        if replace_all:
-            n = text.count(search)
-            return text.replace(search, replacement), n
-        idx = text.find(search)
-        if idx < 0:
-            return text, 0
-        return text[:idx] + replacement + text[idx + len(search) :], 1
+    repl_py = _translate_js_style_replacement(replacement)
+    try:
+        rx = validate_regex_pattern(search, flags)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+    if replace_all:
+        new_text, n = rx.subn(repl_py, text)
+        return new_text, n
+    m = rx.search(text)
+    if not m:
+        return text, 0
+    chunk = text[m.start() : m.end()]
+    replaced = rx.sub(repl_py, chunk, count=1)
+    new_text = text[: m.start()] + replaced + text[m.end() :]
+    return new_text, 1
+
+
+def _apply_case_sensitive_pattern(
+    text: str,
+    search: str,
+    replacement: str,
+    *,
+    replace_all: bool,
+) -> tuple[str, int]:
+    if replace_all:
+        n = text.count(search)
+        return text.replace(search, replacement), n
+    idx = text.find(search)
+    if idx < 0:
+        return text, 0
+    return text[:idx] + replacement + text[idx + len(search) :], 1
+
+
+def _apply_case_insensitive_pattern(
+    text: str,
+    search: str,
+    replacement: str,
+    *,
+    replace_all: bool,
+) -> tuple[str, int]:
     low = text.lower()
     s = search.lower()
     if replace_all:
@@ -100,6 +114,39 @@ def _apply_pattern(
     if j < 0:
         return text, 0
     return text[:j] + replacement + text[j + len(search) :], 1
+
+
+def _apply_pattern(
+    text: str,
+    search: str,
+    replacement: str,
+    *,
+    use_regex: bool,
+    replace_all: bool,
+    case_sensitive: bool,
+) -> tuple[str, int]:
+    """Return (new_text, match_count)."""
+    if use_regex:
+        return _apply_regex_pattern(
+            text,
+            search,
+            replacement,
+            replace_all=replace_all,
+            case_sensitive=case_sensitive,
+        )
+    if case_sensitive:
+        return _apply_case_sensitive_pattern(
+            text,
+            search,
+            replacement,
+            replace_all=replace_all,
+        )
+    return _apply_case_insensitive_pattern(
+        text,
+        search,
+        replacement,
+        replace_all=replace_all,
+    )
 
 
 @dataclass(frozen=True, slots=True)
