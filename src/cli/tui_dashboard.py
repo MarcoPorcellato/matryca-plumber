@@ -122,7 +122,8 @@ def collect_snapshot(
     state = _try_load_daemon_state(root, last_good=last_good_state)
     try:
         metrics = compute_scan_metrics(root, state)
-    except Exception:
+    except OSError:
+        loguru_logger.exception("TUI dashboard failed to compute scan metrics")
         metrics = None
 
     checkpoint_processed, skipped, errors = _tally_checkpoint_files(state)
@@ -132,7 +133,8 @@ def collect_snapshot(
             phase2_total, phase2_done, phase2_pending, phase2_skipped = (
                 compute_phase2_progress_metrics(root, state)
             )
-        except Exception:
+        except OSError:
+            loguru_logger.exception("TUI dashboard failed to compute Phase-2 progress metrics")
             phase2_total = total_pages
             phase2_done = checkpoint_processed
             phase2_pending = max(0, total_pages - checkpoint_processed - skipped - errors)
@@ -232,6 +234,7 @@ def collect_snapshot_safe(
             last_good_state=last_good_state,
         )
     except Exception:
+        loguru_logger.exception("TUI dashboard collect_snapshot failed")
         return DashboardSnapshot(
             status="Error",
             activity_lines=["Dashboard refresh failed"],
