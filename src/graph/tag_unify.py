@@ -227,6 +227,49 @@ class TagUnifyRunResult:
         }
 
 
+def _tag_unify_process_file(
+    path: Path,
+    root: Path,
+    mapping: dict[str, str],
+    *,
+    dry_run: bool,
+    preview_count: int,
+    max_files_preview: int,
+) -> tuple[TagUnifyFileResult | None, int, int]:
+    """Rewrite tag variants in one file. Returns (result, replacements, next preview_count)."""
+    with page_rmw_lock(path):
+        try:
+            raw = read_graph_file_text(path, root, errors="replace")
+        except OSError as exc:
+            return (
+                TagUnifyFileResult(
+                    relative_path=path.relative_to(root).as_posix(),
+                    replacements=0,
+                    preview=f"_read_error: {exc}_",
+                ),
+                0,
+                preview_count,
+            )
+        protected = compute_page_protected_line_indices(raw)
+        new_text, n = unify_tags_in_text(raw, mapping, protected_line_indices=protected)
+        if n == 0:
+            return None, 0, preview_count
+        rel = path.relative_to(root).as_posix()
+        preview = None
+        if preview_count < max_files_preview:
+            preview = f"_{n} replacement(s) in `{rel}`_"
+            preview_count += 1
+        if not dry_run:
+            bak = path.with_suffix(path.suffix + ".bak")
+            shutil.copy2(path, bak)
+            atomic_write_bytes(path, new_text.encode("utf-8"), graph_root=root)
+        return (
+            TagUnifyFileResult(relative_path=rel, replacements=n, preview=preview),
+            n,
+            preview_count,
+        )
+
+
 def lint_unify_logseq_tags(
     graph_root: str | Path,
     *,
@@ -256,35 +299,18 @@ def lint_unify_logseq_tags(
     total_rep = 0
     preview_count = 0
     for path in iter_graph_markdown_files(root):
-        with page_rmw_lock(path):
-            try:
-                raw = read_graph_file_text(path, root, errors="replace")
-            except OSError as exc:
-                file_results.append(
-                    TagUnifyFileResult(
-                        relative_path=path.relative_to(root).as_posix(),
-                        replacements=0,
-                        preview=f"_read_error: {exc}_",
-                    ),
-                )
-                continue
-            protected = compute_page_protected_line_indices(raw)
-            new_text, n = unify_tags_in_text(raw, mapping, protected_line_indices=protected)
-            if n == 0:
-                continue
-            rel = path.relative_to(root).as_posix()
-            preview = None
-            if preview_count < max_files_preview:
-                preview = f"_{n} replacement(s) in `{rel}`_"
-                preview_count += 1
-            file_results.append(
-                TagUnifyFileResult(relative_path=rel, replacements=n, preview=preview),
-            )
-            total_rep += n
-            if not dry_run:
-                bak = path.with_suffix(path.suffix + ".bak")
-                shutil.copy2(path, bak)
-                atomic_write_bytes(path, new_text.encode("utf-8"), graph_root=root)
+        result, n, preview_count = _tag_unify_process_file(
+            path,
+            root,
+            mapping,
+            dry_run=dry_run,
+            preview_count=preview_count,
+            max_files_preview=max_files_preview,
+        )
+        if result is None:
+            continue
+        file_results.append(result)
+        total_rep += n
 
     if dry_run and total_rep == 0:
         return TagUnifyRunResult(
