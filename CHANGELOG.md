@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+## [1.14.3] - 2026-07-26
+
+**Three small correctness/observability fixes from the open audit backlog**
+
+No MCP/CLI surface change. Closes three low-risk findings surfaced while triaging the issue tracker: a transient exception-classifier overreach, a config-page write race, and silent TUI failure fallbacks.
+
+### Fixed
+- **Transport-retry classifier ([#202](https://github.com/MarcoPorcellato/matryca-plumber/issues/202), audit finding F6)** — `call_openai_with_transport_retries` caught `BaseException` instead of `Exception`, momentarily routing `SystemExit`/`KeyboardInterrupt` through the retry classifier before re-raising. Narrowed to `Exception`; retryable classification behavior is unchanged.
+- **`store_fact` config-page race ([#43](https://github.com/MarcoPorcellato/matryca-plumber/issues/43))** — `_ensure_config_page` used a check-then-write pattern (`is_file()` then plain overwrite) to seed `matryca-config.md`, so two concurrent `store_fact` calls hitting a missing config page could race and clobber each other's write. Switched to an exclusive `O_CREAT | O_EXCL` create; the losing writer sees `FileExistsError` and reads back whatever the winner wrote.
+- **TUI dashboard silent failures ([#125](https://github.com/MarcoPorcellato/matryca-plumber/issues/125), [#126](https://github.com/MarcoPorcellato/matryca-plumber/issues/126))** — `collect_snapshot`'s scan-metrics / Phase-2 progress fallbacks and `collect_snapshot_safe`'s top-level guard swallowed failures with no ops-log breadcrumb, so operators saw stale/zeroed progress with nothing in `matryca_plumber_ops.log`. Now logs via `loguru_logger.exception(...)` before falling back; fallback UI values are unchanged.
+
 ## [1.14.2] - 2026-07-26
 
 **Map-of-Content generation wired up; agent-facing docs closed**
