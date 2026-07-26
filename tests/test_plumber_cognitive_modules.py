@@ -378,6 +378,39 @@ def test_cognitive_pipeline_runs_enabled_modules(graph_root: Path) -> None:
     assert "status:: inferred" in path.read_text(encoding="utf-8")
 
 
+def test_cognitive_pipeline_isolates_module_fault(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from loguru import logger
+
+    def _boom(*_args: object, **_kwargs: object) -> object:
+        raise RuntimeError("model timeout")
+
+    monkeypatch.setattr("src.agent.plumber_modules.run_marpa_framework", _boom)
+    path = _write_page(graph_root, "Progetti/Fault", "- Launch MVP #project\n")
+    config = PlumberLintConfig(marpa_framework=True, heal_dangling=True)
+    messages: list[str] = []
+    sink_id = logger.add(lambda msg: messages.append(msg.record["message"]), level="WARNING")
+    try:
+        outcome, _ = run_cognitive_lint_pipeline(
+            graph_root,
+            path,
+            "Progetti/Fault",
+            path.read_text(encoding="utf-8"),
+            llm=StubPlumberLLM(),
+            config=config,
+        )
+    finally:
+        logger.remove(sink_id)
+    assert "marpa_framework" in outcome.modules_run
+    assert any(
+        detail.startswith("marpa_framework:skipped:") for detail in outcome.details
+    )
+    assert any("[COGNITIVE LLM FAULT]" in message for message in messages)
+    assert "heal_dangling" in outcome.modules_run
+
+
 def test_marpa_framework_classifies_project_with_deadline(graph_root: Path) -> None:
     body = "- Launch MVP #project\n  Deliverable due 2026-06-01 with hard deadline\n"
     page_title = "Progetti/Lancio"
