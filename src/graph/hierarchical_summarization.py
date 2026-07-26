@@ -113,6 +113,37 @@ def build_mapreduce_reduce_prompt(
     )
 
 
+def _backfill_mapreduce_tags_and_domain(
+    consolidated: BootstrapSummaryResult,
+    partials: list[BootstrapSummaryResult],
+) -> BootstrapSummaryResult:
+    """Backfill tags/domain on the reduce-pass result from the map-pass partials."""
+    merged_tags = list(
+        dict.fromkeys(
+            tag.strip() for partial in partials for tag in partial.suggested_tags if tag.strip()
+        ),
+    )
+    if merged_tags and not consolidated.suggested_tags:
+        return BootstrapSummaryResult(
+            summary=consolidated.summary,
+            suggested_tags=merged_tags,
+            domain=consolidated.domain
+            or next(
+                (partial.domain for partial in partials if partial.domain),
+                "",
+            ),
+        )
+    if not consolidated.domain:
+        domain = next((partial.domain for partial in partials if partial.domain), "")
+        if domain:
+            return BootstrapSummaryResult(
+                summary=consolidated.summary,
+                suggested_tags=consolidated.suggested_tags or merged_tags,
+                domain=domain,
+            )
+    return consolidated
+
+
 def mapreduce_harvest_page_summary(
     llm: HarvestLLM,
     *,
@@ -164,30 +195,7 @@ def mapreduce_harvest_page_summary(
     if reset_history is not None:
         reset_history()
 
-    merged_tags = list(
-        dict.fromkeys(
-            tag.strip() for partial in partials for tag in partial.suggested_tags if tag.strip()
-        ),
-    )
-    if merged_tags and not consolidated.suggested_tags:
-        consolidated = BootstrapSummaryResult(
-            summary=consolidated.summary,
-            suggested_tags=merged_tags,
-            domain=consolidated.domain
-            or next(
-                (partial.domain for partial in partials if partial.domain),
-                "",
-            ),
-        )
-    elif not consolidated.domain:
-        domain = next((partial.domain for partial in partials if partial.domain), "")
-        if domain:
-            consolidated = BootstrapSummaryResult(
-                summary=consolidated.summary,
-                suggested_tags=consolidated.suggested_tags or merged_tags,
-                domain=domain,
-            )
-    return consolidated
+    return _backfill_mapreduce_tags_and_domain(consolidated, partials)
 
 
 __all__ = [
