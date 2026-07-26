@@ -16,7 +16,7 @@ from .daemon_semantic_write import (
 from .llm_client import InstructorLLMClient as _BaseInstructorLLMClient
 from .llm_context_payload import prepare_llm_context_payload
 from .page_prompt_session import PagePromptSession, build_page_prompt_session
-from .plumber_config import load_plumber_lint_config
+from .plumber_config import PlumberLintConfig, load_plumber_lint_config
 from .plumber_llm import BootstrapSummaryResult, GraphInsightsLLMResult
 from .plumber_modules.semantic_cache_router import (
     cache_get,
@@ -67,6 +67,41 @@ class LLMClient(Protocol):
         ...
 
 
+def _resolve_index_prompt_session(
+    *,
+    prompt_session: PagePromptSession | None,
+    graph_root: Path | None,
+    page_title: str,
+    content: str,
+    config: PlumberLintConfig,
+    page_path: Path | None,
+    alias_index: AliasIndex | None,
+    llm_context: str | None,
+) -> tuple[PagePromptSession | None, str | None]:
+    """Resolve the KV-cache session and/or raw llm_context for ``index_page``."""
+    session = prompt_session
+    if session is None and graph_root is not None:
+        session = build_page_prompt_session(
+            graph_root,
+            page_title,
+            content,
+            config=config,
+            stable_system=build_semantic_lint_system_prompt(),
+            page_path=page_path,
+            alias_index=alias_index,
+        )
+    elif session is None and llm_context is not None:
+        session = None
+    if session is None and llm_context is None and graph_root is not None:
+        llm_context, _ = prepare_llm_context_payload(
+            graph_root,
+            page_title,
+            content,
+            config=config,
+        )
+    return session, llm_context
+
+
 class InstructorLLMClient(_BaseInstructorLLMClient):
     """Daemon LLM client; adds semantic ``index_page`` with alias normalization."""
 
@@ -83,26 +118,16 @@ class InstructorLLMClient(_BaseInstructorLLMClient):
         prompt_session: PagePromptSession | None = None,
     ) -> tuple[SemanticIndexResult, dict[str, int]]:
         config = load_plumber_lint_config()
-        session = prompt_session
-        if session is None and graph_root is not None:
-            session = build_page_prompt_session(
-                graph_root,
-                page_title,
-                content,
-                config=config,
-                stable_system=build_semantic_lint_system_prompt(),
-                page_path=page_path,
-                alias_index=alias_index,
-            )
-        elif session is None and llm_context is not None:
-            session = None
-        if session is None and llm_context is None and graph_root is not None:
-            llm_context, _ = prepare_llm_context_payload(
-                graph_root,
-                page_title,
-                content,
-                config=config,
-            )
+        session, llm_context = _resolve_index_prompt_session(
+            prompt_session=prompt_session,
+            graph_root=graph_root,
+            page_title=page_title,
+            content=content,
+            config=config,
+            page_path=page_path,
+            alias_index=alias_index,
+            llm_context=llm_context,
+        )
         prompt = _build_index_prompt(
             page_title,
             content,
