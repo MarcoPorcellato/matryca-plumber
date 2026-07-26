@@ -532,6 +532,74 @@ async def verify_registry_batch(
     return result
 
 
+def _normalize_lines_to_text(lines: list[str]) -> str:
+    return "".join(
+        ln if ln.endswith("\n") else ln + "\n" for ln in [ln.rstrip("\n") for ln in lines]
+    )
+
+
+def _remove_block_hygiene_lines(
+    lines: list[str],
+    stripped: list[str],
+    bullet_idx: int,
+    block_end: int,
+    prop_pattern: re.Pattern[str],
+    *,
+    page_path: Path,
+    graph_root: Path,
+    baseline_mtime: float,
+    property_name: str,
+) -> bool:
+    remove_at = [
+        i
+        for i in range(bullet_idx + 1, min(block_end, len(stripped)))
+        if prop_pattern.match(stripped[i])
+    ]
+    if not remove_at:
+        return False
+    for i in reversed(remove_at):
+        del lines[i]
+    updated = _normalize_lines_to_text(lines)
+    return bool(
+        atomic_write_bytes_if_unchanged(
+            page_path,
+            updated.encode("utf-8"),
+            graph_root=graph_root,
+            baseline_mtime=baseline_mtime,
+            robot_commit_summary=f"cleared {property_name} on block",
+        ),
+    )
+
+
+def _insert_block_hygiene_line(
+    lines: list[str],
+    stripped: list[str],
+    bullet_idx: int,
+    block_end: int,
+    prop_key: str,
+    *,
+    page_path: Path,
+    graph_root: Path,
+    baseline_mtime: float,
+    property_name: str,
+) -> bool:
+    insert_at = block_property_insert_index(stripped, bullet_idx, block_end)
+    bullet_match = _BULLET_RE.match(stripped[bullet_idx].rstrip("\n"))
+    base_ws = bullet_match.group(1) if bullet_match else ""
+    indent = base_ws + bullet_indent_unit(stripped, bullet_idx)
+    lines.insert(insert_at, f"{indent}{prop_key} true\n")
+    updated = _normalize_lines_to_text(lines)
+    return bool(
+        atomic_write_bytes_if_unchanged(
+            page_path,
+            updated.encode("utf-8"),
+            graph_root=graph_root,
+            baseline_mtime=baseline_mtime,
+            robot_commit_summary=f"flagged {property_name} on block",
+        ),
+    )
+
+
 def _mutate_block_hygiene_property(
     graph_root: Path,
     page_relpath: str,
@@ -566,49 +634,31 @@ def _mutate_block_hygiene_property(
         bullet_idx, _id_idx, block_end = located
 
         if remove:
-            changed = False
-            remove_at: list[int] = []
-            for i in range(bullet_idx + 1, min(block_end, len(stripped))):
-                if prop_pattern.match(stripped[i]):
-                    remove_at.append(i)
-            for i in reversed(remove_at):
-                del lines[i]
-                changed = True
-            if not changed:
-                return False
-            updated = "".join(
-                ln if ln.endswith("\n") else ln + "\n" for ln in [ln.rstrip("\n") for ln in lines]
-            )
-            return bool(
-                atomic_write_bytes_if_unchanged(
-                    page_path,
-                    updated.encode("utf-8"),
-                    graph_root=graph_root,
-                    baseline_mtime=baseline_mtime,
-                    robot_commit_summary=f"cleared {property_name} on block",
-                ),
+            return _remove_block_hygiene_lines(
+                lines,
+                stripped,
+                bullet_idx,
+                block_end,
+                prop_pattern,
+                page_path=page_path,
+                graph_root=graph_root,
+                baseline_mtime=baseline_mtime,
+                property_name=property_name,
             )
 
         if _block_has_property(stripped, bullet_idx, block_end, prop_pattern):
             return True
 
-        insert_at = block_property_insert_index(stripped, bullet_idx, block_end)
-        bullet_match = _BULLET_RE.match(stripped[bullet_idx].rstrip("\n"))
-        base_ws = bullet_match.group(1) if bullet_match else ""
-        indent = base_ws + bullet_indent_unit(stripped, bullet_idx)
-        lines.insert(insert_at, f"{indent}{prop_key} true\n")
-
-        updated = "".join(
-            ln if ln.endswith("\n") else ln + "\n" for ln in [ln.rstrip("\n") for ln in lines]
-        )
-        return bool(
-            atomic_write_bytes_if_unchanged(
-                page_path,
-                updated.encode("utf-8"),
-                graph_root=graph_root,
-                baseline_mtime=baseline_mtime,
-                robot_commit_summary=f"flagged {property_name} on block",
-            ),
+        return _insert_block_hygiene_line(
+            lines,
+            stripped,
+            bullet_idx,
+            block_end,
+            prop_key,
+            page_path=page_path,
+            graph_root=graph_root,
+            baseline_mtime=baseline_mtime,
+            property_name=property_name,
         )
 
 
