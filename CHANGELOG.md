@@ -1,12 +1,13 @@
 ## [Unreleased]
 
-## [1.14.4] - 2026-07-26
+## [1.14.5] - 2026-07-26
 
-**Complexity and security hardening from an advanced debugging campaign (bandit, semgrep, radon, vulture, pip-audit, and PDG-based taint analysis)**
+**Lint fix for the v1.14.4 release-workflow failure**
 
-No MCP/CLI surface change. Two low-risk fixes: a predictable-temp-path hardening and a complexity-hotspot extract-method.
+No MCP/CLI surface change. `v1.14.4`'s tag build failed CI (`ruff check`: E501 line-too-long in the `bfs_hops` docstring introduced by that release) before the GitHub Release / PyPI publish steps ran — the `v1.14.4` tag is dead, no artifacts were ever published under that version. This release is otherwise identical to the intended `v1.14.4` content.
 
 ### Fixed
+- **Lint failure blocking release** — shortened the `_expand_bfs_frontier` docstring line in `src/graph/link_tag_hop.py` to satisfy ruff's 100-column limit.
 - **Predictable `/tmp` default in Tana importer** — `TanaConverter` fell back to a fixed `Path("/tmp/tana-vault")` when no `vault_path` was supplied (bandit B108: symlink-race risk on shared/multi-user systems). Now mints a private `tempfile.mkdtemp()` directory when unconfigured.
 
 ### Changed
