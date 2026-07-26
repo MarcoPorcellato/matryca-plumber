@@ -157,6 +157,47 @@ def build_structural_graph(graph_root: str | Path) -> dict[str, set[tuple[str, s
     return dict(edges)
 
 
+def _resolve_seed_stems(seeds: list[str], pages_dir: Path) -> list[str]:
+    """Resolve each raw seed (title/alias/stem) to a unique page stem, preserving order."""
+    resolved: list[str] = []
+    for s in seeds:
+        st = _resolve_target_to_stem(s, pages_dir)
+        if st is None and (pages_dir / f"{s}.md").is_file():
+            st = s
+        if st and st not in resolved:
+            resolved.append(st)
+    return resolved
+
+
+def _expand_bfs_frontier(
+    adj: dict[str, set[tuple[str, str]]],
+    frontier: list[str],
+    visited: set[str],
+    *,
+    depth: int,
+    max_per_level: int,
+) -> tuple[list[str], list[tuple[str, str, str, int]]]:
+    """Expand one BFS level: rank unvisited neighbors deterministically, cap at ``max_per_level``."""
+    candidates: list[tuple[str, str, str]] = []
+    for u in frontier:
+        for v, reason in sorted(adj.get(u, ())):
+            if v not in visited:
+                candidates.append((u, v, reason))
+    candidates.sort(key=lambda t: (t[1], t[2], t[0]))
+
+    next_frontier: list[str] = []
+    edges_used: list[tuple[str, str, str, int]] = []
+    for u, v, reason in candidates:
+        if len(next_frontier) >= max_per_level:
+            break
+        if v in visited:
+            continue
+        visited.add(v)
+        next_frontier.append(v)
+        edges_used.append((u, v, reason, depth))
+    return next_frontier, edges_used
+
+
 def bfs_hops(
     graph_root: str | Path,
     seeds: list[str],
@@ -172,14 +213,7 @@ def bfs_hops(
     """
     pages_dir = Path(graph_root).expanduser().resolve(strict=False) / "pages"
     adj = build_structural_graph(graph_root)
-
-    resolved_seeds: list[str] = []
-    for s in seeds:
-        st = _resolve_target_to_stem(s, pages_dir)
-        if st is None and (pages_dir / f"{s}.md").is_file():
-            st = s
-        if st and st not in resolved_seeds:
-            resolved_seeds.append(st)
+    resolved_seeds = _resolve_seed_stems(seeds, pages_dir)
 
     visited: set[str] = set(resolved_seeds)
     frontier = list(resolved_seeds)
@@ -191,23 +225,10 @@ def bfs_hops(
     for depth in range(1, max_depth + 1):
         if not frontier:
             break
-        next_frontier: list[str] = []
-        candidates: list[tuple[str, str, str]] = []
-        for u in frontier:
-            for v, reason in sorted(adj.get(u, ())):
-                if v not in visited:
-                    candidates.append((u, v, reason))
-        candidates.sort(key=lambda t: (t[1], t[2], t[0]))
-        added = 0
-        for u, v, reason in candidates:
-            if added >= max_per_level:
-                break
-            if v in visited:
-                continue
-            visited.add(v)
-            next_frontier.append(v)
-            edges_used.append((u, v, reason, depth))
-            added += 1
+        next_frontier, level_edges = _expand_bfs_frontier(
+            adj, frontier, visited, depth=depth, max_per_level=max_per_level
+        )
+        edges_used.extend(level_edges)
         levels.append({"depth": depth, "stems": list(next_frontier), "new": list(next_frontier)})
         frontier = next_frontier
 
