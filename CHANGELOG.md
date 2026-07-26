@@ -1,5 +1,17 @@
 ## [Unreleased]
 
+## [1.14.1] - 2026-07-26
+
+**Map-of-Content generation wired up; agent-facing docs closed**
+
+Small but user-visible: `moc_page.py` (Map-of-Content index page generation) existed on disk but had no `mutate_graph` / CLI action pointing to it. Also closed doc gaps where `SYSTEM_PROMPT.md` covered `inject_query` / `unify_tags` but `llms.txt` did not.
+
+### Added
+- `mutate_graph` (MCP) / `matryca mutate` (CLI) gains `action=generate_moc`: generates a namespace-scoped Map-of-Content index page (`[[wikilinks]]` grouped by sub-namespace), dry-run by default. See `SYSTEM_PROMPT.md` § `mutate_graph` and `llms.txt` example J.
+
+### Docs
+- `llms.txt` zero-shot examples H (`inject_query`) and I (`unify_tags`) added, mirroring existing `SYSTEM_PROMPT.md` coverage.
+
 ## [1.14.0] - 2026-07-16
 
 **Catalog write-safety, leaf-module dependency direction, and Clean Code Tier F closures**
