@@ -6,6 +6,7 @@ import os
 import re
 import tempfile
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -143,6 +144,18 @@ def _format_log_uuid_clause(block_uuids: list[str]) -> str:
     return f"{head}, … +{len(block_uuids) - _MAX_LOG_UUIDS_SHOWN} more"
 
 
+def _walk_glossary_node(node: LogseqNode, register: Callable[[str, str], None]) -> None:
+    """Recursively register glossary term candidates found under one block."""
+    block_uuid = str(node.properties.get("id") or node.uuid or "")
+    text = f"{node.content} {node.clean_text}"
+    for tag in _extract_inline_tags(text):
+        register(tag, block_uuid)
+    for match in _CAP_TERM.finditer(text):
+        register(match.group(0), block_uuid)
+    for child in node.children:
+        _walk_glossary_node(child, register)
+
+
 def _extract_glossary_candidates(
     raw_markdown: str,
     stamped_page: LogseqPage,
@@ -162,18 +175,8 @@ def _extract_glossary_candidates(
             return
         term_to_uuid[key] = block_uuid
 
-    def walk(node: LogseqNode) -> None:
-        block_uuid = str(node.properties.get("id") or node.uuid or "")
-        text = f"{node.content} {node.clean_text}"
-        for tag in _extract_inline_tags(text):
-            register(tag, block_uuid)
-        for match in _CAP_TERM.finditer(text):
-            register(match.group(0), block_uuid)
-        for child in node.children:
-            walk(child)
-
     for root in stamped_page.root_nodes:
-        walk(root)
+        _walk_glossary_node(root, register)
 
     fallback = first_root_uuid()
     for tag in _extract_inline_tags(raw_markdown):
