@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -21,7 +20,7 @@ import httpx
 from loguru import logger
 
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
-from ..utils.env_parse import env_bool
+from ..utils.env_parse import env_bool, env_float_clamped, env_int_clamped
 from .global_fence_scanner import compute_page_protected_line_indices
 from .json_flock import cross_process_json_flock
 from .markdown_blocks import (
@@ -71,27 +70,19 @@ def link_verify_enabled() -> bool:
 
 
 def link_verify_strikes_threshold() -> int:
-    raw = os.environ.get("MATRYCA_LINK_VERIFY_STRIKES", "2").strip()
-    try:
-        return max(1, int(raw))
-    except ValueError:
-        return 2
+    return env_int_clamped(
+        "MATRYCA_LINK_VERIFY_STRIKES", 2, minimum=1, maximum=2**31 - 1,
+    )
 
 
 def link_verify_batch_size() -> int:
-    raw = os.environ.get("MATRYCA_LINK_VERIFY_BATCH", "25").strip()
-    try:
-        return max(1, min(200, int(raw)))
-    except ValueError:
-        return 25
+    return env_int_clamped("MATRYCA_LINK_VERIFY_BATCH", 25, minimum=1, maximum=200)
 
 
 def link_verify_timeout_seconds() -> float:
-    raw = os.environ.get("MATRYCA_LINK_VERIFY_TIMEOUT", "8").strip()
-    try:
-        return max(1.0, min(60.0, float(raw)))
-    except ValueError:
-        return 8.0
+    return env_float_clamped(
+        "MATRYCA_LINK_VERIFY_TIMEOUT", 8.0, minimum=1.0, maximum=60.0,
+    )
 
 
 @dataclass
