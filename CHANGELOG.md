@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-## [1.14.1] - 2026-07-26
+## [1.14.2] - 2026-07-26
 
 **Map-of-Content generation wired up; agent-facing docs closed**
 
