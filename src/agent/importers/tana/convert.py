@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import tempfile
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -82,7 +83,11 @@ class TanaConverter:
         self._journal_title_format = journal_page_title_format
         self._journal_file_format = journal_file_name_format
         self._vault_path = (
-            Path(vault_path).expanduser() if vault_path is not None else Path("/tmp/tana-vault")
+            Path(vault_path).expanduser()
+            if vault_path is not None
+            # Unconfigured fallback: a fixed /tmp path is predictable and races with
+            # other local users on shared machines, so mint a private temp dir instead.
+            else Path(tempfile.mkdtemp(prefix="matryca-tana-vault-"))
         )
         self._export_file = export_file
         self._export_ts = export_ts or iso_export_timestamp()
