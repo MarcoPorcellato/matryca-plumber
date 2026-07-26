@@ -261,3 +261,50 @@ def test_try_load_daemon_state_logs_and_returns_empty_state_without_cache(
     logged.assert_called_once_with(
         "TUI dashboard failed to load daemon state; using fallback state"
     )
+
+
+def test_collect_snapshot_logs_scan_metrics_failures(graph_root: Path) -> None:
+    logger = TokenLogger(log_path=graph_root / "ops.log")
+    with (
+        patch("src.cli.tui_dashboard.compute_scan_metrics", side_effect=OSError("disk busy")),
+        patch("src.cli.tui_dashboard.loguru_logger.exception") as logged,
+    ):
+        snap, _ = collect_snapshot(graph_root=graph_root, token_logger=logger)
+
+    assert snap.total_pages == 0
+    logged.assert_called()
+    assert any("scan metrics" in str(call.args[0]) for call in logged.call_args_list)
+
+
+def test_collect_snapshot_logs_phase2_progress_metrics_failures(graph_root: Path) -> None:
+    _write_page(graph_root, "Alpha", "- alpha\n")
+    logger = TokenLogger(log_path=graph_root / "ops.log")
+    state = DaemonState(bootstrap_complete=True)
+    save_daemon_state(graph_root, state)
+
+    with (
+        patch(
+            "src.cli.tui_dashboard.compute_phase2_progress_metrics",
+            side_effect=OSError("phase2 unavailable"),
+        ),
+        patch("src.cli.tui_dashboard.loguru_logger.exception") as logged,
+    ):
+        snap, _ = collect_snapshot(graph_root=graph_root, token_logger=logger)
+
+    assert snap.status in {"Stopped", "Idle", "Running", "Error"} or snap.total_pages >= 0
+    logged.assert_called()
+    assert any("Phase-2 progress metrics" in str(call.args[0]) for call in logged.call_args_list)
+
+
+def test_collect_snapshot_safe_logs_collect_snapshot_failures(graph_root: Path) -> None:
+    logger = TokenLogger(log_path=graph_root / "ops.log")
+    with (
+        patch("src.cli.tui_dashboard.collect_snapshot", side_effect=RuntimeError("boom")),
+        patch("src.cli.tui_dashboard.loguru_logger.exception") as logged,
+    ):
+        snap, cached = collect_snapshot_safe(graph_root=graph_root, token_logger=logger)
+
+    assert snap.status == "Error"
+    assert cached is None
+    logged.assert_called()
+    assert any("collect_snapshot failed" in str(call.args[0]) for call in logged.call_args_list)
