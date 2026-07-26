@@ -177,7 +177,7 @@ def _expand_bfs_frontier(
     depth: int,
     max_per_level: int,
 ) -> tuple[list[str], list[tuple[str, str, str, int]]]:
-    """Expand one BFS level: rank unvisited neighbors deterministically, cap at ``max_per_level``."""
+    """Expand one BFS level: rank unvisited neighbors deterministically, capped per level."""
     candidates: list[tuple[str, str, str]] = []
     for u in frontier:
         for v, reason in sorted(adj.get(u, ())):
