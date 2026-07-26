@@ -421,6 +421,21 @@ def apply_semantic_corrections_to_lines(
     return outcome
 
 
+def _append_moc_and_cross_reference_lines(lines: list[str], result: SemanticIndexResult) -> None:
+    if result.moc_pointers:
+        lines.append("- moc-pointers::")
+        for pointer in result.moc_pointers:
+            target = pointer if pointer.startswith("[[") else f"[[{pointer.strip('[]')}]]"
+            lines.append(f"  - {target}")
+    if result.cross_references:
+        lines.append("- cross-references::")
+        for ref in result.cross_references:
+            target = ref.target
+            if not (target.startswith("[[") or target.startswith("#")):
+                target = f"[[{target.strip('[]')}]]"
+            lines.append(f"  - {ref.concept} ({ref.relation}) → {target}")
+
+
 def _format_index_section(
     result: SemanticIndexResult,
     *,
@@ -438,18 +453,7 @@ def _format_index_section(
             t if t.startswith("#") else f"#{t.lstrip('#')}" for t in result.suggested_tags
         )
         lines.append(f"- suggested-tags:: {tag_line}")
-    if result.moc_pointers:
-        lines.append("- moc-pointers::")
-        for pointer in result.moc_pointers:
-            target = pointer if pointer.startswith("[[") else f"[[{pointer.strip('[]')}]]"
-            lines.append(f"  - {target}")
-    if result.cross_references:
-        lines.append("- cross-references::")
-        for ref in result.cross_references:
-            target = ref.target
-            if not (target.startswith("[[") or target.startswith("#")):
-                target = f"[[{target.strip('[]')}]]"
-            lines.append(f"  - {ref.concept} ({ref.relation}) → {target}")
+    _append_moc_and_cross_reference_lines(lines, result)
     if lint_outcome is not None and lint_outcome.applied_details:
         lines.append("- semantic-lint-applied::")
         for detail in lint_outcome.applied_details:
