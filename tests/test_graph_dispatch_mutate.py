@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from src.agent.dispatch_mutate_handlers import (
     handle_mutate_append_journal,
@@ -42,15 +44,19 @@ async def test_handle_mutate_generate_moc_requires_target() -> None:
     assert "target" in str(out.get("error", ""))
 
 
+def _write_fixture_page(pages_dir: str) -> None:
+    import os
+
+    os.makedirs(pages_dir, exist_ok=True)
+    with open(f"{pages_dir}/Project___Alpha.md", "w", encoding="utf-8") as fh:
+        fh.write("tags:: \n\n- alpha\n")
+
+
 @pytest.mark.asyncio
 async def test_dispatch_mutate_generate_moc_dry_run(tmp_path: object) -> None:
     graph_root = str(tmp_path)
     pages = f"{graph_root}/pages"
-    import os
-
-    os.makedirs(pages, exist_ok=True)
-    with open(f"{pages}/Project___Alpha.md", "w", encoding="utf-8") as fh:
-        fh.write("tags:: \n\n- alpha\n")
+    await asyncio.to_thread(_write_fixture_page, pages)
 
     out = await handle_mutate_generate_moc(graph_root, "Project", '{"dry_run": true}')
     assert out.get("ok") is True
