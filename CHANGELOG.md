@@ -1,5 +1,17 @@
 ## [Unreleased]
 
+## [1.14.4] - 2026-07-26
+
+**Complexity and security hardening from an advanced debugging campaign (bandit, semgrep, radon, vulture, pip-audit, and PDG-based taint analysis)**
+
+No MCP/CLI surface change. Two low-risk fixes: a predictable-temp-path hardening and a complexity-hotspot extract-method.
+
+### Fixed
+- **Predictable `/tmp` default in Tana importer** — `TanaConverter` fell back to a fixed `Path("/tmp/tana-vault")` when no `vault_path` was supplied (bandit B108: symlink-race risk on shared/multi-user systems). Now mints a private `tempfile.mkdtemp()` directory when unconfigured.
+
+### Changed
+- **`bfs_hops` complexity reduction ([#233](https://github.com/MarcoPorcellato/matryca-plumber/issues/233))** — extracted `_resolve_seed_stems` and `_expand_bfs_frontier` out of `bfs_hops` (`src/graph/link_tag_hop.py`), resolving a ruff C901 finding. No behavior change.
+
 ## [1.14.3] - 2026-07-26
 
 **Three small correctness/observability fixes from the open audit backlog**
