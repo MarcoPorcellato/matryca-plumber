@@ -40,7 +40,9 @@ SearchGraphMethod = Literal[
     "journal_tasks",
     "resolve_entity",
 ]
-MutateGraphAction = Literal["write_outline", "edit_property", "append_journal", "inject_query"]
+MutateGraphAction = Literal[
+    "write_outline", "edit_property", "append_journal", "inject_query", "generate_moc"
+]
 RefactorBlocksAction = Literal["split_large", "reparent", "generate_flashcards"]
 RunLinterName = Literal["unify_tags", "block_refs", "full_wiki_scan"]
 

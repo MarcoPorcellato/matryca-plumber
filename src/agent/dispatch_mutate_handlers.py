@@ -14,6 +14,7 @@ from ..graph.advanced_query_block import (
 )
 from ..graph.journal_task_scan import append_journal_markdown_section
 from ..graph.markdown_blocks import OCCConflictError, graph_safe_page_path, read_file_mtime_ns
+from ..graph.moc_page import write_moc_page
 from ..graph.path_sandbox import PathTraversalSecurityError
 from ..graph.property_line_edit import edit_block_property_lines
 from .alias_state import resolve_pipe_target
@@ -249,11 +250,34 @@ async def handle_mutate_inject_query(
     return inject_out
 
 
+async def handle_mutate_generate_moc(
+    graph_path: str | None,
+    target: str,
+    payload: str,
+) -> dict[str, Any]:
+    if not graph_path:
+        return graph_missing_dict()
+    namespace = target.strip()
+    if not namespace:
+        return mutate_error("generate_moc requires `target` = namespace stem (e.g. `Project/Sub`).")
+    moc_opts = parse_json_object(payload, field_name="payload") if payload.strip() else {}
+    output_page_title = moc_opts.get("output_page_title")
+    dry_run = bool(moc_opts.get("dry_run", True))
+    return await asyncio.to_thread(
+        write_moc_page,
+        graph_path,
+        namespace,
+        output_page_title=str(output_page_title) if output_page_title else None,
+        dry_run=dry_run,
+    )
+
+
 _MUTATE_HANDLERS: dict[MutateGraphAction, MutateHandler] = {
     "write_outline": handle_mutate_write_outline,
     "edit_property": handle_mutate_edit_property,
     "append_journal": handle_mutate_append_journal,
     "inject_query": handle_mutate_inject_query,
+    "generate_moc": handle_mutate_generate_moc,
 }
 
 
@@ -272,6 +296,7 @@ __all__ = [
     "dispatch_mutate_target",
     "handle_mutate_append_journal",
     "handle_mutate_edit_property",
+    "handle_mutate_generate_moc",
     "handle_mutate_inject_query",
     "handle_mutate_write_outline",
     "mutate_error",

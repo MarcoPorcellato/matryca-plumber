@@ -64,6 +64,7 @@ MUTATE_ACTIONS: tuple[MutateGraphAction, ...] = (
     "edit_property",
     "append_journal",
     "inject_query",
+    "generate_moc",
 )
 REFACTOR_ACTIONS: tuple[RefactorBlocksAction, ...] = (
     "split_large",

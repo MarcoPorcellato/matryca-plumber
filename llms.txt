@@ -266,6 +266,31 @@ uvx matryca-plumber --json import tana --file "$HOME/Downloads/tana-workspace.js
 uvx matryca-plumber import tana --file "$HOME/Downloads/tana-workspace.json" --apply
 ```
 
+**H. Inject a native Logseq advanced-query block (open TODO/LATER/WAITING dashboard)**
+```bash
+export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
+uvx matryca-plumber --json mutate inject_query \
+  --target "My Project|parent-block-uuid" \
+  --payload '{"query_preset": "open_markers", "dry_run": true}'
+```
+Presets: `open_markers` (open TODO/LATER/WAITING), `pages_tagged` (needs a `"tag"` field). Or pass raw `"query_edn"` instead of `query_preset`. Always `dry_run: true` first.
+
+**I. Preview hashtag/tag-variant unification (e.g. `#AI` vs `#ai`)**
+```bash
+export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
+uvx matryca-plumber --json lint unify_tags
+```
+Preview-only: returns clustered tag variants and suggested canonical form. Applying rewrites vault-wide requires explicit operator consent — this command never writes.
+
+**J. Generate a Map-of-Content index page for a namespace**
+```bash
+export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
+uvx matryca-plumber --json mutate generate_moc \
+  --target "Project/Sub" \
+  --payload '{"dry_run": true}'
+```
+Writes `MOC Project/Sub` (or `output_page_title`) listing every page under that namespace as grouped `[[wikilinks]]`. Always `dry_run: true` first.
+
 For **today's journal page** as `read page`, use the **exact Logseq page title** shown in the app (locale-dependent), not a file path like `journals/2026_06_05.md`.
 
 ---
