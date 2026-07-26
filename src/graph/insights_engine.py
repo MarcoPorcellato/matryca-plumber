@@ -7,6 +7,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import NamedTuple
 
 from loguru import logger
 
@@ -77,13 +78,26 @@ def _count_bullets(text: str) -> int:
     return sum(1 for line in text.splitlines() if re.match(r"^\s*[-*+]\s+", line))
 
 
-def _incoming_backlink_counts(graph_root: Path) -> dict[str, int]:
+class _PageTopologyScan(NamedTuple):
+    """Result of a single combined pass over every scannable page's text."""
+
+    incoming: dict[str, int]
+    outgoing: dict[str, int]
+    signatures: dict[str, set[str]]
+    dense_blocks: list[tuple[str, int]]
+
+
+def _scan_page_topology(graph_root: Path) -> _PageTopologyScan:
+    """Read each page once to derive link counts, tag signatures, and block density."""
     from .alias_index import iter_scannable_pages_markdown
 
     root = graph_root.expanduser().resolve(strict=False)
     pages_dir = root / "pages"
     stems = {p.stem for p in iter_scannable_pages_markdown(root)}
     incoming: dict[str, int] = {}
+    outgoing: dict[str, int] = {}
+    signatures: dict[str, set[str]] = {}
+    dense_blocks: list[tuple[str, int]] = []
 
     for path in iter_alias_source_paths(root):
         title = page_title_from_path(root, path)
@@ -91,48 +105,26 @@ def _incoming_backlink_counts(graph_root: Path) -> dict[str, int]:
         try:
             text = read_graph_file_text(path, root, errors="replace")
         except OSError:
-            continue
-        for match in _WIKILINK.finditer(text):
-            other = _resolve_target_to_stem(match.group(1), pages_dir)
-            if other and other in stems:
-                target_title = filename_to_page_title(f"{other}.md")
-                incoming[target_title] = incoming.get(target_title, 0) + 1
-    return incoming
-
-
-def _outgoing_wikilink_counts(graph_root: Path) -> dict[str, int]:
-    root = graph_root.expanduser().resolve(strict=False)
-    pages_dir = root / "pages"
-    outgoing: dict[str, int] = {}
-
-    for path in iter_alias_source_paths(root):
-        title = page_title_from_path(root, path)
-        try:
-            text = read_graph_file_text(path, root, errors="replace")
-        except OSError:
             outgoing[title] = 0
+            signatures[title] = set()
             continue
+
         count = 0
         for match in _WIKILINK.finditer(text):
             other = _resolve_target_to_stem(match.group(1), pages_dir)
             if other:
                 count += 1
+                if other in stems:
+                    target_title = filename_to_page_title(f"{other}.md")
+                    incoming[target_title] = incoming.get(target_title, 0) + 1
         outgoing[title] = count
-    return outgoing
+        signatures[title] = _extract_inline_tags(text) | _tags_prop_values(text)
 
+        block_count = _count_bullets(text)
+        if block_count >= _DENSE_BLOCK_THRESHOLD:
+            dense_blocks.append((title, block_count))
 
-def _tag_signatures(graph_root: Path) -> dict[str, set[str]]:
-    signatures: dict[str, set[str]] = {}
-    for path in iter_alias_source_paths(graph_root):
-        title = page_title_from_path(graph_root, path)
-        try:
-            text = read_graph_file_text(path, graph_root, errors="replace")
-        except OSError:
-            signatures[title] = set()
-            continue
-        tags = _extract_inline_tags(text) | _tags_prop_values(text)
-        signatures[title] = tags
-    return signatures
+    return _PageTopologyScan(incoming, outgoing, signatures, dense_blocks)
 
 
 def _find_tag_clusters(signatures: dict[str, set[str]]) -> list[TagCluster]:
@@ -192,9 +184,8 @@ def compute_topology_metrics(
     """Execute structural topology heuristics on the completed JSON catalog."""
     root = graph_root.expanduser().resolve(strict=False)
     catalog = catalog or load_master_catalog(root)
-    incoming = _incoming_backlink_counts(root)
-    outgoing = _outgoing_wikilink_counts(root)
-    signatures = _tag_signatures(root)
+    scan = _scan_page_topology(root)
+    incoming, outgoing, signatures, dense_blocks = scan
 
     orphan_pages = sorted(title for title, count in incoming.items() if count == 0)
     dense_wikilinks = sorted(
@@ -202,17 +193,7 @@ def compute_topology_metrics(
         key=lambda item: (-item[1], item[0].lower()),
     )
 
-    dense_blocks: list[tuple[str, int]] = []
-    for path in iter_alias_source_paths(root):
-        title = page_title_from_path(root, path)
-        try:
-            text = read_graph_file_text(path, root, errors="replace")
-        except OSError:
-            continue
-        block_count = _count_bullets(text)
-        if block_count >= _DENSE_BLOCK_THRESHOLD:
-            dense_blocks.append((title, block_count))
-    dense_blocks.sort(key=lambda item: (-item[1], item[0].lower()))
+    dense_blocks = sorted(dense_blocks, key=lambda item: (-item[1], item[0].lower()))
 
     domain_distribution: dict[str, int] = {}
     for entry in catalog.pages.values():
