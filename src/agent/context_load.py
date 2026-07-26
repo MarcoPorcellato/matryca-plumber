@@ -16,6 +16,24 @@ from .graph_tool_helpers import (
 )
 
 
+async def _load_subtree_context(root: str, raw: str) -> dict[str, Any]:
+    """Handle a ``Page Title|block-uuid`` pipe query."""
+    page_part, block_part = [p.strip() for p in raw.split("|", 1)]
+    if not page_part or not block_part:
+        return {"ok": False, "error": "Invalid `Page Title|block-uuid` query."}
+    try:
+        subtree_md = await asyncio.to_thread(read_subtree_markdown, root, raw)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
+    return {
+        "ok": True,
+        "mode": "subtree",
+        "page": page_part,
+        "block_uuid": block_part,
+        "markdown": subtree_md,
+    }
+
+
 async def load_agent_context(
     query: str,
     *,
@@ -34,20 +52,7 @@ async def load_agent_context(
         }
 
     if "|" in raw:
-        page_part, block_part = [p.strip() for p in raw.split("|", 1)]
-        if not page_part or not block_part:
-            return {"ok": False, "error": "Invalid `Page Title|block-uuid` query."}
-        try:
-            subtree_md = await asyncio.to_thread(read_subtree_markdown, root, raw)
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-        return {
-            "ok": True,
-            "mode": "subtree",
-            "page": page_part,
-            "block_uuid": block_part,
-            "markdown": subtree_md,
-        }
+        return await _load_subtree_context(root, raw)
 
     try:
         page_md = await get_page_spatial_context(raw, root)
