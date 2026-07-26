@@ -19,7 +19,6 @@ import hashlib
 import json
 import multiprocessing as mp
 import os
-import pickle
 import struct
 import subprocess
 import sys
@@ -101,7 +100,7 @@ def _parse_request_message(msg: dict[str, Any]) -> dict[str, Any]:
     """Parse one trusted local request and return a content-free response envelope.
 
     The AST is serialized separately as bytes.  This lets the daemon-parent
-    fallback verify response correlation before unpickling the AST payload.
+    fallback verify response correlation before decoding the AST payload.
     """
     op = str(msg.get("op", ""))
     echo = _echo_fields(msg)
@@ -134,7 +133,7 @@ def _parse_request_message(msg: dict[str, Any]) -> dict[str, Any]:
         return {
             **echo,
             "ok": True,
-            "blob": pickle.dumps(page, protocol=pickle.HIGHEST_PROTOCOL),
+            "blob": page.model_dump_json().encode("utf-8"),
             "s": round(time.perf_counter() - started, 6),
         }
     except Exception as exc:  # noqa: BLE001 - bounded type name only
@@ -305,7 +304,7 @@ class BoundedPageParseWorker:
         ``multiprocessing`` blocks ``spawn`` from a daemon pool worker.  The
         fallback intentionally does not parse in-process: it starts a fresh
         interpreter without a shell and exchanges one binary framed response.
-        The frame header is validated before the AST blob is unpickled.
+        The frame header is validated before the AST blob is decoded.
         """
         started = time.perf_counter()
         proc: subprocess.Popen[bytes] | None = None
@@ -435,7 +434,9 @@ class BoundedPageParseWorker:
                 elapsed_s=wall,
             )
         try:
-            page = pickle.loads(blob)
+            from logseq_matryca_parser.logos_core import LogseqPage
+
+            page = LogseqPage.model_validate_json(blob)
         except Exception:  # noqa: BLE001 - AST payload is untrusted until correlation
             return BoundedParseResult(
                 ok=False,
@@ -626,7 +627,13 @@ class BoundedPageParseWorker:
 
             blob = raw.get("blob")
             try:
-                page = pickle.loads(blob) if isinstance(blob, (bytes, bytearray)) else None
+                from logseq_matryca_parser.logos_core import LogseqPage
+
+                page = (
+                    LogseqPage.model_validate_json(blob)
+                    if isinstance(blob, (bytes, bytearray))
+                    else None
+                )
             except Exception:  # noqa: BLE001
                 return BoundedParseResult(
                     ok=False,
