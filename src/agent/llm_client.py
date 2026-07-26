@@ -117,7 +117,7 @@ def call_openai_with_transport_retries[T](factory: Callable[[], T]) -> T:
     for attempt in range(1, attempts + 1):
         try:
             return factory()
-        except BaseException as exc:  # noqa: BLE001 - classify retryable OpenAI/httpx faults
+        except Exception as exc:  # noqa: BLE001 - classify retryable OpenAI/httpx faults
             last_exc = exc
             if not _is_transport_retryable(exc) or attempt >= attempts:
                 raise
