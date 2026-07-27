@@ -1670,6 +1670,8 @@ def test_soak_migrates_running_v1_trends_as_legacy_combined(tmp_path: Path) -> N
             clock=lambda: 0.0,
         )
     state["trends"][0].pop("untrusted_detail")
+    # A genuine v1 trend predates quarantine sampling, so it carries no parked-page count.
+    state["trends"][0].pop("quarantined_count", None)
     state_path.write_text(json.dumps(state), encoding="utf-8")
 
     with pytest.raises(module.EvidenceError, match="^duration_incomplete$"):

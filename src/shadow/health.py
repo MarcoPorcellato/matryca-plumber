@@ -16,6 +16,7 @@ from .meta import (
     META_SOURCE_PAGE_COUNT,
     get_meta,
 )
+from .quarantine import quarantined_page_count
 from .runtime_state import is_shadow_bootstrapping
 from .schema import SHADOW_SCHEMA_VERSION
 
@@ -45,13 +46,22 @@ def shadow_meta_matches_page_rows(
     indexed_page_count: str | None,
     source_page_count: str | None,
     actual_page_count: int,
+    quarantined_page_count: int = 0,
 ) -> bool:
-    """Return whether persisted meta counts match the ``pages`` table row count."""
+    """Return whether persisted meta counts account for every source page.
+
+    The invariant is ``indexed + quarantined == source == actual``. Quarantined pages
+    are deliberately absent from ``pages``, so they are counted separately rather than
+    treated as a gap: a graph where every page is either indexed or explicitly parked
+    is fully accounted for, and therefore healthy. ``quarantined_page_count`` defaults
+    to zero so a database written before quarantine existed evaluates exactly as before.
+    """
     indexed = _parse_meta_page_count(indexed_page_count)
     source = _parse_meta_page_count(source_page_count)
+    quarantined = max(0, quarantined_page_count)
     if indexed is not None and indexed != actual_page_count:
         return False
-    return source is None or source == actual_page_count
+    return source is None or source == actual_page_count + quarantined
 
 
 def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
@@ -79,6 +89,7 @@ def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
                 indexed_page_count=get_meta(conn, META_INDEXED_PAGE_COUNT),
                 source_page_count=get_meta(conn, META_SOURCE_PAGE_COUNT),
                 actual_page_count=actual_pages,
+                quarantined_page_count=quarantined_page_count(conn),
             ):
                 return ShadowHealthState.STALE
             return ShadowHealthState.READY

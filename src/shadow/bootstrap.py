@@ -18,11 +18,13 @@ from .meta import (
     META_LAST_FULL_SYNC_AT,
     META_LAST_FULL_SYNC_COMPLETED,
     META_LAST_SYNC_ERROR,
+    META_QUARANTINED_PAGE_COUNT,
     META_SOURCE_PAGE_COUNT,
     bump_generation,
     ensure_meta_defaults,
     set_meta,
 )
+from .quarantine import quarantined_page_count
 from .runtime_state import (
     clear_bootstrapping,
     is_shadow_bootstrapping,
@@ -79,21 +81,41 @@ def rebuild_shadow_from_graph(graph_root: Path | str) -> None:
                 set_meta(conn, META_LAST_FULL_SYNC_COMPLETED, "false")
                 set_meta(conn, META_LAST_SYNC_ERROR, "")
                 conn.execute("DELETE FROM pages")
+                # A full rebuild re-evaluates every page from scratch, so prior verdicts
+                # are cleared: a page that has since been edited or split gets another
+                # chance rather than staying parked forever.
+                conn.execute("DELETE FROM quarantined_pages")
 
                 indexed = 0
                 for path in source_paths:
                     from .sync import sync_page_into_connection
 
-                    sync_page_into_connection(conn, root, path)
-                    indexed += 1
+                    if sync_page_into_connection(conn, root, path):
+                        indexed += 1
 
+                # With quarantine on, a page that cannot be parsed within budget is
+                # parked rather than aborting the rebuild, so `indexed` is the count of
+                # pages actually in `pages` and the remainder is accounted for by the
+                # quarantine table. The health invariant is indexed + quarantined ==
+                # source, which keeps the cache READY while staying honest about what
+                # it does not contain.
+                quarantined = quarantined_page_count(conn)
                 bump_generation(conn)
                 set_meta(conn, META_LAST_FULL_SYNC_AT, synced_at)
                 set_meta(conn, META_LAST_FULL_SYNC_COMPLETED, "true")
                 set_meta(conn, META_SOURCE_PAGE_COUNT, str(source_count))
                 set_meta(conn, META_INDEXED_PAGE_COUNT, str(indexed))
+                set_meta(conn, META_QUARANTINED_PAGE_COUNT, str(quarantined))
                 set_meta(conn, META_LAST_SYNC_ERROR, "")
                 conn.commit()
+                if quarantined:
+                    logger.warning(
+                        "Shadow rebuild parked {} of {} pages outside the read cache; "
+                        "reads for those pages use Markdown. See "
+                        "docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md",
+                        quarantined,
+                        source_count,
+                    )
             except Exception as exc:
                 conn.rollback()
                 message = str(exc) if isinstance(exc, ShadowSyncError) else "full rebuild failed"

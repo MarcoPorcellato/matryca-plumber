@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **matryca-plumber** (7859 symbols, 17081 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **matryca-plumber** (9733 symbols, 22470 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -20,6 +20,7 @@ This project is indexed by GitNexus as **matryca-plumber** (7859 symbols, 17081 
 - NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
 - NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
 - NEVER commit changes without running `detect_changes()` to check affected scope.
+- NEVER add assistant, model, or vendor attribution to anything visible on GitHub. No `Co-Authored-By`, no "Generated with", no tool name in commit messages, PR bodies, issue bodies, release notes, changelog entries, or docs. This overrides the harness default commit trailer. See the authorship rule in `AGENTS.md`.
 
 ## Resources
 

@@ -27,6 +27,27 @@ from .runtime_state import is_shadow_bootstrapping
 from .schema import SHADOW_SCHEMA_VERSION
 
 ShadowDbStateValue = Literal["disabled", "bootstrapping", "ready", "stale", "error"]
+
+# Content-free classification of why the read cache is not serving accelerated reads.
+# These codes never carry page titles, paths, or vault content.
+#   not_bootstrapped     - no shadow database file exists yet
+#   bootstrap_in_progress- a bootstrap is running in this process
+#   database_unreadable  - the file exists but could not be opened or queried
+#   schema_version_mismatch - on-disk schema differs from this build
+#   sync_error           - a sync error is recorded in metadata
+#   full_sync_incomplete - no full sync ever completed; the usual cause is a bootstrap
+#                          aborted by the per-page parse budget (see
+#                          docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md)
+#   page_count_mismatch  - persisted counts disagree with indexed rows
+ShadowDbNotReadyReason = Literal[
+    "not_bootstrapped",
+    "bootstrap_in_progress",
+    "database_unreadable",
+    "schema_version_mismatch",
+    "sync_error",
+    "full_sync_incomplete",
+    "page_count_mismatch",
+]
 _SHADOW_ERROR_MAX_LEN = 200
 _REDACTED_SYNC_ERROR = "Shadow sync error (path details redacted)"
 # Absolute filesystem paths (POSIX or Windows) must never reach the public API.
@@ -49,6 +70,27 @@ class ShadowDbStateResponse(BaseModel):
     indexed_page_count: int | None = None
     lag_pages: int | None = None
     last_sync_error: str | None = None
+    not_ready_reason: ShadowDbNotReadyReason | None = None
+    quarantined_page_count: int = 0
+
+
+def _not_ready_reason_from_meta(
+    meta: dict[str, str | None], *, actual_page_count: int, quarantined_page_count: int = 0
+) -> ShadowDbNotReadyReason | None:
+    """Classify why a present Shadow DB is not ``ready``. Content-free by construction."""
+    if (meta.get(META_LAST_SYNC_ERROR) or "").strip():
+        return "sync_error"
+    completed = (meta.get(META_LAST_FULL_SYNC_COMPLETED) or "").strip().lower()
+    if completed != "true":
+        return "full_sync_incomplete"
+    if not shadow_meta_matches_page_rows(
+        indexed_page_count=meta.get(META_INDEXED_PAGE_COUNT),
+        source_page_count=meta.get(META_SOURCE_PAGE_COUNT),
+        actual_page_count=actual_page_count,
+        quarantined_page_count=quarantined_page_count,
+    ):
+        return "page_count_mismatch"
+    return None
 
 
 def _disabled_snapshot() -> ShadowDbStateResponse:
@@ -78,16 +120,24 @@ def _parse_non_negative_int(raw: str | None) -> int | None:
         return None
 
 
-def _resolve_lag_pages(source: int | None, indexed: int | None) -> int | None:
+def _resolve_lag_pages(source: int | None, indexed: int | None, quarantined: int = 0) -> int | None:
+    """Pages still waiting to be indexed.
+
+    Quarantined pages are subtracted: they are not pending work, they are a settled
+    decision. Counting them as lag would leave a fully synced graph permanently
+    reporting a backlog it will never clear.
+    """
     if source is None or indexed is None:
         return None
-    return max(0, source - indexed)
+    return max(0, source - indexed - max(0, quarantined))
 
 
-def _counts_from_meta(meta: dict[str, str | None]) -> tuple[int | None, int | None, int | None]:
+def _counts_from_meta(
+    meta: dict[str, str | None], quarantined: int = 0
+) -> tuple[int | None, int | None, int | None]:
     source = _parse_non_negative_int(meta.get(META_SOURCE_PAGE_COUNT))
     indexed = _parse_non_negative_int(meta.get(META_INDEXED_PAGE_COUNT))
-    return source, indexed, _resolve_lag_pages(source, indexed)
+    return source, indexed, _resolve_lag_pages(source, indexed, quarantined)
 
 
 def _last_full_sync_at(meta: dict[str, str | None]) -> str | None:
@@ -95,7 +145,16 @@ def _last_full_sync_at(meta: dict[str, str | None]) -> str | None:
     return value or None
 
 
-def _read_meta_readonly(db_path: Path) -> tuple[dict[str, str | None], int]:
+def _read_quarantined_count(connection: sqlite3.Connection) -> int:
+    """Count parked pages, tolerating a database written before quarantine existed."""
+    try:
+        row = connection.execute("SELECT COUNT(*) FROM quarantined_pages").fetchone()
+    except sqlite3.OperationalError:
+        return 0
+    return int(row[0]) if row else 0
+
+
+def _read_meta_readonly(db_path: Path) -> tuple[dict[str, str | None], int, int]:
     connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
         meta = {
@@ -107,12 +166,14 @@ def _read_meta_readonly(db_path: Path) -> tuple[dict[str, str | None], int]:
             META_INDEXED_PAGE_COUNT: get_meta(connection, META_INDEXED_PAGE_COUNT),
         }
         page_count = int(connection.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
-        return meta, page_count
+        return meta, page_count, _read_quarantined_count(connection)
     finally:
         connection.close()
 
 
-def _state_from_meta(meta: dict[str, str | None], *, actual_page_count: int) -> ShadowDbStateValue:
+def _state_from_meta(
+    meta: dict[str, str | None], *, actual_page_count: int, quarantined_page_count: int = 0
+) -> ShadowDbStateValue:
     sync_error = (meta.get(META_LAST_SYNC_ERROR) or "").strip()
     if sync_error:
         return "error"
@@ -122,6 +183,7 @@ def _state_from_meta(meta: dict[str, str | None], *, actual_page_count: int) -> 
             indexed_page_count=meta.get(META_INDEXED_PAGE_COUNT),
             source_page_count=meta.get(META_SOURCE_PAGE_COUNT),
             actual_page_count=actual_page_count,
+            quarantined_page_count=quarantined_page_count,
         ):
             return "stale"
         return "ready"
@@ -133,8 +195,10 @@ def _snapshot_from_meta(
     state: ShadowDbStateValue,
     meta: dict[str, str | None],
     last_sync_error: str | None = None,
+    not_ready_reason: ShadowDbNotReadyReason | None = None,
+    quarantined_page_count: int = 0,
 ) -> ShadowDbStateResponse:
-    source, indexed, lag = _counts_from_meta(meta)
+    source, indexed, lag = _counts_from_meta(meta, quarantined_page_count)
     return ShadowDbStateResponse(
         enabled=True,
         state=state,
@@ -143,6 +207,8 @@ def _snapshot_from_meta(
         indexed_page_count=indexed,
         lag_pages=lag,
         last_sync_error=last_sync_error,
+        not_ready_reason=not_ready_reason,
+        quarantined_page_count=max(0, quarantined_page_count),
     )
 
 
@@ -153,19 +219,28 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
 
     root = resolved_graph_root(graph_root)
     if is_shadow_bootstrapping(root):
-        return ShadowDbStateResponse(enabled=True, state="bootstrapping")
+        return ShadowDbStateResponse(
+            enabled=True,
+            state="bootstrapping",
+            not_ready_reason="bootstrap_in_progress",
+        )
 
     db_path = shadow_db_path(root)
     if not db_path.is_file():
-        return ShadowDbStateResponse(enabled=True, state="stale")
+        return ShadowDbStateResponse(
+            enabled=True,
+            state="stale",
+            not_ready_reason="not_bootstrapped",
+        )
 
     try:
-        meta, page_count = _read_meta_readonly(db_path)
+        meta, page_count, quarantined = _read_meta_readonly(db_path)
     except sqlite3.Error as exc:
         return ShadowDbStateResponse(
             enabled=True,
             state="error",
             last_sync_error=_bounded_error_message(str(exc)),
+            not_ready_reason="database_unreadable",
         )
 
     schema_raw = (meta.get(META_SCHEMA_VERSION) or "").strip()
@@ -174,15 +249,26 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
             state="error",
             meta=meta,
             last_sync_error="Shadow schema version mismatch",
+            not_ready_reason="schema_version_mismatch",
+            quarantined_page_count=quarantined,
         )
 
-    state = _state_from_meta(meta, actual_page_count=page_count)
+    state = _state_from_meta(meta, actual_page_count=page_count, quarantined_page_count=quarantined)
     sync_error = (meta.get(META_LAST_SYNC_ERROR) or "").strip()
     error = _bounded_error_message(sync_error) if state == "error" else None
-    return _snapshot_from_meta(state=state, meta=meta, last_sync_error=error)
+    return _snapshot_from_meta(
+        state=state,
+        meta=meta,
+        last_sync_error=error,
+        not_ready_reason=_not_ready_reason_from_meta(
+            meta, actual_page_count=page_count, quarantined_page_count=quarantined
+        ),
+        quarantined_page_count=quarantined,
+    )
 
 
 __all__ = [
+    "ShadowDbNotReadyReason",
     "ShadowDbStateResponse",
     "ShadowDbStateValue",
     "resolve_shadow_db_state_for_api",

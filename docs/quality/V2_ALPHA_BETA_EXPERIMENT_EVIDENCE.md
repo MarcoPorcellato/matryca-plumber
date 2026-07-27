@@ -77,6 +77,33 @@ The post-#317 r4 run passed against the rebuilt `2.0.0b1` wheel (SHA-256 `04fd22
 
 The 60-second page-parse deadline was an evidence-collection setting, not the product's 15-second default and not an SLA. This observation does not close the candidate gate: the current root-cause investigation found non-hermetic artifact discovery and no wheel-to-soak identity binding. It must be rerun after the remediation described in [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md). This gate does not by itself make the beta ready.
 
+## Page-parse budget finding (2026-07-27)
+
+A full-corpus parse-cost measurement on a sanitized daily-use vault copy (3,378 pages,
+candidate wheel `2.0.0b1`) established that **25 pages (0.74%) exceed the 15-second
+product default**, ranging 41.65–58.33 s, and account for **90.3% of total parse time**
+(20.4 min of 22.6 min). Parse cost is strictly bimodal — no page falls between 5 s and
+40 s — and is uncorrelated with size: the largest page in the corpus (650,106 B) parses
+in 0.54 s.
+
+Because `rebuild_shadow_from_graph` aborts the whole rebuild on the first over-budget
+page, and health `READY` requires `indexed == source == actual`, the Shadow DB reaches
+no accelerated state at all on this corpus under default settings. The failure is safe
+(Markdown authoritative, daemon starts, nothing corrupted) but silent.
+
+This is a **design defect, not a regression**, and it is not a `beta.1` blocker — the
+flag is opt-in and default-off. It **is** a blocker for enabling Shadow DB by default and
+for any acceleration claim on real-world graphs. Full measurement, TRIZ analysis, and the
+per-page quarantine design:
+[`SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md`](SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md);
+implementation issue:
+[`issue-bodies/shadow-page-parse-quarantine.md`](issue-bodies/shadow-page-parse-quarantine.md).
+
+Consequence for evidence collection: soak and wheel runs configured with an enlarged
+page-parse deadline (60 s or 90 s) exercise a configuration that **default operators do
+not get** on a corpus containing such pages. Those runs remain valid as stability
+evidence and must not be presented as evidence of default-configuration behaviour.
+
 ## Outstanding beta gates
 
 - Complete the minimum 24-hour sanitized soak on a daily-use vault copy, including flag-off/on, restarts, watcher convergence, recovery, and unchanged-source checks.

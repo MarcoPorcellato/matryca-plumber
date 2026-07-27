@@ -141,6 +141,7 @@ from src.shadow.health import ShadowHealthState, resolve_shadow_health
 from src.shadow.meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_SYNC_ERROR,
+    META_QUARANTINED_PAGE_COUNT,
     META_SOURCE_PAGE_COUNT,
     get_meta,
     set_meta,
@@ -218,7 +219,11 @@ try:
     stable_source_count = int(get_meta(conn, META_SOURCE_PAGE_COUNT) or "0")
     stable_indexed_count = int(get_meta(conn, META_INDEXED_PAGE_COUNT) or "0")
     stable_page_count = int(conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
-    assert stable_source_count == stable_indexed_count == stable_page_count
+    stable_quarantined_count = int(get_meta(conn, META_QUARANTINED_PAGE_COUNT) or "0")
+    # Post-quarantine invariant: a parked page is absent from `pages` on purpose, so the
+    # cache is fully accounted for when indexed + quarantined covers every source page.
+    assert stable_indexed_count == stable_page_count
+    assert stable_source_count == stable_indexed_count + stable_quarantined_count
 finally:
     conn.close()
 rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -233,6 +238,7 @@ print(json.dumps({
     "recovery": True,
     "source_count": stable_source_count,
     "indexed_count": stable_indexed_count,
+    "quarantined_count": stable_quarantined_count,
     "rss_kib": int(rss),
 }))
 """
@@ -507,10 +513,20 @@ def _validate_probe_payload(payload: Mapping[str, object]) -> dict[str, object]:
     for name in count_fields:
         _nonnegative_int(payload, name)
     _nonnegative_number(payload, "elapsed_ms")
-    return {
+    # Optional: a probe recorded before quarantine existed reports no parked pages, which
+    # is indistinguishable from a run where nothing was parked. Absent means zero rather
+    # than invalid, so an older evidence state stays readable.
+    quarantined = (
+        0
+        if payload.get("quarantined_count") is None
+        else _nonnegative_int(payload, "quarantined_count")
+    )
+    validated = {
         name: payload[name]
         for name in (*bool_fields, "subtree", "synthetic_crud", *count_fields, "elapsed_ms")
     }
+    validated["quarantined_count"] = quarantined
+    return validated
 
 
 def _nonnegative_int(payload: Mapping[str, object], name: str) -> int:
@@ -639,6 +655,10 @@ def _trend(payload: Mapping[str, object]) -> dict[str, object]:
             for name in (
                 "source_count",
                 "indexed_count",
+                # Sampled every cycle so a page that is parked and released repeatedly
+                # (flapping under varying machine load) is visible as a moving count
+                # rather than having to be inferred after the run.
+                "quarantined_count",
                 "rss_kib",
                 "elapsed_ms",
                 "subtree",

@@ -1029,6 +1029,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md",
+      "type": "Audit",
+      "title": "Shadow DB page-parse budget — measurement, contradiction, and quarantine design",
+      "description": "_Recorded 2026-07-27, during `v2.0.0-beta.1` release-candidate preparation._",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md",
       "type": "Audit",
       "title": "V2 alpha/beta experiment evidence ledger",
@@ -1046,6 +1064,24 @@
       "supersedes": [],
       "notes": "Sanitized supporting record; not an architecture or beta-decision SSOT.",
       "missing": false
+    },
+    {
+      "path": "docs/quality/V2_SHADOW_DB_VISION_2026-07-25.md",
+      "type": "Audit",
+      "title": "Cosa ottiene Matryca Plumber con la v2.0 e lo Shadow DB",
+      "description": "_Nota di lavoro — 2026-07-25, mentre gira il soak da 24h+ (r8) prima del rilascio beta._",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
@@ -1660,6 +1696,25 @@
       "type": "Archive",
       "title": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
       "description": "`BoundedPageParseWorker.parse_text` (`src/graph/bounded_page_parse.py`) bounds the wait for a worker response with `self._out_q.get(timeout=deadline)`.",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/issue-bodies/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/issue-bodies/shadow-page-parse-quarantine.md",
+      "type": "Archive",
+      "title": "Shadow DB: per-page quarantine for over-budget page parses",
+      "description": "One Logseq page whose parse exceeds the page-parse budget aborts the entire Shadow DB",
       "status": "archived",
       "audience": [
         "maintainer",
