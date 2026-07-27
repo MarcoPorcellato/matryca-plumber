@@ -171,7 +171,11 @@ conn = open_shadow_db(graph)
 try:
     source_count = int(get_meta(conn, META_SOURCE_PAGE_COUNT) or "0")
     indexed_count = int(get_meta(conn, META_INDEXED_PAGE_COUNT) or "0")
-    assert source_count == indexed_count
+    quarantined_count = int(get_meta(conn, META_QUARANTINED_PAGE_COUNT) or "0")
+    # Same post-quarantine invariant as the stability check below: a parked page is absent
+    # from `pages` by design, so the cache is fully accounted for when indexed plus
+    # quarantined covers every source page.
+    assert source_count == indexed_count + quarantined_count
     assert search_blocks_fts(conn, "matrycasoakuniquetoken", limit=2)
     result = query_subtree_by_block_uuid(conn, "1a111111-1111-4111-8111-111111111111", max_depth=1)
     assert result.status is SubtreeStatus.TRUNCATED
