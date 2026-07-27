@@ -1,6 +1,6 @@
 # Deep Code Audit — matryca-plumber
 
-**Date:** 2026-07-16 · **Tooling:** code audit via MCP (knowledge graph: 511 files, 7,791 symbols, 16,941 relationships, 300 execution flows), ruff static analysis, targeted manual review, TRIZ methodology.
+**Date:** 2026-07-16 · **Tooling:** local code audit, ruff static analysis, targeted manual review, TRIZ methodology.
 
 > Note: the Serena MCP server was not connected in this session; symbol-level analysis was performed with the code audit MCP and native tools. The code-audit index was 1 commit behind HEAD at audit time (cosmetic drift only — the lagging commit is a docs/release chore).
 

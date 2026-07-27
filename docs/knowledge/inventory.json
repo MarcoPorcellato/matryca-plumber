@@ -215,7 +215,7 @@
       "path": "docs/AUDIT_REPORT_2026-07-16.md",
       "type": "Audit",
       "title": "Deep Code Audit — matryca-plumber",
-      "description": "**Date:** 2026-07-16 · **Tooling:** code audit via MCP (knowledge graph: 511 files, 7,791 symbols, 16,941 relationships, 300 execution flows), ruff static analysis, targeted manual review, TRIZ methodology.",
+      "description": "**Date:** 2026-07-16 · **Tooling:** local code audit, ruff static analysis, targeted manual review, TRIZ methodology.",
       "status": "archived",
       "audience": [
         "maintainer",
