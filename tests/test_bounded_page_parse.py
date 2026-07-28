@@ -601,9 +601,7 @@ def test_worker_exits_when_its_parent_is_killed() -> None:
         deadline = time.monotonic() + 20.0
         while _pid_alive(worker_pid) and time.monotonic() < deadline:
             time.sleep(0.2)
-        assert not _pid_alive(worker_pid), (
-            f"worker {worker_pid} outlived its killed parent"
-        )
+        assert not _pid_alive(worker_pid), f"worker {worker_pid} outlived its killed parent"
     finally:
         if parent.poll() is None:
             parent.kill()
