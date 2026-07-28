@@ -52,7 +52,11 @@ def _fail_parse_for(monkeypatch: pytest.MonkeyPatch, doomed: set[str], error: st
     """Make bounded parsing fail for specific page filenames, succeed for the rest."""
     import src.shadow.sync as sync_module
 
-    real = sync_module.parse_graph_page_bounded
+    # Take the real callable from the module that defines it. `sync` imports the name
+    # for its own use rather than re-exporting it, so reading it back off `sync` is not
+    # a supported access path even though the patch below must target `sync`, which is
+    # where the call is resolved.
+    from src.graph.bounded_ast_graph import parse_graph_page_bounded as real
 
     class _Failure:
         error = ""
