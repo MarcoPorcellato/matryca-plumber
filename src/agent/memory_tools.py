@@ -53,7 +53,9 @@ def _ensure_config_page(graph_root: Path) -> Path:
             return path
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        # 0o600, matching every other explicit create in the codebase: the vault is
+        # read by Logseq running as the same user, so group and world bits buy nothing.
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     except FileExistsError:
         pass
     else:
