@@ -60,6 +60,15 @@ bimodal**, separated by a 35-second empty band.
 - Over-budget range: **41.65 s – 58.33 s**. None failed to complete within 115 s.
 - 99th percentile across all pages: **3.06 s**.
 
+> **Population note.** The 3,378 figure counts every Markdown file under the vault root,
+> which includes Logseq's own history directories. The Shadow DB indexes the *graph* —
+> `pages/` and `journals/` — which is 1,014 files on this corpus. Only **3** of the 25
+> over-budget files are graph pages; the other 22 are version snapshots and backups the
+> cache never reads. Cite 25 when reasoning about a filesystem sweep and 3 when reasoning
+> about what a user's cache parks. The two counts are reconciled, with a per-region
+> breakdown and a re-measurement that revises the range above, in
+> [`SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`](SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md).
+
 ### 2.3 Cost concentration
 
 | | Time | Share |

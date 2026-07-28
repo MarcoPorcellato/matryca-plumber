@@ -92,9 +92,38 @@ The invariant sets are identical in all three segments and the mean RSS varies b
 
 What the interruptions do limit: this run does not demonstrate 24 hours of *uninterrupted* process lifetime. It demonstrates 24 hours of accumulated exercise with two verified-clean resumptions. Anyone relying on the former should re-run without interruption.
 
-## Open question
+## Reconciling 25 over-budget files with 3 parked pages
 
-The parse-budget analysis in [`SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md`](SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md) reports 25 over-budget pages; this soak observed 3. The two figures are computed over different populations — the packaging gate counts 3378 markdown files, the soak counts 1014 graph pages — so they are not directly comparable. The reconciliation is not attempted here and should be settled before both numbers are cited together.
+The parse-budget analysis in [`SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md`](SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md) reports 25 over-budget files; this soak parked 3. The two figures are consistent. They are computed over different populations, and neither is wrong.
+
+### The populations differ
+
+`rebuild_shadow_from_graph` enumerates the graph, which is `pages/` and `journals/` only. The budget study enumerated every Markdown file under the vault root, which also sweeps in Logseq's own on-disk history.
+
+| Vault region | Markdown files | In the graph | Over budget at 15 s |
+| --- | --- | --- | --- |
+| `pages/` | 504 | yes | 3 |
+| `journals/` | 510 | yes | 0 |
+| `logseq/version-files/` | 2 203 | no | 19 |
+| `logseq/bak/` | 131 | no | 3 |
+| `logseq/.recycle/` | 30 | no | 0 |
+| **Total** | **3 378** | **1 014** | **25** |
+
+The 1 014 graph pages are exactly the soak's `source_count`, and the 3 over-budget pages in `pages/` are exactly the 3 the soak parked — same region, same population, same count. The other 22 over-budget files are version snapshots, backups, and recycle-bin entries that the Shadow DB never reads, because they are not pages.
+
+### The 25 are 19 distinct documents, and only 3 distinct pages
+
+Re-measuring the corpus with the same parser, mode, and 115-second deadline the study used reproduces its headline figures: 25 files over a 15-second budget, of 19 distinct contents. Comparing content digests across regions shows the structure behind that spread: the 3 over-budget graph pages each also appear as over-budget snapshots under `logseq/`, and the remaining 16 distinct over-budget documents exist *only* in the history directories — earlier revisions of pages that no longer parse slowly, or that no longer exist.
+
+So the honest statement of the cost is: **3 pages in the live graph exceed the budget; 25 files on disk do, because Logseq keeps prior revisions of them.** The first number is what quarantine parks and what a user experiences. The second is what a filesystem sweep sees, and it is the right number when reasoning about disk-level tooling — but it overstates the graph by roughly eight to one on this corpus.
+
+### What the re-measurement changes
+
+Two figures in the budget study should be read as load-dependent rather than fixed.
+
+The study recorded an over-budget range of 41.65 s – 58.33 s with every page completing inside 115 s. The re-measurement, on the same corpus and the same host but under ordinary interactive load, recorded 42.74 s – 115.00 s, and one graph page did **not** complete within the 115-second deadline at all.
+
+The *membership* of the over-budget set is reproducible: the same files, the same count, both here and in all 144 soak cycles. The *magnitudes* are not — they scale with host contention, and the tail has no upper bound the corpus can establish. This is direct empirical support for [§3.1 of the study](SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md), which argues that raising the budget relocates the threshold rather than removing the failure class: a 90-second budget chosen against the study's numbers would still have failed on this corpus, on this machine, on a day with normal load.
 
 ## Reproduction
 
