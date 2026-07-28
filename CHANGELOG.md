@@ -2,7 +2,8 @@
 
 ## [2.0.0-beta.1] - 2026-07-29
 
-**v2.0.0-beta.1 candidate** — local release-candidate preparation for the opt-in Shadow DB read path. This version is **not tagged, published, or available on PyPI**. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and Markdown/BM25 fallback remains mandatory. The installed-wheel recovery and sanitized real-vault soak gates are now recorded and both `PASS`; the final code audit gate remains pending, so do not promote this candidate until its recorded evidence is complete. The soak ran 24 hours of accumulated exercise across 144 cycles and 288 attempts against the same wheel the installed-wheel gate verified, and its record — including two interruptions and the checks showing they did not affect the result — is [`docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`](docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md).
+**v2.0.0-beta.1 candidate** — local release-candidate preparation for the opt-in Shadow DB read path. This version is **not tagged, published, or available on PyPI**. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and Markdown/BM25 fallback remains mandatory. The installed-wheel recovery and sanitized real-vault soak gates are now recorded and both `PASS`; the final code audit gate remains pending, so do not promote this candidate until its recorded evidence is complete.
+The soak ran 24 hours of accumulated exercise across 144 cycles and 288 attempts against the same wheel the installed-wheel gate verified, and its record — including two interruptions and the checks showing they did not affect the result — is [`docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`](docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md).
 
 ### Known limitations
 
