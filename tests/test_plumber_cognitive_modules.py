@@ -404,9 +404,7 @@ def test_cognitive_pipeline_isolates_module_fault(
     finally:
         logger.remove(sink_id)
     assert "marpa_framework" in outcome.modules_run
-    assert any(
-        detail.startswith("marpa_framework:skipped:") for detail in outcome.details
-    )
+    assert any(detail.startswith("marpa_framework:skipped:") for detail in outcome.details)
     assert any("[COGNITIVE LLM FAULT]" in message for message in messages)
     assert "heal_dangling" in outcome.modules_run
 

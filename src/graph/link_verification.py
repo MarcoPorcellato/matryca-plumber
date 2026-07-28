@@ -71,7 +71,10 @@ def link_verify_enabled() -> bool:
 
 def link_verify_strikes_threshold() -> int:
     return env_int_clamped(
-        "MATRYCA_LINK_VERIFY_STRIKES", 2, minimum=1, maximum=2**31 - 1,
+        "MATRYCA_LINK_VERIFY_STRIKES",
+        2,
+        minimum=1,
+        maximum=2**31 - 1,
     )
 
 
@@ -81,7 +84,10 @@ def link_verify_batch_size() -> int:
 
 def link_verify_timeout_seconds() -> float:
     return env_float_clamped(
-        "MATRYCA_LINK_VERIFY_TIMEOUT", 8.0, minimum=1.0, maximum=60.0,
+        "MATRYCA_LINK_VERIFY_TIMEOUT",
+        8.0,
+        minimum=1.0,
+        maximum=60.0,
     )
 
 

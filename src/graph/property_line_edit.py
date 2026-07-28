@@ -178,7 +178,11 @@ class PropertyLineEditOutcome:
 
 
 def _empty_property_edit_failure(
-    *, code: str, hint: str, dry_run: bool, size: int = 0,
+    *,
+    code: str,
+    hint: str,
+    dry_run: bool,
+    size: int = 0,
 ) -> PropertyLineEditOutcome:
     """Build a zero-match failure outcome (used by the pre-lock resolution guards)."""
     return PropertyLineEditOutcome(
@@ -205,25 +209,37 @@ def _resolve_editable_page_path(
     try:
         path = graph_safe_page_path(root, page_ref)
     except ValueError:
-        return None, None, _empty_property_edit_failure(
-            code="path_forbidden",
-            hint="Resolved path would escape LOGSEQ_GRAPH_PATH.",
-            dry_run=dry_run,
+        return (
+            None,
+            None,
+            _empty_property_edit_failure(
+                code="path_forbidden",
+                hint="Resolved path would escape LOGSEQ_GRAPH_PATH.",
+                dry_run=dry_run,
+            ),
         )
     if not path.is_file():
-        return None, None, _empty_property_edit_failure(
-            code="page_not_found",
-            hint=f"No file at `{path}` under graph root.",
-            dry_run=dry_run,
+        return (
+            None,
+            None,
+            _empty_property_edit_failure(
+                code="page_not_found",
+                hint=f"No file at `{path}` under graph root.",
+                dry_run=dry_run,
+            ),
         )
 
     if baseline_mtime is None:
         baseline_mtime = occ_snapshot(path)
     if baseline_mtime is not None and file_mtime_drifted(path, baseline_mtime):
-        return None, None, _empty_property_edit_failure(
-            code="occ_conflict",
-            hint="File modified since the mutation was requested; write aborted.",
-            dry_run=dry_run,
+        return (
+            None,
+            None,
+            _empty_property_edit_failure(
+                code="occ_conflict",
+                hint="File modified since the mutation was requested; write aborted.",
+                dry_run=dry_run,
+            ),
         )
     return path, baseline_mtime, None
 
@@ -316,11 +332,17 @@ def _apply_and_validate_property_replacements(
         new_lines[li] = new_core + canonical_line_suffix(original)
 
     if total_matches == 0:
-        return new_lines, previews, total_matches, lines_changed, _empty_property_edit_failure(
-            code="no_match",
-            hint="Search pattern did not match any allowed property line in the block span.",
-            dry_run=dry_run,
-            size=previous_size,
+        return (
+            new_lines,
+            previews,
+            total_matches,
+            lines_changed,
+            _empty_property_edit_failure(
+                code="no_match",
+                hint="Search pattern did not match any allowed property line in the block span.",
+                dry_run=dry_run,
+                size=previous_size,
+            ),
         )
 
     if not replace_all and total_matches > 1:
@@ -328,8 +350,7 @@ def _apply_and_validate_property_replacements(
             ok=False,
             code="ambiguous_match",
             hint=(
-                "Multiple matches but replace_all=false; "
-                "narrow the pattern or enable replace_all."
+                "Multiple matches but replace_all=false; narrow the pattern or enable replace_all."
             ),
             dry_run=dry_run,
             match_count=total_matches,
@@ -359,7 +380,10 @@ def edit_block_property_lines(
     """Edit only ``key::`` property lines for the block identified by ``id::``."""
     root = Path(graph_root).expanduser().resolve(strict=False)
     path, baseline_mtime, failure = _resolve_editable_page_path(
-        root, page_ref, dry_run=dry_run, baseline_mtime=baseline_mtime,
+        root,
+        page_ref,
+        dry_run=dry_run,
+        baseline_mtime=baseline_mtime,
     )
     if failure is not None or path is None:
         return failure or _empty_property_edit_failure(
@@ -397,7 +421,11 @@ def edit_block_property_lines(
 
         stripped = strip_lines_for_match(lines)
         prop_indices, span_failure = _locate_editable_property_span(
-            stripped, protected, block_uuid, dry_run=dry_run, previous_size=previous_size,
+            stripped,
+            protected,
+            block_uuid,
+            dry_run=dry_run,
+            previous_size=previous_size,
         )
         if span_failure is not None or prop_indices is None:
             return span_failure or _empty_property_edit_failure(
