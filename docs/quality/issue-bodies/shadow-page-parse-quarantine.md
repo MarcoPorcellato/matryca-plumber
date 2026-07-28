@@ -4,9 +4,16 @@
 
 One Logseq page whose parse exceeds the page-parse budget aborts the entire Shadow DB
 rebuild, leaving the graph permanently in Markdown/BM25 fallback. On a measured
-daily-use vault copy, **25 of 3,378 pages (0.74%)** exceed the 15-second default, so the
-opt-in Shadow DB delivers **no acceleration at all** on that corpus — while 99.26% of
-pages parse in under one second.
+daily-use vault copy, **25 of 3,378 Markdown files (0.74%)** exceed the 15-second
+default, so the opt-in Shadow DB delivers **no acceleration at all** on that corpus —
+while 99.26% parse in under one second.
+
+> **Population note (added 2026-07-28).** The 3,378 figure counts every Markdown file
+> under the vault root. The cache indexes the graph — `pages/` and `journals/`, 1,014
+> pages — of which **3** exceed the budget; the other 22 over-budget files are Logseq
+> version history and backups the cache never reads. Either number supports the case
+> above (one over-budget page is enough to abort the rebuild), but 3 is the count a user
+> sees parked. Reconciliation: `docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`.
 
 Full measurement, external calibration, and the TRIZ analysis behind the proposed design:
 [`../SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md`](../SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md).

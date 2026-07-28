@@ -1044,7 +1044,27 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md",
+      "type": "Audit",
+      "title": "Shadow DB 24-hour soak — evidence record",
+      "description": "**Status:** evidence record, 2026-07-28.",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md",
@@ -1081,7 +1101,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
@@ -1726,7 +1747,8 @@
       "destination": "docs/artifacts/issue-bodies/",
       "action": "artifact",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/issue-bodies/v2-alpha-hardening-a1-meta-01.md",

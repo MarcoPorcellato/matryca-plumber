@@ -79,8 +79,14 @@ The 60-second page-parse deadline was an evidence-collection setting, not the pr
 
 ## Page-parse budget finding (2026-07-27)
 
-A full-corpus parse-cost measurement on a sanitized daily-use vault copy (3,378 pages,
-candidate wheel `2.0.0b1`) established that **25 pages (0.74%) exceed the 15-second
+> **Population note (added 2026-07-28).** "3,378 pages" counts every Markdown file under
+> the vault root, including Logseq's own version history and backups. The cache indexes
+> `pages/` and `journals/` only — 1,014 pages — of which **3** exceed the budget. The
+> reconciliation, and a re-measurement that revises the range quoted below, are in
+> [`SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`](SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md).
+
+A full-corpus parse-cost measurement on a sanitized daily-use vault copy (3,378 files,
+candidate wheel `2.0.0b1`) established that **25 files (0.74%) exceed the 15-second
 product default**, ranging 41.65–58.33 s, and account for **90.3% of total parse time**
 (20.4 min of 22.6 min). Parse cost is strictly bimodal — no page falls between 5 s and
 40 s — and is uncorrelated with size: the largest page in the corpus (650,106 B) parses
