@@ -2,7 +2,9 @@
 
 ## [2.0.0-beta.1] - 2026-07-29
 
-**v2.0.0-beta.1 candidate** — local release-candidate preparation for the opt-in Shadow DB read path. This version is **not tagged, published, or available on PyPI**. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and Markdown/BM25 fallback remains mandatory. The installed-wheel recovery and sanitized real-vault soak gates are now recorded and both `PASS`; the final code audit gate remains pending, so do not promote this candidate until its recorded evidence is complete.
+**v2.0.0-beta.1** — first public beta of the opt-in Shadow DB read path. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and Markdown/BM25 fallback remains mandatory. Operators who do not set the flag get exactly the established behaviour.
+
+**Evidence boundary — read this before relying on the beta.** The installed-wheel recovery gate and the 24-hour sanitized real-vault soak both recorded `PASS`, but they exercised a wheel built from an *earlier* state of this branch. The source released here additionally carries per-page quarantine, the orphaned-parse-worker fix, and the config-page permission fix. Those gates therefore evidence the design and the read path, **not** the exact bytes of the published artifact. This deviation was accepted deliberately rather than left implicit: the feature is opt-in and default-off, its failure mode is safe (Markdown stays authoritative, the daemon still starts, nothing is corrupted), and re-running the full soak would have delayed the beta without changing that risk profile. Re-qualification against the released source is required before Shadow DB is considered for default-on.
 The soak ran 24 hours of accumulated exercise across 144 cycles and 288 attempts against the same wheel the installed-wheel gate verified, and its record — including two interruptions and the checks showing they did not affect the result — is [`docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`](docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md).
 
 ### Known limitations
