@@ -2665,7 +2665,7 @@
     {
       "path": "docs/releases/v2.0.0-beta.1-GITHUB.md",
       "type": "Release Note",
-      "title": "Release candidate — v2.0.0-beta.1 (not published)",
+      "title": "v2.0.0-beta.1",
       "description": "Local candidate release-note draft; publication remains blocked by the beta readiness gates.",
       "status": "current",
       "audience": [

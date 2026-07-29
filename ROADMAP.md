@@ -12,7 +12,7 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 
 ## v2.0.0-beta.1 — Shadow read-path candidate (not released)
 
-`v2.0.0-beta.1` is a locally prepared candidate for the **opt-in Shadow read path only**. It is not tagged, published, or available from PyPI. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and every non-ready Shadow state falls back to the existing Markdown/BM25 paths. Biological memory and the Logseq DB Safe-Sync bridge remain Phase 4 work and are excluded.
+`v2.0.0-beta.1` is the first public beta of the **opt-in Shadow read path only**, published on PyPI as `2.0.0b1`. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and every non-ready Shadow state falls back to the existing Markdown/BM25 paths. Biological memory and the Logseq DB Safe-Sync bridge remain Phase 4 work and are excluded.
 
 | Release gate | Status |
 |--------------|--------|
