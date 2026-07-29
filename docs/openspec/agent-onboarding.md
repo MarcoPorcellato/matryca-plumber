@@ -4,7 +4,7 @@
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
 **Companion specs:** [`agent-dx.md`](agent-dx.md) (CLI `--json`, `context load`, Journey Log) · [`agent-ax-robustness.md`](agent-ax-robustness.md) (lenient page titles, safe writes) · [`security-sandbox.md`](security-sandbox.md) (path sandbox, bounded JSON, CI read gate)
 
-External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. The local `v2.0.0-beta.1` candidate is not published; hosts must continue using the published baseline until its readiness gates complete. The `llms.txt` files encode that contract: imperative commands, verified flags, and explicit anti-patterns.
+External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. `v2.0.0-beta.1` is published as `2.0.0b1`; hosts may pin it, and its opt-in Shadow flag stays default-off. The `llms.txt` files encode that contract: imperative commands, verified flags, and explicit anti-patterns.
 
 ---
 

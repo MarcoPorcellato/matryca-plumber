@@ -25,7 +25,7 @@ legacy_sources:
 
 Logseq Markdown on disk remains the **system of record**. `shadow.sqlite` is an **opt-in read cache** owned by the daemon under `.matryca_semantic_cache/`. It accelerates hierarchical reads when healthy; it never replaces vault writes or OCC on `.md` files.
 
-**Introduced:** `v2.0.0-alpha` (opt-in read path). **Published hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **`v2.0.0-beta.1` remains a candidate, not a release:** the flag stays default-off, Markdown stays authoritative, and Phase 4 biological memory/Safe-Sync remains out of scope.
+**Introduced:** `v2.0.0-alpha` (opt-in read path). **Hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **`v2.0.0-beta.1` is the first public beta:** the flag stays default-off, Markdown stays authoritative, and Phase 4 biological memory/Safe-Sync remains out of scope.
 
 ## Activation gate
 
