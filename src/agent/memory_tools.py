@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,6 @@ from ..daemon.config_layer import (
     resolve_identity_config_path,
 )
 from ..graph.graph_path_validate import validate_logseq_graph_path
-from ..graph.markdown_blocks import atomic_write_bytes
 from ..graph.path_sandbox import read_graph_file_text
 from .graph_dispatch import _headless_append_child
 from .graph_tool_helpers import graph_missing_text, graph_path_from_env
@@ -39,20 +39,31 @@ def _require_graph_root() -> Path:
 
 
 def _ensure_config_page(graph_root: Path) -> Path:
-    """Create ``pages/matryca-config.md`` with base headings when missing."""
+    """Create ``pages/matryca-config.md`` with base headings when missing.
+
+    Uses an exclusive create (``O_CREAT | O_EXCL``) so two concurrent
+    ``store_fact`` calls racing on a missing config page can't clobber
+    each other's write with the skeleton — the loser simply sees
+    ``FileExistsError`` and reads back whatever the winner wrote.
+    """
     path = resolve_identity_config_path(graph_root, for_write=True)
     if path.is_file():
         content = read_graph_file_text(path, graph_root, encoding="utf-8")
         if content.strip():
             return path
     path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_bytes(
-        path,
-        _CONFIG_PAGE_SKELETON.encode("utf-8"),
-        graph_root=graph_root,
-        validate_block_refs=False,
-        robot_commit_summary="seed matryca-config identity page",
-    )
+    try:
+        # 0o600, matching every other explicit create in the codebase: the vault is
+        # read by Logseq running as the same user, so group and world bits buy nothing.
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        pass
+    else:
+        try:
+            os.write(fd, _CONFIG_PAGE_SKELETON.encode("utf-8"))
+            os.fsync(fd)
+        finally:
+            os.close(fd)
     get_graph_ast_cache(graph_root).apply_file_event(path, "modified")
     refresh_identity_config(graph_root, path)
     return path

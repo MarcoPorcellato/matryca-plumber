@@ -17,12 +17,32 @@ const STATE_CLASSES: Record<ShadowDbState['state'], string> = {
   error: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
 }
 
+/**
+ * Plain-language explanation shown when the cache is not accelerating reads.
+ * Every case is a safe degradation: Markdown stays authoritative and answers
+ * every query, so the wording explains rather than alarms.
+ */
+const NOT_READY_LABELS: Record<NonNullable<ShadowDbState['not_ready_reason']>, string> = {
+  not_bootstrapped: 'No cache built yet — reads use Markdown.',
+  bootstrap_in_progress: 'Building the cache — reads use Markdown meanwhile.',
+  database_unreadable: 'Cache file unreadable — reads use Markdown.',
+  schema_version_mismatch: 'Cache built by another version — it will be rebuilt.',
+  sync_error: 'A sync error was recorded — reads use Markdown.',
+  full_sync_incomplete:
+    'Full index never completed — often a page exceeding the parse budget. Reads use Markdown.',
+  page_count_mismatch: 'Indexed page count disagrees with the vault — reads use Markdown.',
+}
+
 interface ShadowDbStatusRowProps {
   shadowDb: ShadowDbState | undefined
 }
 
 export function ShadowDbStatusRow({ shadowDb }: ShadowDbStatusRowProps) {
   const snapshot = shadowDb ?? DEFAULT_SHADOW_DB_STATE
+
+  const notReadyLabel = snapshot.not_ready_reason
+    ? NOT_READY_LABELS[snapshot.not_ready_reason]
+    : null
 
   const detailParts: string[] = []
   if (snapshot.last_full_sync_at) {
@@ -35,6 +55,12 @@ export function ShadowDbStatusRow({ shadowDb }: ShadowDbStatusRowProps) {
   }
   if (snapshot.lag_pages != null && snapshot.lag_pages > 0) {
     detailParts.push(`Lag ${snapshot.lag_pages} pages`)
+  }
+  if (snapshot.quarantined_page_count > 0) {
+    // Parked pages are not a backlog: they are excluded on purpose and read from Markdown.
+    detailParts.push(
+      `${snapshot.quarantined_page_count} pages parked (read from Markdown)`,
+    )
   }
   if (snapshot.last_sync_error) {
     detailParts.push(snapshot.last_sync_error)
@@ -60,6 +86,11 @@ export function ShadowDbStatusRow({ shadowDb }: ShadowDbStatusRowProps) {
           </span>
         )}
       </div>
+      {notReadyLabel && (
+        <p className="mt-2 text-xs text-theme-muted" data-testid="shadow-db-not-ready-reason">
+          {notReadyLabel}
+        </p>
+      )}
       {detailParts.length > 0 && (
         <p className="mt-2 text-xs text-theme-muted">{detailParts.join(' · ')}</p>
       )}

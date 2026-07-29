@@ -19,7 +19,6 @@ import hashlib
 import json
 import multiprocessing as mp
 import os
-import pickle
 import struct
 import subprocess
 import sys
@@ -42,6 +41,8 @@ _MIN_TIMEOUT_S = 2.0
 _MAX_TIMEOUT_S = 120.0
 _TERMINATE_GRACE_S = 5.0
 _SHUTDOWN_JOIN_S = 5.0
+# How often an idle worker wakes to check whether its parent is still alive.
+_ORPHAN_POLL_S = 1.0
 _SUBPROCESS_MODULE = "src.graph.bounded_page_parse_child"
 _SUBPROCESS_HEADER_BYTES = 4
 
@@ -101,7 +102,7 @@ def _parse_request_message(msg: dict[str, Any]) -> dict[str, Any]:
     """Parse one trusted local request and return a content-free response envelope.
 
     The AST is serialized separately as bytes.  This lets the daemon-parent
-    fallback verify response correlation before unpickling the AST payload.
+    fallback verify response correlation before decoding the AST payload.
     """
     op = str(msg.get("op", ""))
     echo = _echo_fields(msg)
@@ -134,7 +135,7 @@ def _parse_request_message(msg: dict[str, Any]) -> dict[str, Any]:
         return {
             **echo,
             "ok": True,
-            "blob": pickle.dumps(page, protocol=pickle.HIGHEST_PROTOCOL),
+            "blob": page.model_dump_json().encode("utf-8"),
             "s": round(time.perf_counter() - started, 6),
         }
     except Exception as exc:  # noqa: BLE001 - bounded type name only
@@ -150,9 +151,23 @@ def _worker_loop(
     in_q: mp.Queue[dict[str, Any] | None],
     out_q: mp.Queue[dict[str, Any]],
 ) -> None:
-    """Child entry: parse requests until shutdown sentinel."""
+    """Child entry: parse requests until shutdown sentinel or the parent dies.
+
+    ``daemon=True`` only reaps the child when the parent exits through the
+    ``multiprocessing`` atexit hook. A parent that dies via ``os._exit`` or
+    ``SIGKILL`` skips it and leaves this process reparented to init, holding a
+    duplicate of the ``resource_tracker`` pipe open for the lifetime of the
+    machine. So do not block forever on the queue: wake periodically and exit
+    once the parent that spawned us is gone.
+    """
+    parent_pid = os.getppid()
     while True:
-        msg = in_q.get()
+        try:
+            msg = in_q.get(timeout=_ORPHAN_POLL_S)
+        except Empty:
+            if os.getppid() != parent_pid:
+                break
+            continue
         if msg is None:
             break
         if str(msg.get("op", "")) == "shutdown":
@@ -305,7 +320,7 @@ class BoundedPageParseWorker:
         ``multiprocessing`` blocks ``spawn`` from a daemon pool worker.  The
         fallback intentionally does not parse in-process: it starts a fresh
         interpreter without a shell and exchanges one binary framed response.
-        The frame header is validated before the AST blob is unpickled.
+        The frame header is validated before the AST blob is decoded.
         """
         started = time.perf_counter()
         proc: subprocess.Popen[bytes] | None = None
@@ -435,7 +450,9 @@ class BoundedPageParseWorker:
                 elapsed_s=wall,
             )
         try:
-            page = pickle.loads(blob)
+            from logseq_matryca_parser.logos_core import LogseqPage
+
+            page = LogseqPage.model_validate_json(blob)
         except Exception:  # noqa: BLE001 - AST payload is untrusted until correlation
             return BoundedParseResult(
                 ok=False,
@@ -626,7 +643,13 @@ class BoundedPageParseWorker:
 
             blob = raw.get("blob")
             try:
-                page = pickle.loads(blob) if isinstance(blob, (bytes, bytearray)) else None
+                from logseq_matryca_parser.logos_core import LogseqPage
+
+                page = (
+                    LogseqPage.model_validate_json(blob)
+                    if isinstance(blob, (bytes, bytearray))
+                    else None
+                )
             except Exception:  # noqa: BLE001
                 return BoundedParseResult(
                     ok=False,

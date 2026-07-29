@@ -84,6 +84,8 @@ def test_get_state_returns_daemon_checkpoint(
         "indexed_page_count": None,
         "lag_pages": None,
         "last_sync_error": None,
+        "not_ready_reason": None,
+        "quarantined_page_count": 0,
     }
 
 
@@ -992,6 +994,8 @@ def test_get_state_shadow_db_disabled_by_default(
         "indexed_page_count": None,
         "lag_pages": None,
         "last_sync_error": None,
+        "not_ready_reason": None,
+        "quarantined_page_count": 0,
     }
     from src.shadow.connection import shadow_db_path
 

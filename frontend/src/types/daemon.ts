@@ -1,6 +1,26 @@
 /** Shadow DB health row from ``GET /api/state`` (v2 PR-D). */
 export type ShadowDbStateValue = 'disabled' | 'bootstrapping' | 'ready' | 'stale' | 'error'
 
+/** Content-free explanation of why the read cache is not accelerating reads. */
+export type ShadowDbNotReadyReason =
+  | 'not_bootstrapped'
+  | 'bootstrap_in_progress'
+  | 'database_unreadable'
+  | 'schema_version_mismatch'
+  | 'sync_error'
+  | 'full_sync_incomplete'
+  | 'page_count_mismatch'
+
+export const SHADOW_DB_NOT_READY_REASONS: readonly ShadowDbNotReadyReason[] = [
+  'not_bootstrapped',
+  'bootstrap_in_progress',
+  'database_unreadable',
+  'schema_version_mismatch',
+  'sync_error',
+  'full_sync_incomplete',
+  'page_count_mismatch',
+]
+
 export interface ShadowDbState {
   enabled: boolean
   state: ShadowDbStateValue
@@ -9,6 +29,9 @@ export interface ShadowDbState {
   indexed_page_count: number | null
   lag_pages: number | null
   last_sync_error: string | null
+  not_ready_reason: ShadowDbNotReadyReason | null
+  /** Pages deliberately parked outside the cache; reads for them use Markdown. */
+  quarantined_page_count: number
 }
 
 export const DEFAULT_SHADOW_DB_STATE: ShadowDbState = {
@@ -19,6 +42,8 @@ export const DEFAULT_SHADOW_DB_STATE: ShadowDbState = {
   indexed_page_count: null,
   lag_pages: null,
   last_sync_error: null,
+  not_ready_reason: null,
+  quarantined_page_count: 0,
 }
 
 /** Mirrors ``FileStateResponse`` from ``src/cli/ui_server.py``. */
@@ -275,6 +300,11 @@ function normalizeShadowDb(raw: unknown): ShadowDbState {
   const lastFullSyncRaw =
     source.last_full_sync_at ?? source.lastFullSyncAt ?? source.last_sync ?? source.lastSync
   const errorRaw = source.last_sync_error ?? source.lastSyncError ?? source.error ?? source.Error
+  const reasonRaw = source.not_ready_reason ?? source.notReadyReason
+  // Older daemons omit the field entirely; an unknown code is dropped rather than shown raw.
+  const notReadyReason = SHADOW_DB_NOT_READY_REASONS.includes(reasonRaw as ShadowDbNotReadyReason)
+    ? (reasonRaw as ShadowDbNotReadyReason)
+    : null
   return {
     enabled,
     state: enabled ? state : 'disabled',
@@ -284,6 +314,11 @@ function normalizeShadowDb(raw: unknown): ShadowDbState {
     indexed_page_count: readNullableCount(source, 'indexed_page_count', 'indexedPageCount'),
     lag_pages: readNullableCount(source, 'lag_pages', 'lagPages'),
     last_sync_error: typeof errorRaw === 'string' && errorRaw.trim() ? errorRaw : null,
+    not_ready_reason: enabled && state !== 'ready' ? notReadyReason : null,
+    // Absent on older daemons, and meaningless while the cache is off.
+    quarantined_page_count: enabled
+      ? Math.max(0, readNullableCount(source, 'quarantined_page_count', 'quarantinedPageCount') ?? 0)
+      : 0,
   }
 }
 

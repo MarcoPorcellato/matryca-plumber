@@ -2,7 +2,7 @@
 
 <!-- build-hash: 969c6712a3dc5bda5bd4e7b800efa72002aa83724849a441049ea2c30d58d8cd -->
 
-<!-- package-version: v2.0.0-alpha.5 -->
+<!-- package-version: v2.0.0-beta.1 -->
 
 
 
@@ -147,7 +147,7 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 |------|---------------|---------|
 | `read_graph_data` | `target_type` | Read pages, L1 memory, **bootstrap_status**, block excerpts, **subtree** (heading-filtered), structural hops, dashboard, X-Ray aliases |
 | `search_graph` | `method` | BM25, regex, unlinked mentions, journal tasks, entity resolution (`resolve_entity`) |
-| `mutate_graph` | `action` | Write outlines, edit properties, append journal, inject queries |
+| `mutate_graph` | `action` | Write outlines, edit properties, append journal, inject queries, generate MOC index pages |
 | `refactor_blocks` | `action` | Split wall bullets, reparent siblings, generate flashcards |
 | `run_linter` | `linter_name` | Tag unification preview, block-ref integrity, wiki schema scan |
 | `store_fact` | _(none — `fact` string)_ | Persist a user preference under `- # AI Constraints` on `pages/matryca-config.md` |
@@ -447,6 +447,16 @@ Appends to today's `journals/YYYY_MM_DD.md`. Or:
 ```
 
 Injects Logseq advanced-query block under parent. Supply `query_preset` (`open_markers`, `pages_tagged`, …) and/or `query_edn`. Always preview with `dry_run: true`.
+
+```json
+{
+  "action": "generate_moc",
+  "target": "Project/Sub",
+  "payload": "{\"output_page_title\": \"MOC Project/Sub\", \"dry_run\": true}"
+}
+```
+
+Generates a Map-of-Content index page (`[[wikilinks]]` grouped by sub-namespace) for every page under the `target` namespace stem. `output_page_title` defaults to `MOC <namespace>`. **Always** `dry_run: true` first; inspect `markdown_preview`.
 
 ---
 

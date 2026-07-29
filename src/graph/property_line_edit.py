@@ -177,6 +177,193 @@ class PropertyLineEditOutcome:
         }
 
 
+def _empty_property_edit_failure(
+    *,
+    code: str,
+    hint: str,
+    dry_run: bool,
+    size: int = 0,
+) -> PropertyLineEditOutcome:
+    """Build a zero-match failure outcome (used by the pre-lock resolution guards)."""
+    return PropertyLineEditOutcome(
+        ok=False,
+        code=code,
+        hint=hint,
+        dry_run=dry_run,
+        match_count=0,
+        previews=[],
+        previous_size_bytes=size,
+        current_size_bytes=size,
+        lines_changed=0,
+    )
+
+
+def _resolve_editable_page_path(
+    root: Path,
+    page_ref: str,
+    *,
+    dry_run: bool,
+    baseline_mtime: float | None,
+) -> tuple[Path | None, float | None, PropertyLineEditOutcome | None]:
+    """Resolve and OCC-validate the page path; return an error outcome on any guard failure."""
+    try:
+        path = graph_safe_page_path(root, page_ref)
+    except ValueError:
+        return (
+            None,
+            None,
+            _empty_property_edit_failure(
+                code="path_forbidden",
+                hint="Resolved path would escape LOGSEQ_GRAPH_PATH.",
+                dry_run=dry_run,
+            ),
+        )
+    if not path.is_file():
+        return (
+            None,
+            None,
+            _empty_property_edit_failure(
+                code="page_not_found",
+                hint=f"No file at `{path}` under graph root.",
+                dry_run=dry_run,
+            ),
+        )
+
+    if baseline_mtime is None:
+        baseline_mtime = occ_snapshot(path)
+    if baseline_mtime is not None and file_mtime_drifted(path, baseline_mtime):
+        return (
+            None,
+            None,
+            _empty_property_edit_failure(
+                code="occ_conflict",
+                hint="File modified since the mutation was requested; write aborted.",
+                dry_run=dry_run,
+            ),
+        )
+    return path, baseline_mtime, None
+
+
+def _locate_editable_property_span(
+    stripped: list[str],
+    protected: set[int],
+    block_uuid: str,
+    *,
+    dry_run: bool,
+    previous_size: int,
+) -> tuple[list[int] | None, PropertyLineEditOutcome | None]:
+    """Resolve the block's property-line span; return an error outcome on any guard failure."""
+    id_idx = find_id_line_index(stripped, block_uuid)
+    if id_idx is None:
+        return None, _empty_property_edit_failure(
+            code="uuid_not_found",
+            hint="No `id:: <uuid>` line matches this block_uuid in the page file.",
+            dry_run=dry_run,
+            size=previous_size,
+        )
+
+    bullet_idx = block_bullet_index(stripped, id_idx)
+    if bullet_idx is None:
+        return None, _empty_property_edit_failure(
+            code="malformed_block",
+            hint="Could not find a list bullet (`-` / `*` / `+`) above the `id::` line.",
+            dry_run=dry_run,
+            size=previous_size,
+        )
+
+    end = block_subtree_end(stripped, id_idx, bullet_idx)
+    prop_indices = _property_line_indices(stripped, bullet_idx + 1, end)
+    if not prop_indices:
+        return None, _empty_property_edit_failure(
+            code="no_property_lines",
+            hint="No property lines found in the resolved block span.",
+            dry_run=dry_run,
+            size=previous_size,
+        )
+
+    blocked = [li for li in prop_indices if li in protected]
+    if blocked:
+        first = blocked[0] + 1
+        return None, _empty_property_edit_failure(
+            code="protected_fence",
+            hint=(
+                "A property line in this block sits inside a global Markdown / query / HTML "
+                f"dead zone (first hit: line {first})."
+            ),
+            dry_run=dry_run,
+            size=previous_size,
+        )
+    return prop_indices, None
+
+
+def _apply_and_validate_property_replacements(
+    lines: list[str],
+    prop_indices: list[int],
+    search: str,
+    replacement: str,
+    *,
+    use_regex: bool,
+    replace_all: bool,
+    case_sensitive: bool,
+    dry_run: bool,
+    previous_size: int,
+) -> tuple[list[str], list[str], int, int, PropertyLineEditOutcome | None]:
+    """Apply the search/replace to each property line; validate match-count constraints."""
+    previews: list[str] = []
+    total_matches = 0
+    new_lines = list(lines)
+    lines_changed = 0
+
+    for li in prop_indices:
+        original = new_lines[li]
+        core = strip_line_endings(original)
+        new_core, mc = _apply_pattern(
+            core,
+            search,
+            replacement,
+            use_regex=use_regex,
+            replace_all=replace_all,
+            case_sensitive=case_sensitive,
+        )
+        total_matches += mc
+        if mc and new_core != core:
+            lines_changed += 1
+            previews.append(f"L{li + 1}: `{core[:120]}` → `{new_core[:120]}`")
+        new_lines[li] = new_core + canonical_line_suffix(original)
+
+    if total_matches == 0:
+        return (
+            new_lines,
+            previews,
+            total_matches,
+            lines_changed,
+            _empty_property_edit_failure(
+                code="no_match",
+                hint="Search pattern did not match any allowed property line in the block span.",
+                dry_run=dry_run,
+                size=previous_size,
+            ),
+        )
+
+    if not replace_all and total_matches > 1:
+        failure = PropertyLineEditOutcome(
+            ok=False,
+            code="ambiguous_match",
+            hint=(
+                "Multiple matches but replace_all=false; narrow the pattern or enable replace_all."
+            ),
+            dry_run=dry_run,
+            match_count=total_matches,
+            previews=previews[:10],
+            previous_size_bytes=previous_size,
+            current_size_bytes=previous_size,
+            lines_changed=0,
+        )
+        return new_lines, previews, total_matches, lines_changed, failure
+
+    return new_lines, previews, total_matches, lines_changed, None
+
+
 def edit_block_property_lines(
     graph_root: str | Path,
     page_ref: str,
@@ -192,46 +379,17 @@ def edit_block_property_lines(
 ) -> PropertyLineEditOutcome:
     """Edit only ``key::`` property lines for the block identified by ``id::``."""
     root = Path(graph_root).expanduser().resolve(strict=False)
-    try:
-        path = graph_safe_page_path(root, page_ref)
-    except ValueError:
-        return PropertyLineEditOutcome(
-            ok=False,
+    path, baseline_mtime, failure = _resolve_editable_page_path(
+        root,
+        page_ref,
+        dry_run=dry_run,
+        baseline_mtime=baseline_mtime,
+    )
+    if failure is not None or path is None:
+        return failure or _empty_property_edit_failure(
             code="path_forbidden",
             hint="Resolved path would escape LOGSEQ_GRAPH_PATH.",
             dry_run=dry_run,
-            match_count=0,
-            previews=[],
-            previous_size_bytes=0,
-            current_size_bytes=0,
-            lines_changed=0,
-        )
-    if not path.is_file():
-        return PropertyLineEditOutcome(
-            ok=False,
-            code="page_not_found",
-            hint=f"No file at `{path}` under graph root.",
-            dry_run=dry_run,
-            match_count=0,
-            previews=[],
-            previous_size_bytes=0,
-            current_size_bytes=0,
-            lines_changed=0,
-        )
-
-    if baseline_mtime is None:
-        baseline_mtime = occ_snapshot(path)
-    if baseline_mtime is not None and file_mtime_drifted(path, baseline_mtime):
-        return PropertyLineEditOutcome(
-            ok=False,
-            code="occ_conflict",
-            hint="File modified since the mutation was requested; write aborted.",
-            dry_run=dry_run,
-            match_count=0,
-            previews=[],
-            previous_size_bytes=0,
-            current_size_bytes=0,
-            lines_changed=0,
         )
 
     with page_rmw_lock(path):
@@ -262,117 +420,36 @@ def edit_block_property_lines(
         protected = compute_page_protected_line_indices(text)
 
         stripped = strip_lines_for_match(lines)
-        id_idx = find_id_line_index(stripped, block_uuid)
-        if id_idx is None:
-            return PropertyLineEditOutcome(
-                ok=False,
+        prop_indices, span_failure = _locate_editable_property_span(
+            stripped,
+            protected,
+            block_uuid,
+            dry_run=dry_run,
+            previous_size=previous_size,
+        )
+        if span_failure is not None or prop_indices is None:
+            return span_failure or _empty_property_edit_failure(
                 code="uuid_not_found",
                 hint="No `id:: <uuid>` line matches this block_uuid in the page file.",
                 dry_run=dry_run,
-                match_count=0,
-                previews=[],
-                previous_size_bytes=previous_size,
-                current_size_bytes=previous_size,
-                lines_changed=0,
+                size=previous_size,
             )
 
-        bullet_idx = block_bullet_index(stripped, id_idx)
-        if bullet_idx is None:
-            return PropertyLineEditOutcome(
-                ok=False,
-                code="malformed_block",
-                hint="Could not find a list bullet (`-` / `*` / `+`) above the `id::` line.",
-                dry_run=dry_run,
-                match_count=0,
-                previews=[],
-                previous_size_bytes=previous_size,
-                current_size_bytes=previous_size,
-                lines_changed=0,
-            )
-
-        end = block_subtree_end(stripped, id_idx, bullet_idx)
-        prop_indices = _property_line_indices(stripped, bullet_idx + 1, end)
-        if not prop_indices:
-            return PropertyLineEditOutcome(
-                ok=False,
-                code="no_property_lines",
-                hint="No property lines found in the resolved block span.",
-                dry_run=dry_run,
-                match_count=0,
-                previews=[],
-                previous_size_bytes=previous_size,
-                current_size_bytes=previous_size,
-                lines_changed=0,
-            )
-
-        blocked = [li for li in prop_indices if li in protected]
-        if blocked:
-            first = blocked[0] + 1
-            return PropertyLineEditOutcome(
-                ok=False,
-                code="protected_fence",
-                hint=(
-                    "A property line in this block sits inside a global Markdown / query / HTML "
-                    f"dead zone (first hit: line {first})."
-                ),
-                dry_run=dry_run,
-                match_count=0,
-                previews=[],
-                previous_size_bytes=previous_size,
-                current_size_bytes=previous_size,
-                lines_changed=0,
-            )
-
-        previews: list[str] = []
-        total_matches = 0
-        new_lines = list(lines)
-        lines_changed = 0
-
-        for li in prop_indices:
-            original = new_lines[li]
-            core = strip_line_endings(original)
-            new_core, mc = _apply_pattern(
-                core,
+        new_lines, previews, total_matches, lines_changed, match_failure = (
+            _apply_and_validate_property_replacements(
+                lines,
+                prop_indices,
                 search,
                 replacement,
                 use_regex=use_regex,
                 replace_all=replace_all,
                 case_sensitive=case_sensitive,
-            )
-            total_matches += mc
-            if mc and new_core != core:
-                lines_changed += 1
-                previews.append(f"L{li + 1}: `{core[:120]}` → `{new_core[:120]}`")
-            new_lines[li] = new_core + canonical_line_suffix(original)
-
-        if total_matches == 0:
-            return PropertyLineEditOutcome(
-                ok=False,
-                code="no_match",
-                hint="Search pattern did not match any allowed property line in the block span.",
                 dry_run=dry_run,
-                match_count=0,
-                previews=[],
-                previous_size_bytes=previous_size,
-                current_size_bytes=previous_size,
-                lines_changed=0,
+                previous_size=previous_size,
             )
-
-        if not replace_all and total_matches > 1:
-            return PropertyLineEditOutcome(
-                ok=False,
-                code="ambiguous_match",
-                hint=(
-                    "Multiple matches but replace_all=false; "
-                    "narrow the pattern or enable replace_all."
-                ),
-                dry_run=dry_run,
-                match_count=total_matches,
-                previews=previews[:10],
-                previous_size_bytes=previous_size,
-                current_size_bytes=previous_size,
-                lines_changed=0,
-            )
+        )
+        if match_failure is not None:
+            return match_failure
 
         new_text = "".join(strip_line_endings(ln) + canonical_line_suffix(ln) for ln in new_lines)
         new_bytes = new_text.encode("utf-8")

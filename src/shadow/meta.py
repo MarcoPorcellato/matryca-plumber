@@ -12,6 +12,7 @@ META_LAST_FULL_SYNC_AT = "last_full_sync_at"
 META_LAST_FULL_SYNC_COMPLETED = "last_full_sync_completed"
 META_SOURCE_PAGE_COUNT = "source_page_count"
 META_INDEXED_PAGE_COUNT = "indexed_page_count"
+META_QUARANTINED_PAGE_COUNT = "quarantined_page_count"
 META_LAST_SYNC_ERROR = "last_sync_error"
 META_LAST_INCREMENTAL_SYNC_AT = "last_incremental_sync_at"
 
@@ -22,6 +23,7 @@ REQUIRED_META_KEYS: tuple[str, ...] = (
     META_LAST_FULL_SYNC_COMPLETED,
     META_SOURCE_PAGE_COUNT,
     META_INDEXED_PAGE_COUNT,
+    META_QUARANTINED_PAGE_COUNT,
     META_LAST_SYNC_ERROR,
     META_LAST_INCREMENTAL_SYNC_AT,
 )
@@ -85,6 +87,7 @@ __all__ = [
     "META_LAST_INCREMENTAL_SYNC_AT",
     "META_LAST_SYNC_ERROR",
     "META_SCHEMA_VERSION",
+    "META_QUARANTINED_PAGE_COUNT",
     "META_SOURCE_PAGE_COUNT",
     "REQUIRED_META_KEYS",
     "bump_generation",

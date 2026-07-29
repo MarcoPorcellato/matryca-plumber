@@ -78,6 +78,13 @@ def _run_cognitive_module_safe(
     return sub
 
 
+def _refresh_content_if_on_disk(page_path: Path, graph_root: Path, content: str) -> str:
+    """Re-read page content from disk if a module wrote it; else keep the in-memory copy."""
+    if page_path.is_file():
+        return read_graph_file_text(page_path, graph_root, errors="replace")
+    return content
+
+
 def run_cognitive_lint_pipeline(
     graph_root: Path,
     page_path: Path,
@@ -121,8 +128,7 @@ def run_cognitive_lint_pipeline(
             ),
             outcome,
         )
-        if page_path.is_file():
-            content = read_graph_file_text(page_path, graph_root, errors="replace")
+        content = _refresh_content_if_on_disk(page_path, graph_root, content)
 
     if config.heal_dangling:
         _run_cognitive_module_safe(
@@ -166,8 +172,7 @@ def run_cognitive_lint_pipeline(
             ),
             outcome,
         )
-        if page_path.is_file():
-            content = read_graph_file_text(page_path, graph_root, errors="replace")
+        content = _refresh_content_if_on_disk(page_path, graph_root, content)
 
     if config.property_hygiene and not journal_page:
         _run_cognitive_module_safe(
@@ -186,8 +191,7 @@ def run_cognitive_lint_pipeline(
             outcome,
         )
 
-    if page_path.is_file():
-        content = read_graph_file_text(page_path, graph_root, errors="replace")
+    content = _refresh_content_if_on_disk(page_path, graph_root, content)
     disk_changed = content != initial_content or page_title in outcome.pages_modified
     if disk_changed and session is not None:
         session = _rebuild_prompt_session(

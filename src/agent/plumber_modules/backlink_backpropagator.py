@@ -120,6 +120,20 @@ def _update_section_summary(section_lines: list[str], summary: str) -> list[str]
     return updated
 
 
+def _scan_backlink_section(lines: list[str], start_idx: int) -> tuple[list[str], int]:
+    """Collect the body lines of one backlink section starting at ``start_idx``."""
+    idx = start_idx
+    section_body: list[str] = []
+    while idx < len(lines):
+        peek = lines[idx]
+        peek_heading = _normalize_section_heading(peek)
+        if peek_heading.startswith("### ") and peek_heading != _BACKLINK_HEADING:
+            break
+        section_body.append(peek)
+        idx += 1
+    return section_body, idx
+
+
 def _upsert_backlink_in_content(
     content: str,
     *,
@@ -144,15 +158,8 @@ def _upsert_backlink_in_content(
         section_start = len(output)
         output.append(line)
         idx += 1
-        section_body: list[str] = []
-        while idx < len(lines):
-            peek = lines[idx]
-            peek_heading = _normalize_section_heading(peek)
-            if peek_heading.startswith("### ") and peek_heading != _BACKLINK_HEADING:
-                break
-            section_body.append(peek)
-            output.append(peek)
-            idx += 1
+        section_body, idx = _scan_backlink_section(lines, idx)
+        output.extend(section_body)
 
         if _section_matches(section_body, source_title=source_title, block_uuid=block_uuid):
             existing_summary = ""

@@ -6,9 +6,13 @@ import contextlib
 import os
 import random
 import signal
+import subprocess
+import sys
+import textwrap
 import time
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -559,3 +563,46 @@ def test_singleton_owner_pid_tracks_process() -> None:
     w = get_bounded_page_parse_worker()
     assert w.owner_pid == os.getpid()
     assert parse_page_text_bounded("- singleton\n", timeout_s=15.0).ok is True
+
+
+def test_worker_exits_when_its_parent_is_killed() -> None:
+    """A worker whose parent dies without cleanup must reap itself.
+
+    ``daemon=True`` only covers a parent that exits through the multiprocessing
+    atexit hook. A parent killed with SIGKILL (or exiting via ``os._exit``)
+    skips it, and the orphan keeps a duplicate of the ``resource_tracker`` pipe
+    open, which in turn blocks interpreter shutdown in any process that shares
+    that tracker.
+    """
+    source = textwrap.dedent(
+        """
+        import sys, time
+        from src.graph.bounded_page_parse import BoundedPageParseWorker
+
+        worker = BoundedPageParseWorker()
+        assert worker.parse_text("- orphan probe\\n", timeout_s=15.0).ok
+        print(worker.pid, flush=True)
+        time.sleep(120)
+        """
+    )
+    parent = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-c", source],
+        cwd=str(Path(__file__).resolve().parents[1]),
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert parent.stdout is not None
+        worker_pid = int(parent.stdout.readline().strip())
+        assert _pid_alive(worker_pid)
+        parent.kill()
+        parent.wait(timeout=10)
+
+        deadline = time.monotonic() + 20.0
+        while _pid_alive(worker_pid) and time.monotonic() < deadline:
+            time.sleep(0.2)
+        assert not _pid_alive(worker_pid), f"worker {worker_pid} outlived its killed parent"
+    finally:
+        if parent.poll() is None:
+            parent.kill()
+            parent.wait(timeout=10)

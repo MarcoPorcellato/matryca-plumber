@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from git import Repo
 
 _SENSITIVE_GIT_PATH_MARKERS = (
     ".env",
@@ -29,6 +33,41 @@ def robot_git_commit_enabled() -> bool:
     return raw not in ("0", "false", "no", "off")
 
 
+def _open_robot_commit_repo(root: Path) -> tuple[Repo | None, dict[str, object] | None]:
+    """Return ``(repo, None)`` on success, or ``(None, skip_result)`` on any guard failure."""
+    try:
+        from git import InvalidGitRepositoryError, Repo
+    except ImportError:
+        logger.error("GitPython is not installed; skipping robot git commit")
+        return None, {"committed": False, "skipped": True, "reason": "GitPython missing"}
+
+    try:
+        repo = Repo(str(root))
+    except InvalidGitRepositoryError:
+        return None, {"committed": False, "skipped": True, "reason": "invalid git repository"}
+
+    if repo.bare:
+        return None, {"committed": False, "skipped": True, "reason": "bare repository"}
+
+    return repo, None
+
+
+def _relative_committable_paths(md_paths: list[Path], root: Path) -> list[str]:
+    """Resolve ``md_paths`` to graph-relative posix strings, dropping unsafe ones."""
+    rel_paths: list[str] = []
+    for path in md_paths:
+        try:
+            rel = path.resolve().relative_to(root).as_posix()
+        except ValueError:
+            logger.warning("Skipping git stage for path outside graph root: {}", path)
+            continue
+        if path_is_sensitive_for_git(rel):
+            logger.warning("Skipping robot git commit for sensitive path: {}", rel)
+            continue
+        rel_paths.append(rel)
+    return rel_paths
+
+
 def robot_git_commit(
     graph_root: str | Path,
     paths: list[Path],
@@ -49,32 +88,15 @@ def robot_git_commit(
     if not md_paths:
         return {"committed": False, "skipped": True, "reason": "no markdown paths"}
 
-    try:
-        from git import InvalidGitRepositoryError, Repo
-    except ImportError:
-        logger.error("GitPython is not installed; skipping robot git commit")
-        return {"committed": False, "skipped": True, "reason": "GitPython missing"}
+    repo, skip_result = _open_robot_commit_repo(root)
+    if skip_result is not None or repo is None:
+        return skip_result or {
+            "committed": False,
+            "skipped": True,
+            "reason": "invalid git repository",
+        }
 
-    try:
-        repo = Repo(str(root))
-    except InvalidGitRepositoryError:
-        return {"committed": False, "skipped": True, "reason": "invalid git repository"}
-
-    if repo.bare:
-        return {"committed": False, "skipped": True, "reason": "bare repository"}
-
-    rel_paths: list[str] = []
-    for path in md_paths:
-        try:
-            rel = path.resolve().relative_to(root).as_posix()
-        except ValueError:
-            logger.warning("Skipping git stage for path outside graph root: {}", path)
-            continue
-        if path_is_sensitive_for_git(rel):
-            logger.warning("Skipping robot git commit for sensitive path: {}", rel)
-            continue
-        rel_paths.append(rel)
-
+    rel_paths = _relative_committable_paths(md_paths, root)
     if not rel_paths:
         return {"committed": False, "skipped": True, "reason": "no paths under graph root"}
 

@@ -1,10 +1,11 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha.5)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-beta.1 candidate)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
+> **v2.0.0-beta.1 candidate:** local source version `2.0.0-beta.1` / wheel version `2.0.0b1` is **not tagged, published, or available on PyPI**. Do not pin or install it from PyPI. The published baseline is `v2.0.0-alpha.5` / `2.0.0a5`; `MATRYCA_SHADOW_DB_ENABLED=false` by default, Markdown remains authoritative, and the installed-wheel recovery, sanitized soak, and final code audit gates remain pending. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.5 headline:** **Shadow hardening campaign closed** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) — CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)); state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)); Axes 5–7 audit probes green; `MATRYCA_SHADOW_DB_ENABLED=false` by default. **Not an RC** — post-publish soak before beta/RC. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.4 headline:** **Shadow FTS query length bound** — keywords over **512 Unicode characters** (post-`strip`) are rejected before FTS preparation or SQLite `MATCH` ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)); Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail**.
 > **v2.0.0-alpha.3 headline:** **Shadow FTS hyphenated queries** — natural compounds like `state-of-the-art` route through shadow FTS5 without spurious generational fallback ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)).
@@ -17,7 +18,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-Matryca Plumber v2.0.0-alpha.5 does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+The v2.0.0-beta.1 candidate does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -55,7 +56,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (verified v2.0.0-alpha.5)
+## 2. Core CLI (candidate documentation: v2.0.0-beta.1)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.
@@ -219,20 +220,34 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB (v2.0.0-alpha.5 — experimental, opt-in)
+### 2.6 Shadow DB (v2.0.0-beta.1 candidate — experimental, opt-in)
 
 Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|
 | `MATRYCA_SHADOW_DB_ENABLED` | `false` | `search_graph(bm25)` prefers FTS5 on shadow; `read_graph_data(subtree)` prefers recursive CTE; **always falls back** to generational BM25 / parser+AST when flag is off, shadow is bootstrapping, stale, or errors |
+| `MATRYCA_SHADOW_QUARANTINE_ENABLED` | `true` | Park over-budget pages instead of failing the whole rebuild (beta.1); `false` restores strict mode |
 | `MATRYCA_SHADOW_WRITER_LOCK_TIMEOUT_S` | `10` | Cross-process advisory flock wait for incremental sync/delete (alpha.1) |
 | `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` | `120` | Cross-process advisory flock wait for full rebuild (alpha.1) |
 | `MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS` | `5000` | SQLite `busy_timeout` for shadow writers (clamped 0–60000 ms; alpha.1) |
 
-**Operator health (no `doctor`):** Sovereign UI `status` → sidebar **Shadow DB** row (sourced from `GET /api/state.shadow_db`: `state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`).
+**Operator health (no `doctor`):** Sovereign UI `status` → sidebar **Shadow DB** row (sourced from `GET /api/state.shadow_db`: `state`, `last_full_sync_at`, `source_page_count`, `indexed_page_count`, `lag_pages`, `last_sync_error`, `not_ready_reason`, `quarantined_page_count`).
 
-**Agent default unchanged:** With flag unset/false, MCP/CLI behavior matches v1.14.x (BM25 + parser subtree). Enable only when explicitly testing v2 alpha on a vault backup.
+`not_ready_reason` is a closed vocabulary of content-free codes explaining why the cache is
+not accelerating reads: `not_bootstrapped`, `bootstrap_in_progress`, `database_unreadable`,
+`schema_version_mismatch`, `sync_error`, `full_sync_incomplete`, `page_count_mismatch`. It is
+`null` when the state is `ready` or `disabled`. Treat an unrecognised code as `null` — the
+vocabulary may grow. `full_sync_incomplete` is the code an agent will most often see on a
+real vault; see below.
+
+**Agent default unchanged:** With flag unset/false, MCP/CLI behavior matches v1.14.x (BM25 + parser subtree). The `v2.0.0-beta.1` candidate is not published; enable Shadow only when explicitly testing a release candidate on a vault backup.
+
+**Over-budget pages are quarantined, not fatal.** A page whose parse exceeds `MATRYCA_PAGE_PARSE_TIMEOUT_S` (default **15 s**, clamped 2–120 s) is parked in `quarantined_pages` and left out of the cache; the rest of the graph is indexed normally and health stays `READY` under the invariant `indexed + quarantined == source == actual`. Reads for a parked page route to Markdown, which is authoritative either way. A page is released automatically as soon as it parses within budget. `GET /api/state.shadow_db.quarantined_page_count` reports how many are parked; they are excluded from `lag_pages` because they are a settled decision, not pending work. `MATRYCA_SHADOW_QUARANTINE_ENABLED=false` restores the strict pre-2.0 behaviour where any over-budget page aborts the rebuild.
+
+Measured on a daily-use vault of 1,014 graph pages: **3 pages (0.30%) exceed the default**, consuming the large majority of total parse time. A filesystem sweep of the same vault counts 25 over-budget files out of 3,378, but 22 of those are Logseq's own version history and backups, which the cache never reads. Parse cost is bimodal (nothing between 5 s and 40 s) and **uncorrelated with page size** — the largest page in that corpus (650,106 B) parses in 0.54 s while a 336,260 B page does not finish within 115 s under load.
+
+**What an agent should conclude:** a non-zero `quarantined_page_count` is expected on a large vault and is **not** corruption, not an error, and not a reason to retry, rebuild repeatedly, or modify vault content. Do not "fix" it by editing or splitting user pages. Reads for those pages are correct via the Markdown/BM25 fallback; they simply get no FTS or subtree acceleration. Raising `MATRYCA_PAGE_PARSE_TIMEOUT_S` reduces the count at the cost of much slower rebuilds. Analysis: `docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md`.
 
 Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md` · Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
 
@@ -284,6 +299,31 @@ export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
 uvx matryca-plumber --json import tana --file "$HOME/Downloads/tana-workspace.json"
 uvx matryca-plumber import tana --file "$HOME/Downloads/tana-workspace.json" --apply
 ```
+
+**H. Inject a native Logseq advanced-query block (open TODO/LATER/WAITING dashboard)**
+```bash
+export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
+uvx matryca-plumber --json mutate inject_query \
+  --target "My Project|parent-block-uuid" \
+  --payload '{"query_preset": "open_markers", "dry_run": true}'
+```
+Presets: `open_markers` (open TODO/LATER/WAITING), `pages_tagged` (needs a `"tag"` field). Or pass raw `"query_edn"` instead of `query_preset`. Always `dry_run: true` first.
+
+**I. Preview hashtag/tag-variant unification (e.g. `#AI` vs `#ai`)**
+```bash
+export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
+uvx matryca-plumber --json lint unify_tags
+```
+Preview-only: returns clustered tag variants and suggested canonical form. Applying rewrites vault-wide requires explicit operator consent — this command never writes.
+
+**J. Generate a Map-of-Content index page for a namespace**
+```bash
+export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
+uvx matryca-plumber --json mutate generate_moc \
+  --target "Project/Sub" \
+  --payload '{"dry_run": true}'
+```
+Writes `MOC Project/Sub` (or `output_page_title`) listing every page under that namespace as grouped `[[wikilinks]]`. Always `dry_run: true` first.
 
 For **today's journal page** as `read page`, use the **exact Logseq page title** shown in the app (locale-dependent), not a file path like `journals/2026_06_05.md`.
 

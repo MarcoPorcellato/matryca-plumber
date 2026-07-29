@@ -1,4 +1,11 @@
-"""Bounded page parsing contracts for Shadow ingestion (#297 PR2C)."""
+"""Bounded page parsing contracts for Shadow ingestion (#297 PR2C).
+
+These characterize **strict** mode, where any page that cannot be parsed within the
+budget aborts the whole rebuild. Strict mode is no longer the default — see
+`test_shadow_quarantine.py` for the default per-page quarantine behaviour — but it
+remains supported via `MATRYCA_SHADOW_QUARANTINE_ENABLED=false`, so its containment,
+rollback, and privacy guarantees are still asserted here in full.
+"""
 
 from __future__ import annotations
 
@@ -30,6 +37,7 @@ from tests.a_cli_01_generator import generate_pathological_page
 @pytest.fixture(autouse=True)
 def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    monkeypatch.setenv("MATRYCA_SHADOW_QUARANTINE_ENABLED", "false")
     reset_shadow_runtime_state_for_tests()
     reset_shadow_bootstrap_checked_for_tests()
 

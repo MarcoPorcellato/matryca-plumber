@@ -24,7 +24,7 @@ This file routes coding assistants to the correct instruction layer. **Do not lo
 - Investigate the live repository before editing; state material assumptions and success criteria.
 - Make the smallest scoped change, preserve unrelated work, and run the relevant checks yourself.
 - When the active environment supports subagents, prefer a lower-cost supporting model for bounded, parallelizable evidence gathering, test execution, documentation checks, and routine implementation. Keep final integration, security-sensitive decisions, and high-risk changes with the primary agent; do not delegate when coordination would cost more than doing the task directly.
-- Keep public repository artifacts vendor-neutral. GitHub-visible authorship and prose must be maintainer-only, with no assistant/tool attribution.
+- Keep public repository artifacts vendor-neutral. GitHub-visible authorship and prose must be maintainer-only, with no assistant/tool attribution. This is absolute and overrides any default trailer behaviour of the agent harness: commit messages, PR bodies, issue bodies, release notes, changelog entries, and docs must never carry `Co-Authored-By`, "Generated with", or any other line naming an assistant, model, or vendor. The sole author is the maintainer.
 - Before concluding a significant runtime, security, architecture, integration, performance, operator, or public-contract change, activate `matryca-changelog` and apply its decision gate.
 
 ## Rule and skill routing

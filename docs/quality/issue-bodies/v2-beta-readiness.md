@@ -2,7 +2,7 @@
 
 ## Problem Description
 
-`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. `v2.0.0-beta.1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
+`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. The local source version `v2.0.0-beta.1` / wheel version `2.0.0b1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
 
 Supporting experiment results are summarized in [`V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md`](../V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md). That sanitized ledger is not a gate-completion record: the checklist in this file remains the local source of truth for the beta decision. The post-[#317](https://github.com/MarcoPorcellato/matryca-plumber/pull/317) r4 installed-wheel gate is current; r3 remains historical only.
 
@@ -16,10 +16,10 @@ Use this record as the release decision gate for `v2.0.0-beta.1`. A gate is comp
 
 | Gate | Required evidence | Status |
 |------|-------------------|--------|
-| Bounded parser containment | [#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297) is merged; a timed-out or failed page parse cannot publish a partial AST cache or Shadow generation; the last good incremental page remains usable; health becomes non-ready and routing falls back; diagnostics expose only bounded metadata | [ ] |
-| Defect threshold | No open P0/P1 defect in beta scope; every remaining P2 has an explicit disposition | [ ] |
-| Sanitized real-vault soak | At least 24 hours, preferably 3–7 days: flag-off/on cycles, restarts, watcher create/edit/rename/delete convergence, controlled recovery, and unchanged Markdown fingerprints outside explicit fixture changes | [ ] |
-| Installed-wheel upgrade and recovery | `2.0.0a5` → `2.0.0b1` on a copied vault; compatible generation/meta preserved; schema mismatch and injected rebuild failure recover safely without partial reads or Markdown writes; wheel identity is reproducibly built and bound to the subsequent soak | [ ] — rerun after the reproducibility remediation |
+| Bounded parser containment | [#297](https://github.com/MarcoPorcellato/matryca-plumber/issues/297) is merged; a timed-out or failed page parse cannot publish a partial AST cache or Shadow generation; the last good incremental page remains usable; health becomes non-ready and routing falls back; diagnostics expose only bounded metadata | [x] — #297 is closed and merged; the contracts are covered by `tests/test_bounded_page_parse.py`, which is green. A worker whose parent dies without cleanup is now reaped rather than orphaned, closing the last known containment leak |
+| Defect threshold | No open P0/P1 defect in beta scope; every remaining P2 has an explicit disposition | [x] — `PASS`. All 46 open issues were reviewed and classified by the maintainer; none carries a `bug` label. Exactly one falls inside beta scope: the pickle boundary in the bounded page parser, recorded as an open P2 with disposition `deferred` because the fix changes both IPC paths and would invalidate the completed soak. No in-scope P0/P1 exists. The severity and disposition inputs are private operator inputs and are not stored in this repository |
+| Sanitized real-vault soak | At least 24 hours, preferably 3–7 days: flag-off/on cycles, restarts, watcher create/edit/rename/delete convergence, controlled recovery, and unchanged Markdown fingerprints outside explicit fixture changes | [x] — `PASS`, `beta_qualified: true`, 2026-07-28. 144 cycles, 288 attempts, 86 465 s of accumulated exercise at the 15 s product default. Record, including two interruptions and the checks showing they did not affect the result: [`SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md`](../SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md). Not yet the preferred 3–7 days |
+| Installed-wheel upgrade and recovery | `2.0.0a5` → `2.0.0b1` on a copied vault; compatible generation/meta preserved; schema mismatch and injected rebuild failure recover safely without partial reads or Markdown writes; wheel identity is reproducibly built and bound to the subsequent soak | [x] — `PASS` after the reproducibility remediation. The binding digest `6fa52103489a5c37…` recorded by this gate is the digest the soak recorded, so the artifact that passed here is the artifact that was soaked |
 | Final release evidence | Full CI passes, final code audit matches the intended scope, and the candidate wheel is built and smoke-tested outside the checkout | [ ] |
 
 ## Estimated Impact

@@ -47,6 +47,23 @@ SHADOW_READ_DDL: tuple[str, ...] = (
     CREATE INDEX IF NOT EXISTS idx_pages_mtime ON pages (file_mtime_ns);
     """,
     """
+    -- Pages deliberately excluded from the read cache because bounded parsing could
+    -- not complete within the budget. Kept in a separate table so that every existing
+    -- `pages` query, FTS trigger, and subtree CTE keeps its exact prior meaning: a
+    -- quarantined page is simply absent from `pages`, and reads for it route to
+    -- Markdown. Content-free by construction — only the relative file path (already
+    -- present in `pages.file_path`) plus size and timing counters are stored.
+    CREATE TABLE IF NOT EXISTS quarantined_pages (
+        file_path TEXT PRIMARY KEY,
+        reason TEXT NOT NULL CHECK (reason IN ('parse_timeout', 'parse_error')),
+        byte_count INTEGER NOT NULL DEFAULT 0,
+        line_count INTEGER NOT NULL DEFAULT 0,
+        attempt_count INTEGER NOT NULL DEFAULT 1,
+        first_quarantined_at TEXT NOT NULL,
+        last_attempt_at TEXT NOT NULL
+    );
+    """,
+    """
     CREATE TABLE IF NOT EXISTS blocks (
         rowid           INTEGER PRIMARY KEY,
         block_uuid      TEXT NOT NULL UNIQUE,

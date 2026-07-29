@@ -13,7 +13,7 @@ from ..utils.env_parse import env_bool, env_int
 from .path_sandbox import assert_path_within_graph
 
 _MMAP_MIN_BYTES_ENV = "MATRYCA_MMAP_MIN_BYTES"
-_DEFAULT_MMAP_MIN_BYTES = 4096
+_DEFAULT_MMAP_MIN_BYTES = 65536
 
 
 def graph_read_mmap_enabled() -> bool:
@@ -35,10 +35,11 @@ class MmapTextView:
         return self._mmap[:].decode("utf-8", errors=errors)
 
     def search(self, pattern: str | bytes, flags: int = 0) -> re.Match[bytes] | None:
-        data = self._mmap[:]
+        # mmap implements the buffer protocol, so re can scan it directly -
+        # no need to materialize a full-file bytes copy just to check a match.
         if isinstance(pattern, str):
             pattern = pattern.encode("utf-8")
-        return re.search(pattern, data, flags)
+        return re.search(pattern, self._mmap, flags)
 
     def close(self) -> None:
         self._mmap.close()

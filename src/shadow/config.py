@@ -25,6 +25,18 @@ def shadow_db_enabled() -> bool:
     return env_bool("MATRYCA_SHADOW_DB_ENABLED", default=False)
 
 
+def shadow_quarantine_enabled() -> bool:
+    """Return whether over-budget pages are quarantined instead of failing the rebuild.
+
+    Nested inside ``MATRYCA_SHADOW_DB_ENABLED``: it has no effect while the Shadow DB
+    itself is off, so it cannot change behaviour for a default install. Defaults to
+    true because the strict alternative makes one pathological page disable the read
+    cache for an entire graph. Set it false to restore the pre-quarantine behaviour
+    where any over-budget page aborts the whole rebuild.
+    """
+    return env_bool("MATRYCA_SHADOW_QUARANTINE_ENABLED", default=True)
+
+
 def shadow_db_busy_timeout_ms() -> int:
     """SQLite ``busy_timeout`` for shadow connections (0 disables waiting)."""
     return env_int_clamped(
@@ -62,6 +74,7 @@ def shadow_rebuild_lock_timeout_s() -> float:
 __all__ = [
     "shadow_db_busy_timeout_ms",
     "shadow_db_enabled",
+    "shadow_quarantine_enabled",
     "shadow_rebuild_lock_timeout_s",
     "shadow_writer_lock_timeout_s",
 ]

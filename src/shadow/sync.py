@@ -20,7 +20,7 @@ from ..graph.bounded_ast_graph import parse_graph_page_bounded
 from ..graph.page_path import page_title_from_path
 from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
 from ..graph.post_write import PageWrittenEvent, register_page_written_handler
-from .config import shadow_db_enabled
+from .config import shadow_db_enabled, shadow_quarantine_enabled
 from .connection import open_shadow_db
 from .errors import (
     ShadowPageParseError,
@@ -33,6 +33,11 @@ from .meta import (
     META_LAST_SYNC_ERROR,
     ensure_meta_defaults,
     set_meta,
+)
+from .quarantine import (
+    clear_quarantined_page,
+    normalize_quarantine_reason,
+    record_quarantined_page,
 )
 from .runtime_state import defer_sync_path, is_shadow_bootstrapping
 from .writer_lock import shadow_writer_lock
@@ -145,6 +150,7 @@ def delete_shadow_page_by_file_path(graph_root: Path | str, rel_path: str) -> No
         conn = open_shadow_db(root)
         try:
             conn.execute("DELETE FROM pages WHERE file_path = ?", (rel_path,))
+            clear_quarantined_page(conn, rel_path)
             set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
             conn.commit()
         except Exception:
@@ -158,23 +164,43 @@ def sync_page_into_connection(
     connection: sqlite3.Connection,
     graph_root: Path,
     page_path: Path,
-) -> None:
-    """Upsert one page into an open shadow connection (caller manages transaction)."""
+) -> bool:
+    """Upsert one page into an open shadow connection (caller manages transaction).
+
+    Returns whether the page is now present in ``pages``. ``False`` means the page is
+    absent by design — non-Markdown, deleted, or quarantined — and reads for it must
+    route to Markdown. Callers counting indexed pages must not count a ``False``.
+    """
     root = resolved_graph_root(graph_root)
     path = assert_path_within_graph(page_path, root)
     if path.suffix.lower() != ".md":
-        return
+        return False
 
     title = page_title_from_path(root, path)
     rel = path.relative_to(root).as_posix()
     if not path.is_file():
         connection.execute("DELETE FROM pages WHERE file_path = ?", (rel,))
-        return
+        clear_quarantined_page(connection, rel)
+        return False
 
     stat = path.stat()
     parse_result = parse_graph_page_bounded(path, root)
     if not parse_result.ok or not isinstance(parse_result.page, LogseqPage):
         failure = parse_result.failure
+        if shadow_quarantine_enabled():
+            # Park this page instead of failing the caller. It is removed from `pages`
+            # so reads route to Markdown, and the caller keeps indexing the rest of the
+            # graph — one pathological page must not disable the cache for all of it.
+            connection.execute("DELETE FROM pages WHERE file_path = ?", (rel,))
+            record_quarantined_page(
+                connection,
+                rel,
+                reason=normalize_quarantine_reason(failure.error if failure else None),
+                byte_count=failure.byte_count if failure else 0,
+                line_count=failure.line_count if failure else 0,
+                now=_utc_now_iso(),
+            )
+            return False
         raise ShadowPageParseError(
             format_bounded_page_parse_error(
                 category=failure.error if failure else "parse_error",
@@ -185,6 +211,8 @@ def sync_page_into_connection(
             )
         )
     page = parse_result.page
+    # A page that parses again is released: quarantine is a state, not a verdict.
+    clear_quarantined_page(connection, rel)
     synced_at = _utc_now_iso()
     is_journal = 1 if _is_journal_relpath(rel) else 0
     props_json = _props_json(dict(page.properties or {}))
@@ -241,6 +269,7 @@ def sync_page_into_connection(
         if rowid <= 0:
             raise RuntimeError(f"shadow blocks insert returned no rowid for {block_uuid}")
         uuid_to_rowid[block_uuid] = rowid
+    return True
 
 
 def sync_page_to_shadow(graph_root: Path | str, page_path: Path | str) -> None:

@@ -18,7 +18,7 @@ _HEADER_BYTES = 4
 
 
 def _write_response(response: dict[str, Any]) -> None:
-    """Write header then AST blob; parent checks header before AST unpickle."""
+    """Write header then AST blob; parent checks header before decoding the AST."""
     blob = response.pop("blob", b"")
     if not isinstance(blob, bytes):
         blob = b""

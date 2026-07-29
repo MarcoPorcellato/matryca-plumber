@@ -205,6 +205,10 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         **``action=inject_query``** — ``target`` = parent block UUID (or ``[n]`` alias).
         ``payload`` = JSON with inner EDN in ``query_edn`` and/or ``query_preset``
         (``open_markers``, ``pages_tagged``) plus optional ``tag``, ``dry_run`` (default true).
+
+        **``action=generate_moc``** — ``target`` = namespace stem (e.g. ``Project/Sub``).
+        ``payload`` = optional JSON ``{"output_page_title":"MOC Project", "dry_run":true}``.
+        Writes a Map-of-Content index page listing every page under that namespace.
         """
         _ = ctx
         return await dispatch_mutate(action, target, payload)

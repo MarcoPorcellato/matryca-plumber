@@ -43,6 +43,8 @@ describe('normalizeDaemonState shadow_db', () => {
         indexed_page_count: null,
         lag_pages: null,
         last_sync_error: null,
+        not_ready_reason: null,
+        quarantined_page_count: 0,
         ...shadowDb,
       },
     })
@@ -74,7 +76,53 @@ describe('normalizeDaemonState shadow_db', () => {
       indexed_page_count: 3,
       lag_pages: 2,
       last_sync_error: null,
+      not_ready_reason: null,
+      quarantined_page_count: 0,
     })
+  })
+
+  it('surfaces the not-ready reason so the operator sees why reads are not accelerated', () => {
+    const normalized = normalizeDaemonState({
+      ...BASE_STATE,
+      shadow_db: {
+        enabled: true,
+        state: 'stale',
+        not_ready_reason: 'full_sync_incomplete',
+      },
+    } as never)
+    expect(normalized.shadow_db?.not_ready_reason).toBe('full_sync_incomplete')
+  })
+
+  it('drops an unknown reason code rather than rendering it raw', () => {
+    const normalized = normalizeDaemonState({
+      ...BASE_STATE,
+      shadow_db: { enabled: true, state: 'stale', not_ready_reason: 'something_new' },
+    } as never)
+    expect(normalized.shadow_db?.not_ready_reason).toBeNull()
+  })
+
+  it('clears the reason once the cache is ready', () => {
+    const normalized = normalizeDaemonState({
+      ...BASE_STATE,
+      shadow_db: { enabled: true, state: 'ready', not_ready_reason: 'sync_error' },
+    } as never)
+    expect(normalized.shadow_db?.not_ready_reason).toBeNull()
+  })
+
+  it('surfaces the parked page count alongside a ready cache', () => {
+    const normalized = normalizeDaemonState({
+      ...BASE_STATE,
+      shadow_db: { enabled: true, state: 'ready', quarantined_page_count: 25 },
+    } as never)
+    expect(normalized.shadow_db?.quarantined_page_count).toBe(25)
+  })
+
+  it('defaults the parked page count to zero on daemons that omit it', () => {
+    const normalized = normalizeDaemonState({
+      ...BASE_STATE,
+      shadow_db: { enabled: true, state: 'ready' },
+    } as never)
+    expect(normalized.shadow_db?.quarantined_page_count).toBe(0)
   })
 
   it('forces disabled state when enabled is false', () => {
@@ -88,6 +136,8 @@ describe('normalizeDaemonState shadow_db', () => {
         indexed_page_count: null,
         lag_pages: null,
         last_sync_error: null,
+        not_ready_reason: null,
+        quarantined_page_count: 0,
       },
     })
     expect(normalized.shadow_db?.state).toBe('disabled')

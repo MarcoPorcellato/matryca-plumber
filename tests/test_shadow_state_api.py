@@ -28,6 +28,8 @@ DISABLED_SHADOW_DB = {
     "indexed_page_count": None,
     "lag_pages": None,
     "last_sync_error": None,
+    "not_ready_reason": None,
+    "quarantined_page_count": 0,
 }
 
 

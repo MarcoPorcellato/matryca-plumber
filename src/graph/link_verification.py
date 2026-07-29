@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -21,7 +20,7 @@ import httpx
 from loguru import logger
 
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
-from ..utils.env_parse import env_bool
+from ..utils.env_parse import env_bool, env_float_clamped, env_int_clamped
 from .global_fence_scanner import compute_page_protected_line_indices
 from .json_flock import cross_process_json_flock
 from .markdown_blocks import (
@@ -71,27 +70,25 @@ def link_verify_enabled() -> bool:
 
 
 def link_verify_strikes_threshold() -> int:
-    raw = os.environ.get("MATRYCA_LINK_VERIFY_STRIKES", "2").strip()
-    try:
-        return max(1, int(raw))
-    except ValueError:
-        return 2
+    return env_int_clamped(
+        "MATRYCA_LINK_VERIFY_STRIKES",
+        2,
+        minimum=1,
+        maximum=2**31 - 1,
+    )
 
 
 def link_verify_batch_size() -> int:
-    raw = os.environ.get("MATRYCA_LINK_VERIFY_BATCH", "25").strip()
-    try:
-        return max(1, min(200, int(raw)))
-    except ValueError:
-        return 25
+    return env_int_clamped("MATRYCA_LINK_VERIFY_BATCH", 25, minimum=1, maximum=200)
 
 
 def link_verify_timeout_seconds() -> float:
-    raw = os.environ.get("MATRYCA_LINK_VERIFY_TIMEOUT", "8").strip()
-    try:
-        return max(1.0, min(60.0, float(raw)))
-    except ValueError:
-        return 8.0
+    return env_float_clamped(
+        "MATRYCA_LINK_VERIFY_TIMEOUT",
+        8.0,
+        minimum=1.0,
+        maximum=60.0,
+    )
 
 
 @dataclass
@@ -532,6 +529,74 @@ async def verify_registry_batch(
     return result
 
 
+def _normalize_lines_to_text(lines: list[str]) -> str:
+    return "".join(
+        ln if ln.endswith("\n") else ln + "\n" for ln in [ln.rstrip("\n") for ln in lines]
+    )
+
+
+def _remove_block_hygiene_lines(
+    lines: list[str],
+    stripped: list[str],
+    bullet_idx: int,
+    block_end: int,
+    prop_pattern: re.Pattern[str],
+    *,
+    page_path: Path,
+    graph_root: Path,
+    baseline_mtime: float,
+    property_name: str,
+) -> bool:
+    remove_at = [
+        i
+        for i in range(bullet_idx + 1, min(block_end, len(stripped)))
+        if prop_pattern.match(stripped[i])
+    ]
+    if not remove_at:
+        return False
+    for i in reversed(remove_at):
+        del lines[i]
+    updated = _normalize_lines_to_text(lines)
+    return bool(
+        atomic_write_bytes_if_unchanged(
+            page_path,
+            updated.encode("utf-8"),
+            graph_root=graph_root,
+            baseline_mtime=baseline_mtime,
+            robot_commit_summary=f"cleared {property_name} on block",
+        ),
+    )
+
+
+def _insert_block_hygiene_line(
+    lines: list[str],
+    stripped: list[str],
+    bullet_idx: int,
+    block_end: int,
+    prop_key: str,
+    *,
+    page_path: Path,
+    graph_root: Path,
+    baseline_mtime: float,
+    property_name: str,
+) -> bool:
+    insert_at = block_property_insert_index(stripped, bullet_idx, block_end)
+    bullet_match = _BULLET_RE.match(stripped[bullet_idx].rstrip("\n"))
+    base_ws = bullet_match.group(1) if bullet_match else ""
+    indent = base_ws + bullet_indent_unit(stripped, bullet_idx)
+    lines.insert(insert_at, f"{indent}{prop_key} true\n")
+    updated = _normalize_lines_to_text(lines)
+    return bool(
+        atomic_write_bytes_if_unchanged(
+            page_path,
+            updated.encode("utf-8"),
+            graph_root=graph_root,
+            baseline_mtime=baseline_mtime,
+            robot_commit_summary=f"flagged {property_name} on block",
+        ),
+    )
+
+
 def _mutate_block_hygiene_property(
     graph_root: Path,
     page_relpath: str,
@@ -566,49 +631,31 @@ def _mutate_block_hygiene_property(
         bullet_idx, _id_idx, block_end = located
 
         if remove:
-            changed = False
-            remove_at: list[int] = []
-            for i in range(bullet_idx + 1, min(block_end, len(stripped))):
-                if prop_pattern.match(stripped[i]):
-                    remove_at.append(i)
-            for i in reversed(remove_at):
-                del lines[i]
-                changed = True
-            if not changed:
-                return False
-            updated = "".join(
-                ln if ln.endswith("\n") else ln + "\n" for ln in [ln.rstrip("\n") for ln in lines]
-            )
-            return bool(
-                atomic_write_bytes_if_unchanged(
-                    page_path,
-                    updated.encode("utf-8"),
-                    graph_root=graph_root,
-                    baseline_mtime=baseline_mtime,
-                    robot_commit_summary=f"cleared {property_name} on block",
-                ),
+            return _remove_block_hygiene_lines(
+                lines,
+                stripped,
+                bullet_idx,
+                block_end,
+                prop_pattern,
+                page_path=page_path,
+                graph_root=graph_root,
+                baseline_mtime=baseline_mtime,
+                property_name=property_name,
             )
 
         if _block_has_property(stripped, bullet_idx, block_end, prop_pattern):
             return True
 
-        insert_at = block_property_insert_index(stripped, bullet_idx, block_end)
-        bullet_match = _BULLET_RE.match(stripped[bullet_idx].rstrip("\n"))
-        base_ws = bullet_match.group(1) if bullet_match else ""
-        indent = base_ws + bullet_indent_unit(stripped, bullet_idx)
-        lines.insert(insert_at, f"{indent}{prop_key} true\n")
-
-        updated = "".join(
-            ln if ln.endswith("\n") else ln + "\n" for ln in [ln.rstrip("\n") for ln in lines]
-        )
-        return bool(
-            atomic_write_bytes_if_unchanged(
-                page_path,
-                updated.encode("utf-8"),
-                graph_root=graph_root,
-                baseline_mtime=baseline_mtime,
-                robot_commit_summary=f"flagged {property_name} on block",
-            ),
+        return _insert_block_hygiene_line(
+            lines,
+            stripped,
+            bullet_idx,
+            block_end,
+            prop_key,
+            page_path=page_path,
+            graph_root=graph_root,
+            baseline_mtime=baseline_mtime,
+            property_name=property_name,
         )
 
 
