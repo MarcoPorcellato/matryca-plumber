@@ -1,4 +1,4 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-beta.1 candidate)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-beta.1)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
@@ -18,7 +18,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-The v2.0.0-beta.1 candidate does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+The v2.0.0-beta.1 release does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -56,7 +56,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (candidate documentation: v2.0.0-beta.1)
+## 2. Core CLI (v2.0.0-beta.1)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.
@@ -220,7 +220,7 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB (v2.0.0-beta.1 candidate — experimental, opt-in)
+### 2.6 Shadow DB (v2.0.0-beta.1 — experimental, opt-in)
 
 Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
 

@@ -2666,7 +2666,7 @@
       "path": "docs/releases/v2.0.0-beta.1-GITHUB.md",
       "type": "Release Note",
       "title": "v2.0.0-beta.1",
-      "description": "Local candidate release-note draft; publication remains blocked by the beta readiness gates.",
+      "description": "Published release note for the first opt-in Shadow read-path beta.",
       "status": "current",
       "audience": [
         "maintainer",
@@ -2678,7 +2678,7 @@
       "destination": "docs/knowledge/releases/",
       "action": "archive",
       "supersedes": [],
-      "notes": "Candidate only; do not treat as a published GitHub Release.",
+      "notes": "All beta publication gates passed with the accepted evidence boundary recorded in the readiness decision.",
       "missing": false
     },
     {

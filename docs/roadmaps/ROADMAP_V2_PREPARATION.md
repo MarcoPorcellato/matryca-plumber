@@ -112,11 +112,11 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 | Track | Operator impact | Agent / MCP impact |
 |-------|-----------------|-------------------|
 | **v2.0.0-alpha.5** | Seven-axis hardening baseline | Pin `@2.0.0-alpha.5`; shadow remains opt-in | **published** 2026-07-19 |
-| **v2.0.0-beta.1** | Candidate Shadow read path only | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **not released — readiness-gated** |
+| **v2.0.0-beta.1** | First public Shadow read-path beta | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **published** 2026-07-30 |
 | **v2.0.0-rc** | Shadow health in UI | MCP read traffic prefers shadow |
 | **v2.0.0-stable** | Deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
 
-**Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). A beta tag is considered only after bounded-parse containment, a sanitized soak, installed-wheel upgrade/recovery smoke, full CI, and a final code audit all pass.
+**Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary. Re-qualification against the released source remains required before default-on.
 
 ---
 
