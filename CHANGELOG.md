@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Prerelease publication metadata** — release tags containing a SemVer prerelease suffix now create GitHub prereleases instead of stable releases while preserving the curated changelog notes and PyPI trusted-publishing flow.
+
 ## [2.0.0-beta.1] - 2026-07-30
 
 **v2.0.0-beta.1** — first public beta of the opt-in Shadow DB read path. `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Logseq Markdown remains the system of record, and Markdown/BM25 fallback remains mandatory. Operators who do not set the flag get exactly the established behaviour.
