@@ -60,10 +60,11 @@ Default path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (`shad
 | v2.0.0-alpha.1 | Axis 1 hardening (#262, #264) | **superseded** |
 | v2.0.0-alpha.5 | Seven-axis hardening campaign close | **published** |
 | v2.0.0-beta.1 | First public Shadow read-path beta; opt-in flag remains default-off | **published** |
-| v2.0.0-rc | MCP read traffic routed to Shadow DB by default | planned |
-| v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path | planned |
+| v2.0.0-rc.1 | MCP read traffic routed to Shadow DB by default after exact public-beta re-qualification | planned |
+| v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path after RC observation | planned |
 
 The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
+The RC and stable exit criteria are fail-closed in [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md) and tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). Biological memory, Logseq DB Safe-Sync, Tana merge, and independent DX tracks are deferred to `v2.1.0` or later.
 
 ---
 

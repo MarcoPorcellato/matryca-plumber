@@ -1,6 +1,6 @@
 # Matryca Plumber Roadmap
 
-**North star:** [v2.0.0 — Shadow DB & Safe-Sync Architecture](https://github.com/MarcoPorcellato/matryca-plumber/milestone/3) ([Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20))
+**North star:** [v2.0.0 — Stable Shadow Read Path](https://github.com/MarcoPorcellato/matryca-plumber/milestone/3) ([Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20))
 
 Matryca Plumber is local data infrastructure for headless AI agents working with Logseq. **v2.0.0** introduces the **Shadow DB**: a daemon-owned SQLite cache (`shadow.sqlite`) for sub-50ms hierarchical reads (FTS5 + recursive CTEs), without touching Logseq's internal indices. A [`GraphRepository`](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) abstraction will let Markdown (Logseq OG) and Logseq DB backends coexist, while [**Safe-Sync**](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) keeps writes on the correct path — append to `.md` with OCC for OG, official CLI only for Logseq DB.
 
@@ -23,6 +23,21 @@ Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](ht
 | Full CI and final code audit against the release candidate | **PASS with accepted evidence boundary** |
 
 **Decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](docs/quality/issue-bodies/v2-beta-readiness.md). All beta publication gates passed. Re-qualification against the released source remains mandatory before any default-on change.
+
+---
+
+## v2.0.0 RC and stable promotion
+
+The `v2.0.0` stable scope is the Shadow DB read path. The next promotion is
+`v2.0.0-rc.1`, where unset configuration prefers health-gated Shadow reads and
+explicit `MATRYCA_SHADOW_DB_ENABLED=false` restores the legacy path. Stable
+`v2.0.0` follows only after RC observation and deprecates in-memory BM25 as the
+default discovery path while retaining it as a mandatory fallback.
+
+Biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and
+independent DX tracks are deferred to `v2.1.0` or later. The fail-closed
+qualification matrix is
+[`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
 
 ---
 

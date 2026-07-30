@@ -56,7 +56,7 @@ This document applies **Robert C. Martin's** *Clean Architecture* (dependency ru
 
 ### v2 preparation phases
 
-See [`roadmaps/ROADMAP_V2_PREPARATION.md`](roadmaps/ROADMAP_V2_PREPARATION.md) and [`v2_preparation_blueprints.md`](../v2_preparation_blueprints.md). Phases 0–4 map to GitHub milestone **`v2.0.0 — Shadow DB & Safe-Sync Architecture`** and Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
+See [`roadmaps/ROADMAP_V2_PREPARATION.md`](roadmaps/ROADMAP_V2_PREPARATION.md) and [`v2_preparation_blueprints.md`](../v2_preparation_blueprints.md). Phases 0–3 map to GitHub milestone **`v2.0.0 — Stable Shadow Read Path`** and Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20); Phase 4 memory and Logseq DB Safe-Sync work continues in milestone **`v2.1.0 — Memory & Logseq DB Safe-Sync`**.
 
 Audit triage: [`quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md`](quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md) · [`quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md`](quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md).
 
