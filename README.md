@@ -262,18 +262,6 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 | [Good first issues](https://github.com/MarcoPorcellato/matryca-plumber/issues?q=is%3Aopen+label%3A%22good+first+issue%22) | [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md) |
 | [`docs/releases/v2.0.0-alpha.5-GITHUB.md`](docs/releases/v2.0.0-alpha.5-GITHUB.md) | GitHub Release body for v2.0.0-alpha.5 (hardening campaign close) |
 | [`docs/releases/v2.0.0-beta.1-GITHUB.md`](docs/releases/v2.0.0-beta.1-GITHUB.md) | GitHub Release body for v2.0.0-beta.1 (first public beta of the opt-in Shadow DB) |
-| [`docs/releases/v2.0.0-alpha.4-GITHUB.md`](docs/releases/v2.0.0-alpha.4-GITHUB.md) | GitHub Release body for v2.0.0-alpha.4 (FTS query bound + Axis 4 green) |
-| [`docs/releases/v2.0.0-alpha.3-GITHUB.md`](docs/releases/v2.0.0-alpha.3-GITHUB.md) | GitHub Release body for v2.0.0-alpha.3 (FTS hyphen fix + Axis 4 audit) |
-| [`docs/releases/v2.0.0-alpha.2-GITHUB.md`](docs/releases/v2.0.0-alpha.2-GITHUB.md) | GitHub Release body for v2.0.0-alpha.2 (rename fix + routing audit) |
-| [`docs/releases/v2.0.0-alpha.1-GITHUB.md`](docs/releases/v2.0.0-alpha.1-GITHUB.md) | GitHub Release body for v2.0.0-alpha.1 (Shadow DB Axis 1 hardening) |
-| [`docs/releases/v2.0.0-alpha-GITHUB.md`](docs/releases/v2.0.0-alpha-GITHUB.md) | GitHub Release body for v2.0.0-alpha (Shadow DB opt-in read path; superseded by alpha.1) |
-| [`docs/releases/v1.14.0-GITHUB.md`](docs/releases/v1.14.0-GITHUB.md) | Draft GitHub Release body for v1.14.0 (minor, catalog write-safety + Tier F) |
-| [`docs/releases/v1.13.1-GITHUB.md`](docs/releases/v1.13.1-GITHUB.md) | Draft GitHub Release body for v1.13.1 (patch, parser 1.6.0 alignment) |
-| [`docs/releases/v1.13.0-GITHUB.md`](docs/releases/v1.13.0-GITHUB.md) | Draft GitHub Release body for v1.13.0 (minor, daemon/dispatch refactor + GraphReadPort) |
-| [`docs/releases/v1.12.1-GITHUB.md`](docs/releases/v1.12.1-GITHUB.md) | Draft GitHub Release body for v1.12.1 (patch, contributor + v2 index) |
-| [`docs/releases/v1.12.0-GITHUB.md`](docs/releases/v1.12.0-GITHUB.md) | GitHub Release body for v1.12.0 (minor, plan v3) |
-| [`docs/releases/v1.11.2-GITHUB.md`](docs/releases/v1.11.2-GITHUB.md) | Copy-paste GitHub Release body for v1.11.2 |
-| [`docs/releases/v1.11.1-GITHUB.md`](docs/releases/v1.11.1-GITHUB.md) | Copy-paste GitHub Release body for v1.11.1 |
 
 ## License
 
