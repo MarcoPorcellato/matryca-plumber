@@ -2,7 +2,7 @@
 
 **Visitor SSOT:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md)  
 **Epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
-**Milestone:** [v2.0.0 — Shadow DB & Safe-Sync Architecture](https://github.com/MarcoPorcellato/matryca-plumber/milestone/3)  
+**Milestone:** [v2.0.0 — Stable Shadow Read Path](https://github.com/MarcoPorcellato/matryca-plumber/milestone/3)
 **RFC:** [Discussion #19](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19)
 
 Create issues: `bash scripts/populate_v2_preparation.sh` (idempotent).

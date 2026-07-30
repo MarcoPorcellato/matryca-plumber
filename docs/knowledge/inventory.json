@@ -2055,6 +2055,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/issue-bodies/v2-rc-stable-readiness.md",
+      "type": "Archive",
+      "title": "v2.0.0 RC and stable readiness — decision record",
+      "description": "`v2.0.0-beta.1` published the opt-in Shadow DB read path while preserving",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/issue-bodies/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/releases/v1.10.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.0 (copy-paste)",
