@@ -1,8 +1,8 @@
-# v2.0.0-beta.1 readiness — tracking issue
+# v2.0.0-beta.1 readiness — decision record
 
 ## Problem Description
 
-`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache. The local source version `v2.0.0-beta.1` / wheel version `2.0.0b1` is a **candidate only**, not a released version. It must not be tagged, published, or described as default-on until the gates below have evidence from the release candidate.
+`v2.0.0-beta.1` / PyPI `2.0.0b1` is the first public beta of the opt-in Shadow DB read cache. It supersedes the `v2.0.0-alpha.5` hardening baseline for new prerelease installs. The feature remains default-off and must not be described as default-on; re-qualification against the released source is required before that separate decision.
 
 Supporting experiment results are summarized in [`V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md`](../V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md). That sanitized ledger is not a gate-completion record: the checklist in this file remains the local source of truth for the beta decision. The post-[#317](https://github.com/MarcoPorcellato/matryca-plumber/pull/317) r4 installed-wheel gate is current; r3 remains historical only.
 
@@ -26,7 +26,7 @@ Use this record as the release decision gate for `v2.0.0-beta.1`. A gate is comp
 
 The beta does not change the default read path, vault write authority, or Phase 4 scope. Operators who leave `MATRYCA_SHADOW_DB_ENABLED` unset or false retain the established Markdown and generational-BM25 behavior. Operators who opt in receive Shadow reads only while health is `ready`; otherwise fallback remains mandatory.
 
-The previous r4 observation remains sanitized historical behavior evidence, but it is not a completed candidate gate while artifact discovery is non-hermetic and the soak does not bind to the wheel digest. See [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](../BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md) for the draft root-cause record and required rerun protocol.
+The previous r4 observation remains sanitized historical behavior evidence. The later bound wheel/soak result recorded above closes the beta publication gate after the reproducibility remediation. See [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](../BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md) for the historical root-cause record and rerun protocol.
 
 ## Files Involved
 
@@ -38,4 +38,4 @@ The previous r4 observation remains sanitized historical behavior evidence, but 
 ---
 
 **Epic link:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
-_Closes only after the beta is published with all gates above complete and release evidence recorded._
+_Closed by the v2.0.0-beta.1 publication with all gates above complete and the accepted evidence boundary recorded._

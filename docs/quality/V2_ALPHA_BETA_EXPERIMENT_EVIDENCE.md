@@ -4,7 +4,7 @@
 
 This is a sanitized supporting record for the v2 Shadow read-cache experiments. It is **not** a release note, an architecture specification, a service-level objective, or a beta release decision. [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) remains the authoritative architecture record. Quality material remains a legacy Phase 4 surface; this ledger does not create a `docs/knowledge/` concept, a new canonical source, or a change to the default-off opt-in contract.
 
-The release decision remains the checklist in [`issue-bodies/v2-beta-readiness.md`](issue-bodies/v2-beta-readiness.md). The candidate is not releasable until the outstanding gates below are completed from the final candidate wheel.
+The release decision is finalized in [`issue-bodies/v2-beta-readiness.md`](issue-bodies/v2-beta-readiness.md). All five beta publication gates are recorded `PASS`, with an explicit accepted boundary: the installed-wheel and soak evidence covers the design and read path, not the exact published bytes.
 
 ## Evidence classes
 
@@ -110,12 +110,12 @@ page-parse deadline (60 s or 90 s) exercise a configuration that **default opera
 not get** on a corpus containing such pages. Those runs remain valid as stability
 evidence and must not be presented as evidence of default-configuration behaviour.
 
-## Outstanding beta gates
+## Beta gate disposition
 
-- Complete the minimum 24-hour sanitized soak on a daily-use vault copy, including flag-off/on, restarts, watcher convergence, recovery, and unchanged-source checks.
-- Build from a sealed input, bind the installed-wheel and soak records to the same wheel digest, and rerun both gates after the reproducibility remediation.
-- Complete the final code audit and full CI for the final candidate scope.
-- Record only the sanitized result in the beta-readiness decision record before any tag or publication decision.
+- **PASS** — the sanitized soak accumulated 24 hours across 144 cycles and 288 attempts.
+- **PASS** — the installed-wheel and soak records were bound after the reproducibility remediation.
+- **PASS** — full CI and the final code audit completed for the release scope.
+- **Accepted boundary** — the released source includes later fail-safe fixes not exercised by the bound wheel and soak. This does not block the opt-in, default-off beta, but re-qualification against the released source is mandatory before default-on and the evidence must not be cited as byte-level proof.
 
 ## Reproduction and privacy rules
 

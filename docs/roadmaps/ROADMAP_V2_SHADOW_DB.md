@@ -1,7 +1,7 @@
 # v2.0 — Shadow DB read path (checklist)
 
 **Detailed index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) — visitor SSOT for all five v2 phases  
-**Status:** Phase 2 **operational** (bootstrap, reconciliation, runtime gating — [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)). Phase 3 **read routing shipped** (opt-in flag, FTS5/BM25 + subtree CTE + Sovereign UI health — [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)). **Published baseline:** [`v2.0.0-alpha.5`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.5) (seven-axis hardening complete); earlier alphas are superseded for new installs. **Local candidate:** `v2.0.0-beta.1` / wheel version `2.0.0b1` — not released; `MATRYCA_SHADOW_DB_ENABLED` remains default-off until its readiness gates are met.
+**Status:** Phase 2 **operational** (bootstrap, reconciliation, runtime gating — [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)). Phase 3 **read routing shipped** (opt-in flag, FTS5/BM25 + subtree CTE + Sovereign UI health — [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)). **Published beta:** `v2.0.0-beta.1` / wheel version `2.0.0b1`; `MATRYCA_SHADOW_DB_ENABLED` remains default-off, Markdown remains authoritative, and the previous [`v2.0.0-alpha.5`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha.5) hardening baseline is superseded for new prerelease installs.
 **Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
 **Trackable issue:** [#24 — Shadow DB read path](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)  
 **Prerequisite:** [#17 — GraphRepository abstraction](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 2–3 tracking in [`v2_preparation_blueprints.md`](../../v2_preparation_blueprints.md)  
@@ -59,11 +59,11 @@ Default path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (`shad
 |-------|--------|--------|
 | v2.0.0-alpha.1 | Axis 1 hardening (#262, #264) | **superseded** |
 | v2.0.0-alpha.5 | Seven-axis hardening campaign close | **published** |
-| v2.0.0-beta.1 | Shadow read-path candidate; opt-in flag remains default-off | **not released — readiness-gated** |
+| v2.0.0-beta.1 | First public Shadow read-path beta; opt-in flag remains default-off | **published** |
 | v2.0.0-rc | MCP read traffic routed to Shadow DB by default | planned |
 | v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path | planned |
 
-The beta candidate excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its gates are maintained in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
+The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
 
 ---
 
