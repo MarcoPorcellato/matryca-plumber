@@ -1029,6 +1029,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md",
+      "type": "Audit",
+      "title": "Shadow DB exact-beta 72-hour soak — running evidence record",
+      "description": "**Status:** in-progress evidence record, started 2026-07-30.",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md",
       "type": "Audit",
       "title": "Shadow DB page-parse budget — measurement, contradiction, and quarantine design",

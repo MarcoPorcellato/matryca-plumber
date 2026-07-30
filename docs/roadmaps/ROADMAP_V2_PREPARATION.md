@@ -120,6 +120,12 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 
 **RC/stable decision record:** [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md), tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). `v2.0.0` is scoped to the stable Shadow read path. Phase 4 biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and independent DX tracks move to `v2.1.0` or later.
 
+**Exact-beta re-qualification:** the public `2.0.0b1` wheel passed its fresh
+installed-wheel gate and entered a restart-resilient 72-hour soak on 2026-07-30.
+The sanitized running record is
+[`docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md).
+It does not close the RC gate until a terminal result is recorded.
+
 ---
 
 ## Safe-Sync contract (non-negotiable)

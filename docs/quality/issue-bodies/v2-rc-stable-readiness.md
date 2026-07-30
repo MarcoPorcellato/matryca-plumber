@@ -30,7 +30,7 @@ Use two fail-closed promotion gates.
 |-------------|-------------------|--------|
 | Published-artifact identity | PyPI wheel and sdist digests match the GitHub prerelease assets; installed imports resolve from `site-packages` | [x] — verified after `v2.0.0-beta.1` publication |
 | Exact-wheel functional smoke | Fresh PyPI install verifies flag-off, flag-on `READY`, FTS, bounded subtree reads, quarantine state, warm startup, and unchanged Markdown bytes | [x] — post-publication smoke passed |
-| Exact-wheel real-vault qualification | Sanitized daily-use vault copy; product-default 15 s parse deadline; at least 72 hours and preferably 7 days; restart and watcher CRUD; controlled recovery; unchanged Markdown fingerprints | [ ] |
+| Exact-wheel real-vault qualification | Sanitized daily-use vault copy; product-default 15 s parse deadline; at least 72 hours and preferably 7 days; restart and watcher CRUD; controlled recovery; unchanged Markdown fingerprints | [ ] — `RUNNING` since 2026-07-30. Exact public wheel, installed-wheel gate, and controlled process-restart proof passed; the 72-hour terminal result remains pending. See [`SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md) |
 | Upgrade and rollback safety | Clean install plus `1.14.5 → 2.0.0b1` and `2.0.0a5 → 2.0.0b1`; schema mismatch and failed rebuild fall back without partial reads or Markdown writes | [ ] |
 | Defect threshold | No open P0/P1 in Shadow read-path scope; every P2 has an explicit maintainer disposition | [ ] |
 | Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [ ] |
