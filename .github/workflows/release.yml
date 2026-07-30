@@ -92,7 +92,16 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${GITHUB_REF_NAME}" dist/* --notes-file release_notes.md
+        run: |
+          release_args=()
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
+          gh release create \
+            "${GITHUB_REF_NAME}" \
+            dist/* \
+            --notes-file release_notes.md \
+            "${release_args[@]}"
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
