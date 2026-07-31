@@ -38,6 +38,10 @@ Biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and
 independent DX tracks are deferred to `v2.1.0` or later. The fail-closed
 qualification matrix is
 [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
+The exact public-beta wheel has passed its fresh installed-wheel gate and is in
+a restart-resilient 72-hour soak; its sanitized
+[`running evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
+remains non-terminal.
 
 ---
 
