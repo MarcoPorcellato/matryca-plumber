@@ -24,6 +24,7 @@ from loguru import logger
 
 from ..agent.l1_memory import ensure_matryca_l1_dir
 from ..config import MatrycaWikiConfig, load_matryca_wiki_config
+from ..graph.safety.write_policy import RuntimeWritePolicy, is_graph_read_only
 from .config_paths import ensure_plumber_log_directories
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -131,6 +132,13 @@ def prepare_matryca_runtime(
     """
     ensure_plumber_log_directories()
     if graph_root is None:
+        return
+
+    policy = RuntimeWritePolicy(graph_root=graph_root, read_only=is_graph_read_only())
+    if policy.read_only:
+        logger.bind(graph=str(policy.graph_root)).info(
+            "Skipping graph-local runtime bootstrap under read-only policy",
+        )
         return
 
     cfg = wiki_config or MatrycaWikiConfig()

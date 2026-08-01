@@ -56,6 +56,50 @@ def test_cli_main_calls_try_prepare_before_dispatch(monkeypatch: pytest.MonkeyPa
     assert eager_flags == [True]
 
 
+def test_cli_main_read_only_read_path_skips_graph_local_bootstrap(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from src.cli import main as cli_main
+
+    graph = _minimal_graph(tmp_path)
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_PLUMBER_LOG_PATH", str(tmp_path / "logs" / "ops.log"))
+    monkeypatch.setenv("MATRYCA_LOGURU_LOG_PATH", str(tmp_path / "logs" / "app.log"))
+    monkeypatch.setattr(
+        "src.utils.runtime_bootstrap.ensure_repo_dotenv_from_example",
+        lambda **_kw: False,
+    )
+    monkeypatch.setattr(
+        "src.agent.plumber_config.reload_plumber_dotenv",
+        lambda **_kw: None,
+    )
+
+    def _blocked(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("read-only CLI bootstrap must not touch graph-local runtime artifacts")
+
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_l1_dir", _blocked)
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_graph_runtime_directories", _blocked)
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_wiki_config_file", _blocked)
+    monkeypatch.setattr("src.daemon.register_daemon_post_write_hooks", _blocked)
+    monkeypatch.setattr("src.shadow.bootstrap.ensure_shadow_runtime_at_startup", _blocked)
+
+    async def _run_cli(_args: object) -> int:
+        return 0
+
+    monkeypatch.setattr("src.cli.run_cli", _run_cli)
+
+    with pytest.raises(SystemExit) as exc:
+        cli_main(["read", "memory"])
+
+    assert exc.value.code == 0
+    assert not (graph / ".matryca_semantic_cache").exists()
+    assert not (graph / "templates").exists()
+    assert not (graph / "matryca-wiki.yml").exists()
+    assert not (tmp_path / "matryca-l1").exists()
+
+
 def test_cli_main_rejects_read_only_write_before_prepare(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
