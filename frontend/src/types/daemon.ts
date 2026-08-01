@@ -362,6 +362,13 @@ export function normalizeDaemonState(raw: DaemonStateResponse): DaemonStateRespo
       'pageSummariesCreated',
     ),
     daemon_pid: readNumber(source, 'daemon_pid', 'daemonPid') || undefined,
+    daemon_profile:
+      source.daemon_profile === 'read_only_shadow_observer'
+        ? 'read_only_shadow_observer'
+        : 'standard',
+    disabled_duties: Array.isArray(source.disabled_duties)
+      ? source.disabled_duties.filter((value): value is string => typeof value === 'string')
+      : [],
     graph_analytics: graphAnalytics,
     shadow_db: normalizeShadowDb(
       (raw as unknown as Record<string, unknown>).shadow_db
@@ -403,6 +410,8 @@ export interface DaemonStateResponse {
   page_summaries_created?: number
   bootstrap_recent?: Record<string, BootstrapRecentEntry>
   daemon_pid?: number | null
+  daemon_profile?: 'standard' | 'read_only_shadow_observer'
+  disabled_duties?: string[]
   graph_analytics?: GraphAnalytics
   shadow_db?: ShadowDbState
 }

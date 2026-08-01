@@ -101,6 +101,10 @@ With `MATRYCA_READ_ONLY=true`:
   resolved external cache;
 - allow watcher-driven Shadow reconciliation from external filesystem changes without
   registering any handler that writes back to the vault;
+- run the maintenance daemon as an explicit foreground-only Shadow observer: no LLM
+  bootstrap, semantic writes, journey log, hygiene, generated content, post-write hooks,
+  robot Git, graph-local checkpoint, PID, or lock; detached startup fails closed until a
+  separately qualified external control plane exists;
 - preserve bounded parsing, quarantine, writer coordination, health validation, and
   fallback behavior.
 
