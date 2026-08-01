@@ -218,6 +218,30 @@ def test_load_and_save_master_catalog(graph_root: Path) -> None:
     assert reloaded.pages["Demo"].domain == "mappa"
 
 
+def test_save_master_catalog_skips_graph_local_writes_when_read_only(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    catalog = load_master_catalog(graph_root)
+    catalog.upsert(
+        "Blocked",
+        CatalogEntry(
+            summary="Block",
+            domain="mappa",
+            tags=[],
+            last_mtime=100,
+            orphan=False,
+        ),
+    )
+
+    catalog.save()
+
+    path = MasterCatalog.catalog_path(graph_root)
+    assert not path.exists()
+    assert not path.parent.exists()
+
+
 def test_load_master_catalog_serializes_reads_under_concurrent_save(graph_root: Path) -> None:
     """Concurrent reloads must not observe torn JSON during atomic catalog saves (#35)."""
     baseline = load_master_catalog(graph_root)

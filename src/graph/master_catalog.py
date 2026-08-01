@@ -21,6 +21,7 @@ from .json_flock import cross_process_json_flock
 from .markdown_blocks import atomic_write_bytes, occ_snapshot
 from .markdown_io import MmapTextView, read_graph_page_text
 from .path_sandbox import read_graph_file_text
+from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 
 CATALOG_FILENAME = "master_catalog.json"
 CATALOG_VERSION = 1
@@ -153,6 +154,11 @@ class MasterCatalog:
             )
             return
         path = self.catalog_path(self.graph_root)
+        try:
+            guard_graph_mutation(self.graph_root, path, operation="save_master_catalog")
+        except GraphReadOnlyError:
+            logger.debug("Skipping graph-local master catalog save under read-only policy")
+            return
         path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
             pending = dict(self.pages)
