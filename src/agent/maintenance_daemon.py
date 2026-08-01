@@ -107,6 +107,10 @@ from .daemon_process_lock import (
     stop_daemon,
     write_pid_file,
 )
+from .daemon_read_only_profile import (
+    READ_ONLY_DISABLED_DUTIES,
+    prepare_read_only_daemon_environment,
+)
 from .daemon_semantic_write import (
     STRUCTURAL_LINT_HEADER,
     CorrectionOutcome,
@@ -1028,6 +1032,9 @@ class MaintenanceDaemon:
             graph_root=self.graph_root,
             wiki_config=load_matryca_wiki_config(),
         )
+        if is_graph_read_only():
+            self._run_read_only_shadow_observer()
+            return
         state = self._sync_runtime_config(load_daemon_state(self.graph_root))
         llm_config = load_plumber_lint_config()
         logger.info(
@@ -1077,6 +1084,23 @@ class MaintenanceDaemon:
                     break
         finally:
             self._finalize_graceful_shutdown(state)
+
+    def _run_read_only_shadow_observer(self) -> None:
+        """Observe graph changes for external Shadow sync without mutating the graph."""
+
+        logger.bind(profile="read_only_shadow_observer").info(
+            "Read-only Shadow observer active; disabled duties: {}",
+            ", ".join(READ_ONLY_DISABLED_DUTIES),
+        )
+        try:
+            self._start_file_watcher()
+            while not self._stop_requested:
+                self._cycle_wake.wait(timeout=self.poll_seconds)
+                self._cycle_wake.clear()
+                if self._shutdown_event.is_set():
+                    break
+        finally:
+            self._stop_file_watcher()
 
 
 def run_plumber_cluster(
@@ -1133,14 +1157,22 @@ def run_plumber_audit(graph_root: Path | None = None) -> dict[str, Any]:
 def start_daemon_foreground(graph_root: Path | None = None) -> None:
     """Run the daemon in the current process (foreground)."""
     reload_plumber_dotenv()
-    configure_loguru()
     root = graph_root or resolve_graph_root()
+    read_only_profile = is_graph_read_only()
+    if read_only_profile:
+        prepare_read_only_daemon_environment(root)
+    configure_loguru()
     config = load_plumber_lint_config()
     sandbox = resolve_cpu_sandbox_config(config)
     if sandbox.enabled:
         apply_cpu_sandbox(sandbox)
     else:
         apply_plumber_priority(config)
+    if read_only_profile:
+        daemon = MaintenanceDaemon(root)
+        daemon.run_forever()
+        return
+
     lock_fd = _try_acquire_daemon_process_lock(root)
     if lock_fd is None:
         logger.error(
@@ -1165,6 +1197,15 @@ def start_daemon_foreground(graph_root: Path | None = None) -> None:
 def start_daemon_detached(graph_root: Path | None = None) -> dict[str, Any]:
     """Launch a background daemon worker via subprocess (cross-platform)."""
     root = graph_root or resolve_graph_root()
+    if is_graph_read_only():
+        return {
+            "ok": False,
+            "code": "read_only_foreground_required",
+            "message": (
+                "Strict Read Only supports the Shadow observer in foreground only; "
+                "no graph-local PID or lock is created"
+            ),
+        }
     existing = read_pid_file(root)
     if existing is not None and is_plumber_process(existing):
         return {

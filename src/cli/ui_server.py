@@ -31,6 +31,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from ..agent.control_room_progress import resolve_control_room_progress
+from ..agent.daemon_read_only_profile import active_daemon_profile, disabled_daemon_duties
 from ..agent.l1_memory import default_matryca_l1_directory_for_graph
 from ..agent.maintenance_daemon import (
     DEFAULT_STOP_GRACE_SECONDS,
@@ -163,6 +164,8 @@ class DaemonStateResponse(BaseModel):
     progress_total: int = 0
     progress_percent: float = 0.0
     daemon_pid: int | None = None
+    daemon_profile: Literal["standard", "read_only_shadow_observer"] = "standard"
+    disabled_duties: list[str] = Field(default_factory=list)
     shadow_db: ShadowDbStateResponse = Field(default_factory=ShadowDbStateResponse)
 
     @classmethod
@@ -823,6 +826,8 @@ def _build_daemon_state_response(graph_root: Path) -> DaemonStateResponse:
             "session_prompt_tokens": session_prompt_tokens,
             "session_completion_tokens": session_completion_tokens,
             "daemon_pid": daemon_pid,
+            "daemon_profile": active_daemon_profile(),
+            "disabled_duties": list(disabled_daemon_duties()),
             "shadow_db": resolve_shadow_db_state_for_api(graph_root),
             **progress.to_api_fields(),
         }

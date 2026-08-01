@@ -214,7 +214,7 @@ export function MasterHeader({
                 disabled={engineBusy || engineRunning || !preflightReady || Boolean(config?.read_only)}
                 title={
                   config?.read_only
-                    ? 'Maintenance engine is unavailable while Strict Read Only is enabled'
+                    ? 'Use the foreground Shadow observer in Strict Read Only mode; detached startup would require graph-local control files'
                     : preflightReady
                       ? 'Start the maintenance daemon'
                       : 'Complete the pre-flight checklist before starting'
