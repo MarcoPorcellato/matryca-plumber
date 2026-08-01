@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from src.graph.io_retry import PageLockUnavailableError
-from src.graph.json_flock import cross_process_json_flock
+from src.graph.json_flock import cross_process_json_flock, cross_process_json_read_flock
 from src.utils.platform_lock import clear_flock_depths
 
 pytestmark = pytest.mark.skipif(
@@ -52,6 +52,20 @@ def test_in_process_json_flock_context_manager(tmp_path: Path) -> None:
     with cross_process_json_flock(target):
         target.write_text('{"ok": true}', encoding="utf-8")
     assert json.loads(target.read_text(encoding="utf-8")) == {"ok": True}
+
+
+def test_json_read_flock_does_not_create_sidecar_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "payload.json"
+    target.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    with cross_process_json_read_flock(target, graph_root=tmp_path):
+        assert json.loads(target.read_text(encoding="utf-8")) == {}
+
+    assert not (tmp_path / ".payload.json.flock").exists()
 
 
 def test_nested_json_flock_same_thread_reentrant(tmp_path: Path) -> None:

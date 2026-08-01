@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from ..utils.platform_lock import cross_process_sidecar_lock
+from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 
 
 def flock_sidecar_path(target: Path) -> Path:
@@ -27,4 +28,17 @@ def cross_process_json_flock(target: Path) -> Iterator[None]:
         yield
 
 
-__all__ = ["cross_process_json_flock", "flock_sidecar_path"]
+@contextmanager
+def cross_process_json_read_flock(target: Path, *, graph_root: Path) -> Iterator[None]:
+    """Lock a JSON read without creating a graph-local sidecar in read-only mode."""
+    lock_path = flock_sidecar_path(target)
+    try:
+        guard_graph_mutation(graph_root, lock_path, operation="acquire_json_read_lock")
+    except GraphReadOnlyError:
+        yield
+        return
+    with cross_process_json_flock(target):
+        yield
+
+
+__all__ = ["cross_process_json_flock", "cross_process_json_read_flock", "flock_sidecar_path"]

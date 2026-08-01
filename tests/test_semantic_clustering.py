@@ -92,7 +92,8 @@ def test_load_semantic_clusters_uses_json_flock(
     locked_paths: list[Path] = []
 
     class RecordingFlock:
-        def __init__(self, path: Path) -> None:
+        def __init__(self, path: Path, *, graph_root: Path) -> None:
+            assert graph_root == tmp_path
             locked_paths.append(path)
 
         def __enter__(self) -> None:
@@ -107,7 +108,7 @@ def test_load_semantic_clusters_uses_json_flock(
             _ = (exc_type, exc, traceback)
 
     monkeypatch.setattr(
-        "src.graph.semantic_clustering.cross_process_json_flock",
+        "src.graph.semantic_clustering.cross_process_json_read_flock",
         RecordingFlock,
     )
 
@@ -115,6 +116,24 @@ def test_load_semantic_clusters_uses_json_flock(
 
     assert loaded == clusters
     assert locked_paths == [semantic_clusters_path(tmp_path)]
+
+
+def test_semantic_clusters_preserve_graph_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clusters = {"cluster_001": ["Alpha", "Beta"]}
+    path = save_semantic_clusters(tmp_path, clusters)
+    before = path.read_bytes()
+    flock = path.parent / f".{path.name}.flock"
+    flock.unlink(missing_ok=True)
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert load_semantic_clusters(tmp_path) == clusters
+    save_semantic_clusters(tmp_path, {"cluster_002": ["Gamma"]})
+
+    assert path.read_bytes() == before
+    assert not flock.exists()
 
 
 def test_load_or_compute_semantic_clusters_uses_cache(tmp_path: Path) -> None:

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from ..graph.markdown_blocks import atomic_write_bytes
+from ..graph.safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 from .daemon_state import load_daemon_state, save_daemon_state
 
 PID_FILENAME = ".matryca_plumber_daemon.pid"
@@ -57,6 +58,10 @@ def bind_daemon_process_lock_fd(fd: int) -> None:
 def _try_acquire_daemon_process_lock_windows(graph_root: Path) -> int | None:
     """Acquire an exclusive daemon lock on platforms without ``fcntl`` (Windows)."""
     path = daemon_lock_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="acquire_daemon_process_lock")
+    except GraphReadOnlyError:
+        return None
     path.parent.mkdir(parents=True, exist_ok=True)
     for _attempt in range(3):
         try:
@@ -93,9 +98,13 @@ def _try_acquire_daemon_process_lock_windows(graph_root: Path) -> int | None:
 
 def _try_acquire_daemon_process_lock(graph_root: Path) -> int | None:
     """Acquire an exclusive daemon lock; return ``None`` when another process holds it."""
+    path = daemon_lock_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="acquire_daemon_process_lock")
+    except GraphReadOnlyError:
+        return None
     if _fcntl is None:
         return _try_acquire_daemon_process_lock_windows(graph_root)
-    path = daemon_lock_path(graph_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(path), os.O_CREAT | os.O_RDWR, 0o600)
     try:
@@ -118,6 +127,10 @@ def _release_daemon_process_lock(graph_root: Path) -> None:
             os.close(_daemon_process_lock_fd)
         _daemon_process_lock_fd = None
     lock_path = daemon_lock_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, lock_path, operation="release_daemon_process_lock")
+    except GraphReadOnlyError:
+        return
     with contextlib.suppress(OSError):
         lock_path.unlink(missing_ok=True)
 
@@ -186,6 +199,10 @@ def is_plumber_process(pid: int) -> bool:
 
 def write_pid_file(graph_root: Path) -> None:
     path = pid_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="write_daemon_pid")
+    except GraphReadOnlyError:
+        return
     payload = json.dumps({"pid": os.getpid(), "marker": PLUMBER_PID_MARKER}) + "\n"
     atomic_write_bytes(
         path,
@@ -225,6 +242,10 @@ def read_pid_file(graph_root: Path) -> int | None:
 
 def remove_pid_file(graph_root: Path) -> None:
     path = pid_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="remove_daemon_pid")
+    except GraphReadOnlyError:
+        return
     if path.is_file():
         path.unlink(missing_ok=True)
 

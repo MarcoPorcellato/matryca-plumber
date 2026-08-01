@@ -14,9 +14,10 @@ from .alias_index import (
     iter_scannable_pages_markdown,
     page_title_from_path,
 )
-from .json_flock import cross_process_json_flock
+from .json_flock import cross_process_json_flock, cross_process_json_read_flock
 from .markdown_blocks import atomic_write_bytes
 from .path_sandbox import read_graph_file_text
+from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 
 _INDEX_VERSION = 1
 _INDEX_FILENAME = "backlink_counts.json"
@@ -82,7 +83,7 @@ def _load_disk(graph_root: Path) -> dict[str, Any] | None:
     if not path.is_file():
         return None
     try:
-        with cross_process_json_flock(path):
+        with cross_process_json_read_flock(path, graph_root=graph_root):
             raw = read_bounded_json(path)
     except (BoundedJsonError, OSError):
         return None
@@ -91,6 +92,10 @@ def _load_disk(graph_root: Path) -> dict[str, Any] | None:
 
 def _save_disk(graph_root: Path, payload: dict[str, Any]) -> None:
     path = _index_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="save_backlink_index")
+    except GraphReadOnlyError:
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     with cross_process_json_flock(path):
@@ -143,10 +148,14 @@ def patch_backlink_index_for_paths(
     if not changed_paths:
         return False
     root = graph_root.expanduser().resolve(strict=False)
+    path = _index_path(root)
+    try:
+        guard_graph_mutation(root, path, operation="invalidate_backlink_index")
+    except GraphReadOnlyError:
+        return False
     key = str(root)
     with _lock:
         _memory.pop(key, None)
-    path = _index_path(root)
     if path.is_file():
         with cross_process_json_flock(path):
             path.unlink(missing_ok=True)

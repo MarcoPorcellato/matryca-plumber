@@ -23,7 +23,11 @@ from ..graph.bootstrap_harvest import BootstrapHarvestStatus
 from ..graph.graph_analytics import reconcile_telemetry_ledger
 from ..graph.json_flock import cross_process_json_flock
 from ..graph.path_sandbox import graph_relative_path_key, normalize_daemon_file_key
-from ..graph.safety.write_policy import GraphReadOnlyError, guard_graph_mutation
+from ..graph.safety.write_policy import (
+    GraphReadOnlyError,
+    guard_graph_mutation,
+    is_graph_read_only,
+)
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 from .journey_log import JourneyDayLedger
 from .plumber_config import DEFAULT_LM_MODEL, resolve_llm_model_name
@@ -425,7 +429,7 @@ def load_daemon_state(graph_root: Path) -> DaemonState:
             "attempting recovery from .bak backup."
         )
         payload = _read_daemon_state_payload(bak_path)
-        if payload is not None:
+        if payload is not None and not is_graph_read_only():
             try:
                 shutil.copy2(bak_path, path)
             except OSError:

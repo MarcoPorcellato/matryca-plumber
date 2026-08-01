@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+from src.graph.safety.write_policy import GraphReadOnlyError
 from src.shadow.connection import open_shadow_db, shadow_db_path
 from src.shadow.schema import SHADOW_SCHEMA_VERSION
 
@@ -42,6 +44,18 @@ def test_open_shadow_db_idempotent(tmp_path: Path) -> None:
         assert "blocks" in tables
     finally:
         second.close()
+
+
+def test_open_shadow_db_does_not_create_files_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    with pytest.raises(GraphReadOnlyError):
+        open_shadow_db(tmp_path)
+
+    assert not (tmp_path / ".matryca_semantic_cache").exists()
 
 
 def test_shadow_db_path_sandboxed_under_graph(tmp_path: Path) -> None:

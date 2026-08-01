@@ -50,6 +50,21 @@ def graph_with_page(tmp_path: Path) -> tuple[Path, Path]:
     return root, page
 
 
+def test_link_registry_read_and_write_do_not_mutate_read_only_graph(
+    graph_with_page: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph_root, _page = graph_with_page
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert load_link_registry(graph_root) == {}
+    save_link_registry(graph_root, {})
+
+    path = link_registry_path(graph_root)
+    assert not path.exists()
+    assert not (path.parent / f".{path.name}.flock").exists()
+
+
 def test_extract_links_from_page(graph_with_page: tuple[Path, Path]) -> None:
     root, page = graph_with_page
     content = page.read_text(encoding="utf-8")

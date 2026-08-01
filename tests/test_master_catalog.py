@@ -146,6 +146,25 @@ def test_load_master_catalog_self_heals_corrupt_json(graph_root: Path) -> None:
     assert not path.is_file()
 
 
+def test_load_master_catalog_does_not_heal_or_lock_in_read_only_mode(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_master_catalog_cache(graph_root)
+    path = MasterCatalog.catalog_path(graph_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{not-json", encoding="utf-8")
+    before = path.read_bytes()
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    catalog = load_master_catalog(graph_root, force_reload=True)
+
+    assert catalog.persist_allowed is False
+    assert path.read_bytes() == before
+    assert not list(path.parent.glob(f"{path.name}.corrupt.*"))
+    assert not (path.parent / f".{path.name}.flock").exists()
+
+
 def test_load_master_catalog_oserror_raises_without_cache(
     graph_root: Path,
     monkeypatch: pytest.MonkeyPatch,

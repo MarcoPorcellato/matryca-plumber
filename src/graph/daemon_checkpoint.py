@@ -10,6 +10,7 @@ from typing import Any
 from loguru import logger
 
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
+from .safety.write_policy import is_graph_read_only
 
 CHECKPOINT_FILENAME = ".matryca_daemon_state.json"
 CHECKPOINT_BAK_FILENAME = f"{CHECKPOINT_FILENAME}.bak"
@@ -60,7 +61,7 @@ def read_daemon_checkpoint(graph_root: str | Path) -> DaemonCheckpointView:
             "attempting recovery from .bak backup."
         )
         payload = _read_checkpoint_payload(bak_path)
-        if payload is not None:
+        if payload is not None and not is_graph_read_only():
             try:
                 shutil.copy2(bak_path, path)
             except OSError:
