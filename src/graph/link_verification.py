@@ -22,7 +22,7 @@ from loguru import logger
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 from ..utils.env_parse import env_bool, env_float_clamped, env_int_clamped
 from .global_fence_scanner import compute_page_protected_line_indices
-from .json_flock import cross_process_json_flock
+from .json_flock import cross_process_json_flock, cross_process_json_read_flock
 from .markdown_blocks import (
     atomic_write_bytes,
     atomic_write_bytes_if_unchanged,
@@ -42,6 +42,7 @@ from .path_sandbox import (
     read_graph_file_text,
     resolve_graph_relative_key,
 )
+from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 
 LINK_REGISTRY_FILENAME = ".matryca_link_registry.json"
 REGISTRY_VERSION = 1
@@ -169,6 +170,10 @@ def _load_registry_unlocked(path: Path) -> dict[str, LinkRegistryEntry]:
 
 
 def _save_registry_unlocked(path: Path, entries: dict[str, LinkRegistryEntry]) -> None:
+    try:
+        guard_graph_mutation(path.parent, path, operation="save_link_registry")
+    except GraphReadOnlyError:
+        return
     payload = {
         "version": REGISTRY_VERSION,
         "updated_at": datetime.now(tz=UTC).isoformat(),
@@ -181,12 +186,16 @@ def _save_registry_unlocked(path: Path, entries: dict[str, LinkRegistryEntry]) -
 
 def load_link_registry(graph_root: Path) -> dict[str, LinkRegistryEntry]:
     path = link_registry_path(graph_root)
-    with cross_process_json_flock(path):
+    with cross_process_json_read_flock(path, graph_root=graph_root):
         return _load_registry_unlocked(path)
 
 
 def save_link_registry(graph_root: Path, entries: dict[str, LinkRegistryEntry]) -> None:
     path = link_registry_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="save_link_registry")
+    except GraphReadOnlyError:
+        return
     with cross_process_json_flock(path):
         _save_registry_unlocked(path, entries)
 
@@ -200,6 +209,10 @@ def _persist_checked_registry_updates(
     if not checked_keys:
         return
     path = link_registry_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="update_link_registry")
+    except GraphReadOnlyError:
+        return
     with cross_process_json_flock(path):
         fresh = _load_registry_unlocked(path)
         for key in checked_keys:
@@ -353,6 +366,10 @@ def merge_page_links_into_registry(
         return 0
 
     path = link_registry_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="merge_link_registry")
+    except GraphReadOnlyError:
+        return 0
     new_keys = {entry.registry_key() for entry in new_entries}
     with cross_process_json_flock(path):
         registry = _load_registry_unlocked(path)
@@ -713,7 +730,7 @@ def run_link_verification_cycle(graph_root: Path) -> LinkVerificationCycleResult
     if not link_verify_enabled():
         return LinkVerificationCycleResult()
     path = link_registry_path(graph_root)
-    with cross_process_json_flock(path):
+    with cross_process_json_read_flock(path, graph_root=graph_root):
         registry = _load_registry_unlocked(path)
     if not registry:
         return LinkVerificationCycleResult()
@@ -723,6 +740,10 @@ def run_link_verification_cycle(graph_root: Path) -> LinkVerificationCycleResult
 def _purge_registry_entries_for_page(graph_root: Path, page_relpath: str) -> int:
     """Drop registry rows for a page file that no longer exists."""
     path = link_registry_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="purge_link_registry")
+    except GraphReadOnlyError:
+        return 0
     with cross_process_json_flock(path):
         registry = _load_registry_unlocked(path)
         stale = [key for key, entry in registry.items() if entry.page_relpath == page_relpath]

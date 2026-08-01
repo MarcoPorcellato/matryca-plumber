@@ -248,6 +248,44 @@ def test_save_daemon_state_skips_graph_local_writes_when_read_only(
     assert not any(graph_root.glob(".matryca_daemon_state.json.*"))
 
 
+def test_daemon_lock_and_pid_primitives_skip_read_only_graph(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.agent.daemon_process_lock import (
+        _release_daemon_process_lock,
+        _try_acquire_daemon_process_lock,
+        daemon_lock_path,
+        pid_path,
+        remove_pid_file,
+    )
+
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert _try_acquire_daemon_process_lock(graph_root) is None
+    write_pid_file(graph_root)
+    remove_pid_file(graph_root)
+    _release_daemon_process_lock(graph_root)
+
+    assert not daemon_lock_path(graph_root).exists()
+    assert not pid_path(graph_root).exists()
+
+
+def test_load_daemon_state_uses_backup_without_restore_in_read_only_mode(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    primary = state_path(graph_root)
+    backup = state_bak_path(graph_root)
+    primary.write_text("{not-json", encoding="utf-8")
+    backup.write_text(json.dumps(DaemonState(status="idle").to_json()), encoding="utf-8")
+    before = primary.read_bytes()
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert load_daemon_state(graph_root).status == "idle"
+    assert primary.read_bytes() == before
+
+
 def test_save_daemon_state_persists_block_ref_error_text(graph_root: Path) -> None:
     """Error strings containing ((uuid)) patterns must not block JSON checkpoint writes."""
     bad_uuid = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeee"

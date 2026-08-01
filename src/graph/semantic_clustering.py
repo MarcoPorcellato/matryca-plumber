@@ -18,8 +18,9 @@ from typing import Any
 from loguru import logger
 
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
-from .json_flock import cross_process_json_flock
+from .json_flock import cross_process_json_flock, cross_process_json_read_flock
 from .markdown_blocks import atomic_write_bytes
+from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 
 CLUSTERS_FILENAME = "semantic_clusters.json"
 CLUSTERS_VERSION = 1
@@ -551,6 +552,10 @@ def save_semantic_clusters(
         "clusters": clusters,
     }
     path = semantic_clusters_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="save_semantic_clusters")
+    except GraphReadOnlyError:
+        return path
     path.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
     with cross_process_json_flock(path):
@@ -564,7 +569,7 @@ def load_semantic_clusters(graph_root: Path) -> dict[str, list[str]] | None:
     if not path.is_file():
         return None
     try:
-        with cross_process_json_flock(path):
+        with cross_process_json_read_flock(path, graph_root=graph_root):
             payload = read_bounded_json(path)
     except (BoundedJsonError, OSError) as exc:
         logger.warning("Ignoring unreadable semantic cluster cache at {}: {}", path, exc)

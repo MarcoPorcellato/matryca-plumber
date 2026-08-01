@@ -15,7 +15,7 @@ from typing import Any
 import ijson
 from loguru import logger
 
-from ..graph.json_flock import cross_process_json_flock
+from ..graph.json_flock import cross_process_json_flock, cross_process_json_read_flock
 from ..graph.safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 
@@ -433,7 +433,7 @@ def iter_block_records_from_disk(graph_root: Path) -> Iterator[tuple[str, BlockV
     if not path.is_file():
         return
     try:
-        with cross_process_json_flock(path), path.open("rb") as handle:
+        with cross_process_json_read_flock(path, graph_root=root), path.open("rb") as handle:
             for block_uuid, raw in ijson.kvitems(handle, "blocks"):
                 if isinstance(raw, dict):
                     yield str(block_uuid), BlockVectorRecord.from_json(raw)
@@ -472,7 +472,7 @@ def load_block_vector_store(
                 store.embedding_dim = _coerce_embedding_dim(meta.get("embedding_dim"))
             else:
                 try:
-                    with cross_process_json_flock(path):
+                    with cross_process_json_read_flock(path, graph_root=Path(key)):
                         payload = read_bounded_json(path)
                     if isinstance(payload, dict):
                         store = BlockVectorStore.from_json(Path(key), payload)

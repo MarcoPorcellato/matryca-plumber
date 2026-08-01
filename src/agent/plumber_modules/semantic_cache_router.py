@@ -17,7 +17,8 @@ from typing import Any
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 
-from ...graph.json_flock import cross_process_json_flock
+from ...graph.json_flock import cross_process_json_flock, cross_process_json_read_flock
+from ...graph.safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 from ...utils.bounded_json import BoundedJsonError, read_bounded_json
 
 _CACHE_DIRNAME = ".matryca_semantic_cache"
@@ -131,7 +132,7 @@ def cache_get(graph_root: Path, namespace: str, cache_key: str) -> dict[str, Any
     if not path.is_file():
         return None
     try:
-        with cross_process_json_flock(path):
+        with cross_process_json_read_flock(path, graph_root=graph_root):
             raw = read_bounded_json(path)
     except (BoundedJsonError, OSError):
         return None
@@ -140,8 +141,7 @@ def cache_get(graph_root: Path, namespace: str, cache_key: str) -> dict[str, Any
     created = float(raw.get("created_at", 0.0))
     node_ttl = int(raw.get("ttl_seconds", ttl))
     if now - created > node_ttl:
-        with cross_process_json_flock(path):
-            path.unlink(missing_ok=True)
+        cache_evict(graph_root, namespace, cache_key)
         return None
     raw_payload = raw.get("payload")
     if not isinstance(raw_payload, dict):
@@ -163,9 +163,13 @@ def cache_get(graph_root: Path, namespace: str, cache_key: str) -> dict[str, Any
 def cache_evict(graph_root: Path, namespace: str, cache_key: str) -> None:
     """Remove one cache entry from RAM and disk."""
     digest = _digest(namespace, cache_key)
+    path = _cache_root(graph_root) / f"{digest}.json"
+    try:
+        guard_graph_mutation(graph_root, path, operation="evict_semantic_cache")
+    except GraphReadOnlyError:
+        return
     with _lock:
         _memory.pop(digest, None)
-    path = _cache_root(graph_root) / f"{digest}.json"
     with contextlib.suppress(OSError), cross_process_json_flock(path):
         path.unlink(missing_ok=True)
 
@@ -209,6 +213,11 @@ def cache_put(
             _max_cache_payload_bytes(),
         )
         return None
+    root = _cache_root(graph_root)
+    try:
+        guard_graph_mutation(graph_root, root, operation="write_semantic_cache")
+    except GraphReadOnlyError:
+        return None
     ttl = ttl_seconds if ttl_seconds is not None else _env_ttl()
     now = time.time()
     digest = _digest(namespace, cache_key)
@@ -219,7 +228,6 @@ def cache_put(
         "ttl_seconds": ttl,
         "payload": payload,
     }
-    root = _cache_root(graph_root)
     root.mkdir(parents=True, exist_ok=True)
     path = root / f"{digest}.json"
     tmp = path.with_suffix(".tmp")
@@ -274,6 +282,10 @@ def _env_ttl() -> int:
 def purge_expired_semantic_cache(graph_root: Path) -> int:
     """Remove expired on-disk cache entries proactively (returns count removed)."""
     root = _cache_root(graph_root)
+    try:
+        guard_graph_mutation(graph_root, root, operation="purge_semantic_cache")
+    except GraphReadOnlyError:
+        return 0
     if not root.is_dir():
         return 0
     now = time.time()
@@ -318,10 +330,15 @@ def clear_semantic_cache_memory() -> None:
 
 def clear_semantic_cache(graph_root: Path | None = None) -> None:
     """Drop in-process entries and optional on-disk cache directory."""
-    clear_semantic_cache_memory()
     if graph_root is None:
+        clear_semantic_cache_memory()
         return
     root = _cache_root(graph_root)
+    try:
+        guard_graph_mutation(graph_root, root, operation="clear_semantic_cache")
+    except GraphReadOnlyError:
+        return
+    clear_semantic_cache_memory()
     if root.is_dir():
         for path in root.glob("*.json"):
             if path.name in _RESERVED_CACHE_JSON:

@@ -33,6 +33,24 @@ def test_semantic_cache_round_trip(graph_root: Path) -> None:
     assert hit == {"summary": "cached"}
 
 
+def test_semantic_cache_preserves_disk_and_memory_in_read_only_mode(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache_put(graph_root, "index", "key", {"summary": "cached"})
+    cache_root = graph_root / ".matryca_semantic_cache"
+    before = {path.name: path.read_bytes() for path in cache_root.iterdir()}
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert cache_put(graph_root, "index", "new", {"summary": "new"}) is None
+    router.cache_evict(graph_root, "index", "key")
+    assert router.purge_expired_semantic_cache(graph_root) == 0
+    clear_semantic_cache(graph_root)
+
+    assert cache_get(graph_root, "index", "key") == {"summary": "cached"}
+    assert {path.name: path.read_bytes() for path in cache_root.iterdir()} == before
+
+
 def test_semantic_cache_miss_after_ttl_expired(
     graph_root: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -696,6 +696,36 @@ def test_block_vector_store_skips_graph_local_save_when_read_only(
     assert not (graph / ".matryca_semantic_cache").exists()
 
 
+def test_block_vector_store_reads_without_sidecar_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    store = BlockVectorStore(graph_root=graph)
+    store.upsert(
+        "uuid-block",
+        BlockVectorRecord(
+            page_title="Demo",
+            block_text="seed",
+            applicability_text="cached",
+            vec_content=[1.0, 0.0],
+            vec_applicability=[1.0, 0.0],
+            updated_at="t",
+        ),
+    )
+    store.save()
+    path = BlockVectorStore.store_path(graph)
+    flock = path.parent / f".{path.name}.flock"
+    flock.unlink(missing_ok=True)
+    clear_block_vector_store_cache()
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert "uuid-block" in load_block_vector_store(graph, force_reload=True).blocks
+    assert [uuid for uuid, _record in iter_block_records_from_disk(graph)] == ["uuid-block"]
+    assert not flock.exists()
+
+
 def test_apply_page_block_vector_updates_preserves_graph_store_when_read_only(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

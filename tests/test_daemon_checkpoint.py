@@ -69,3 +69,21 @@ def test_read_daemon_checkpoint_logs_when_bak_restore_fails(
     assert view.bootstrap_scanned == 2
     assert view.bootstrap_total == 5
     assert any("restore primary" in err for err in errors)
+
+
+def test_read_daemon_checkpoint_uses_backup_without_restore_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.daemon.checkpoint import CHECKPOINT_BAK_FILENAME, CHECKPOINT_FILENAME
+
+    (tmp_path / "pages").mkdir()
+    primary = tmp_path / CHECKPOINT_FILENAME
+    backup = tmp_path / CHECKPOINT_BAK_FILENAME
+    primary.write_text("{not-json", encoding="utf-8")
+    backup.write_text('{"bootstrap_complete": true}', encoding="utf-8")
+    before = primary.read_bytes()
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    assert read_daemon_checkpoint(tmp_path).bootstrap_complete is True
+    assert primary.read_bytes() == before

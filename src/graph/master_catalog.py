@@ -17,11 +17,11 @@ from loguru import logger
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 from .alias_index import build_alias_index, iter_alias_source_paths, page_title_from_path
 from .generated_hub_write import write_generated_hub_page
-from .json_flock import cross_process_json_flock
+from .json_flock import cross_process_json_flock, cross_process_json_read_flock
 from .markdown_blocks import atomic_write_bytes, occ_snapshot
 from .markdown_io import MmapTextView, read_graph_page_text
 from .path_sandbox import read_graph_file_text
-from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation
+from .safety.write_policy import GraphReadOnlyError, guard_graph_mutation, is_graph_read_only
 
 CATALOG_FILENAME = "master_catalog.json"
 CATALOG_VERSION = 1
@@ -359,7 +359,7 @@ def _quarantine_corrupt_catalog(catalog_path: Path) -> Path:
 def _load_catalog_payload_from_disk(path: Path, root: Path) -> MasterCatalog:
     """Parse catalog JSON from disk; restore backup or quarantine on corruption."""
     try:
-        with cross_process_json_flock(path):
+        with cross_process_json_read_flock(path, graph_root=root):
             payload = read_bounded_json(path)
     except BoundedJsonError as exc:
         msg = str(exc)
@@ -368,7 +368,7 @@ def _load_catalog_payload_from_disk(path: Path, root: Path) -> MasterCatalog:
         backup = _catalog_backup_path(path)
         if backup.is_file():
             try:
-                with cross_process_json_flock(backup):
+                with cross_process_json_read_flock(backup, graph_root=root):
                     payload = read_bounded_json(backup)
                 logger.warning(
                     "[METADATA CORRUPTION DETECTED] Restored master catalog from backup at {}",
@@ -380,6 +380,8 @@ def _load_catalog_payload_from_disk(path: Path, root: Path) -> MasterCatalog:
                     return catalog
             except BoundedJsonError:
                 pass
+        if is_graph_read_only():
+            return MasterCatalog(graph_root=root, persist_allowed=False)
         try:
             with cross_process_json_flock(path):
                 quarantined = _quarantine_corrupt_catalog(path)
@@ -435,7 +437,7 @@ def load_master_catalog(graph_root: Path, *, force_reload: bool = False) -> Mast
                 msg = f"Could not read master catalog at {path}: {exc}"
                 raise CatalogLoadError(msg) from exc
             else:
-                if catalog.persist_allowed:
+                if catalog.persist_allowed and not is_graph_read_only():
                     backup = _catalog_backup_path(path)
                     try:
                         with cross_process_json_flock(path):
