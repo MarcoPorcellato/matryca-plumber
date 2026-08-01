@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -10,6 +12,8 @@ from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.session import ServerSession
 
 from ..config import MatrycaWikiConfig
+from ..graph.graph_path_validate import validate_logseq_graph_path
+from ..graph.safety.write_policy import ensure_graph_write_allowed, is_graph_read_only
 from .graph_dispatch import (
     dispatch_lint,
     dispatch_mutate,
@@ -64,6 +68,40 @@ def register_mcp_tools(mcp: FastMCP) -> None:
             return mcp.tool(*args, **kwargs)(guard_mcp_tool(fn))
 
         return decorator
+
+    def reject_read_only_mutation(
+        action: str,
+        *,
+        payload: str = "",
+        dry_run: bool | None = None,
+    ) -> None:
+        if dry_run is None:
+            dry_run = _mutation_is_dry_run(action, payload)
+        if dry_run:
+            return
+        if not is_graph_read_only():
+            return
+        raw_graph = os.environ.get("LOGSEQ_GRAPH_PATH", "").strip()
+        if not raw_graph:
+            return
+        graph_root = validate_logseq_graph_path(raw_graph)
+        ensure_graph_write_allowed(graph_root, operation=action)
+
+    def _mutation_is_dry_run(action: str, payload: str) -> bool:
+        if action == "write_outline":
+            return False
+        raw = payload.strip()
+        if not raw:
+            return True
+        if not raw.startswith("{"):
+            return False
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return False
+        if not isinstance(data, dict):
+            return False
+        return bool(data.get("dry_run", True))
 
     @safe_tool()
     async def read_graph_data(
@@ -211,6 +249,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         Writes a Map-of-Content index page listing every page under that namespace.
         """
         _ = ctx
+        reject_read_only_mutation(action, payload=payload)
         return await dispatch_mutate(action, target, payload)
 
     @safe_tool()
@@ -232,6 +271,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         ``payload`` = optional JSON ``{"max_cards":30, "dry_run":true}``.
         """
         _ = ctx
+        reject_read_only_mutation(action, payload=payload)
         return await dispatch_refactor(action, target_uuid, payload)
 
     @safe_tool()
@@ -273,6 +313,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         remember operator preferences for future MCP and daemon LLM runs.
         """
         _ = ctx
+        reject_read_only_mutation("store_fact", dry_run=False)
         return await dispatch_store_fact(fact)
 
     @safe_tool()
@@ -289,6 +330,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         writes and optional robot git commits.
         """
         _ = ctx
+        reject_read_only_mutation("ingest_document", dry_run=False)
         return await dispatch_ingest_document(source_name, raw_text)
 
     @safe_tool()
@@ -305,6 +347,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         report without touching disk.
         """
         _ = ctx
+        reject_read_only_mutation("import_tana", dry_run=dry_run)
         return await dispatch_tana_import(export_path, dry_run=dry_run)
 
 

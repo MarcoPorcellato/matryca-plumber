@@ -56,6 +56,35 @@ def test_cli_main_calls_try_prepare_before_dispatch(monkeypatch: pytest.MonkeyPa
     assert eager_flags == [True]
 
 
+def test_cli_main_rejects_read_only_write_before_prepare(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from src.cli import main as cli_main
+
+    graph = _minimal_graph(tmp_path)
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setattr(
+        "src.cli.try_prepare_matryca_runtime_from_env",
+        lambda **_kwargs: pytest.fail("bootstrap must not run"),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        cli_main(
+            [
+                "mutate",
+                "write_outline",
+                "--target",
+                "parent-uuid",
+                "--payload",
+                '{"text":"x","children":[]}',
+            ],
+        )
+
+    assert exc.value.code == 1
+
+
 def test_cli_eager_graph_route_matrix() -> None:
     from argparse import Namespace
 
@@ -66,6 +95,76 @@ def test_cli_eager_graph_route_matrix() -> None:
     assert _cli_eager_graph(Namespace(command="search", method="semantic")) is True
     assert _cli_eager_graph(Namespace(command="read", method=None)) is True
     assert _cli_eager_graph(Namespace(command="lint", method=None)) is True
+
+
+@pytest.mark.asyncio
+async def test_cli_rejects_read_only_write_before_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from argparse import Namespace
+
+    from src.cli import run_cli
+
+    graph = _minimal_graph(tmp_path)
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    called = {"mutate": False}
+
+    async def _dispatch_mutate(*args: object, **kwargs: object) -> dict[str, object]:
+        called["mutate"] = True
+        return {"ok": True}
+
+    monkeypatch.setattr("src.cli.dispatch_mutate", _dispatch_mutate)
+
+    code = await run_cli(
+        Namespace(
+            command="mutate",
+            action="write_outline",
+            target="parent-uuid",
+            payload='{"text":"x","children":[]}',
+            json=False,
+        ),
+    )
+
+    assert code == 1
+    assert called["mutate"] is False
+
+
+@pytest.mark.asyncio
+async def test_cli_allows_dry_run_append_journal_under_read_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from argparse import Namespace
+
+    from src.cli import run_cli
+
+    graph = _minimal_graph(tmp_path)
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    called = {"mutate": False}
+
+    async def _dispatch_mutate(*args: object, **kwargs: object) -> dict[str, object]:
+        called["mutate"] = True
+        return {"ok": True, "dry_run": True}
+
+    monkeypatch.setattr("src.cli.dispatch_mutate", _dispatch_mutate)
+
+    code = await run_cli(
+        Namespace(
+            command="mutate",
+            action="append_journal",
+            target="",
+            payload='{"markdown_body":"- dry run note","dry_run":true}',
+            json=False,
+        ),
+    )
+
+    assert code == 0
+    assert called["mutate"] is True
 
 
 @pytest.mark.asyncio
@@ -100,6 +199,29 @@ async def test_mcp_lifespan_calls_prepare_before_yield(
     assert isinstance(graph_root, Path)
     assert graph_root.resolve() == graph.resolve()
     assert calls[0]["eager_graph"] is False
+
+
+@pytest.mark.asyncio
+async def test_mcp_lifespan_skips_graph_writes_in_read_only_mode(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from src.main import app_lifespan
+
+    graph = _minimal_graph(tmp_path)
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setattr(
+        "src.main.prepare_matryca_runtime",
+        lambda **_kwargs: pytest.fail("bootstrap must not run"),
+    )
+    monkeypatch.setattr(
+        "src.main.sweep_dangling_atomic_tmp_files",
+        lambda _path: pytest.fail("sweep must not run"),
+    )
+
+    async with app_lifespan(MagicMock()):
+        pass
 
 
 def test_start_daemon_foreground_defers_prepare_to_run_forever(

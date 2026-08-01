@@ -17,7 +17,9 @@ from src.agent.graph_tool_helpers import (
     read_xray_page_markdown,
 )
 from src.agent.mcp_server import OutlineNode, register_mcp_tools
+from src.agent.mcp_tool_guard import guard_mcp_tool
 from src.agent.outline_models import validate_outline_for_write
+from src.graph.safety.write_policy import GraphReadOnlyError
 
 
 def test_mcp_registers_five_mega_tools() -> None:
@@ -35,6 +37,23 @@ def test_mcp_registers_five_mega_tools() -> None:
         "search_graph",
         "store_fact",
     ]
+
+
+@pytest.mark.asyncio
+async def test_guard_mcp_tool_returns_graph_read_only_error() -> None:
+    @guard_mcp_tool
+    async def sample() -> dict[str, Any]:
+        raise GraphReadOnlyError(
+            "write_outline",
+            path="/tmp/graph/pages/Demo.md",
+            reason="graph_root_mutation_blocked",
+        )
+
+    out = await sample()
+
+    assert out["ok"] is False
+    assert out["code"] == "graph_read_only"
+    assert "graph read-only policy" in out["error"]
 
 
 def test_parse_optional_json_query_accepts_plain_or_json() -> None:
