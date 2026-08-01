@@ -23,6 +23,7 @@ from ..graph.bootstrap_harvest import BootstrapHarvestStatus
 from ..graph.graph_analytics import reconcile_telemetry_ledger
 from ..graph.json_flock import cross_process_json_flock
 from ..graph.path_sandbox import graph_relative_path_key, normalize_daemon_file_key
+from ..graph.safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 from .journey_log import JourneyDayLedger
 from .plumber_config import DEFAULT_LM_MODEL, resolve_llm_model_name
@@ -448,6 +449,11 @@ def load_daemon_state(graph_root: Path) -> DaemonState:
 def save_daemon_state(graph_root: Path, state: DaemonState) -> None:
     """Persist daemon state via POSIX atomic write-and-replace under a cross-process flock."""
     path = state_path(graph_root)
+    try:
+        guard_graph_mutation(graph_root, path, operation="save_daemon_state")
+    except GraphReadOnlyError:
+        logger.debug("Skipping graph-local daemon state save under read-only policy")
+        return
     normalize_daemon_state_file_keys(graph_root, state)
     payload = json.dumps(state.to_json(), indent=2, ensure_ascii=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)

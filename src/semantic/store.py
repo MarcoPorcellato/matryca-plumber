@@ -16,6 +16,7 @@ import ijson
 from loguru import logger
 
 from ..graph.json_flock import cross_process_json_flock
+from ..graph.safety.write_policy import GraphReadOnlyError, guard_graph_mutation
 from ..utils.bounded_json import BoundedJsonError, read_bounded_json
 
 BLOCK_VECTORS_FILENAME = "block_vectors.json"
@@ -209,6 +210,11 @@ class BlockVectorStore:
 
     def save(self) -> None:
         path = self.store_path(self.graph_root)
+        try:
+            guard_graph_mutation(self.graph_root, path, operation="save_block_vector_store")
+        except GraphReadOnlyError:
+            logger.debug("Skipping graph-local block vector save under read-only policy")
+            return
         path.parent.mkdir(parents=True, exist_ok=True)
         with cross_process_json_flock(path), self._lock:
             self.updated_at = datetime.now(tz=UTC).isoformat()
@@ -310,6 +316,11 @@ def apply_page_block_vector_updates(
     """Apply page-scoped upserts/prunes via streaming merge (avoids full-vault RAM load)."""
     root = graph_root.expanduser().resolve(strict=False)
     path = BlockVectorStore.store_path(root)
+    try:
+        guard_graph_mutation(root, path, operation="apply_page_block_vector_updates")
+    except GraphReadOnlyError:
+        logger.debug("Skipping graph-local block vector update under read-only policy")
+        return 0, 0
 
     embedding_dim = (
         _coerce_embedding_dim(_read_block_vectors_header(path).get("embedding_dim"))

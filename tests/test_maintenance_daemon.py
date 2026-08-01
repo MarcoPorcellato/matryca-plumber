@@ -35,6 +35,7 @@ from src.agent.maintenance_daemon import (
     save_daemon_state,
     start_daemon_detached,
     start_daemon_foreground,
+    state_bak_path,
     state_path,
     stop_daemon,
     write_pid_file,
@@ -222,6 +223,29 @@ def test_daemon_state_roundtrip(graph_root: Path, monkeypatch: pytest.MonkeyPatc
     assert loaded.status == "idle"
     assert page_key in loaded.files
     assert loaded.files[page_key].mtime == 123.0
+
+
+def test_save_daemon_state_skips_graph_local_writes_when_read_only(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    state = DaemonState(
+        status="running",
+        files={
+            "pages/ReadOnly.md": FileState(
+                mtime=1.0,
+                processed_at="2026-01-01T00:00:00+00:00",
+                status="processed",
+            ),
+        },
+    )
+
+    save_daemon_state(graph_root, state)
+
+    assert not state_path(graph_root).exists()
+    assert not state_bak_path(graph_root).exists()
+    assert not any(graph_root.glob(".matryca_daemon_state.json.*"))
 
 
 def test_save_daemon_state_persists_block_ref_error_text(graph_root: Path) -> None:

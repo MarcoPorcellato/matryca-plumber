@@ -12,6 +12,7 @@ from src.semantic.math_util import cosine_similarity, hybrid_score
 from src.semantic.search import hybrid_block_search
 from src.semantic.store import (
     BlockVectorRecord,
+    BlockVectorStore,
     apply_page_block_vector_updates,
     clear_block_vector_store_cache,
     iter_block_records_from_disk,
@@ -659,6 +660,134 @@ def test_apply_page_block_vector_updates_preserves_other_pages(
     assert "other-page-block" in reloaded.blocks
     assert "demo-stale" not in reloaded.blocks
     assert reloaded.blocks["demo-new"].block_text == "fresh"
+
+
+def test_block_vector_store_skips_graph_local_save_when_read_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    def _unexpected_cache_update(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("read-only save must not update the resident cache")
+
+    monkeypatch.setattr(
+        "src.semantic.store._cache_block_vector_store",
+        _unexpected_cache_update,
+    )
+    store = BlockVectorStore(graph_root=graph)
+    store.upsert(
+        "uuid-block",
+        BlockVectorRecord(
+            page_title="Demo",
+            block_text="blocked",
+            applicability_text="blocked",
+            vec_content=[1.0, 0.0],
+            vec_applicability=[1.0, 0.0],
+            updated_at="t",
+        ),
+    )
+
+    store.save()
+
+    assert not BlockVectorStore.store_path(graph).exists()
+    assert not (graph / ".matryca_semantic_cache").exists()
+
+
+def test_apply_page_block_vector_updates_preserves_graph_store_when_read_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    clear_block_vector_store_cache()
+    store = load_block_vector_store(graph)
+    store.upsert(
+        "uuid-block",
+        BlockVectorRecord(
+            page_title="Demo",
+            block_text="seed",
+            applicability_text="cached",
+            vec_content=[1.0, 0.0],
+            vec_applicability=[1.0, 0.0],
+            updated_at="t",
+        ),
+    )
+    store.save()
+    path = BlockVectorStore.store_path(graph)
+    before = path.read_bytes()
+
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    def _unexpected_cache_invalidation(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("read-only update must not invalidate the block vector cache")
+
+    monkeypatch.setattr(
+        "src.semantic.store._invalidate_block_vector_cache",
+        _unexpected_cache_invalidation,
+    )
+    result = apply_page_block_vector_updates(
+        graph,
+        "Demo",
+        upserts={
+            "uuid-updated": BlockVectorRecord(
+                page_title="Demo",
+                block_text="updated",
+                applicability_text="updated",
+                vec_content=[0.0, 1.0],
+                vec_applicability=[0.5, 0.5],
+                updated_at="t2",
+            ),
+        },
+        keep_uuids={"uuid-updated"},
+    )
+
+    assert result == (0, 0)
+    assert path.read_bytes() == before
+    assert not path.with_suffix(".json.tmp").exists()
+
+
+def test_apply_page_block_vector_updates_allows_external_store_when_read_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    external_cache = tmp_path / "external-cache"
+    external_path = external_cache / "block_vectors.json"
+
+    def _external_store_path(_root: Path) -> Path:
+        return external_path
+
+    monkeypatch.setattr(
+        BlockVectorStore,
+        "store_path",
+        staticmethod(_external_store_path),
+    )
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(external_cache))
+
+    result = apply_page_block_vector_updates(
+        graph,
+        "Demo",
+        upserts={
+            "uuid-external": BlockVectorRecord(
+                page_title="Demo",
+                block_text="external",
+                applicability_text="external cache",
+                vec_content=[0.2, 0.8],
+                vec_applicability=[0.3, 0.7],
+                updated_at="t",
+            ),
+        },
+        keep_uuids={"uuid-external"},
+    )
+
+    assert result == (1, 0)
+    assert external_path.is_file()
+    assert not (graph / ".matryca_semantic_cache").exists()
 
 
 def test_load_block_vector_store_ondemand_reads_header_only(
