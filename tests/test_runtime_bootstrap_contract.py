@@ -179,6 +179,36 @@ def test_prepare_does_not_create_lazy_runtime_ledgers(tmp_path: Path) -> None:
     assert not (graph / ".matryca_semantic_cache" / "master_catalog.json").exists()
 
 
+def test_prepare_matryca_runtime_skips_graph_local_bootstrap_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    ops = tmp_path / "logs" / "ops.log"
+    loguru = tmp_path / "logs" / "app.log"
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_PLUMBER_LOG_PATH", str(ops))
+    monkeypatch.setenv("MATRYCA_LOGURU_LOG_PATH", str(loguru))
+
+    def _blocked(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("read-only bootstrap must not touch graph-local runtime artifacts")
+
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_l1_dir", _blocked)
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_graph_runtime_directories", _blocked)
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_wiki_config_file", _blocked)
+    monkeypatch.setattr("src.daemon.register_daemon_post_write_hooks", _blocked)
+    monkeypatch.setattr("src.shadow.bootstrap.ensure_shadow_runtime_at_startup", _blocked)
+
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+    assert ops.parent.is_dir()
+    assert loguru.parent.is_dir()
+    assert not (graph / ".matryca_semantic_cache").exists()
+    assert not (graph / "templates").exists()
+    assert not (graph / "matryca-wiki.yml").exists()
+    assert not _expected_sibling_l1(graph).exists()
+
+
 # ---------------------------------------------------------------------------
 # Environment-driven prepare
 # ---------------------------------------------------------------------------
@@ -197,6 +227,45 @@ def test_try_prepare_from_env_with_valid_graph(
 
     assert _expected_sibling_l1(graph).is_dir()
     assert (graph / ".matryca_semantic_cache").is_dir()
+
+
+def test_try_prepare_from_env_with_read_only_graph_skips_graph_local_bootstrap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    ops = tmp_path / "logs" / "ops.log"
+    loguru = tmp_path / "logs" / "app.log"
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_PLUMBER_LOG_PATH", str(ops))
+    monkeypatch.setenv("MATRYCA_LOGURU_LOG_PATH", str(loguru))
+    monkeypatch.setattr(
+        "src.utils.runtime_bootstrap.ensure_repo_dotenv_from_example",
+        lambda **_kw: False,
+    )
+    monkeypatch.setattr(
+        "src.agent.plumber_config.reload_plumber_dotenv",
+        lambda **_kw: None,
+    )
+
+    def _blocked(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("read-only CLI bootstrap must not touch graph-local runtime artifacts")
+
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_l1_dir", _blocked)
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_graph_runtime_directories", _blocked)
+    monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_wiki_config_file", _blocked)
+    monkeypatch.setattr("src.daemon.register_daemon_post_write_hooks", _blocked)
+    monkeypatch.setattr("src.shadow.bootstrap.ensure_shadow_runtime_at_startup", _blocked)
+
+    try_prepare_matryca_runtime_from_env()
+
+    assert ops.parent.is_dir()
+    assert loguru.parent.is_dir()
+    assert not (graph / ".matryca_semantic_cache").exists()
+    assert not (graph / "templates").exists()
+    assert not (graph / "matryca-wiki.yml").exists()
+    assert not _expected_sibling_l1(graph).exists()
 
 
 def test_try_prepare_invalid_graph_still_ensures_logs_only(

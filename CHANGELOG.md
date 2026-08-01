@@ -3,6 +3,7 @@
 ### Fixed
 
 - **Prerelease publication metadata** — release tags containing a SemVer prerelease suffix now create GitHub prereleases instead of stable releases while preserving the curated changelog notes and PyPI trusted-publishing flow.
+- **Read-only runtime bootstrap safety** — `prepare_matryca_runtime()` now skips graph-local cache/templates, seeded wiki config, L1 provisioning, Shadow startup, and dangling tmp cleanup when `MATRYCA_READ_ONLY=true`, so CLI read bootstrap and direct startup preserve reads without creating vault artifacts.
 
 ### Changed
 
