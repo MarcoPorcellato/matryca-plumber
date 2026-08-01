@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from ..utils.env_parse import env_bool, env_int_clamped
 
 _SHADOW_BUSY_TIMEOUT_MS_MIN = 0
@@ -17,12 +19,19 @@ _SHADOW_REBUILD_LOCK_TIMEOUT_S_MAX = 600
 _SHADOW_REBUILD_LOCK_TIMEOUT_S_DEFAULT = 120
 
 
-def shadow_db_enabled() -> bool:
-    """Return whether the Shadow DB subsystem is enabled (opt-in alpha).
+def shadow_db_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Return whether the external Shadow DB read cache is enabled.
 
-    When false or unset, callers must not create, sync, or read ``shadow.sqlite``.
+    The v2 RC contract is default-on when the setting is absent. An explicit false
+    token remains the emergency opt-out and callers must then avoid every Shadow
+    create, sync, and read operation.
     """
-    return env_bool("MATRYCA_SHADOW_DB_ENABLED", default=False)
+    if env is None:
+        return env_bool("MATRYCA_SHADOW_DB_ENABLED", default=True)
+    raw = (env.get("MATRYCA_SHADOW_DB_ENABLED") or "").strip().lower()
+    if not raw:
+        return True
+    return raw in {"1", "true", "yes", "on"}
 
 
 def shadow_quarantine_enabled() -> bool:

@@ -114,6 +114,7 @@ def test_every_reason_code_is_content_free() -> None:
         "sync_error",
         "full_sync_incomplete",
         "page_count_mismatch",
+        "cache_unavailable",
     }
     for code in codes:
         assert code.islower()

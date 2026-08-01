@@ -806,7 +806,7 @@ def test_a5_parity_06_flag_false_uses_markdown_port(
     graph = _minimal_graph(tmp_path)
     root = _uuid(1)
     _write_page(graph, "pages/FlagOff.md", f"- needle\n  id:: {root}\n")
-    monkeypatch.delenv("MATRYCA_SHADOW_DB_ENABLED", raising=False)
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
     port = get_graph_read_port(graph)
     assert isinstance(port, MarkdownGraphRepository)
     query = _subtree_query("FlagOff", root)

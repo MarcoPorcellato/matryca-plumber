@@ -74,6 +74,8 @@ Spec: [`docs/openspec/agent-dx.md`](docs/openspec/agent-dx.md). Distribution gui
 
 **Plumber hygiene properties (daemon, read-only for agents):** Blocks may carry `dead-link:: true` or `missing-asset:: true` after background verification ([`docs/openspec/link-verification.md`](docs/openspec/link-verification.md)). Do not remove these flags unless the operator fixed the URL or restored the asset.
 
+**Runtime write boundary:** When the operator enables Strict Read Only, backend mutation tools reject graph writes with `graph_read_only`; do not retry them or attempt an alternate write path. The external Shadow DB read cache may remain enabled and accelerate reads because it is derived state outside the Logseq graph. Shadow availability never authorizes a graph write, and every non-ready cache state falls back to authoritative Markdown reads.
+
 ---
 
 ## Quick discriminator cheat sheet

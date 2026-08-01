@@ -146,6 +146,10 @@ generated prompt, roadmap, tests, and changelog must use the same semantics.
 
 ## Implementation slices
 
+**Implementation status (2026-08-01):** Slices 1–4 are complete in source. Slice 5
+qualification remains open and is the next release gate; no RC tag or publication is
+authorized by this status.
+
 ### Slice 1 — typed external cache location
 
 - Add a single resolver for platform default root, `MATRYCA_CACHE_PATH` override,
@@ -170,9 +174,12 @@ generated prompt, roadmap, tests, and changelog must use the same semantics.
 
 ### Slice 4 — operator contract and default-on
 
-- Expose independent Read Only and Shadow settings in the Sovereign UI.
-- Change unset `MATRYCA_SHADOW_DB_ENABLED` to enabled only after Slices 1–3 pass.
-- Synchronize all operator/agent documentation and generated prompt surfaces.
+- **Complete:** expose independent Read Only and Shadow settings in the Sovereign UI;
+  Read Only visibly disables graph-mutating controls while preserving Shadow status.
+- **Complete:** unset `MATRYCA_SHADOW_DB_ENABLED` is enabled after Slices 1–3 passed;
+  explicit false remains the emergency Markdown/BM25 opt-out.
+- **Complete:** synchronize operator/agent documentation and generated prompt surfaces;
+  invalid external roots report bounded `cache_unavailable` state and safe fallback.
 
 ### Slice 5 — qualification and release evidence
 

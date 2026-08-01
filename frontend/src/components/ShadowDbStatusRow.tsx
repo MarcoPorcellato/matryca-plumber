@@ -31,6 +31,7 @@ const NOT_READY_LABELS: Record<NonNullable<ShadowDbState['not_ready_reason']>, s
   full_sync_incomplete:
     'Full index never completed — often a page exceeding the parse budget. Reads use Markdown.',
   page_count_mismatch: 'Indexed page count disagrees with the vault — reads use Markdown.',
+  cache_unavailable: 'External cache unavailable — reads use Markdown.',
 }
 
 interface ShadowDbStatusRowProps {

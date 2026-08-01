@@ -462,6 +462,10 @@ def test_safe_environment_uses_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert environment["PATH"] == "/safe/bin"
     assert environment["LOGSEQ_GRAPH_PATH"] == str(tmp_path)
     assert environment["MATRYCA_SHADOW_DB_ENABLED"] == "1"
+    assert environment["MATRYCA_CACHE_PATH"] == str(
+        (tmp_path.parent / ".matryca-beta-evidence-cache").resolve(strict=False)
+    )
+    assert not Path(environment["MATRYCA_CACHE_PATH"]).is_relative_to(tmp_path)
     assert environment["MATRYCA_PAGE_PARSE_TIMEOUT_S"] == "60"
     assert "LLM_API_KEY" not in environment
     assert "GITHUB_TOKEN" not in environment

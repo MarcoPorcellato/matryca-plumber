@@ -4,6 +4,8 @@ import type { PlumberConfig } from '../types/daemon'
 export function emptyPlumberConfig(): PlumberConfig {
   return {
     logseq_graph_path: '',
+    read_only: false,
+    shadow_db_enabled: true,
     lm_studio_url: 'http://localhost:1234/v1',
     lm_model: 'local-model',
     llm_api_key: 'dummy-key',
