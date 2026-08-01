@@ -211,11 +211,13 @@ export function MasterHeader({
               ) : null}
               <button
                 type="button"
-                disabled={engineBusy || engineRunning || !preflightReady}
+                disabled={engineBusy || engineRunning || !preflightReady || Boolean(config?.read_only)}
                 title={
-                  preflightReady
-                    ? 'Start the maintenance daemon'
-                    : 'Complete the pre-flight checklist before starting'
+                  config?.read_only
+                    ? 'Maintenance engine is unavailable while Strict Read Only is enabled'
+                    : preflightReady
+                      ? 'Start the maintenance daemon'
+                      : 'Complete the pre-flight checklist before starting'
                 }
                 onClick={() => void onStartEngine()}
                 className="inline-flex items-center justify-center rounded-xl border border-theme-accent/80 bg-theme-accent px-4 py-2.5 text-sm font-medium text-theme-accent-foreground transition hover:bg-theme-accent/90 disabled:cursor-not-allowed disabled:opacity-40"

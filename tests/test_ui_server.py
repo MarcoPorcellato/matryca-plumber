@@ -31,6 +31,8 @@ def auth_headers() -> dict[str, str]:
 def graph_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (tmp_path / "pages").mkdir()
     monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "false")
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
     return tmp_path
 
 
@@ -59,7 +61,7 @@ def test_get_state_returns_daemon_checkpoint(
         },
     )
     save_daemon_state(graph_root, state)
-    monkeypatch.delenv("MATRYCA_SHADOW_DB_ENABLED", raising=False)
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
     monkeypatch.setattr("src.cli.ui_server.read_pid_file", lambda _root: 4242)
     monkeypatch.setattr("src.cli.ui_server.is_plumber_process", lambda _pid: True)
 
@@ -316,6 +318,8 @@ def test_get_config_returns_live_lint_settings(
                 "MATRYCA_LINT_HEAL_DANGLING=true",
                 "MATRYCA_LINT_DISABLE_SEMANTIC_CORRECTIONS=false",
                 "MATRYCA_LINT_AUTO_SPLIT=true",
+                "MATRYCA_READ_ONLY=true",
+                "MATRYCA_SHADOW_DB_ENABLED=false",
             ]
         )
         + "\n",
@@ -349,6 +353,8 @@ def test_get_config_returns_live_lint_settings(
     assert payload["heal_dangling"] is True
     assert payload["enable_inline_semantic_corrections"] is True
     assert payload["auto_split"] is True
+    assert payload["read_only"] is True
+    assert payload["shadow_db_enabled"] is False
 
 
 def test_post_config_updates_dotenv(
@@ -383,6 +389,8 @@ def test_post_config_updates_dotenv(
         "heal_dangling": False,
         "enable_inline_semantic_corrections": True,
         "auto_split": False,
+        "read_only": True,
+        "shadow_db_enabled": True,
     }
 
     with TestClient(app) as client:
@@ -406,6 +414,8 @@ def test_post_config_updates_dotenv(
     assert "MATRYCA_LINT_BACKPROPAGATE_LINKS=true" in written
     assert "MATRYCA_LINT_DISABLE_SEMANTIC_CORRECTIONS=false" in written
     assert "MATRYCA_LINT_PROPERTY_HYGIENE=true" in written
+    assert "MATRYCA_READ_ONLY=true" in written
+    assert "MATRYCA_SHADOW_DB_ENABLED=true" in written
 
 
 def test_post_config_rejects_unsafe_lm_studio_url(
@@ -973,7 +983,7 @@ def test_post_graph_path_endpoint(
     assert "LOGSEQ_GRAPH_PATH=" in env_text
 
 
-def test_get_state_shadow_db_disabled_by_default(
+def test_get_state_shadow_db_enabled_by_default(
     graph_root: Path,
     auth_headers: dict[str, str],
     monkeypatch: pytest.MonkeyPatch,
@@ -986,20 +996,17 @@ def test_get_state_shadow_db_disabled_by_default(
 
     assert response.status_code == 200
     shadow_db = response.json()["shadow_db"]
-    assert shadow_db == {
-        "enabled": False,
-        "state": "disabled",
-        "last_full_sync_at": None,
-        "source_page_count": None,
-        "indexed_page_count": None,
-        "lag_pages": None,
-        "last_sync_error": None,
-        "not_ready_reason": None,
-        "quarantined_page_count": 0,
-    }
+    assert shadow_db["enabled"] is True
+    assert shadow_db["state"] == "ready"
+    assert shadow_db["source_page_count"] == 0
+    assert shadow_db["indexed_page_count"] == 0
+    assert shadow_db["lag_pages"] == 0
+    assert shadow_db["last_sync_error"] is None
+    assert shadow_db["not_ready_reason"] is None
+    assert shadow_db["quarantined_page_count"] == 0
     from src.shadow.connection import shadow_db_path
 
-    assert not shadow_db_path(graph_root).exists()
+    assert shadow_db_path(graph_root).is_file()
 
 
 def test_get_state_shadow_db_ready_when_rebuilt(

@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from ..graph.path_sandbox import resolved_graph_root
+from ..graph.path_sandbox import PathTraversalSecurityError, resolved_graph_root
 from ..utils.console_sanitize import sanitize_for_console
 from .config import shadow_db_enabled
 from .connection import shadow_db_path
@@ -39,6 +39,7 @@ ShadowDbStateValue = Literal["disabled", "bootstrapping", "ready", "stale", "err
 #                          aborted by the per-page parse budget (see
 #                          docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md)
 #   page_count_mismatch  - persisted counts disagree with indexed rows
+#   cache_unavailable    - external cache location is invalid or unavailable
 ShadowDbNotReadyReason = Literal[
     "not_bootstrapped",
     "bootstrap_in_progress",
@@ -47,6 +48,7 @@ ShadowDbNotReadyReason = Literal[
     "sync_error",
     "full_sync_incomplete",
     "page_count_mismatch",
+    "cache_unavailable",
 ]
 _SHADOW_ERROR_MAX_LEN = 200
 _REDACTED_SYNC_ERROR = "Shadow sync error (path details redacted)"
@@ -225,7 +227,15 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
             not_ready_reason="bootstrap_in_progress",
         )
 
-    db_path = shadow_db_path(root)
+    try:
+        db_path = shadow_db_path(root)
+    except (OSError, RuntimeError, PathTraversalSecurityError):
+        return ShadowDbStateResponse(
+            enabled=True,
+            state="error",
+            last_sync_error="External Shadow cache unavailable",
+            not_ready_reason="cache_unavailable",
+        )
     if not db_path.is_file():
         return ShadowDbStateResponse(
             enabled=True,

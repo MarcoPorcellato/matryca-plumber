@@ -208,6 +208,9 @@ def _safe_environment(
     }
     environment["LOGSEQ_GRAPH_PATH"] = str(graph_root)
     environment["MATRYCA_SHADOW_DB_ENABLED"] = "1" if enabled else "0"
+    environment["MATRYCA_CACHE_PATH"] = str(
+        (graph_root.parent / ".matryca-beta-evidence-cache").resolve(strict=False)
+    )
     environment["MATRYCA_PAGE_PARSE_TIMEOUT_S"] = str(page_parse_timeout_seconds)
     return environment
 

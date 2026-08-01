@@ -117,6 +117,15 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-theme-base p-4 text-theme-text md:p-6 gap-6">
+      {config?.read_only ? (
+        <div
+          className="shrink-0 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300"
+          role="status"
+        >
+          <span className="font-semibold">Strict Read Only active.</span>{' '}
+          Matryca cannot modify the Logseq graph. Shadow acceleration remains available from its external cache when enabled.
+        </div>
+      ) : null}
       <MasterHeader
         state={state}
         connectionStatus={connectionStatus}

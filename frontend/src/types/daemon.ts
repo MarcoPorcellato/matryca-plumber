@@ -10,6 +10,7 @@ export type ShadowDbNotReadyReason =
   | 'sync_error'
   | 'full_sync_incomplete'
   | 'page_count_mismatch'
+  | 'cache_unavailable'
 
 export const SHADOW_DB_NOT_READY_REASONS: readonly ShadowDbNotReadyReason[] = [
   'not_bootstrapped',
@@ -19,6 +20,7 @@ export const SHADOW_DB_NOT_READY_REASONS: readonly ShadowDbNotReadyReason[] = [
   'sync_error',
   'full_sync_incomplete',
   'page_count_mismatch',
+  'cache_unavailable',
 ]
 
 export interface ShadowDbState {
@@ -408,6 +410,8 @@ export interface DaemonStateResponse {
 /** Mirrors ``PlumberConfigResponse`` from ``src/cli/ui_server.py``. */
 export interface PlumberConfig {
   logseq_graph_path: string
+  read_only: boolean
+  shadow_db_enabled: boolean
   lm_studio_url: string
   lm_model: string
   llm_api_key: string

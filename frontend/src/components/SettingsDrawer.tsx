@@ -19,6 +19,7 @@ interface FieldSpec {
   step?: string
   badge?: string
   badgeClass?: string
+  writesGraph?: boolean
 }
 
 interface TrustSection {
@@ -32,6 +33,27 @@ interface TrustSection {
 
 const INPUT_CLASS =
   'w-full rounded-xl border border-theme-border/50 bg-theme-base px-3 py-2 text-sm text-theme-text outline-none transition placeholder:text-theme-muted focus:border-theme-accent/60 focus:ring-2 focus:ring-theme-accent/30'
+
+const RUNTIME_POLICY_FIELDS: FieldSpec[] = [
+  {
+    key: 'read_only',
+    label: 'Strict Read Only',
+    description:
+      'Blocks every Matryca write inside the Logseq graph. Read tools and the external Shadow cache remain available.',
+    type: 'boolean',
+    badge: 'Vault protected',
+    badgeClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500',
+  },
+  {
+    key: 'shadow_db_enabled',
+    label: 'Shadow DB Acceleration',
+    description:
+      'Maintains a derived SQLite read cache outside the graph. Disable it to force Markdown/BM25 reads.',
+    type: 'boolean',
+    badge: 'External cache',
+    badgeClass: 'border-blue-500/40 bg-blue-500/10 text-blue-500',
+  },
+]
 
 const INFRA_FIELDS: FieldSpec[] = [
   {
@@ -141,6 +163,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '📝 Metadata',
         badgeClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500',
+        writesGraph: true,
       },
       {
         key: 'property_hygiene',
@@ -149,6 +172,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '📝 Metadata',
         badgeClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500',
+        writesGraph: true,
       },
       {
         key: 'marpa_framework',
@@ -157,6 +181,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '📝 Metadata',
         badgeClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500',
+        writesGraph: true,
       },
     ],
   },
@@ -174,6 +199,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '📎 Side blocks',
         badgeClass: 'border-amber-500/40 bg-amber-500/10 text-amber-500',
+        writesGraph: true,
       },
       {
         key: 'backpropagate_links',
@@ -182,6 +208,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '📎 Side blocks',
         badgeClass: 'border-amber-500/40 bg-amber-500/10 text-amber-500',
+        writesGraph: true,
       },
     ],
   },
@@ -200,6 +227,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '⚠️ Modifies text',
         badgeClass: 'border-red-500/40 bg-red-500/10 text-red-500',
+        writesGraph: true,
       },
       {
         key: 'auto_split',
@@ -208,6 +236,7 @@ const TRUST_SECTIONS: TrustSection[] = [
         type: 'boolean',
         badge: '💣 Structural',
         badgeClass: 'border-red-500/50 bg-red-500/10 text-red-500',
+        writesGraph: true,
       },
     ],
   },
@@ -387,17 +416,19 @@ function ConfigField({
   field,
   draft,
   invalidFields,
+  disabled = false,
   onChange,
 }: {
   field: FieldSpec
   draft: PlumberConfig
   invalidFields: Partial<Record<keyof PlumberConfig, string>>
+  disabled?: boolean
   onChange: <K extends keyof PlumberConfig>(key: K, raw: PlumberConfig[K]) => void
 }) {
   const invalidMessage = invalidFields[field.key]
 
   return (
-    <label className="block space-y-1.5">
+    <label className={`block space-y-1.5 ${disabled ? 'opacity-55' : ''}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-theme-text">{field.label}</span>
         {field.badge ? (
@@ -409,6 +440,7 @@ function ConfigField({
         <input
           type="checkbox"
           checked={Boolean(draft[field.key])}
+          disabled={disabled}
           onChange={(event) =>
             onChange(field.key, event.target.checked as PlumberConfig[typeof field.key])
           }
@@ -448,6 +480,11 @@ function ConfigField({
           className={INPUT_CLASS}
         />
       )}
+      {disabled ? (
+        <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+          Unavailable while Strict Read Only protects the graph.
+        </p>
+      ) : null}
     </label>
   )
 }
@@ -505,6 +542,7 @@ function TrustSectionCard({
               field={field}
               draft={draft}
               invalidFields={invalidFields}
+              disabled={draft.read_only && Boolean(field.writesGraph)}
               onChange={onChange}
             />
           ))}
@@ -635,7 +673,7 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
               </p>
               <h2 className="mt-1 text-sm font-semibold text-theme-text">Trust &amp; Safety</h2>
               <p className="mt-1 text-xs text-theme-muted">
-                Changes persist to <code className="text-theme-accent">.env</code> and hot-reload the daemon.
+                Changes persist to <code className="text-theme-accent">.env</code>. Restart a running daemon to apply runtime-policy changes.
               </p>
             </div>
             <button
@@ -668,6 +706,26 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
             }}
           >
             <div className="space-y-6">
+              <div>
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-theme-muted">
+                  Runtime Policy
+                </p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl border border-theme-border/50 bg-theme-base/60 p-4">
+                  {RUNTIME_POLICY_FIELDS.map((field) => (
+                    <ConfigField
+                      key={field.key}
+                      field={field}
+                      draft={effectiveDraft}
+                      invalidFields={invalidFields}
+                      onChange={updateField}
+                    />
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-theme-muted">
+                  These controls are independent: Read Only governs vault writes; Shadow governs only the external derived cache.
+                </p>
+              </div>
+
               <div>
                 <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-theme-muted">
                   Infrastructure

@@ -101,6 +101,14 @@ root override. The beta graph-local database is rebuilt externally rather than m
 mutated, or deleted. Decision and implementation slices:
 [`v2-external-shadow-cache-read-only.md`](quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
+**Current RC source contract (Slices 1–4 complete):** an unset
+`MATRYCA_SHADOW_DB_ENABLED` now enables Shadow; explicit false remains a zero-Shadow
+opt-out. The Sovereign UI persists independent Strict Read Only and Shadow controls,
+disables graph-mutating controls while Read Only is effective, and keeps Shadow health
+visible. An invalid external cache root reports the content-free `cache_unavailable`
+reason and routes reads to Markdown/BM25 instead of failing the state API. Slice 5
+exact-wheel qualification remains required before an RC or stable release decision.
+
 **v1.13.1 focus:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation; **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). Plumber `_headless_append_child` mirrors the **1.4.2** newline normalization.
 
 **v1.13.0 focus:** **Daemon & dispatch modularization (v2 Phase 0–1)** — `maintenance_daemon` SRP split ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)); **`GraphReadPort`** / `MarkdownGraphRepository`.

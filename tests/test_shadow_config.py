@@ -32,12 +32,12 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_shadow_db_enabled_default_false(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_shadow_db_enabled_default_true(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("MATRYCA_SHADOW_DB_ENABLED", raising=False)
-    assert shadow_db_enabled() is False
+    assert shadow_db_enabled() is True
 
 
-@pytest.mark.parametrize("value", ["0", "false", "FALSE", "no", ""])
+@pytest.mark.parametrize("value", ["0", "false", "FALSE", "no", "off"])
 def test_shadow_db_enabled_false_tokens(
     monkeypatch: pytest.MonkeyPatch,
     value: str,
@@ -53,6 +53,12 @@ def test_shadow_db_enabled_true_tokens(
 ) -> None:
     monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", value)
     assert shadow_db_enabled() is True
+
+
+def test_shadow_db_enabled_reads_isolated_mapping() -> None:
+    assert shadow_db_enabled({}) is True
+    assert shadow_db_enabled({"MATRYCA_SHADOW_DB_ENABLED": "false"}) is False
+    assert shadow_db_enabled({"MATRYCA_SHADOW_DB_ENABLED": "true"}) is True
 
 
 def test_shadow_busy_timeout_ms_clamped(monkeypatch: pytest.MonkeyPatch) -> None:

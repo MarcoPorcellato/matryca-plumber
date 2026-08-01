@@ -56,6 +56,8 @@ from ..agent.plumber_config import (
 from ..config import load_matryca_wiki_config
 from ..graph.graph_analytics import compute_graph_analytics
 from ..graph.graph_path_validate import validate_logseq_graph_path_for_config
+from ..graph.safety.write_policy import is_graph_read_only
+from ..shadow.config import shadow_db_enabled
 from ..shadow.state_api import ShadowDbStateResponse, resolve_shadow_db_state_for_api
 from ..utils.console_sanitize import sanitize_for_console
 from ..utils.env_placeholders import is_template_env_path
@@ -176,6 +178,8 @@ class PlumberConfigResponse(BaseModel):
     """Live Plumber configuration exposed to the React control room."""
 
     logseq_graph_path: str
+    read_only: bool = False
+    shadow_db_enabled: bool = True
     lm_studio_url: str
     lm_model: str
     llm_api_key: str
@@ -202,6 +206,8 @@ class PlumberConfigResponse(BaseModel):
         config: PlumberLintConfig,
         *,
         logseq_graph_path: str | None = None,
+        read_only: bool | None = None,
+        shadow_db_enabled_value: bool | None = None,
     ) -> PlumberConfigResponse:
         if isinstance(logseq_graph_path, str):
             graph_path = logseq_graph_path.strip()
@@ -209,6 +215,10 @@ class PlumberConfigResponse(BaseModel):
             graph_path = os.environ.get("LOGSEQ_GRAPH_PATH", "").strip()
         return cls(
             logseq_graph_path=graph_path,
+            read_only=is_graph_read_only() if read_only is None else read_only,
+            shadow_db_enabled=(
+                shadow_db_enabled() if shadow_db_enabled_value is None else shadow_db_enabled_value
+            ),
             lm_studio_url=config.lm_base_url,
             lm_model=config.lm_model,
             llm_api_key=config.llm_api_key,
@@ -355,6 +365,8 @@ def _fetch_lm_studio_models(base_url: str) -> LmModelsResponse:
 
 
 _ENV_KEY_MAP: dict[str, str] = {
+    "read_only": "MATRYCA_READ_ONLY",
+    "shadow_db_enabled": "MATRYCA_SHADOW_DB_ENABLED",
     "logseq_graph_path": "LOGSEQ_GRAPH_PATH",
     "lm_studio_url": "LLM_BASE_URL",
     "lm_model": "LLM_MODEL_NAME",
@@ -853,6 +865,8 @@ def _load_config_response() -> PlumberConfigResponse:
         return PlumberConfigResponse.from_lint_config(
             lint_config,
             logseq_graph_path=graph_path,
+            read_only=is_graph_read_only(merged),
+            shadow_db_enabled_value=shadow_db_enabled(merged),
         )
     return PlumberConfigResponse.from_lint_config(load_plumber_lint_config())
 

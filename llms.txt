@@ -220,13 +220,14 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB (v2.0.0-beta.1 — experimental, opt-in)
+### 2.6 Shadow DB and Strict Read Only (v2 RC contract)
 
-Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`. It does **not** replace Markdown on disk. **Default: off.**
+Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not** replace Markdown on disk. In the current v2 RC source contract it is **default-on**; an explicit false value is the emergency opt-out. The published `2.0.0b1` wheel remains historically default-off and graph-local.
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|
-| `MATRYCA_SHADOW_DB_ENABLED` | `false` | `search_graph(bm25)` prefers FTS5 on shadow; `read_graph_data(subtree)` prefers recursive CTE; **always falls back** to generational BM25 / parser+AST when flag is off, shadow is bootstrapping, stale, or errors |
+| `MATRYCA_READ_ONLY` | `false` | Blocks every Matryca write, lock, temp file, or support artifact inside the Logseq graph; reads remain available |
+| `MATRYCA_SHADOW_DB_ENABLED` | `true` | Maintains the external cache; `search_graph(bm25)` prefers FTS5 and `read_graph_data(subtree)` prefers recursive CTE only while `READY`; **always falls back** to generational BM25 / parser+AST when disabled or non-ready |
 | `MATRYCA_SHADOW_QUARANTINE_ENABLED` | `true` | Park over-budget pages instead of failing the whole rebuild (beta.1); `false` restores strict mode |
 | `MATRYCA_SHADOW_WRITER_LOCK_TIMEOUT_S` | `10` | Cross-process advisory flock wait for incremental sync/delete (alpha.1) |
 | `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` | `120` | Cross-process advisory flock wait for full rebuild (alpha.1) |
@@ -236,12 +237,13 @@ Shadow DB is a **daemon-owned read cache** at `<LOGSEQ_GRAPH_PATH>/.matryca_sema
 
 `not_ready_reason` is a closed vocabulary of content-free codes explaining why the cache is
 not accelerating reads: `not_bootstrapped`, `bootstrap_in_progress`, `database_unreadable`,
-`schema_version_mismatch`, `sync_error`, `full_sync_incomplete`, `page_count_mismatch`. It is
+`schema_version_mismatch`, `sync_error`, `full_sync_incomplete`, `page_count_mismatch`,
+`cache_unavailable`. It is
 `null` when the state is `ready` or `disabled`. Treat an unrecognised code as `null` — the
 vocabulary may grow. `full_sync_incomplete` is the code an agent will most often see on a
 real vault; see below.
 
-**Agent default unchanged:** With flag unset/false, MCP/CLI behavior matches v1.14.x (BM25 + parser subtree). `v2.0.0-beta.1` is a beta: enable Shadow deliberately, and prefer a vault backup until you have exercised it on your own graph.
+**Independent authority:** Read Only governs the vault boundary; Shadow governs only the external derived cache. Read Only + Shadow enabled is the recommended protected-reading profile. Shadow never authorizes a graph write, and a cache failure never blocks Markdown/BM25 reads.
 
 **Over-budget pages are quarantined, not fatal.** A page whose parse exceeds `MATRYCA_PAGE_PARSE_TIMEOUT_S` (default **15 s**, clamped 2–120 s) is parked in `quarantined_pages` and left out of the cache; the rest of the graph is indexed normally and health stays `READY` under the invariant `indexed + quarantined == source == actual`. Reads for a parked page route to Markdown, which is authoritative either way. A page is released automatically as soon as it parses within budget. `GET /api/state.shadow_db.quarantined_page_count` reports how many are parked; they are excluded from `lag_pages` because they are a settled decision, not pending work. `MATRYCA_SHADOW_QUARANTINE_ENABLED=false` restores the strict pre-2.0 behaviour where any over-budget page aborts the rebuild.
 

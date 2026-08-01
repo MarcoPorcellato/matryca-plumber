@@ -23,23 +23,23 @@ legacy_sources:
 
 > **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
 
-Logseq Markdown on disk remains the **system of record**. In the published beta,
-`shadow.sqlite` is an **opt-in read cache** owned by the daemon under
-`.matryca_semantic_cache/`. It accelerates hierarchical reads when healthy; it never
-replaces vault writes or OCC on `.md` files.
+Logseq Markdown on disk remains the **system of record**. The published beta used an
+opt-in graph-local cache. The current RC source uses a **default-on external derived
+cache**, isolated per canonical graph path. It accelerates hierarchical reads when
+healthy; it never replaces vault writes or OCC on `.md` files.
 
-**Approved RC direction:** Shadow DB moves to a canonical per-user external cache so
+**Implemented RC direction:** Shadow DB uses a canonical per-user external cache so
 `MATRYCA_READ_ONLY=true` can protect every graph-local file while retaining Shadow
 acceleration. The detailed storage, migration, security, bootstrap, and evidence
 contract is [`v2-external-shadow-cache-read-only.md`](../../quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
-**Introduced:** `v2.0.0-alpha` (opt-in read path). **Hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **`v2.0.0-beta.1` is the first public beta:** the flag stays default-off, Markdown stays authoritative, and Phase 4 biological memory/Safe-Sync remains out of scope.
+**Introduced:** `v2.0.0-alpha` (opt-in read path). **Hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **Published `v2.0.0-beta.1`:** default-off and graph-local. **Current RC source:** default-on, external, explicit false opt-out; Phase 4 biological memory/Safe-Sync remains out of scope.
 
 ## Activation gate
 
 | Check | Module / symbol |
 | --- | --- |
-| Env flag (default off) | `shadow_db_enabled()` — `MATRYCA_SHADOW_DB_ENABLED` |
+| Env flag (default on; explicit false opt-out) | `shadow_db_enabled()` — `MATRYCA_SHADOW_DB_ENABLED` |
 | Runtime health | `resolve_shadow_health()` → `ShadowHealthState` |
 | Read port selection | `get_graph_read_port()` → `ShadowGraphRepository` when `shadow_read_port_ready()` |
 
@@ -48,7 +48,7 @@ Routing applies only when the flag is **on** and health is **`ready`**. Otherwis
 ## Schema and memory tables
 
 Canonical DDL: [`src/shadow/schema.py`](../../../src/shadow/schema.py). Published beta
-path: `shadow_db_path()` → `<vault>/.matryca_semantic_cache/shadow.sqlite`. RC target:
+path: `<vault>/.matryca_semantic_cache/shadow.sqlite`. Current `shadow_db_path()` target:
 `<platform user cache>/matryca-plumber/graphs/<versioned-graph-id>/shadow/shadow.sqlite`,
 with `MATRYCA_CACHE_PATH` as an external-root override.
 
@@ -80,7 +80,7 @@ flowchart TB
   Health -->|disabled bootstrapping stale error| Fallback
 ```
 
-Under the approved RC contract, the same lifecycle writes SQLite, WAL/SHM, and lock
+Under the current RC contract, the same lifecycle writes SQLite, WAL/SHM, and lock
 state only to the resolved external cache. Read Only blocks graph-local provisioning
 and mutations but does not block this validated derived-cache lifecycle.
 
@@ -96,6 +96,8 @@ and mutations but does not block this validated derived-cache lifecycle.
 `resolve_shadow_health` returns `disabled`, `bootstrapping`, `ready`, `stale`, or `error`. Since **v2.0.0-alpha.1**, `ready` requires `shadow_meta` page counts to match the `pages` table (`shadow_meta_matches_page_rows`) — mismatches downgrade to `stale` rather than serving inconsistent cache rows.
 
 SQLite errors, schema mismatch, or sync errors also force fallback; the vault Markdown path is unaffected.
+An invalid or unavailable external cache root resolves to health `error` and the public,
+content-free `cache_unavailable` reason; paths are never included in the state payload.
 
 ## Writer coordination (v2.0.0-alpha.1)
 
@@ -111,6 +113,7 @@ Cross-process writers serialize through advisory **`shadow.writer.flock`** (`sha
 ## Operator surfaces
 
 - Sovereign UI: `/api/state.shadow_db` via `resolve_shadow_db_state_for_api`
+- Sovereign UI settings: independent Strict Read Only and Shadow DB switches; graph-mutating controls are unavailable while Read Only is active
 - Operator contract: [`llms.txt`](../../../llms.txt) §2.6
 - Roadmap checklist: [`ROADMAP_V2_SHADOW_DB.md`](../../roadmaps/ROADMAP_V2_SHADOW_DB.md)
 - Beta-readiness decision record: [`v2-beta-readiness.md`](../../quality/issue-bodies/v2-beta-readiness.md)

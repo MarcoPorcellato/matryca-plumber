@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from src.shadow.bootstrap import rebuild_shadow_from_graph
 from src.shadow.connection import open_shadow_db, shadow_db_path
+from src.shadow.health import ShadowHealthState, resolve_shadow_health
 from src.shadow.meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_AT,
@@ -94,6 +95,24 @@ def test_resolve_shadow_db_state_stale_without_db_file(
     assert snapshot.enabled is True
     assert snapshot.state == "stale"
     assert not shadow_db_path(graph).exists()
+
+
+def test_resolve_shadow_db_state_reports_invalid_external_cache_without_path_leak(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _graph(tmp_path)
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(graph / "unsafe-cache"))
+
+    snapshot = resolve_shadow_db_state_for_api(graph)
+
+    assert snapshot.enabled is True
+    assert snapshot.state == "error"
+    assert snapshot.not_ready_reason == "cache_unavailable"
+    assert snapshot.last_sync_error == "External Shadow cache unavailable"
+    assert str(graph) not in snapshot.model_dump_json()
+    assert resolve_shadow_health(graph) is ShadowHealthState.ERROR
 
 
 def test_resolve_shadow_db_state_ready(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
