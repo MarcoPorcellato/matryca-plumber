@@ -15,6 +15,7 @@ from .io_retry import IO_RETRY_ATTEMPTS, IO_RETRY_INITIAL_DELAY_S, IO_RETRY_MAX_
 from .logseq_uuid import assert_valid_block_refs_in_markdown
 from .path_sandbox import PathTraversalSecurityError, assert_path_within_graph, read_graph_file_text
 from .path_sandbox import graph_safe_page_path as _graph_safe_page_path
+from .safety.write_policy import guard_graph_mutation
 
 _BULLET = re.compile(r"^(\s*)[-*+]\s+")
 # mkstemp(prefix=f".{basename}.", suffix=".tmp") → ``.{name}.{token}.tmp``
@@ -270,6 +271,7 @@ def atomic_write_bytes_if_unchanged(
     robot_commit_summary: str | None = None,
 ) -> bool:
     """Commit only when ``baseline_mtime`` still matches. Returns ``True`` when written."""
+    guard_graph_mutation(graph_root, file_path, operation="atomic_write_bytes_if_unchanged")
     if file_mtime_drifted(file_path, baseline_mtime):
         return False
     try:
@@ -304,6 +306,7 @@ def atomic_write_bytes(
         ValueError: When ``file_path`` escapes ``graph_root`` or a ``*.md`` payload contains a
             malformed ``((uuid))`` block reference (unless ``validate_block_refs=False``).
     """
+    guard_graph_mutation(graph_root, file_path, operation="atomic_write_bytes")
     is_markdown = Path(file_path).suffix.lower() == ".md"
     if validate_block_refs and is_markdown and b"((" in data:
         text = data.decode("utf-8")
@@ -411,6 +414,7 @@ def sweep_dangling_atomic_tmp_files(graph_root: str | Path) -> int:
     Scans ``pages/`` and ``journals/`` (including nested folders). Returns the count
     of files unlinked.
     """
+    guard_graph_mutation(graph_root, graph_root, operation="sweep_dangling_atomic_tmp_files")
     root = Path(graph_root).expanduser().resolve(strict=False)
     removed = 0
     for sub in ("pages", "journals"):

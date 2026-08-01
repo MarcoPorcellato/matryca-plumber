@@ -9,10 +9,12 @@ from unittest.mock import patch
 import pytest
 from src.graph.markdown_blocks import (
     atomic_write_bytes,
+    atomic_write_bytes_if_unchanged,
     file_mtime_drifted,
     occ_snapshot,
     sweep_dangling_atomic_tmp_files,
 )
+from src.graph.safety.write_policy import GraphReadOnlyError
 
 
 def test_occ_snapshot_returns_mtime_ns(tmp_path: Path) -> None:
@@ -60,6 +62,74 @@ def test_atomic_write_unlinks_temp_when_replace_fails(
     assert temps_before == []
 
 
+def test_atomic_write_bytes_blocks_early_when_read_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    target = tmp_path / "pages" / "Blocked.md"
+    target.parent.mkdir(parents=True)
+
+    with (
+        patch("src.graph.markdown_blocks.tempfile.mkstemp", side_effect=AssertionError("mkstemp")),
+        patch("src.graph.markdown_blocks.os.replace", side_effect=AssertionError("replace")),
+        patch("src.graph.markdown_blocks.Path.mkdir", side_effect=AssertionError("mkdir")),
+        pytest.raises(GraphReadOnlyError),
+    ):
+        atomic_write_bytes(target, b"payload", graph_root=tmp_path)
+
+
+def test_atomic_write_bytes_if_unchanged_blocks_before_delegate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    target = tmp_path / "pages" / "Blocked.md"
+
+    with (
+        patch(
+            "src.graph.markdown_blocks.atomic_write_bytes",
+            side_effect=AssertionError("delegate"),
+        ),
+        pytest.raises(GraphReadOnlyError),
+    ):
+        atomic_write_bytes_if_unchanged(
+            target,
+            b"payload",
+            graph_root=tmp_path,
+            baseline_mtime=0,
+        )
+
+
+def test_atomic_write_bytes_blocks_symlink_containment_in_read_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = tmp_path / "graph"
+    target_dir = graph / "pages"
+    target_dir.mkdir(parents=True)
+    target = target_dir / "Live.md"
+    target.write_text("- live\n", encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    alias = outside / "Alias.md"
+    try:
+        alias.symlink_to(target)
+    except (AttributeError, NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    with (
+        patch("src.graph.markdown_blocks.tempfile.mkstemp", side_effect=AssertionError("mkstemp")),
+        pytest.raises(GraphReadOnlyError),
+    ):
+        atomic_write_bytes(alias, b"payload", graph_root=graph)
+
+
 def test_sweep_dangling_atomic_tmp_files_removes_orphans(tmp_path: Path) -> None:
     pages = tmp_path / "pages"
     journals = tmp_path / "journals"
@@ -77,6 +147,26 @@ def test_sweep_dangling_atomic_tmp_files_removes_orphans(tmp_path: Path) -> None
     assert not orphan_page.exists()
     assert not orphan_journal.exists()
     assert keep_page.read_text(encoding="utf-8") == "live"
+
+
+def test_sweep_dangling_atomic_tmp_files_blocks_when_read_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pages = tmp_path / "pages"
+    journals = tmp_path / "journals"
+    pages.mkdir()
+    journals.mkdir()
+    (pages / ".Note.md.deadbeef.tmp").write_bytes(b"stale")
+
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+
+    with (
+        patch("src.graph.markdown_blocks.Path.unlink", side_effect=AssertionError("unlink")),
+        pytest.raises(GraphReadOnlyError),
+    ):
+        sweep_dangling_atomic_tmp_files(tmp_path)
 
 
 def test_sweep_ignores_unrelated_hidden_files(tmp_path: Path) -> None:

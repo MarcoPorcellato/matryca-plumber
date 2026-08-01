@@ -22,6 +22,7 @@ from .io_retry import (
     IO_RETRY_MAX_DELAY_S,
     PageLockUnavailableError,
 )
+from .safety.write_policy import guard_graph_mutation, guard_graph_mutation_from_env
 
 _registry_guard = threading.Lock()
 _page_locks: OrderedDict[str, threading.RLock] = OrderedDict()
@@ -96,6 +97,7 @@ def probe_page_rmw_lock(page_path: str | Path) -> None:
     Raises:
         PageLockUnavailableError: When thread or cross-process locks are contended.
     """
+    guard_graph_mutation_from_env(page_path, operation="probe_page_rmw_lock")
     key = normalize_page_lock_key(page_path)
     thread_lock = _lock_for_key(key)
     if not thread_lock.acquire(blocking=False):
@@ -114,6 +116,7 @@ def probe_page_rmw_lock(page_path: str | Path) -> None:
 @contextmanager
 def page_rmw_lock(page_path: str | Path) -> Iterator[None]:
     """Hold an exclusive lock for one file's full RMW lifecycle (thread- and process-safe)."""
+    guard_graph_mutation_from_env(page_path, operation="page_rmw_lock")
     key = normalize_page_lock_key(page_path)
     thread_lock = _lock_for_key(key)
     delay = IO_RETRY_INITIAL_DELAY_S
@@ -146,6 +149,7 @@ def clear_page_write_locks() -> None:
 
 def sweep_matryca_lock_sidecars(graph_root: str | Path) -> int:
     """Remove orphan ``.{page}.matryca.lock`` sidecars under ``pages/`` and ``journals/``."""
+    guard_graph_mutation(graph_root, graph_root, operation="sweep_matryca_lock_sidecars")
     root = Path(graph_root).expanduser().resolve(strict=False)
     removed = 0
     for sub in ("pages", "journals"):
