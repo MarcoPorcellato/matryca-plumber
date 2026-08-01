@@ -79,6 +79,8 @@ or `memory_path` in `matryca-wiki.yml`. Bootstrap will create that path and seed
 
 **Rationale:** Cache and templates must exist before the first catalog save or template read; creating them at startup avoids racey `mkdir` scattered through writers.
 
+`MATRYCA_CACHE_PATH` is always an external cache root. The policy canonicalizes graph and cache roots and rejects relative, unresolved, or symlink-alias paths that cannot be proven outside the graph root.
+
 ### 4. Wiki orchestration file (when missing)
 
 | File | Behavior |

@@ -22,6 +22,7 @@ The soak ran 24 hours of accumulated exercise across 144 cycles and 288 attempts
 ### Security
 
 - **GitPython dependency hardening** — require `GitPython>=3.1.52` and lock `3.1.54` to include the current dependency security fixes.
+- **Strict read-only graph-write contract** — add `MATRYCA_READ_ONLY=false` and optional `MATRYCA_CACHE_PATH`, plus `RuntimeWritePolicy` / `GraphReadOnlyError(code=graph_read_only)`, to define fail-closed canonical graph containment ahead of caller enforcement.
 
 ### Added
 
