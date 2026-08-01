@@ -58,6 +58,20 @@ def _minimal_graph(tmp_path: Path) -> Path:
     return graph
 
 
+def _graph_snapshot(graph: Path) -> dict[str, tuple[str, bytes | str]]:
+    """Capture graph inventory and file bytes without following symlinks."""
+    snapshot: dict[str, tuple[str, bytes | str]] = {}
+    for path in sorted(graph.rglob("*")):
+        rel = path.relative_to(graph).as_posix()
+        if path.is_symlink():
+            snapshot[rel] = ("symlink", str(path.readlink()))
+        elif path.is_dir():
+            snapshot[rel] = ("directory", "")
+        else:
+            snapshot[rel] = ("file", path.read_bytes())
+    return snapshot
+
+
 def test_rebuild_indexes_existing_vault(tmp_path: Path) -> None:
     graph = _minimal_graph(tmp_path)
     _write_page(
@@ -371,6 +385,92 @@ def test_startup_bootstrap_via_prepare_matryca_runtime(tmp_path: Path) -> None:
         assert get_meta(conn, META_LAST_FULL_SYNC_COMPLETED) == "true"
     finally:
         conn.close()
+
+
+def test_read_only_startup_builds_external_shadow_without_graph_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    _write_page(
+        graph,
+        "pages/ReadOnly.md",
+        "- external cache only\n  id:: dddddddd-dddd-4ddd-8ddd-dddddddddddd\n",
+    )
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    before = _graph_snapshot(graph)
+
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+    database = shadow_db_path(graph)
+    assert database.is_file()
+    assert not database.is_relative_to(graph)
+    assert resolve_shadow_health(graph) == ShadowHealthState.READY
+    assert _graph_snapshot(graph) == before
+
+
+def test_read_only_shadow_off_touches_neither_graph_nor_external_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    _write_page(graph, "pages/Disabled.md", "- remain on Markdown\n")
+    cache_root = tmp_path / "operator-cache"
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(cache_root))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
+    before = _graph_snapshot(graph)
+
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+    assert not cache_root.exists()
+    assert resolve_shadow_health(graph) == ShadowHealthState.DISABLED
+    assert _graph_snapshot(graph) == before
+
+
+def test_read_only_watchdog_reconciles_external_shadow_without_graph_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    page = _write_page(graph, "pages/Observed.md", "- first\n")
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+    page.write_text("- externally updated\n", encoding="utf-8")
+    before = _graph_snapshot(graph)
+    handle_shadow_watchdog_change(graph, page, "modified")
+
+    conn = open_shadow_db(graph)
+    try:
+        assert conn.execute("SELECT content FROM blocks").fetchall() == [
+            ("externally updated",),
+        ]
+    finally:
+        conn.close()
+    assert _graph_snapshot(graph) == before
+
+    page.unlink()
+    before_delete = _graph_snapshot(graph)
+    handle_shadow_watchdog_change(graph, page, "deleted")
+    conn = open_shadow_db(graph)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == 0
+    finally:
+        conn.close()
+    assert _graph_snapshot(graph) == before_delete
+
+    created = _write_page(graph, "pages/Created.md", "- externally created\n")
+    before_create = _graph_snapshot(graph)
+    handle_shadow_watchdog_change(graph, created, "created")
+    conn = open_shadow_db(graph)
+    try:
+        assert conn.execute("SELECT content FROM blocks").fetchall() == [
+            ("externally created",),
+        ]
+    finally:
+        conn.close()
+    assert _graph_snapshot(graph) == before_create
 
 
 def test_rebuild_duplicate_block_uuid_cross_page_bounded_diagnostic(

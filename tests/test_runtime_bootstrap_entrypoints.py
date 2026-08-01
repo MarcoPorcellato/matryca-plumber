@@ -83,7 +83,11 @@ def test_cli_main_read_only_read_path_skips_graph_local_bootstrap(
     monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_graph_runtime_directories", _blocked)
     monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_wiki_config_file", _blocked)
     monkeypatch.setattr("src.daemon.register_daemon_post_write_hooks", _blocked)
-    monkeypatch.setattr("src.shadow.bootstrap.ensure_shadow_runtime_at_startup", _blocked)
+    shadow_calls: list[Path] = []
+    monkeypatch.setattr(
+        "src.shadow.bootstrap.ensure_shadow_runtime_at_startup",
+        lambda root: shadow_calls.append(Path(root)),
+    )
 
     async def _run_cli(_args: object) -> int:
         return 0
@@ -98,6 +102,7 @@ def test_cli_main_read_only_read_path_skips_graph_local_bootstrap(
     assert not (graph / "templates").exists()
     assert not (graph / "matryca-wiki.yml").exists()
     assert not (tmp_path / "matryca-l1").exists()
+    assert shadow_calls == [graph]
 
 
 def test_cli_main_rejects_read_only_write_before_prepare(
@@ -255,9 +260,10 @@ async def test_mcp_lifespan_skips_graph_writes_in_read_only_mode(
     graph = _minimal_graph(tmp_path)
     monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
     monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    calls: list[dict[str, object]] = []
     monkeypatch.setattr(
         "src.main.prepare_matryca_runtime",
-        lambda **_kwargs: pytest.fail("bootstrap must not run"),
+        lambda **kwargs: calls.append(kwargs),
     )
     monkeypatch.setattr(
         "src.main.sweep_dangling_atomic_tmp_files",
@@ -266,6 +272,10 @@ async def test_mcp_lifespan_skips_graph_writes_in_read_only_mode(
 
     async with app_lifespan(MagicMock()):
         pass
+
+    assert len(calls) == 1
+    assert calls[0]["graph_root"] == graph.resolve()
+    assert calls[0]["eager_graph"] is False
 
 
 def test_start_daemon_foreground_defers_prepare_to_run_forever(

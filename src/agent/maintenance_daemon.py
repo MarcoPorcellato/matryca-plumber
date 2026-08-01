@@ -53,6 +53,7 @@ from ..graph.path_sandbox import (
     graph_relative_path_key,
     read_graph_file_text,
 )
+from ..graph.safety.write_policy import is_graph_read_only
 from ..graph.semantic_clustering import (
     CLUSTER_IDS_WITHOUT_FOCUS,
     JOURNAL_CLUSTER_ID,
@@ -374,6 +375,12 @@ class MaintenanceDaemon:
 
     def _on_watchdog_change(self, path: Path, kind: FileEventKind) -> None:
         """Refresh AST cache and wake the duty cycle after debounced vault edits."""
+        if is_graph_read_only():
+            from ..shadow.bootstrap import handle_shadow_watchdog_change
+
+            handle_shadow_watchdog_change(self.graph_root, path, kind)
+            self._cycle_wake.set()
+            return
         get_graph_ast_cache(self.graph_root).apply_file_event(path, kind)
         from ..daemon.config_layer import refresh_identity_config
 

@@ -44,13 +44,13 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[AppContext]:
         os.chdir(str(resolved_root))
     read_only = resolved_root is not None and RuntimeWritePolicy.from_env(resolved_root).read_only
     # Lazy AST: handshake must not block on full-vault parse (Hermes connect_timeout).
-    # In read-only mode this bootstrap would create graph-local cache/template files.
-    if not read_only:
-        prepare_matryca_runtime(
-            graph_root=resolved_root,
-            wiki_config=wiki_config,
-            eager_graph=False,
-        )
+    # The bootstrap policy suppresses graph-local provisioning under Read Only while
+    # still allowing the derived external Shadow cache to reconcile from Markdown.
+    prepare_matryca_runtime(
+        graph_root=resolved_root,
+        wiki_config=wiki_config,
+        eager_graph=False,
+    )
     if resolved_root is not None and not read_only:
         swept = await asyncio.to_thread(sweep_dangling_atomic_tmp_files, str(resolved_root))
         if swept:

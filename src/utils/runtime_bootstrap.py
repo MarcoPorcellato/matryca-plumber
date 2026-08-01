@@ -137,8 +137,12 @@ def prepare_matryca_runtime(
     policy = RuntimeWritePolicy(graph_root=graph_root, read_only=is_graph_read_only())
     if policy.read_only:
         logger.bind(graph=str(policy.graph_root)).info(
-            "Skipping graph-local runtime bootstrap under read-only policy",
+            "Skipping graph-local runtime bootstrap under read-only policy; "
+            "checking external Shadow cache",
         )
+        from ..shadow.bootstrap import ensure_shadow_runtime_at_startup
+
+        ensure_shadow_runtime_at_startup(graph_root)
         return
 
     cfg = wiki_config or MatrycaWikiConfig()

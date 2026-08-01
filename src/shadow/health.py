@@ -6,7 +6,6 @@ from enum import StrEnum
 from pathlib import Path
 
 from ..graph.path_sandbox import resolved_graph_root
-from ..graph.safety.write_policy import is_graph_read_only
 from .config import shadow_db_enabled
 from .connection import open_shadow_db, shadow_db_path
 from .meta import (
@@ -70,8 +69,6 @@ def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
     if not shadow_db_enabled():
         return ShadowHealthState.DISABLED
     root = resolved_graph_root(graph_root)
-    if is_graph_read_only():
-        return ShadowHealthState.STALE
     if is_shadow_bootstrapping(root):
         return ShadowHealthState.BOOTSTRAPPING
     if not shadow_db_path(root).is_file():
