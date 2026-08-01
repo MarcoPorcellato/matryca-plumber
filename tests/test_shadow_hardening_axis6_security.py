@@ -26,6 +26,7 @@ from src.agent.shadow_graph_repository import ShadowGraphRepository
 from src.config import MatrycaWikiConfig
 from src.graph.path_sandbox import PathTraversalSecurityError
 from src.shadow.bootstrap import rebuild_shadow_from_graph
+from src.shadow.cache_location import resolve_shadow_cache_location
 from src.shadow.config import shadow_db_enabled
 from src.shadow.connection import open_shadow_db, shadow_db_path
 from src.shadow.errors import ShadowSyncError
@@ -55,6 +56,11 @@ def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
     monkeypatch.setenv("MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS", "200")
     reset_shadow_runtime_state_for_tests()
+
+
+@pytest.fixture(autouse=True)
+def _shadow_cache_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(tmp_path / "operator-cache"))
 
 
 def _minimal_graph(tmp_path: Path) -> Path:
@@ -98,29 +104,36 @@ def test_a6_path_01_sync_rejects_page_outside_graph(tmp_path: Path) -> None:
 
 @_UNIX_ONLY
 def test_a6_path_02_shadow_writer_lock_rejects_cache_symlink_escape(tmp_path: Path) -> None:
-    """A6-PATH-02: semantic-cache directory symlink escape is rejected before lock."""
+    """A6-PATH-02: external cache-root symlink escape is rejected before lock."""
     graph = _minimal_graph(tmp_path)
     outside = tmp_path / "outside-cache"
     outside.mkdir()
-    (graph / ".matryca_semantic_cache").symlink_to(outside, target_is_directory=True)
+    cache_root = resolve_shadow_cache_location(graph).cache_root
+    if cache_root.exists():
+        if cache_root.is_dir():
+            import shutil
+
+            shutil.rmtree(cache_root)
+        else:
+            cache_root.unlink()
+    cache_root.symlink_to(outside, target_is_directory=True)
     with pytest.raises(PathTraversalSecurityError):
         shadow_writer_lock_path(graph)
 
 
 def test_a6_path_03_shadow_db_path_stays_under_graph(tmp_path: Path) -> None:
-    """A6-PATH-03: ``shadow.sqlite`` resolves under ``.matryca_semantic_cache`` inside graph."""
+    """A6-PATH-03: ``shadow.sqlite`` resolves outside the graph in the external cache."""
     graph = _minimal_graph(tmp_path)
     db_path = shadow_db_path(graph)
-    assert db_path.resolve().is_relative_to(graph.resolve())
-    assert db_path.parent.name == ".matryca_semantic_cache"
+    assert not db_path.resolve().is_relative_to(graph.resolve())
 
 
 @_UNIX_ONLY
 def test_a6_path_04_graph_root_symlink_resolves_and_stays_sandboxed(tmp_path: Path) -> None:
-    """A6-PATH-04: graph-root symlink is supported; helpers stay under the resolved root.
+    """A6-PATH-04: graph-root symlink is supported; helpers target the resolved root.
 
     Contract: ``resolved_graph_root`` follows the link. Lock/DB paths must resolve
-    under that canonical vault, never outside it.
+    to that canonical vault, while cache artifacts remain outside the graph.
     """
     outside = tmp_path / "outside-vault"
     outside.mkdir()
@@ -130,8 +143,9 @@ def test_a6_path_04_graph_root_symlink_resolves_and_stays_sandboxed(tmp_path: Pa
 
     lock_path = shadow_writer_lock_path(link)
     db_path = shadow_db_path(link)
-    assert lock_path.resolve().is_relative_to(link.resolve())
-    assert db_path.resolve().is_relative_to(link.resolve())
+    outside_location = resolve_shadow_cache_location(outside)
+    assert db_path == outside_location.database_path
+    assert str(lock_path).startswith(str(outside_location.cache_root))
     conn = open_shadow_db(link)
     try:
         assert shadow_db_path(link).is_file()

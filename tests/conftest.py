@@ -45,3 +45,14 @@ def zero_thermal_delays_in_tests(monkeypatch: pytest.MonkeyPatch) -> None:
     """Skip real thermal cool-down sleeps unless a test overrides these env vars."""
     for key in _THERMAL_DELAY_ENV_KEYS:
         monkeypatch.setenv(key, "0")
+
+
+@pytest.fixture(autouse=True)
+def isolated_shadow_cache_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> Path:
+    """Keep runtime Shadow caches outside graph fixtures and inside pytest storage."""
+    cache_root = tmp_path.parent / f"{tmp_path.name}-matryca-cache"
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(cache_root))
+    return cache_root

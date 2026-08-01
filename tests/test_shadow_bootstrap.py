@@ -213,7 +213,7 @@ def test_prepare_matryca_runtime_flag_false_leaves_existing_db_untouched(
     reset_shadow_bootstrap_checked_for_tests()
     prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
 
-    conn = open_shadow_db(graph)
+    conn = sqlite3.connect(f"{shadow_db_path(graph).as_uri()}?mode=ro", uri=True)
     try:
         assert get_meta(conn, META_GENERATION) == before
         assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == page_count

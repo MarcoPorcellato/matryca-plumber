@@ -46,6 +46,11 @@ def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     reset_shadow_runtime_state_for_tests()
 
 
+@pytest.fixture(autouse=True)
+def _shadow_cache_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(tmp_path / "operator-cache"))
+
+
 def _minimal_graph(tmp_path: Path) -> Path:
     graph = tmp_path / "vault"
     (graph / "pages").mkdir(parents=True)

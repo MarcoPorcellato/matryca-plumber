@@ -9,7 +9,10 @@
 
 Replace the v1.9.5 read path (`master_catalog.json` + in-memory Okapi BM25) with a daemon-owned **`shadow.sqlite`** for sub-50 ms hierarchical reads (FTS5 + recursive CTEs), without touching Logseq's internal indices.
 
-Logseq Markdown on disk remains the **system of record**. Shadow DB is a read-only cache synced by the daemon.
+Logseq Markdown on disk remains the **system of record**. Shadow DB is a derived read
+cache synced by the daemon. For the RC it moves outside the graph so strict Logseq
+Read Only can retain accelerated reads; see the
+[`external-cache decision`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
 ---
 
@@ -33,7 +36,11 @@ Canonical DDL: [`src/shadow/schema.py`](../../src/shadow/schema.py)
 | **Read cache** | `pages`, `blocks`, `block_refs`, `blocks_fts` | Logseq OG mirror for FTS5 + recursive CTE subtree reads |
 | **Memory graph** | `memory_nodes`, `memory_edges`, `memory_pending_edges`, `memory_episodes`, `memory_episode_entities`, `memory_procedures`, `memory_snapshots` | Nacre-inspired biological memory — see [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md) |
 
-Default path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (`shadow_db_path` / `open_shadow_db`).
+Published beta path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`
+(`shadow_db_path` / `open_shadow_db`). RC target: a canonical per-user external cache,
+isolated by versioned graph identity, with `MATRYCA_CACHE_PATH` as an absolute external
+root override. The beta database is rebuilt externally, never moved or mutated in
+place under Read Only.
 
 ---
 
@@ -53,6 +60,15 @@ Default path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (`shad
 
 - [x] Duplicate block UUID pre-insert diagnostics ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251))
 
+### RC external-cache prerequisite
+
+- [ ] Typed platform cache-root and versioned graph-identity resolver
+- [ ] Shadow connection, WAL/SHM, and writer lock routed through one external location
+- [ ] Read-only bootstrap split: no graph writes, external Shadow maintenance allowed
+- [ ] Beta graph-local cache ignored and rebuilt externally without automatic deletion
+- [ ] Independent Sovereign UI Read Only and Shadow controls
+- [ ] Exact-wheel read-only/default-on qualification with unchanged graph fingerprints
+
 ### Rollout (Epic #20)
 
 | Track | Target | Status |
@@ -60,7 +76,7 @@ Default path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (`shad
 | v2.0.0-alpha.1 | Axis 1 hardening (#262, #264) | **superseded** |
 | v2.0.0-alpha.5 | Seven-axis hardening campaign close | **published** |
 | v2.0.0-beta.1 | First public Shadow read-path beta; opt-in flag remains default-off | **published** |
-| v2.0.0-rc.1 | MCP read traffic routed to Shadow DB by default after exact public-beta re-qualification | planned |
+| v2.0.0-rc.1 | External Shadow cache works under Read Only; MCP reads default to Shadow after qualification | planned |
 | v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path after RC observation | planned |
 
 The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
@@ -77,6 +93,7 @@ the unchecked readiness row remains authoritative until the soak terminates.
 | Path | Rule |
 |------|------|
 | **READ** | Shadow DB syncs read-only from Markdown (Classic) or Markdown Mirror (Logseq DB) |
+| **CACHE** | SQLite, WAL/SHM, and lock files live in the canonical external cache; Read Only forbids graph-local cache writes |
 | **WRITE (Logseq OG)** | Append to `.md` + OCC — shipped v1.9.5 ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) partial) |
 | **WRITE (Logseq DB)** | Official CLI/API only — never native DB mutation |
 

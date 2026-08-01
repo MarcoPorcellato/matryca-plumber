@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 from src.graph.io_retry import PageLockUnavailableError
 from src.shadow.bootstrap import rebuild_shadow_from_graph
+from src.shadow.cache_location import resolve_shadow_cache_location
 from src.shadow.connection import open_shadow_db
 from src.shadow.meta import META_LAST_FULL_SYNC_COMPLETED, get_meta
 from src.shadow.runtime_state import reset_shadow_runtime_state_for_tests
@@ -32,6 +33,11 @@ def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS", "200")
     reset_shadow_runtime_state_for_tests()
     clear_flock_depths()
+
+
+@pytest.fixture(autouse=True)
+def _shadow_cache_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(tmp_path / "operator-cache"))
 
 
 def _minimal_graph(tmp_path: Path) -> Path:
@@ -58,8 +64,12 @@ def _multiprocess_rebuild_worker(graph_str: str) -> None:
 def test_shadow_writer_lock_path_under_semantic_cache(tmp_path: Path) -> None:
     graph = _minimal_graph(tmp_path)
     lock_path = shadow_writer_lock_path(graph)
+    location = resolve_shadow_cache_location(
+        graph,
+        env={"MATRYCA_CACHE_PATH": str(tmp_path / "operator-cache")},
+    )
     assert lock_path.name == "shadow.writer.flock"
-    assert lock_path.parent.name == ".matryca_semantic_cache"
+    assert lock_path == location.writer_lock_path
 
 
 def test_concurrent_rebuilds_serialize_across_processes(tmp_path: Path) -> None:

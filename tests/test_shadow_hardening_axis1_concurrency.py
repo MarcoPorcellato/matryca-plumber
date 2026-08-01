@@ -44,6 +44,11 @@ from src.shadow.writer_lock import shadow_writer_lock, shadow_writer_lock_path
 
 
 @pytest.fixture(autouse=True)
+def _shadow_cache_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(tmp_path / "operator-cache"))
+
+
+@pytest.fixture(autouse=True)
 def _shadow_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
     monkeypatch.setenv("MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS", "200")
@@ -297,4 +302,4 @@ def test_a1_shadow_writer_lock_is_cross_process(tmp_path: Path) -> None:
     graph = _minimal_graph(tmp_path)
     lock_path = shadow_writer_lock_path(graph)
     assert lock_path.name == "shadow.writer.flock"
-    assert lock_path.parent.name == ".matryca_semantic_cache"
+    assert not lock_path.parent.is_relative_to(graph.resolve())

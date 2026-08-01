@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: Shadow DB read architecture
-description: Opt-in SQLite read cache, synchronization, health, routing, and fallback boundaries.
+description: SQLite read cache, external-cache RC direction, synchronization, health, routing, and fallback boundaries.
 resource: src/shadow/
 tags: [shadow-db, sqlite, fts5, cte, concurrency]
 timestamp: 2026-07-18T00:00:00Z
@@ -23,7 +23,15 @@ legacy_sources:
 
 > **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
 
-Logseq Markdown on disk remains the **system of record**. `shadow.sqlite` is an **opt-in read cache** owned by the daemon under `.matryca_semantic_cache/`. It accelerates hierarchical reads when healthy; it never replaces vault writes or OCC on `.md` files.
+Logseq Markdown on disk remains the **system of record**. In the published beta,
+`shadow.sqlite` is an **opt-in read cache** owned by the daemon under
+`.matryca_semantic_cache/`. It accelerates hierarchical reads when healthy; it never
+replaces vault writes or OCC on `.md` files.
+
+**Approved RC direction:** Shadow DB moves to a canonical per-user external cache so
+`MATRYCA_READ_ONLY=true` can protect every graph-local file while retaining Shadow
+acceleration. The detailed storage, migration, security, bootstrap, and evidence
+contract is [`v2-external-shadow-cache-read-only.md`](../../quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
 **Introduced:** `v2.0.0-alpha` (opt-in read path). **Hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **`v2.0.0-beta.1` is the first public beta:** the flag stays default-off, Markdown stays authoritative, and Phase 4 biological memory/Safe-Sync remains out of scope.
 
@@ -39,7 +47,10 @@ Routing applies only when the flag is **on** and health is **`ready`**. Otherwis
 
 ## Schema and memory tables
 
-Canonical DDL: [`src/shadow/schema.py`](../../../src/shadow/schema.py). Default path: `shadow_db_path()` → `<vault>/.matryca_semantic_cache/shadow.sqlite`.
+Canonical DDL: [`src/shadow/schema.py`](../../../src/shadow/schema.py). Published beta
+path: `shadow_db_path()` → `<vault>/.matryca_semantic_cache/shadow.sqlite`. RC target:
+`<platform user cache>/matryca-plumber/graphs/<versioned-graph-id>/shadow/shadow.sqlite`,
+with `MATRYCA_CACHE_PATH` as an external-root override.
 
 | Layer | Tables | Runtime status |
 | --- | --- | --- |
@@ -68,6 +79,10 @@ flowchart TB
   Health -->|ready| Route
   Health -->|disabled bootstrapping stale error| Fallback
 ```
+
+Under the approved RC contract, the same lifecycle writes SQLite, WAL/SHM, and lock
+state only to the resolved external cache. Read Only blocks graph-local provisioning
+and mutations but does not block this validated derived-cache lifecycle.
 
 | Stage | Key symbols |
 | --- | --- |
@@ -99,6 +114,7 @@ Cross-process writers serialize through advisory **`shadow.writer.flock`** (`sha
 - Operator contract: [`llms.txt`](../../../llms.txt) §2.6
 - Roadmap checklist: [`ROADMAP_V2_SHADOW_DB.md`](../../roadmaps/ROADMAP_V2_SHADOW_DB.md)
 - Beta-readiness decision record: [`v2-beta-readiness.md`](../../quality/issue-bodies/v2-beta-readiness.md)
+- RC external-cache decision: [`v2-external-shadow-cache-read-only.md`](../../quality/issue-bodies/v2-external-shadow-cache-read-only.md)
 
 ## Legacy deep dives
 

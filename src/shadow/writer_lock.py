@@ -6,12 +6,13 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
+from ..graph.path_sandbox import PathTraversalSecurityError, resolved_graph_root
 from ..utils.platform_lock import cross_process_sidecar_lock
+from .cache_location import (
+    ShadowCacheLocationError,
+    resolve_shadow_cache_location,
+)
 from .config import shadow_rebuild_lock_timeout_s, shadow_writer_lock_timeout_s
-from .connection import shadow_db_path
-
-_SHADOW_WRITER_LOCK_FILENAME = "shadow.writer.flock"
 
 
 def _writer_lock_depth_key(lock_path: Path) -> str:
@@ -20,11 +21,13 @@ def _writer_lock_depth_key(lock_path: Path) -> str:
 
 
 def shadow_writer_lock_path(graph_root: Path | str) -> Path:
-    """Return the sandboxed sidecar flock path for shadow writers."""
+    """Return the typed sidecar flock path for this graph's shadow cache."""
     root = resolved_graph_root(graph_root)
-    db_path = shadow_db_path(root)
-    lock_path = db_path.parent / _SHADOW_WRITER_LOCK_FILENAME
-    return assert_path_within_graph(lock_path, root)
+    try:
+        location = resolve_shadow_cache_location(root)
+    except ShadowCacheLocationError as exc:
+        raise PathTraversalSecurityError(str(exc)) from exc
+    return location.writer_lock_path
 
 
 @contextmanager

@@ -78,12 +78,18 @@ def test_shadow_rebuild_lock_timeout_s_clamped(monkeypatch: pytest.MonkeyPatch) 
     assert shadow_rebuild_lock_timeout_s() == 600.0
 
 
+@pytest.fixture(autouse=True)
+def _shadow_cache_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(tmp_path / "operator-cache"))
+
+
 def test_shadow_writer_lock_path_rejects_cache_symlink_escape(tmp_path: Path) -> None:
     graph = tmp_path / "vault"
     (graph / "pages").mkdir(parents=True)
+
     outside = tmp_path / "outside-cache"
     outside.mkdir()
-    (graph / ".matryca_semantic_cache").symlink_to(outside, target_is_directory=True)
+    (tmp_path / "operator-cache").symlink_to(outside, target_is_directory=True)
     with pytest.raises(PathTraversalSecurityError):
         shadow_writer_lock_path(graph)
 

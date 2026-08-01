@@ -92,6 +92,15 @@ flowchart TB
 
 **v2.0.0-alpha focus:** **Shadow DB read path (opt-in)** — daemon-owned `shadow.sqlite` under `.matryca_semantic_cache/`; bootstrap/reconciliation ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)); `MATRYCA_SHADOW_DB_ENABLED=false` default; when enabled and healthy, `search_graph(bm25)` prefers FTS5 and `read_graph_data(subtree)` prefers recursive CTE via `ShadowGraphRepository` + `get_graph_read_port`; generational BM25 and `MarkdownGraphRepository` fallback when flag is off, health is not `ready`, or SQLite errors; Sovereign UI `/api/state.shadow_db` telemetry ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)); bounded duplicate `block_uuid` diagnostics ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)). Spec: [`roadmaps/ROADMAP_V2_SHADOW_DB.md`](roadmaps/ROADMAP_V2_SHADOW_DB.md) · operator contract: [`llms.txt`](../llms.txt) §2.6.
 
+**v2.0.0 RC storage direction:** Shadow DB becomes a per-user **external derived cache**,
+isolated by a versioned digest of the canonical graph path. `MATRYCA_READ_ONLY=true`
+continues to forbid every graph-local mutation while permitting validated external
+Shadow SQLite/WAL/SHM/lock writes; Markdown remains authoritative and every non-ready
+state falls back to Markdown/BM25. `MATRYCA_CACHE_PATH` remains the explicit external
+root override. The beta graph-local database is rebuilt externally rather than moved,
+mutated, or deleted. Decision and implementation slices:
+[`v2-external-shadow-cache-read-only.md`](quality/issue-bodies/v2-external-shadow-cache-read-only.md).
+
 **v1.13.1 focus:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation; **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). Plumber `_headless_append_child` mirrors the **1.4.2** newline normalization.
 
 **v1.13.0 focus:** **Daemon & dispatch modularization (v2 Phase 0–1)** — `maintenance_daemon` SRP split ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58)); `graph_dispatch` handler registry ([#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)); **`GraphReadPort`** / `MarkdownGraphRepository`.
