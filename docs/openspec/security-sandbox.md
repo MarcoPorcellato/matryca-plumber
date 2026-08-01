@@ -27,6 +27,19 @@ All candidate paths under `LOGSEQ_GRAPH_PATH` are resolved with `Path.resolve()`
 
 ---
 
+## Runtime write policy
+
+`RuntimeWritePolicy` in [`src/graph/safety/write_policy.py`](../../src/graph/safety/write_policy.py) is the fail-closed contract for graph-root mutations.
+
+| Variable | Behavior |
+|----------|----------|
+| `MATRYCA_READ_ONLY` | Default `false`. When `true`, any candidate write path whose canonical resolution lies under the canonical graph root raises `GraphReadOnlyError(code="graph_read_only")`. |
+| `MATRYCA_CACHE_PATH` | Optional external cache root. The path is canonicalized before use; symlink aliases, relative targets, and unresolved targets fail closed. The resolved cache root must stay outside the graph root or the policy rejects it. |
+
+The policy resolves both graph and cache roots canonically, so symlink aliases into the graph are treated the same as direct descendants. `MATRYCA_CACHE_PATH` is always treated as an external cache root, not a graph-local working directory. This contract exists before enforcement at callers, CLI, MCP, Shadow, or daemon entry points.
+
+---
+
 ## Bounded JSON checkpoints
 
 Graph-local JSON files (catalog, link registry, daemon state, semantic cache, block vectors) load through **`read_bounded_json()`** with env **`MATRYCA_JSON_MAX_BYTES`** (default **64 MiB**). Oversized files fail fast instead of causing local memory DoS.
