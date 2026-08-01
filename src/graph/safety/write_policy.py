@@ -146,9 +146,41 @@ def ensure_graph_write_allowed(
     policy.ensure_write_allowed(policy.graph_root, operation=operation)
 
 
+def guard_graph_mutation(
+    graph_root: str | Path,
+    path: str | Path,
+    *,
+    operation: str,
+) -> None:
+    """Fail closed for graph-local mutations when read-only is enabled."""
+
+    if not is_graph_read_only():
+        return
+    policy = RuntimeWritePolicy(graph_root=Path(graph_root), read_only=True)
+    policy.ensure_write_allowed(path, operation=operation)
+
+
+def guard_graph_mutation_from_env(
+    path: str | Path,
+    *,
+    operation: str,
+) -> None:
+    """Fail closed for env-resolved graph mutations when read-only is enabled."""
+
+    if not is_graph_read_only():
+        return
+    raw_graph = os.environ.get("LOGSEQ_GRAPH_PATH", "").strip()
+    if not raw_graph:
+        raise GraphReadOnlyError(operation, path=path, reason="graph_root_unresolvable")
+    policy = RuntimeWritePolicy(graph_root=Path(raw_graph), read_only=True)
+    policy.ensure_write_allowed(path, operation=operation)
+
+
 __all__ = [
     "GraphReadOnlyError",
     "RuntimeWritePolicy",
     "ensure_graph_write_allowed",
+    "guard_graph_mutation",
+    "guard_graph_mutation_from_env",
     "is_graph_read_only",
 ]
