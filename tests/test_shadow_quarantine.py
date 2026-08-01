@@ -210,7 +210,9 @@ def test_state_api_reports_quarantine_while_staying_ready(
 
 
 def test_page_is_released_when_it_parses_again(
-    graph: Path, monkeypatch: pytest.MonkeyPatch
+    graph: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    isolated_shadow_cache_root: Path,
 ) -> None:
     _write_pages(graph, 4)
     _fail_parse_for(monkeypatch, {"page2.md"}, "timeout")
@@ -219,6 +221,7 @@ def test_page_is_released_when_it_parses_again(
 
     monkeypatch.undo()
     monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(isolated_shadow_cache_root))
     rebuild_shadow_from_graph(graph)
 
     snap = resolve_shadow_db_state_for_api(graph)

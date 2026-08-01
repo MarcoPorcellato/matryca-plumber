@@ -5,31 +5,53 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from ..graph.path_sandbox import assert_path_within_graph, resolved_graph_root
+from ..graph.path_sandbox import PathTraversalSecurityError, resolved_graph_root
 from ..graph.safety.write_policy import guard_graph_mutation
-from .config import shadow_db_busy_timeout_ms
+from .cache_location import (
+    ShadowCacheLocation,
+    ShadowCacheLocationError,
+    resolve_shadow_cache_location,
+)
+from .config import shadow_db_busy_timeout_ms, shadow_db_enabled
 from .schema import apply_shadow_schema
-
-_SHADOW_CACHE_DIRNAME = ".matryca_semantic_cache"
-_SHADOW_DB_FILENAME = "shadow.sqlite"
 
 
 def shadow_db_path(graph_root: Path | str) -> Path:
-    """Return ``<graph>/.matryca_semantic_cache/shadow.sqlite`` (sandboxed)."""
+    """Return ``shadow.sqlite`` for this graph's canonical external cache location."""
     root = resolved_graph_root(graph_root)
-    path = root / _SHADOW_CACHE_DIRNAME / _SHADOW_DB_FILENAME
-    return assert_path_within_graph(path, root)
+    return _resolve_shadow_location_for_graph(root).database_path
+
+
+def _resolve_shadow_location_for_graph(graph_root: Path | str) -> ShadowCacheLocation:
+    root = resolved_graph_root(graph_root)
+    try:
+        location = resolve_shadow_cache_location(root)
+    except ShadowCacheLocationError as exc:
+        raise PathTraversalSecurityError(str(exc)) from exc
+    return location
 
 
 def open_shadow_db(graph_root: Path | str) -> sqlite3.Connection:
     """Open (or create) ``shadow.sqlite``, apply pragmas + DDL, return connection.
 
-    Caller owns the connection lifetime (``close()``). Path is always under
-    ``graph_root`` via :func:`assert_path_within_graph`.
+    Caller owns the connection lifetime (``close()``).
     """
-    db_path = shadow_db_path(graph_root)
+    if not shadow_db_enabled():
+        raise RuntimeError("Shadow DB disabled via MATRYCA_SHADOW_DB_ENABLED=false")
+
+    root = resolved_graph_root(graph_root)
+    location = _resolve_shadow_location_for_graph(root)
+    db_path = location.database_path
     guard_graph_mutation(graph_root, db_path, operation="open_shadow_db")
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        location.ensure_directory()
+    except ShadowCacheLocationError as exc:
+        raise PathTraversalSecurityError(str(exc)) from exc
+
+    # Revalidate database, WAL/SHM, lock, and containment after directory creation.
+    location = _resolve_shadow_location_for_graph(root)
+    db_path = location.database_path
+
     connection = sqlite3.connect(str(db_path))
     busy_timeout_ms = shadow_db_busy_timeout_ms()
     if busy_timeout_ms > 0:

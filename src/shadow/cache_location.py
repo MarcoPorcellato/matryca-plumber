@@ -40,6 +40,18 @@ class ShadowCacheLocation:
     database_path: Path
     writer_lock_path: Path
 
+    @property
+    def shadow_db_wal_path(self) -> Path:
+        """SQLite WAL sidecar path for this graph's Shadow DB."""
+
+        return self.database_path.with_name(f"{self.database_path.name}-wal")
+
+    @property
+    def shadow_db_shm_path(self) -> Path:
+        """SQLite SHM sidecar path for this graph's Shadow DB."""
+
+        return self.database_path.with_name(f"{self.database_path.name}-shm")
+
     def ensure_directory(self) -> Path:
         """Create the private Shadow directory after revalidating containment."""
         directories = (
@@ -111,6 +123,8 @@ def resolve_shadow_cache_location(
     )
     if not candidate.is_absolute():
         raise ShadowCacheLocationError("cache_root_not_absolute")
+    if candidate.is_symlink():
+        raise ShadowCacheLocationError("cache_root_symlink")
 
     try:
         policy = RuntimeWritePolicy(graph_root=root, cache_path=candidate)
@@ -130,6 +144,12 @@ def resolve_shadow_cache_location(
     database_candidate = shadow_dir / _SHADOW_DB_FILENAME
     if database_candidate.is_symlink():
         raise ShadowCacheLocationError("database_symlink")
+    wal_candidate = database_candidate.with_name(f"{database_candidate.name}-wal")
+    if wal_candidate.is_symlink():
+        raise ShadowCacheLocationError("wal_symlink")
+    shm_candidate = database_candidate.with_name(f"{database_candidate.name}-shm")
+    if shm_candidate.is_symlink():
+        raise ShadowCacheLocationError("shm_symlink")
     writer_lock_candidate = shadow_dir / _SHADOW_WRITER_LOCK_FILENAME
     if writer_lock_candidate.is_symlink():
         raise ShadowCacheLocationError("writer_lock_symlink")

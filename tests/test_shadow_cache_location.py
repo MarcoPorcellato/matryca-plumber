@@ -60,6 +60,8 @@ def test_platform_default_cache_roots(
     assert location.cache_root == expected_root.resolve(strict=False)
     assert location.database_path == location.shadow_dir / "shadow.sqlite"
     assert location.writer_lock_path == location.shadow_dir / "shadow.writer.flock"
+    assert location.shadow_db_wal_path == location.shadow_dir / "shadow.sqlite-wal"
+    assert location.shadow_db_shm_path == location.shadow_dir / "shadow.sqlite-shm"
     assert location.shadow_dir.is_relative_to(location.cache_root)
 
 
@@ -134,7 +136,7 @@ def test_cache_symlink_alias_into_graph_fails_closed(tmp_path: Path) -> None:
             env={"MATRYCA_CACHE_PATH": str(alias)},
         )
 
-    assert exc_info.value.reason == "cache_path_inside_graph"
+    assert exc_info.value.reason == "cache_root_symlink"
 
 
 def test_shadow_directory_symlink_escape_fails_before_creation(tmp_path: Path) -> None:
@@ -163,6 +165,8 @@ def test_shadow_directory_symlink_escape_fails_before_creation(tmp_path: Path) -
     ("filename", "reason"),
     [
         ("shadow.sqlite", "database_symlink"),
+        ("shadow.sqlite-wal", "wal_symlink"),
+        ("shadow.sqlite-shm", "shm_symlink"),
         ("shadow.writer.flock", "writer_lock_symlink"),
     ],
 )
