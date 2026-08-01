@@ -62,11 +62,13 @@ place under Read Only.
 
 ### RC external-cache prerequisite
 
-- [ ] Typed platform cache-root and versioned graph-identity resolver
-- [ ] Shadow connection, WAL/SHM, and writer lock routed through one external location
-- [ ] Read-only bootstrap split: no graph writes, external Shadow maintenance allowed
-- [ ] Beta graph-local cache ignored and rebuilt externally without automatic deletion
-- [ ] Independent Sovereign UI Read Only and Shadow controls
+- [x] Typed platform cache-root and versioned graph-identity resolver
+- [x] Shadow connection, WAL/SHM, and writer lock routed through one external location
+- [x] Read-only bootstrap split: no graph writes, external Shadow maintenance allowed
+- [x] Beta graph-local cache ignored and rebuilt externally without automatic deletion
+- [x] Independent Sovereign UI Read Only and Shadow controls
+- [x] Deterministic source-tree E2E graph immutability qualification across CLI, MCP, UI,
+  daemon, Shadow, hidden files, Git metadata, and symlink cases
 - [ ] Exact-wheel read-only/default-on qualification with unchanged graph fingerprints
 
 ### Rollout (Epic #20)

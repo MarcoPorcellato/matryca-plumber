@@ -1010,6 +1010,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/READ_ONLY_IMMUTABILITY_E2E.md",
+      "type": "Audit",
+      "title": "Strict Read Only end-to-end immutability gate",
+      "description": "This release gate proves that `MATRYCA_READ_ONLY=true` leaves the complete Logseq graph",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Repomix Architectural Audit — Triage (2026-06)",
@@ -1842,7 +1860,8 @@
       "destination": "docs/artifacts/issue-bodies/",
       "action": "artifact",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase0-prerequisites.md",
