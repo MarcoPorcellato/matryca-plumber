@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from typing import Any
 
@@ -36,6 +37,12 @@ from ..agent.maintenance_daemon import (
 )
 from ..agent.tana_import import run_tana_import
 from ..config import load_matryca_wiki_config
+from ..graph.graph_path_validate import validate_logseq_graph_path
+from ..graph.safety.write_policy import (
+    GraphReadOnlyError,
+    ensure_graph_write_allowed,
+    is_graph_read_only,
+)
 from ..graph.service_manager import manage_matryca_service
 from ..utils.runtime_bootstrap import try_prepare_matryca_runtime_from_env
 from ..utils.secret_redaction import redact_secrets_in_text
@@ -278,6 +285,46 @@ def _emit_error(message: str) -> None:
         sys.stderr.write("\n")
 
 
+def _mutation_is_dry_run(action: str, payload: str) -> bool:
+    if action == "write_outline":
+        return False
+    raw = payload.strip()
+    if not raw:
+        return True
+    if not raw.startswith("{"):
+        return False
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(data, dict):
+        return False
+    return bool(data.get("dry_run", True))
+
+
+def _reject_read_only_mutation(action: str, *, payload: str, dry_run: bool | None = None) -> None:
+    if dry_run is None:
+        dry_run = _mutation_is_dry_run(action, payload)
+    if dry_run:
+        return
+    if not is_graph_read_only():
+        return
+    raw_graph = os.environ.get("LOGSEQ_GRAPH_PATH", "").strip()
+    if not raw_graph:
+        return
+    graph_root = validate_logseq_graph_path(raw_graph)
+    ensure_graph_write_allowed(graph_root, operation=action)
+
+
+def _reject_read_only_cli_mutation(args: argparse.Namespace) -> None:
+    """Reject an applying CLI mutation before runtime bootstrap can write locally."""
+
+    if args.command in {"mutate", "refactor"}:
+        _reject_read_only_mutation(args.action, payload=args.payload)
+    elif args.command == "import" and args.import_command == "tana" and args.apply:
+        _reject_read_only_mutation("import_tana", payload="", dry_run=False)
+
+
 async def run_cli(args: argparse.Namespace) -> int:
     """Dispatch parsed CLI arguments to graph handlers."""
     wiki_config = load_matryca_wiki_config()
@@ -306,6 +353,11 @@ async def run_cli(args: argparse.Namespace) -> int:
         return 0
 
     if command == "mutate":
+        try:
+            _reject_read_only_mutation(args.action, payload=args.payload)
+        except GraphReadOnlyError as exc:
+            _emit_error(f"{exc.code}: {exc}")
+            return 1
         mutate_out: dict[str, Any] = await dispatch_mutate(
             args.action,
             args.target,
@@ -317,6 +369,11 @@ async def run_cli(args: argparse.Namespace) -> int:
         return 0
 
     if command == "refactor":
+        try:
+            _reject_read_only_mutation(args.action, payload=args.payload)
+        except GraphReadOnlyError as exc:
+            _emit_error(f"{exc.code}: {exc}")
+            return 1
         refactor_out: dict[str, Any] = await dispatch_refactor(
             args.action,
             args.target_uuid,
@@ -387,6 +444,12 @@ async def run_cli(args: argparse.Namespace) -> int:
                 _emit_error(
                     "DRY-RUN MODE: No files written to disk. Use --apply to commit.\n",
                 )
+            else:
+                try:
+                    _reject_read_only_mutation("import_tana", payload="", dry_run=False)
+                except GraphReadOnlyError as exc:
+                    _emit_error(f"{exc.code}: {exc}")
+                    return 1
             import_result = run_tana_import(args.export_file, apply=args.apply)
             _emit_result(import_result.to_dict(), as_json=True, command="import tana")
             return 0 if import_result.ok else 1
@@ -413,6 +476,11 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     ui_only = args.command == "plumber" and args.plumber_action in {"status", "ui"}
     skip_eager_bootstrap = args.command == "plumber" and args.plumber_action == "start"
+    try:
+        _reject_read_only_cli_mutation(args)
+    except GraphReadOnlyError as exc:
+        _emit_error(f"{exc.code}: {exc}")
+        raise SystemExit(1) from exc
     if not ui_only and not skip_eager_bootstrap:
         try_prepare_matryca_runtime_from_env(eager_graph=_cli_eager_graph(args))
     if ui_only:

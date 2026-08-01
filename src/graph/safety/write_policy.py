@@ -86,7 +86,7 @@ class RuntimeWritePolicy:
         """Build the policy from environment-backed configuration."""
 
         if env is None:
-            read_only = _mapping_bool(os.environ, MATRYCA_READ_ONLY_ENV, default=False)
+            read_only = is_graph_read_only()
             cache_raw = os.environ.get(MATRYCA_CACHE_PATH_ENV, "").strip()
         else:
             read_only = _mapping_bool(env, MATRYCA_READ_ONLY_ENV, default=False)
@@ -128,4 +128,27 @@ def _mapping_bool(env: Mapping[str, str], key: str, *, default: bool) -> bool:
     raise ValueError(f"invalid boolean token for {key}: {env.get(key)!r}")
 
 
-__all__ = ["GraphReadOnlyError", "RuntimeWritePolicy"]
+def is_graph_read_only(env: Mapping[str, str] | None = None) -> bool:
+    """Return the validated runtime read-only setting without touching the graph path."""
+
+    source = os.environ if env is None else env
+    return _mapping_bool(source, MATRYCA_READ_ONLY_ENV, default=False)
+
+
+def ensure_graph_write_allowed(
+    graph_root: str | Path,
+    *,
+    operation: str,
+) -> None:
+    """Apply the environment-backed policy to a graph-root write request."""
+
+    policy = RuntimeWritePolicy.from_env(graph_root)
+    policy.ensure_write_allowed(policy.graph_root, operation=operation)
+
+
+__all__ = [
+    "GraphReadOnlyError",
+    "RuntimeWritePolicy",
+    "ensure_graph_write_allowed",
+    "is_graph_read_only",
+]

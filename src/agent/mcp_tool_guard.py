@@ -11,6 +11,7 @@ from loguru import logger
 
 from ..daemon.config_layer import append_identity_to_mcp_payload
 from ..graph.path_sandbox import PathTraversalSecurityError
+from ..graph.safety.write_policy import GraphReadOnlyError
 from .mcp_telemetry import _matryca_debug_enabled
 
 
@@ -26,6 +27,8 @@ def _tool_returns_text(fn: Callable[..., Any]) -> bool:
 def _public_tool_error_message(exc: Exception) -> str:
     """Return a client-safe error string (full detail only when ``MATRYCA_DEBUG=true``)."""
     if _matryca_debug_enabled():
+        return str(exc).strip() or exc.__class__.__name__
+    if isinstance(exc, GraphReadOnlyError):
         return str(exc).strip() or exc.__class__.__name__
     if isinstance(exc, PathTraversalSecurityError):
         return str(exc).strip() or exc.__class__.__name__
@@ -78,6 +81,14 @@ def guard_mcp_tool[F: Callable[..., Awaitable[Any]]](fn: F) -> F:
                 as_text=returns_text,
                 code="security_violation",
                 hint="Stay within LOGSEQ_GRAPH_PATH and retry with a valid page reference.",
+            )
+        except GraphReadOnlyError as exc:
+            logger.bind(tool=fn.__name__).warning("MCP tool read-only error: {}", exc)
+            return format_tool_error(
+                exc,
+                as_text=returns_text,
+                code=exc.code,
+                hint="Unset MATRYCA_READ_ONLY or retry with a dry-run-only action.",
             )
         except ValueError as exc:
             logger.bind(tool=fn.__name__).warning("MCP tool validation error: {}", exc)
