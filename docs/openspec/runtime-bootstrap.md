@@ -23,6 +23,12 @@ When a valid graph is configured, **daemon and agent CLI** **bootstrap the in-me
 
 If `LOGSEQ_GRAPH_PATH` is unset or invalid, only **log directories** are ensured.
 
+With `MATRYCA_READ_ONLY=true`, every entry surface still runs the light runtime
+bootstrap, but graph-local provisioning, AST/identity refresh, write-back hooks, and
+sidecar maintenance are skipped. When Shadow is enabled, startup may read
+`pages/` and `journals/` and create or reconcile only the validated external Shadow
+cache. Explicit Shadow-off remains zero-touch for that cache.
+
 On first startup, if repo **`.env`** is missing and **`.env.example`** exists, Matryca Plumber copies the example to `.env` (logged at INFO) before loading environment variables.
 
 ---
@@ -66,6 +72,9 @@ or `memory_path` in `matryca-wiki.yml`. Bootstrap will create that path and seed
 **L1 read safety:** `collect_l1_markdown_paths` only reads under `$HOME` or the system temp directory. `README.md` is excluded from agent context by filename (documentation only).
 
 ### 3. Graph-local working directories (when a valid graph is configured)
+
+These artifacts are provisioned only when graph writes are allowed. Strict Read Only
+does not create, repair, lock, rename, or remove any path inside the graph.
 
 | Directory / file | Purpose |
 |------------------|---------|

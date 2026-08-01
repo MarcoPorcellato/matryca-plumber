@@ -2167,6 +2167,37 @@ def test_on_watchdog_deleted_logs_link_registry_failure(
     assert any("deleted page" in entry for entry in logged)
 
 
+def test_on_watchdog_read_only_routes_only_to_external_shadow(
+    graph_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = _write_page(graph_root, "Observed", "- externally changed\n")
+    shadow_calls: list[tuple[Path, Path, FileEventKind]] = []
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setattr(
+        "src.agent.maintenance_daemon.get_graph_ast_cache",
+        lambda *_args: pytest.fail("read-only watcher must not refresh graph AST state"),
+    )
+    monkeypatch.setattr(
+        "src.daemon.config_layer.refresh_identity_config",
+        lambda *_args: pytest.fail("read-only watcher must not refresh identity state"),
+    )
+    monkeypatch.setattr(
+        "src.agent.maintenance_daemon.register_page_links_from_path",
+        lambda *_args: pytest.fail("read-only watcher must not update graph link state"),
+    )
+    monkeypatch.setattr(
+        "src.shadow.bootstrap.handle_shadow_watchdog_change",
+        lambda root, changed, kind: shadow_calls.append((Path(root), Path(changed), kind)),
+    )
+
+    daemon = MaintenanceDaemon(graph_root, llm_client=StubLLM())
+    daemon._on_watchdog_change(page, "modified")
+
+    assert shadow_calls == [(graph_root, page, "modified")]
+    assert daemon._cycle_wake.is_set()
+
+
 def test_process_llm_cycle_logs_phase2_link_registry_merge_failure(
     graph_root: Path,
     monkeypatch: pytest.MonkeyPatch,

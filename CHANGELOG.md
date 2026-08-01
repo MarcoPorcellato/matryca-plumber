@@ -8,7 +8,7 @@
 ### Changed
 
 - **v2.0 release scope and promotion gates** — define fail-closed `v2.0.0-rc.1` and stable readiness matrices for the Shadow read path, require an external Shadow cache compatible with graph Read Only plus exact public-beta re-qualification before default-on, and defer biological memory, Logseq DB Safe-Sync writes, Tana merge, and independent DX work to `v2.1.0` or later.
-- **Shadow cache path migration (`Slice 2`)** — route `shadow.sqlite`, WAL/SHM sidecars, and `shadow.writer.flock` through `resolve_shadow_cache_location` for per-graph external caches, while keeping `MATRYCA_SHADOW_DB_ENABLED=false` fail-closed and Markdown/BM25 fallback intact.
+- **External Shadow cache under Read Only (`Slices 2–3`)** — route `shadow.sqlite`, WAL/SHM sidecars, and `shadow.writer.flock` through `resolve_shadow_cache_location` for per-graph external caches; permit startup bootstrap and watcher reconciliation to update only that external cache under `MATRYCA_READ_ONLY=true`, while graph-local provisioning and mutator hooks stay disabled and explicit `MATRYCA_SHADOW_DB_ENABLED=false` remains fail-closed with Markdown/BM25 fallback.
 
 ## [2.0.0-beta.1] - 2026-07-30
 

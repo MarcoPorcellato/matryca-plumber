@@ -197,7 +197,11 @@ def test_prepare_matryca_runtime_skips_graph_local_bootstrap_in_read_only_mode(
     monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_graph_runtime_directories", _blocked)
     monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_wiki_config_file", _blocked)
     monkeypatch.setattr("src.daemon.register_daemon_post_write_hooks", _blocked)
-    monkeypatch.setattr("src.shadow.bootstrap.ensure_shadow_runtime_at_startup", _blocked)
+    shadow_calls: list[Path] = []
+    monkeypatch.setattr(
+        "src.shadow.bootstrap.ensure_shadow_runtime_at_startup",
+        lambda root: shadow_calls.append(Path(root)),
+    )
 
     prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
 
@@ -207,6 +211,7 @@ def test_prepare_matryca_runtime_skips_graph_local_bootstrap_in_read_only_mode(
     assert not (graph / "templates").exists()
     assert not (graph / "matryca-wiki.yml").exists()
     assert not _expected_sibling_l1(graph).exists()
+    assert shadow_calls == [graph]
 
 
 # ---------------------------------------------------------------------------
@@ -256,7 +261,11 @@ def test_try_prepare_from_env_with_read_only_graph_skips_graph_local_bootstrap(
     monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_graph_runtime_directories", _blocked)
     monkeypatch.setattr("src.utils.runtime_bootstrap.ensure_matryca_wiki_config_file", _blocked)
     monkeypatch.setattr("src.daemon.register_daemon_post_write_hooks", _blocked)
-    monkeypatch.setattr("src.shadow.bootstrap.ensure_shadow_runtime_at_startup", _blocked)
+    shadow_calls: list[Path] = []
+    monkeypatch.setattr(
+        "src.shadow.bootstrap.ensure_shadow_runtime_at_startup",
+        lambda root: shadow_calls.append(Path(root)),
+    )
 
     try_prepare_matryca_runtime_from_env()
 
@@ -266,6 +275,7 @@ def test_try_prepare_from_env_with_read_only_graph_skips_graph_local_bootstrap(
     assert not (graph / "templates").exists()
     assert not (graph / "matryca-wiki.yml").exists()
     assert not _expected_sibling_l1(graph).exists()
+    assert shadow_calls == [graph]
 
 
 def test_try_prepare_invalid_graph_still_ensures_logs_only(
