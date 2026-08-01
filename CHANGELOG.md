@@ -7,7 +7,7 @@
 
 ### Changed
 
-- **v2.0 release scope and promotion gates** — define fail-closed `v2.0.0-rc.1` and stable readiness matrices for the Shadow read path, require exact public-beta re-qualification before default-on, and defer biological memory, Logseq DB Safe-Sync writes, Tana merge, and independent DX work to `v2.1.0` or later.
+- **v2.0 release scope and promotion gates** — define fail-closed `v2.0.0-rc.1` and stable readiness matrices for the Shadow read path, require an external Shadow cache compatible with graph Read Only plus exact public-beta re-qualification before default-on, and defer biological memory, Logseq DB Safe-Sync writes, Tana merge, and independent DX work to `v2.1.0` or later.
 
 ## [2.0.0-beta.1] - 2026-07-30
 

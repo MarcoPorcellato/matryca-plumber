@@ -33,7 +33,8 @@ Use two fail-closed promotion gates.
 | Exact-wheel real-vault qualification | Sanitized daily-use vault copy; product-default 15 s parse deadline; at least 72 hours and preferably 7 days; restart and watcher CRUD; controlled recovery; unchanged Markdown fingerprints | [ ] — `RUNNING` since 2026-07-30. Exact public wheel, installed-wheel gate, and controlled process-restart proof passed; the 72-hour terminal result remains pending. See [`SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md) |
 | Upgrade and rollback safety | Clean install plus `1.14.5 → 2.0.0b1` and `2.0.0a5 → 2.0.0b1`; schema mismatch and failed rebuild fall back without partial reads or Markdown writes | [ ] |
 | Defect threshold | No open P0/P1 in Shadow read-path scope; every P2 has an explicit maintainer disposition | [ ] |
-| Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [ ] |
+| External-cache Read Only compatibility | Shadow DB, WAL/SHM, and writer lock resolve outside `LOGSEQ_GRAPH_PATH`; `MATRYCA_READ_ONLY=true` permits only validated external-cache writes; graph fingerprint and graph-local file inventory remain unchanged | [ ] — architecture approved; implementation and evidence pending. See [`v2-external-shadow-cache-read-only.md`](v2-external-shadow-cache-read-only.md) |
+| Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads, including under Read Only with a valid external cache; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [ ] |
 | Operator contract | `.env.example`, Sovereign UI settings/help, `llms.txt`, `.well-known/llms.txt`, OpenSpec fragments, generated prompt, roadmap, tests, and changelog agree | [ ] |
 | Release-candidate proof | Full CI, code audit, clean release build, installed-wheel smoke, and supported-platform checks pass on the exact RC commit | [ ] |
 
@@ -45,6 +46,7 @@ Use two fail-closed promotion gates.
 |-------------|-------------------|--------|
 | RC observation | At least 7 days of RC availability and maintainer operation, with no unresolved P0/P1 regression | [ ] |
 | Default-on soak | At least 72 hours and preferably 7 days with the flag unset, plus an explicit opt-out control run | [ ] |
+| Read Only external-cache soak | Default-on Shadow reaches and retains `READY` with `MATRYCA_READ_ONLY=true`; all writes remain outside the graph and Markdown fingerprints remain unchanged | [ ] |
 | Upgrade matrix | Stable `1.14.5`, alpha `2.0.0a5`, beta `2.0.0b1`, and RC upgrade paths pass from published artifacts | [ ] |
 | Cross-platform gate | Linux, macOS, and Windows CI or installed-runtime evidence passes for the supported Shadow read contract | [ ] |
 | Performance disposition | FTS and subtree measurements have explicit pass thresholds or a documented non-blocking disposition; fallback remains usable | [ ] |
@@ -57,6 +59,10 @@ Use two fail-closed promotion gates.
 
 - Logseq Markdown remains the system of record.
 - Shadow DB remains a daemon-owned read cache and never writes vault Markdown.
+- `MATRYCA_READ_ONLY=true` forbids every graph-local write but permits validated
+  external derived-cache writes.
+- Shadow SQLite, WAL/SHM, and lock files live outside `LOGSEQ_GRAPH_PATH` for the RC
+  architecture; `MATRYCA_CACHE_PATH` remains an external-root override.
 - Shadow reads are permitted only while health is `READY`.
 - Disabled, bootstrapping, stale, schema-mismatched, or error states route to
   Markdown/BM25.
@@ -71,14 +77,17 @@ qualified Shadow read architecture. It avoids coupling default-on read routing
 to unfinished memory, import, hardware-DX, or Logseq DB write programs while
 preserving those programs as explicit v2.1 follow-ups.
 
-The principal release risk is the default change: operators who leave the
-Shadow flag unset will move from generational BM25 to health-gated Shadow reads.
-The opt-out and fallback contracts therefore remain release blockers, not
+The principal release risks are the physical cache relocation and the default
+change. Operators who leave the Shadow flag unset will move from generational
+BM25 to health-gated Shadow reads, while beta graph-local databases become
+legacy disposable state. External path validation, deterministic rebuild,
+Read Only isolation, opt-out, and fallback are release blockers, not
 best-effort behavior.
 
 ## Files Involved
 
 - `src/shadow/` — bootstrap, health, query, sync, and state contracts
+- `src/graph/safety/write_policy.py` — graph boundary and external cache policy
 - `src/graph/ports/` and `src/agent/shadow_graph_repository.py` — read routing
 - `src/agent/plumber_config.py` and `.env.example` — default and operator contract
 - `src/cli/ui_server.py` and `frontend/` — operator state and configuration
@@ -87,6 +96,8 @@ best-effort behavior.
   harnesses — artifact evidence
 - `docs/roadmaps/ROADMAP_V2_PREPARATION.md` and
   `docs/roadmaps/ROADMAP_V2_SHADOW_DB.md` — rollout scope
+- `docs/quality/issue-bodies/v2-external-shadow-cache-read-only.md` — approved
+  external-cache and Read Only architecture
 
 ---
 

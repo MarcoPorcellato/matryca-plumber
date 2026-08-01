@@ -19,7 +19,7 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 | **Shadow query** | `search_blocks_fts` + FTS5 dispatch ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183), [#250](https://github.com/MarcoPorcellato/matryca-plumber/issues/250)) | — | — |
 | **Memory algorithms** | — | [`src/memory/decay.py`](../../src/memory/decay.py) | recall, consolidate, MCP `recall` |
 | **Repository port** | `GraphReadPort`, `MarkdownGraphRepository`, `ShadowGraphRepository`, subtree CTE routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), [#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253), [#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255)) | — | — |
-| **Read path** | Default: `master_catalog.json` + in-memory BM25; opt-in shadow FTS5/CTE when `MATRYCA_SHADOW_DB_ENABLED=true` ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | — | beta.1 candidate remains default-off; default-on is not considered before RC |
+| **Read path** | Published beta: `master_catalog.json` + in-memory BM25 by default; opt-in shadow FTS5/CTE ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | External Shadow cache compatible with Read Only | default-on only after external-cache implementation and qualification |
 | **Write path (OG)** | OCC + `.md` + `page_rmw_lock` | — | — |
 | **Write path (Logseq DB)** | — | — | official CLI/API bridge ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
 | **Operator health** | Sovereign UI `/api/state.shadow_db` ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)) | — | — |
@@ -79,7 +79,10 @@ flowchart LR
 **Status:** shipped ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248), #181–#183).
 
 - Sync listens on [`post_write`](../../src/graph/post_write.py) / file watcher — **never** writes to `pages/*.md` from shadow.
-- Path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite` (see schema).
+- Beta path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`.
+- RC target: a canonical per-user external cache, isolated by a versioned graph-path
+  digest; `MATRYCA_CACHE_PATH` remains the external-root override. See
+  [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
 **Verify:** `uv run pytest tests/test_shadow_schema.py tests/test_shadow_sync.py -q` (sync tests land with slice).
 
@@ -113,12 +116,14 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 |-------|-----------------|-------------------|
 | **v2.0.0-alpha.5** | Seven-axis hardening baseline | Pin `@2.0.0-alpha.5`; shadow remains opt-in | **published** 2026-07-19 |
 | **v2.0.0-beta.1** | First public Shadow read-path beta | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **published** 2026-07-30 |
-| **v2.0.0-rc.1** | Shadow health in UI; exact public-beta artifact re-qualified | MCP read traffic prefers shadow; explicit `false` remains the opt-out |
+| **v2.0.0-rc.1** | External Shadow cache works under Read Only; health in UI; exact public-beta artifact re-qualified | MCP read traffic prefers shadow; explicit `false` remains the opt-out |
 | **v2.0.0-stable** | RC observation complete; deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
 
 **Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary. Re-qualification against the released source remains required before default-on.
 
 **RC/stable decision record:** [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md), tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). `v2.0.0` is scoped to the stable Shadow read path. Phase 4 biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and independent DX tracks move to `v2.1.0` or later.
+
+**Approved RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md) defines Read Only as a graph-boundary guarantee while permitting a validated external derived cache. The default-on change is blocked until that design is implemented and qualified.
 
 **Exact-beta re-qualification:** the public `2.0.0b1` wheel passed its fresh
 installed-wheel gate and entered a restart-resilient 72-hour soak on 2026-07-30.
@@ -133,6 +138,7 @@ It does not close the RC gate until a terminal result is recorded.
 | Path | Rule |
 |------|------|
 | **READ** | Shadow DB syncs read-only from Markdown (Classic) or Markdown Mirror (Logseq DB) |
+| **CACHE** | Derived Shadow files may be written only to the canonical external cache; Read Only still forbids every graph-local cache, lock, temp, or metadata write |
 | **WRITE (Logseq OG)** | Append to `.md` + OCC — **shipped v1.9.5** |
 | **WRITE (Logseq DB)** | Official CLI/API only — **v2 Phase 4** |
 

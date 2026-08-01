@@ -1044,7 +1044,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md",
@@ -1824,6 +1825,24 @@
       "supersedes": [],
       "notes": "Local SSOT for the v2.0.0-beta.1 release decision; GitHub issue body is derived from this record.",
       "missing": false
+    },
+    {
+      "path": "docs/quality/issue-bodies/v2-external-shadow-cache-read-only.md",
+      "type": "Archive",
+      "title": "v2 RC: external Shadow cache compatible with strict Logseq read-only mode",
+      "description": "For `v2.0.0-rc.1`, `MATRYCA_READ_ONLY=true` protects the Logseq graph from every",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/issue-bodies/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase0-prerequisites.md",
