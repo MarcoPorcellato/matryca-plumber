@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import math
 import random
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import pytest
 from src.graph.generational_cache import (
     Bm25Corpus,
     bm25_query_cache_stats,
@@ -13,6 +17,7 @@ from src.graph.generational_cache import (
     patch_generational_caches_for_paths,
     score_bm25_query,
 )
+from src.rag import local_query
 
 
 def _synthetic_corpus(document_count: int = 256) -> Bm25Corpus:
@@ -38,22 +43,55 @@ def _synthetic_corpus(document_count: int = 256) -> Bm25Corpus:
     )
 
 
+def _score_reference(
+    corpus: Bm25Corpus,
+    query: str,
+    *,
+    limit: int,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> list[tuple[str, float]]:
+    """Independent pre-cache BM25 oracle for cache-equivalence tests."""
+    q_tokens = local_query.tokenize(query)
+    scores: list[tuple[str, float]] = []
+    for rel, tf_map, dl in zip(
+        corpus.rels,
+        corpus.doc_term_freqs,
+        corpus.doc_lens,
+        strict=True,
+    ):
+        score = 0.0
+        for token in q_tokens:
+            freq = tf_map.get(token, 0)
+            if not freq:
+                continue
+            document_frequency = corpus.df.get(token, 0)
+            idf = math.log(
+                (corpus.n_docs - document_frequency + 0.5) / (document_frequency + 0.5) + 1.0
+            )
+            denom = freq + k1 * (1.0 - b + b * (dl / corpus.avgdl if corpus.avgdl else 1.0))
+            score += idf * ((freq * (k1 + 1.0)) / denom)
+        if score > 0.0:
+            scores.append((rel, score))
+    scores.sort(key=lambda item: (-item[1], item[0]))
+    return scores[: max(1, min(limit, 100))]
+
+
 def test_bm25_query_cache_matches_uncached_random_queries() -> None:
     corpus = _synthetic_corpus()
     rng = random.Random(20260802)
     queries = [f"topic{rng.randrange(31)} bucket{rng.randrange(17)}" for _ in range(300)]
 
     for query in queries:
-        corpus.query_cache.clear()  # Reference path: equivalent to the pre-cache scorer.
-        expected = score_bm25_query(corpus, query, limit=8)
+        expected = _score_reference(corpus, query, limit=8)
         replay = score_bm25_query(corpus, query, limit=8)
         assert replay == expected
         replay.clear()
         assert score_bm25_query(corpus, query, limit=8) == expected
 
     stats = bm25_query_cache_stats(corpus)
-    assert stats["hits"] >= len(queries) * 2
-    assert stats["misses"] >= len(queries)
+    assert stats["hits"] >= len(queries)
+    assert stats["hits"] + stats["misses"] == len(queries) * 2
     assert stats["entries"] <= stats["capacity"]
 
 
@@ -73,6 +111,49 @@ def test_bm25_query_cache_invalidates_before_serving_changed_page(tmp_path: Path
     assert patch_generational_caches_for_paths(tmp_path, [page]) is True
     assert bm25_query_cache_stats(corpus)["entries"] == 0
     assert bm25_query_cache_stats(corpus)["invalidations"] == 1
+    assert score_bm25_query(corpus, "oldtoken", limit=5) == []
+    assert score_bm25_query(corpus, "newtoken", limit=5)[0][0] == "pages/source.md"
+
+
+def test_bm25_query_and_corpus_patch_are_serialized(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_generational_caches()
+    pages = tmp_path / "pages"
+    pages.mkdir()
+    page = pages / "source.md"
+    page.write_text("oldtoken shared", encoding="utf-8")
+    corpus = get_cached_bm25_corpus(tmp_path)
+
+    score_entered = threading.Event()
+    allow_score = threading.Event()
+    patch_started = threading.Event()
+    original_tokenize = local_query.tokenize
+
+    def blocking_tokenize(text: str) -> list[str]:
+        if text == "oldtoken":
+            score_entered.set()
+            assert allow_score.wait(timeout=2.0)
+        return original_tokenize(text)
+
+    def patch_page() -> bool:
+        patch_started.set()
+        return patch_generational_caches_for_paths(tmp_path, [page])
+
+    monkeypatch.setattr(local_query, "tokenize", blocking_tokenize)
+    page.write_text("newtoken shared", encoding="utf-8")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        score_future = executor.submit(score_bm25_query, corpus, "oldtoken", limit=5)
+        assert score_entered.wait(timeout=2.0)
+        patch_future = executor.submit(patch_page)
+        assert patch_started.wait(timeout=2.0)
+        assert not patch_future.done()
+        allow_score.set()
+        assert score_future.result(timeout=2.0)[0][0] == "pages/source.md"
+        assert patch_future.result(timeout=2.0) is True
+
     assert score_bm25_query(corpus, "oldtoken", limit=5) == []
     assert score_bm25_query(corpus, "newtoken", limit=5)[0][0] == "pages/source.md"
 

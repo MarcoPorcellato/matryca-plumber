@@ -223,31 +223,32 @@ def patch_generational_caches_for_paths(
             sig, corpus = bm25_hit
             from src.rag.local_query import tokenize
 
-            if removed_rels or resolved:
-                _clear_bm25_query_cache(corpus)
-            for rel in removed_rels or []:
-                _remove_bm25_doc(corpus, rel)
-            for path in resolved:
-                try:
-                    rel = path.relative_to(root).as_posix()
-                except ValueError:
-                    continue
-                if not path.is_file():
+            with corpus._query_lock:
+                if removed_rels or resolved:
+                    _clear_bm25_query_cache(corpus)
+                for rel in removed_rels or []:
                     _remove_bm25_doc(corpus, rel)
-                    continue
-                try:
-                    raw = read_graph_file_text(path, root, errors="replace")
-                except OSError:
-                    _remove_bm25_doc(corpus, rel)
-                    continue
-                toks = tokenize(raw)
-                _replace_bm25_doc(corpus, rel, toks)
-            new_sig = _patch_signature(
-                sig,
-                root,
-                updated_paths=resolved,
-                removed_rels=removed_rels,
-            )
+                for path in resolved:
+                    try:
+                        rel = path.relative_to(root).as_posix()
+                    except ValueError:
+                        continue
+                    if not path.is_file():
+                        _remove_bm25_doc(corpus, rel)
+                        continue
+                    try:
+                        raw = read_graph_file_text(path, root, errors="replace")
+                    except OSError:
+                        _remove_bm25_doc(corpus, rel)
+                        continue
+                    toks = tokenize(raw)
+                    _replace_bm25_doc(corpus, rel, toks)
+                new_sig = _patch_signature(
+                    sig,
+                    root,
+                    updated_paths=resolved,
+                    removed_rels=removed_rels,
+                )
             _cache_set(_bm25_cache, key, (new_sig, corpus))
             patched = True
 
@@ -322,23 +323,30 @@ class Bm25Corpus:
     query_cache_hits: int = 0
     query_cache_misses: int = 0
     query_cache_invalidations: int = 0
+    _query_lock: threading.RLock = field(
+        default_factory=threading.RLock,
+        repr=False,
+        compare=False,
+    )
 
 
 def _clear_bm25_query_cache(corpus: Bm25Corpus) -> None:
     """Drop cached scores after a corpus mutation; cached rows have no raw content."""
-    corpus.query_cache.clear()
-    corpus.query_cache_invalidations += 1
+    with corpus._query_lock:
+        corpus.query_cache.clear()
+        corpus.query_cache_invalidations += 1
 
 
 def bm25_query_cache_stats(corpus: Bm25Corpus) -> dict[str, int]:
     """Return content-free, per-corpus query-cache counters for diagnostics/tests."""
-    return {
-        "entries": len(corpus.query_cache),
-        "capacity": _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES,
-        "hits": corpus.query_cache_hits,
-        "misses": corpus.query_cache_misses,
-        "invalidations": corpus.query_cache_invalidations,
-    }
+    with corpus._query_lock:
+        return {
+            "entries": len(corpus.query_cache),
+            "capacity": _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES,
+            "hits": corpus.query_cache_hits,
+            "misses": corpus.query_cache_misses,
+            "invalidations": corpus.query_cache_invalidations,
+        }
 
 
 def _build_bm25_corpus(root: Path) -> Bm25Corpus:
@@ -421,41 +429,50 @@ def score_bm25_query(
     """Run BM25 scoring using a pre-built corpus (shared with :mod:`src.rag.local_query`)."""
     from src.rag.local_query import tokenize
 
-    q_tokens = tuple(tokenize(query))
-    if not q_tokens or corpus.n_docs == 0:
-        return []
+    with corpus._query_lock:
+        q_tokens = tuple(tokenize(query))
+        if not q_tokens or corpus.n_docs == 0:
+            return []
 
-    capped = max(1, min(limit, 100))
-    cache_key = (q_tokens, capped, float(k1), float(b))
-    cached = corpus.query_cache.get(cache_key)
-    if cached is not None:
+        capped = max(1, min(limit, 100))
+        cache_key = (q_tokens, capped, float(k1), float(b))
+        cached = corpus.query_cache.get(cache_key)
+        if cached is not None:
+            corpus.query_cache.move_to_end(cache_key)
+            corpus.query_cache_hits += 1
+            return list(cached)
+        corpus.query_cache_misses += 1
+
+        n_docs = corpus.n_docs
+        avgdl = corpus.avgdl
+        scores: list[tuple[str, float]] = []
+        for rel, tf_map, dl in zip(
+            corpus.rels,
+            corpus.doc_term_freqs,
+            corpus.doc_lens,
+            strict=True,
+        ):
+            score = 0.0
+            for t in q_tokens:
+                freq = tf_map.get(t, 0)
+                if freq == 0:
+                    continue
+                document_frequency = corpus.df.get(t, 0)
+                idf = math.log(
+                    (n_docs - document_frequency + 0.5) / (document_frequency + 0.5) + 1.0
+                )
+                denom = freq + k1 * (1.0 - b + b * (dl / avgdl if avgdl else 1.0))
+                score += idf * ((freq * (k1 + 1.0)) / denom)
+            if score > 0.0:
+                scores.append((rel, score))
+
+        scores.sort(key=lambda item: (-item[1], item[0]))
+        result = tuple(scores[:capped])
+        corpus.query_cache[cache_key] = result
         corpus.query_cache.move_to_end(cache_key)
-        corpus.query_cache_hits += 1
-        return list(cached)
-    corpus.query_cache_misses += 1
-
-    n_docs = corpus.n_docs
-    avgdl = corpus.avgdl
-    scores: list[tuple[str, float]] = []
-    for rel, tf_map, dl in zip(corpus.rels, corpus.doc_term_freqs, corpus.doc_lens, strict=True):
-        score = 0.0
-        for t in q_tokens:
-            freq = tf_map.get(t, 0)
-            if freq == 0:
-                continue
-            idf = math.log((n_docs - corpus.df.get(t, 0) + 0.5) / (corpus.df.get(t, 0) + 0.5) + 1.0)
-            denom = freq + k1 * (1.0 - b + b * (dl / avgdl if avgdl else 1.0))
-            score += idf * ((freq * (k1 + 1.0)) / denom)
-        if score > 0.0:
-            scores.append((rel, score))
-
-    scores.sort(key=lambda item: (-item[1], item[0]))
-    result = tuple(scores[:capped])
-    corpus.query_cache[cache_key] = result
-    corpus.query_cache.move_to_end(cache_key)
-    while len(corpus.query_cache) > _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES:
-        corpus.query_cache.popitem(last=False)
-    return list(result)
+        while len(corpus.query_cache) > _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES:
+            corpus.query_cache.popitem(last=False)
+        return list(result)
 
 
 __all__ = [

@@ -202,11 +202,13 @@ performs no network I/O, and needs no model, embedding, daemon, or cache service
 Callers receive a fresh list so they cannot mutate the cached value.
 
 When a known graph mutation patches the resident BM25 corpus, the batch clears
-this result cache before it can serve another request. A corpus rebuilt after a
-filesystem-signature mismatch is a new object with an empty cache. The counters
-are intentionally content-free: entries, capacity, hits, misses, and
-invalidations. They support local diagnostics and synthetic benchmarks without
-recording queries, paths, or document text.
+this result cache before it can serve another request. Per-corpus synchronization
+serializes scoring with corpus mutation, so a query observes either the complete
+pre-patch generation or the complete post-patch generation, never a partially
+updated corpus. A corpus rebuilt after a filesystem-signature mismatch is a new
+object with an empty cache. The counters are intentionally content-free: entries,
+capacity, hits, misses, and invalidations. They support local diagnostics and
+synthetic benchmarks without recording queries, paths, or document text.
 
 This is not an FTS or semantic cache. Shadow FTS continues to execute against
 SQLite, whose own page/query machinery remains the only cache at that layer; the
