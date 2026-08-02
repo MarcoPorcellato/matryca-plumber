@@ -39,6 +39,7 @@ The soak ran 24 hours of accumulated exercise across 144 cycles and 288 attempts
 
 ### Fixed
 
+- **Deterministic Shadow FTS ties** — `search_graph(bm25)` now orders equal BM25 ranks by block UUID, so repeated retrieval produces a stable result order suitable for reusable inference prefixes.
 - **Bounded page-parse receive deadline (#164)** — `BoundedPageParseWorker.parse_text` no longer trusts `Queue.get(timeout=...)` to bound the full worker response; that call only bounds wait-for-readiness, and receipt of a large/partial response could still block past the configured deadline (diagnosed in beta soak attempt r7: `166.923s` against a `120s` deadline). The receive now runs on a daemon thread with the deadline enforced end-to-end by the caller; deadline overrun still kills the worker and returns content-free `timed_out=True` metadata exactly as before.
 - **Beta candidate provenance stability** — canonicalize installed wheel `RECORD` evidence and exclude installer-generated entries, so equivalent candidate installs retain the same soak binding while malformed payload evidence fails closed.
 - **Beta soak flag-off probe import and failure hygiene** — resolve the Shadow DB path from its connection module so both embedded probes run; persist only stable phase categories without subprocess diagnostics; and resume recoverable ON/OFF probe failures from integrity-checked, corruption-detecting sanitized state without treating a partial pair as a completed trend.

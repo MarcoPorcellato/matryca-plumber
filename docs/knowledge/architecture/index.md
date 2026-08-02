@@ -7,6 +7,7 @@ Pilot index for system structure. **Legacy [`docs/ARCHITECTURE.md`](../../ARCHIT
 - [System overview](system-overview.md) — Three-surface runtime, vault topology, daemon phase model.
 - [Graph plane](graph-plane.md) — Markdown SSOT, parser, OCC, locks, sandbox, `graph_dispatch`.
 - [Shadow DB](shadow-db.md) — Opt-in SQLite read cache, sync, health, routing, fallback (`v2.0.0-alpha`+).
+- [Cache-friendly retrieval](cache-friendly-retrieval.md) — Retrieval/context cache boundaries, deterministic output, and staged validation.
 
 ## Planned concepts
 
