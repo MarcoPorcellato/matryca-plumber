@@ -196,7 +196,7 @@ rename/delete edges.
 ### Implemented LLM-free BM25 result cache
 
 The resident Markdown/BM25 fallback now has a deliberately small in-process LRU:
-128 immutable `(page-relative-path, score)` result rows, keyed by tokenized
+512 immutable `(page-relative-path, score)` result rows, keyed by tokenized
 query, limit, and BM25 parameters. It stores neither page body nor model state,
 performs no network I/O, and needs no model, embedding, daemon, or cache service.
 Callers receive a fresh list so they cannot mutate the cached value.

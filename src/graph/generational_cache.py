@@ -30,7 +30,7 @@ _lock = threading.Lock()
 _alias_cache: OrderedDict[str, tuple[frozenset[tuple[str, int]], AliasIndex]] = OrderedDict()
 _bm25_cache: OrderedDict[str, tuple[frozenset[tuple[str, int]], Bm25Corpus]] = OrderedDict()
 _DEFAULT_CACHE_MAX_GRAPHS = 4
-_DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES = 128
+_DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES = 512
 
 
 def _generational_cache_max_graphs() -> int:
@@ -225,7 +225,8 @@ def patch_generational_caches_for_paths(
 
             with corpus._query_lock:
                 if removed_rels or resolved:
-                    _clear_bm25_query_cache(corpus)
+                    corpus.query_cache.clear()
+                    corpus.query_cache_invalidations += 1
                 for rel in removed_rels or []:
                     _remove_bm25_doc(corpus, rel)
                 for path in resolved:
@@ -323,18 +324,11 @@ class Bm25Corpus:
     query_cache_hits: int = 0
     query_cache_misses: int = 0
     query_cache_invalidations: int = 0
-    _query_lock: threading.RLock = field(
-        default_factory=threading.RLock,
+    _query_lock: threading.Lock = field(
+        default_factory=threading.Lock,
         repr=False,
         compare=False,
     )
-
-
-def _clear_bm25_query_cache(corpus: Bm25Corpus) -> None:
-    """Drop cached scores after a corpus mutation; cached rows have no raw content."""
-    with corpus._query_lock:
-        corpus.query_cache.clear()
-        corpus.query_cache_invalidations += 1
 
 
 def bm25_query_cache_stats(corpus: Bm25Corpus) -> dict[str, int]:

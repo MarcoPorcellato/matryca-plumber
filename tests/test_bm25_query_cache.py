@@ -160,11 +160,12 @@ def test_bm25_query_and_corpus_patch_are_serialized(
 
 def test_bm25_query_cache_is_bounded_lru() -> None:
     corpus = _synthetic_corpus()
-    for index in range(129):
+    capacity = bm25_query_cache_stats(corpus)["capacity"]
+    for index in range(capacity + 1):
         score_bm25_query(corpus, f"unique{index}", limit=1)
 
     stats = bm25_query_cache_stats(corpus)
-    assert stats["entries"] == stats["capacity"] == 128
+    assert stats["entries"] == stats["capacity"] == capacity
     misses_before = stats["misses"]
     score_bm25_query(corpus, "unique0", limit=1)
     assert bm25_query_cache_stats(corpus)["misses"] == misses_before + 1
