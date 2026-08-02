@@ -201,6 +201,12 @@ query, limit, and BM25 parameters. It stores neither page body nor model state,
 performs no network I/O, and needs no model, embedding, daemon, or cache service.
 Callers receive a fresh list so they cannot mutate the cached value.
 
+The 512-entry bound was selected from seeded 32/128/512 capacity comparisons and
+a sanitized local-copy workload. A full synthetic cache used about 230 KiB; 512
+entries materially improved broader uniform and skewed workloads while retaining
+the same hot-set behavior. These machine- and corpus-specific measurements justify
+the bounded default but do not establish a universal latency guarantee.
+
 When a known graph mutation patches the resident BM25 corpus, the batch clears
 this result cache before it can serve another request. Per-corpus synchronization
 serializes scoring with corpus mutation, so a query observes either the complete
