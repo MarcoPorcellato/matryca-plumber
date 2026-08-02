@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import threading
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from loguru import logger
@@ -30,6 +30,7 @@ _lock = threading.Lock()
 _alias_cache: OrderedDict[str, tuple[frozenset[tuple[str, int]], AliasIndex]] = OrderedDict()
 _bm25_cache: OrderedDict[str, tuple[frozenset[tuple[str, int]], Bm25Corpus]] = OrderedDict()
 _DEFAULT_CACHE_MAX_GRAPHS = 4
+_DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES = 128
 
 
 def _generational_cache_max_graphs() -> int:
@@ -222,6 +223,8 @@ def patch_generational_caches_for_paths(
             sig, corpus = bm25_hit
             from src.rag.local_query import tokenize
 
+            if removed_rels or resolved:
+                _clear_bm25_query_cache(corpus)
             for rel in removed_rels or []:
                 _remove_bm25_doc(corpus, rel)
             for path in resolved:
@@ -313,6 +316,29 @@ class Bm25Corpus:
     df: dict[str, int]
     n_docs: int
     avgdl: float
+    query_cache: OrderedDict[
+        tuple[tuple[str, ...], int, float, float], tuple[tuple[str, float], ...]
+    ] = field(default_factory=OrderedDict)
+    query_cache_hits: int = 0
+    query_cache_misses: int = 0
+    query_cache_invalidations: int = 0
+
+
+def _clear_bm25_query_cache(corpus: Bm25Corpus) -> None:
+    """Drop cached scores after a corpus mutation; cached rows have no raw content."""
+    corpus.query_cache.clear()
+    corpus.query_cache_invalidations += 1
+
+
+def bm25_query_cache_stats(corpus: Bm25Corpus) -> dict[str, int]:
+    """Return content-free, per-corpus query-cache counters for diagnostics/tests."""
+    return {
+        "entries": len(corpus.query_cache),
+        "capacity": _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES,
+        "hits": corpus.query_cache_hits,
+        "misses": corpus.query_cache_misses,
+        "invalidations": corpus.query_cache_invalidations,
+    }
 
 
 def _build_bm25_corpus(root: Path) -> Bm25Corpus:
@@ -395,9 +421,18 @@ def score_bm25_query(
     """Run BM25 scoring using a pre-built corpus (shared with :mod:`src.rag.local_query`)."""
     from src.rag.local_query import tokenize
 
-    q_tokens = tokenize(query)
+    q_tokens = tuple(tokenize(query))
     if not q_tokens or corpus.n_docs == 0:
         return []
+
+    capped = max(1, min(limit, 100))
+    cache_key = (q_tokens, capped, float(k1), float(b))
+    cached = corpus.query_cache.get(cache_key)
+    if cached is not None:
+        corpus.query_cache.move_to_end(cache_key)
+        corpus.query_cache_hits += 1
+        return list(cached)
+    corpus.query_cache_misses += 1
 
     n_docs = corpus.n_docs
     avgdl = corpus.avgdl
@@ -415,11 +450,17 @@ def score_bm25_query(
             scores.append((rel, score))
 
     scores.sort(key=lambda item: (-item[1], item[0]))
-    return scores[: max(1, min(limit, 100))]
+    result = tuple(scores[:capped])
+    corpus.query_cache[cache_key] = result
+    corpus.query_cache.move_to_end(cache_key)
+    while len(corpus.query_cache) > _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES:
+        corpus.query_cache.popitem(last=False)
+    return list(result)
 
 
 __all__ = [
     "Bm25Corpus",
+    "bm25_query_cache_stats",
     "cached_build_alias_index",
     "clear_generational_caches",
     "gc_generational_alias_cache",

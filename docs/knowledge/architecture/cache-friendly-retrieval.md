@@ -192,6 +192,27 @@ clever dependency tracking. Targeted invalidation may follow only after traces
 show it materially improves warm-hit value and tests prove correct handling of
 rename/delete edges.
 
+### Implemented LLM-free BM25 result cache
+
+The resident Markdown/BM25 fallback now has a deliberately small in-process LRU:
+128 immutable `(page-relative-path, score)` result rows, keyed by tokenized
+query, limit, and BM25 parameters. It stores neither page body nor model state,
+performs no network I/O, and needs no model, embedding, daemon, or cache service.
+Callers receive a fresh list so they cannot mutate the cached value.
+
+When a known graph mutation patches the resident BM25 corpus, the batch clears
+this result cache before it can serve another request. A corpus rebuilt after a
+filesystem-signature mismatch is a new object with an empty cache. The counters
+are intentionally content-free: entries, capacity, hits, misses, and
+invalidations. They support local diagnostics and synthetic benchmarks without
+recording queries, paths, or document text.
+
+This is not an FTS or semantic cache. Shadow FTS continues to execute against
+SQLite, whose own page/query machinery remains the only cache at that layer; the
+semantic index also remains unchanged. The bounded BM25 LRU accelerates repeated
+fallback and local keyword requests only, while preserving their exact scoring
+and stable order.
+
 ## Context and inference integration
 
 Prompt construction benefits from a stable prefix only when the repeated part
@@ -284,7 +305,8 @@ accept this design.
    fingerprint, retaining existing MCP output compatibility through a renderer.
 4. **Add a bounded query cache:** extend the in-process generational cache with
    graph/index generations, explicit size/eviction limits, content-free metrics,
-   and full-generation invalidation first.
+   and full-generation invalidation first. The resident BM25 fallback now covers
+   this first narrow case; Shadow FTS and semantic retrieval remain separate.
 5. **Measure and tune:** compare cold/warm retrieval against the baseline, then
    separately evaluate local engine prefix/KV behavior where a supported runtime
    exists. Only optimize invalidation granularity after measured evidence.
@@ -293,6 +315,12 @@ Each stage is independently releasable, reversible, and testable without a real
 vault. A stage should stop if it changes relevance ordering unintentionally,
 allows a stale identifier after mutation, or produces no measurable benefit over
 the existing generational cache.
+
+Run `uv run python scripts/bench_bm25_query_cache.py` to compare the synthetic
+uncached scorer with the cold-plus-warm LRU path. The fixed random seed produces
+both a mostly-unique uniform mix and a repeated hot-set mix, so the output shows
+where an LRU helps and where it cannot. Timings remain machine-specific and are
+evidence for the BM25 fallback only, not an end-to-end LLM response benchmark.
 
 ## Non-goals
 
