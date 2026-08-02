@@ -106,7 +106,7 @@ def search_blocks_fts(
         FROM blocks_fts
         JOIN blocks AS b ON b.rowid = blocks_fts.rowid
         WHERE blocks_fts MATCH ?
-        ORDER BY rank
+        ORDER BY rank, b.block_uuid
         LIMIT ?
         """,
         (q, capped),

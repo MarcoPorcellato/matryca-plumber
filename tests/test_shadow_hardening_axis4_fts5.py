@@ -586,7 +586,7 @@ def test_a4_rank_01_bm25_ordering_higher_relevance_first(tmp_path: Path) -> None
 
 
 def test_a4_rank_02_tie_break_stable_across_connections(tmp_path: Path) -> None:
-    """A4-RANK-02: identical BM25 scores return stable UUID ordering across connections."""
+    """A4-RANK-02: identical BM25 scores return ascending UUIDs across connections."""
     graph = _minimal_graph(tmp_path)
     _write_page(
         graph,
@@ -603,7 +603,12 @@ def test_a4_rank_02_tie_break_stable_across_connections(tmp_path: Path) -> None:
         finally:
             conn.close()
 
-    assert _uuids() == _uuids()
+    expected = [
+        "10101010-1010-4101-8101-010101010101",
+        "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    ]
+    assert _uuids() == expected
+    assert _uuids() == expected
 
 
 def test_a4_rank_03_limit_boundaries(tmp_path: Path) -> None:
