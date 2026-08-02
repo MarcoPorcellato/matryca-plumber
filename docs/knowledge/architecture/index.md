@@ -8,6 +8,7 @@ Pilot index for system structure. **Legacy [`docs/ARCHITECTURE.md`](../../ARCHIT
 - [Graph plane](graph-plane.md) — Markdown SSOT, parser, OCC, locks, sandbox, `graph_dispatch`.
 - [Shadow DB](shadow-db.md) — Opt-in SQLite read cache, sync, health, routing, fallback (`v2.0.0-alpha`+).
 - [Cache-friendly retrieval](cache-friendly-retrieval.md) — Retrieval/context cache boundaries, deterministic output, and staged validation.
+- [LLM-free information-cluster recognition](llm-free-cluster-recognition.md) — Deterministic feature generations, clustering quality, invalidation, and reuse across related-note functions.
 
 ## Planned concepts
 

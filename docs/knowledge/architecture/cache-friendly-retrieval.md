@@ -13,6 +13,7 @@ supersedes: []
 related:
   - /architecture/shadow-db.md
   - /architecture/graph-plane.md
+  - /architecture/llm-free-cluster-recognition.md
 ---
 
 # Cache-friendly retrieval and inference context
