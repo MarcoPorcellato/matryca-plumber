@@ -93,6 +93,7 @@ def test_bm25_query_cache_matches_uncached_random_queries() -> None:
     assert stats["hits"] >= len(queries)
     assert stats["hits"] + stats["misses"] == len(queries) * 2
     assert stats["entries"] <= stats["capacity"]
+    assert stats["result_rows"] <= stats["result_row_capacity"]
 
 
 def test_bm25_query_cache_invalidates_before_serving_changed_page(tmp_path: Path) -> None:
@@ -110,6 +111,7 @@ def test_bm25_query_cache_invalidates_before_serving_changed_page(tmp_path: Path
     page.write_text("newtoken shared", encoding="utf-8")
     assert patch_generational_caches_for_paths(tmp_path, [page]) is True
     assert bm25_query_cache_stats(corpus)["entries"] == 0
+    assert bm25_query_cache_stats(corpus)["result_rows"] == 0
     assert bm25_query_cache_stats(corpus)["invalidations"] == 1
     assert score_bm25_query(corpus, "oldtoken", limit=5) == []
     assert score_bm25_query(corpus, "newtoken", limit=5)[0][0] == "pages/source.md"
@@ -171,6 +173,45 @@ def test_bm25_query_cache_is_bounded_lru() -> None:
     assert bm25_query_cache_stats(corpus)["misses"] == misses_before + 1
 
 
+def test_bm25_query_cache_is_bounded_by_result_rows() -> None:
+    corpus = _synthetic_corpus()
+    stats = bm25_query_cache_stats(corpus)
+    result_limit = 100
+    retained_queries = stats["result_row_capacity"] // result_limit
+
+    for index in range(retained_queries):
+        score_bm25_query(corpus, f"shared nonce{index}", limit=result_limit)
+
+    score_bm25_query(corpus, "shared nonce0", limit=result_limit)
+    score_bm25_query(
+        corpus,
+        f"shared nonce{retained_queries}",
+        limit=result_limit,
+    )
+    stats = bm25_query_cache_stats(corpus)
+    assert stats["result_rows"] == sum(len(result) for result in corpus.query_cache.values())
+    assert stats["result_rows"] <= stats["result_row_capacity"]
+    assert stats["entries"] == retained_queries < stats["capacity"]
+
+    hits_before = stats["hits"]
+    score_bm25_query(corpus, "shared nonce0", limit=result_limit)
+    assert bm25_query_cache_stats(corpus)["hits"] == hits_before + 1
+    misses_before = stats["misses"]
+    score_bm25_query(corpus, "shared nonce1", limit=result_limit)
+    assert bm25_query_cache_stats(corpus)["misses"] == misses_before + 1
+
+
+def test_bm25_query_cache_counts_empty_results_as_zero_rows() -> None:
+    corpus = _synthetic_corpus()
+    assert score_bm25_query(corpus, "not-in-corpus", limit=100) == []
+    assert score_bm25_query(corpus, "not-in-corpus", limit=100) == []
+
+    stats = bm25_query_cache_stats(corpus)
+    assert stats["entries"] == 1
+    assert stats["result_rows"] == 0
+    assert stats["hits"] == stats["misses"] == 1
+
+
 def test_bm25_query_cache_keys_include_limit_and_scoring_parameters() -> None:
     corpus = _synthetic_corpus()
     assert len(score_bm25_query(corpus, "shared", limit=1)) == 1
@@ -180,3 +221,6 @@ def test_bm25_query_cache_keys_include_limit_and_scoring_parameters() -> None:
     stats = bm25_query_cache_stats(corpus)
     assert stats["entries"] == 3
     assert stats["misses"] == 3
+    result_rows = stats["result_rows"]
+    score_bm25_query(corpus, "shared", limit=3, k1=2.0, b=0.5)
+    assert bm25_query_cache_stats(corpus)["result_rows"] == result_rows

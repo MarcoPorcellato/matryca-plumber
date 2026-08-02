@@ -195,17 +195,29 @@ rename/delete edges.
 
 ### Implemented LLM-free BM25 result cache
 
-The resident Markdown/BM25 fallback now has a deliberately small in-process LRU:
-512 immutable `(page-relative-path, score)` result rows, keyed by tokenized
-query, limit, and BM25 parameters. It stores neither page body nor model state,
-performs no network I/O, and needs no model, embedding, daemon, or cache service.
-Callers receive a fresh list so they cannot mutate the cached value.
+The resident Markdown/BM25 fallback now has a bounded in-process LRU of up to
+8,192 immutable query results, keyed by tokenized query, limit, and BM25
+parameters. A second 65,536-result-row budget prevents broad requests from making
+the entry count an unsafe proxy for memory: 8,192 cached queries remain possible
+when they average at most eight `(page-relative-path, score)` rows, while queries
+returning up to the public 100-row limit evict proportionally sooner. It stores
+neither page body nor model state, performs no network I/O, and needs no model,
+embedding, daemon, or cache service. Callers receive a fresh list so they cannot
+mutate the cached value.
 
-The 512-entry bound was selected from seeded 32/128/512 capacity comparisons and
-a sanitized local-copy workload. A full synthetic cache used about 230 KiB; 512
-entries materially improved broader uniform and skewed workloads while retaining
-the same hot-set behavior. These machine- and corpus-specific measurements justify
-the bounded default but do not establish a universal latency guarantee.
+The 8,192-entry bound was selected from the checked-in seeded
+512/1,024/2,048/4,096/8,192 capacity benchmark over 16,000 requests and an
+8,192-query working set. A separate bounded maintainer study used only aggregate
+measurements from an explicitly selected sanitized 493-document local-copy
+corpus: its uniform workload improved from 1.10x at 512 entries to 2.29x at
+8,192; a skewed workload improved from 1.93x to 3.99x, with diminishing returns
+after 4,096. That private-fixture result is supporting evidence, not output of the
+public synthetic harness. At an eight-row request limit the full 8,192-entry
+cache used about 7.4 MiB; a deliberately broad 100-row synthetic workload would
+use about 71.6 MiB per corpus without the row budget. The dual bound retains the
+high-cardinality benefit while bounding that payload to 65,536 rows. These
+machine- and corpus-specific measurements justify the default but do not
+establish a universal latency or memory guarantee.
 
 When a known graph mutation patches the resident BM25 corpus, the batch clears
 this result cache before it can serve another request. Per-corpus synchronization
@@ -213,8 +225,9 @@ serializes scoring with corpus mutation, so a query observes either the complete
 pre-patch generation or the complete post-patch generation, never a partially
 updated corpus. A corpus rebuilt after a filesystem-signature mismatch is a new
 object with an empty cache. The counters are intentionally content-free: entries,
-capacity, hits, misses, and invalidations. They support local diagnostics and
-synthetic benchmarks without recording queries, paths, or document text.
+entry capacity, result rows, result-row capacity, hits, misses, and invalidations.
+They support local diagnostics and synthetic benchmarks without recording
+queries, paths, or document text.
 
 This is not an FTS or semantic cache. Shadow FTS continues to execute against
 SQLite, whose own page/query machinery remains the only cache at that layer; the
@@ -326,10 +339,13 @@ allows a stale identifier after mutation, or produces no measurable benefit over
 the existing generational cache.
 
 Run `uv run python scripts/bench_bm25_query_cache.py` to compare the synthetic
-uncached scorer with the cold-plus-warm LRU path. The fixed random seed produces
-both a mostly-unique uniform mix and a repeated hot-set mix, so the output shows
-where an LRU helps and where it cannot. Timings remain machine-specific and are
-evidence for the BM25 fallback only, not an end-to-end LLM response benchmark.
+uncached scorer with the cold-plus-warm LRU path. Its 8,192-document corpus,
+16,000 requests, and fixed random seed produce both an 8,192-query uniform
+working set and a repeated 64-query hot set. Each workload reports the complete
+512/1,024/2,048/4,096/8,192 matrix, including both cache budgets, so the capacity
+decision and diminishing returns remain reproducible without graph content.
+Timings remain machine-specific and are evidence for the BM25 fallback only, not
+an end-to-end LLM response benchmark.
 
 ## Non-goals
 

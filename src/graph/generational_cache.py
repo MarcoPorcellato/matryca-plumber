@@ -30,7 +30,8 @@ _lock = threading.Lock()
 _alias_cache: OrderedDict[str, tuple[frozenset[tuple[str, int]], AliasIndex]] = OrderedDict()
 _bm25_cache: OrderedDict[str, tuple[frozenset[tuple[str, int]], Bm25Corpus]] = OrderedDict()
 _DEFAULT_CACHE_MAX_GRAPHS = 4
-_DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES = 512
+_DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES = 8_192
+_DEFAULT_BM25_QUERY_CACHE_MAX_RESULT_ROWS = 65_536
 
 
 def _generational_cache_max_graphs() -> int:
@@ -226,6 +227,7 @@ def patch_generational_caches_for_paths(
             with corpus._query_lock:
                 if removed_rels or resolved:
                     corpus.query_cache.clear()
+                    corpus.query_cache_result_rows = 0
                     corpus.query_cache_invalidations += 1
                 for rel in removed_rels or []:
                     _remove_bm25_doc(corpus, rel)
@@ -324,6 +326,7 @@ class Bm25Corpus:
     query_cache_hits: int = 0
     query_cache_misses: int = 0
     query_cache_invalidations: int = 0
+    query_cache_result_rows: int = 0
     _query_lock: threading.Lock = field(
         default_factory=threading.Lock,
         repr=False,
@@ -337,6 +340,8 @@ def bm25_query_cache_stats(corpus: Bm25Corpus) -> dict[str, int]:
         return {
             "entries": len(corpus.query_cache),
             "capacity": _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES,
+            "result_rows": corpus.query_cache_result_rows,
+            "result_row_capacity": _DEFAULT_BM25_QUERY_CACHE_MAX_RESULT_ROWS,
             "hits": corpus.query_cache_hits,
             "misses": corpus.query_cache_misses,
             "invalidations": corpus.query_cache_invalidations,
@@ -463,9 +468,14 @@ def score_bm25_query(
         scores.sort(key=lambda item: (-item[1], item[0]))
         result = tuple(scores[:capped])
         corpus.query_cache[cache_key] = result
+        corpus.query_cache_result_rows += len(result)
         corpus.query_cache.move_to_end(cache_key)
-        while len(corpus.query_cache) > _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES:
-            corpus.query_cache.popitem(last=False)
+        while (
+            len(corpus.query_cache) > _DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES
+            or corpus.query_cache_result_rows > _DEFAULT_BM25_QUERY_CACHE_MAX_RESULT_ROWS
+        ):
+            _, evicted = corpus.query_cache.popitem(last=False)
+            corpus.query_cache_result_rows -= len(evicted)
         return list(result)
 
 
