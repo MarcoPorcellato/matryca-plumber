@@ -17,8 +17,15 @@ Markdown Safe-Sync contracts.
 
 The beta decision accepted an evidence boundary because its bound soak artifact
 predated several fail-safe fixes. That exception does not carry forward. A
-default-on release candidate requires qualification against the exact public
-`matryca-plumber==2.0.0b1` artifacts.
+default-on release candidate requires both re-qualification of the exact public
+`matryca-plumber==2.0.0b1` predecessor and qualification of the exact new
+candidate. Evidence from one artifact never transfers silently to the other.
+
+As of 2026-08-02, the unreleased RC-target source contains the Strict Read Only
+policy and guarded runtime, external per-user Shadow routing, default-on Shadow
+with explicit opt-out, read-only observer daemon, deterministic graph
+immutability gate, and bounded 8,192-entry BM25 result cache merged through
+#366. This describes implementation state, not an RC release or Gate A closure.
 
 ## Proposed Architectural Solution
 
@@ -31,11 +38,11 @@ Use two fail-closed promotion gates.
 | Published-artifact identity | PyPI wheel and sdist digests match the GitHub prerelease assets; installed imports resolve from `site-packages` | [x] — verified after `v2.0.0-beta.1` publication |
 | Exact-wheel functional smoke | Fresh PyPI install verifies flag-off, flag-on `READY`, FTS, bounded subtree reads, quarantine state, warm startup, and unchanged Markdown bytes | [x] — post-publication smoke passed |
 | Exact-wheel real-vault qualification | Sanitized daily-use vault copy; product-default 15 s parse deadline; at least 72 hours and preferably 7 days; restart and watcher CRUD; controlled recovery; unchanged Markdown fingerprints | [ ] — `RUNNING` since 2026-07-30. Exact public wheel, installed-wheel gate, and controlled process-restart proof passed; the 72-hour terminal result remains pending. See [`SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md) |
-| Upgrade and rollback safety | Clean install plus `1.14.5 → 2.0.0b1` and `2.0.0a5 → 2.0.0b1`; schema mismatch and failed rebuild fall back without partial reads or Markdown writes | [ ] |
+| Upgrade and rollback safety | Clean install plus `1.14.5`, `2.0.0a5`, and `2.0.0b1` upgrades to the exact RC candidate; schema mismatch, failed rebuild, opt-out, and rollback/recovery fall back without partial reads or Markdown writes | [ ] |
 | Defect threshold | No open P0/P1 in Shadow read-path scope; every P2 has an explicit maintainer disposition | [ ] |
 | External-cache Read Only compatibility | Shadow DB, WAL/SHM, and writer lock resolve outside `LOGSEQ_GRAPH_PATH`; `MATRYCA_READ_ONLY=true` permits only validated external-cache writes; graph fingerprint and graph-local file inventory remain unchanged | [x] — implementation merged through #363; deterministic source-tree E2E gate passes across CLI, MCP, UI, daemon, Shadow, hidden files, Git metadata, and symlink cases. See [`READ_ONLY_IMMUTABILITY_E2E.md`](../READ_ONLY_IMMUTABILITY_E2E.md) and [`v2-external-shadow-cache-read-only.md`](v2-external-shadow-cache-read-only.md) |
-| Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads, including under Read Only with a valid external cache; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [ ] |
-| Operator contract | `.env.example`, Sovereign UI settings/help, `llms.txt`, `.well-known/llms.txt`, OpenSpec fragments, generated prompt, roadmap, tests, and changelog agree | [ ] |
+| Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads, including under Read Only with a valid external cache; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [ ] — implemented and source-tested in #362; exact-candidate installed-wheel qualification remains pending |
+| Operator contract | `.env.example`, Sovereign UI settings/help, `llms.txt`, `.well-known/llms.txt`, OpenSpec fragments, generated prompt, roadmap, tests, and changelog agree | [ ] — source surfaces synchronized; final exact-candidate review remains pending |
 | Release-candidate proof | Full CI, code audit, clean release build, installed-wheel smoke, and supported-platform checks pass on the exact RC commit | [ ] |
 
 `v2.0.0-rc.1` may be published only when every Gate A row is complete.
@@ -54,6 +61,17 @@ Use two fail-closed promotion gates.
 | Final release proof | Full CI, code audit, clean build, release-note extraction, installed-wheel smoke, and artifact digest verification pass on the exact stable commit | [ ] |
 
 `v2.0.0` may be published only when every Gate B row is complete.
+
+### Promotion sequence
+
+1. A terminal exact-beta soak `PASS` closes only the Gate A real-vault row; a
+   `FAIL` blocks promotion and requires disposition.
+2. Complete the other Gate A rows on one frozen candidate commit, then build and
+   verify the candidate artifacts.
+3. Publish `v2.0.0-rc.1` only after Gate A is fully checked.
+4. Run Gate B against the installed public RC, not a source checkout or beta
+   artifact.
+5. Publish stable `v2.0.0` only after Gate B is fully checked.
 
 ### Non-negotiable runtime invariants
 

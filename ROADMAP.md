@@ -6,7 +6,7 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **v2.0.0-beta.1** (2026-07-30) — the first public beta of the opt-in Shadow read path; issue numbers link to GitHub; scope may shift as milestones close.*
+*Status as of **2026-08-02** — `v2.0.0-beta.1` is the current public prerelease; the unreleased RC-target source now contains the default-on external Shadow/read-only architecture and retrieval hardening described below. Issue numbers link to GitHub; implementation does not imply release qualification.*
 
 ---
 
@@ -42,6 +42,25 @@ The exact public-beta wheel has passed its fresh installed-wheel gate and is in
 a restart-resilient 72-hour soak; its sanitized
 [`running evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
 remains non-terminal.
+
+The unreleased RC-target source has merged Strict Read Only enforcement,
+external per-user Shadow cache routing, default-on Shadow with explicit opt-out,
+the read-only observer daemon, deterministic graph-immutability qualification,
+and the bounded 8,192-entry BM25 result cache (#354–#366). These source changes
+do not inherit the beta.1 soak result: the published beta is opt-in and
+graph-local, while the next candidate is default-on and external.
+
+Promotion therefore remains deliberately sequential:
+
+1. record terminal `PASS` or `FAIL` for the exact `2.0.0b1` soak;
+2. complete every remaining Gate A row on the exact candidate, including
+   upgrade/rollback, defect disposition, default-on/read-only installed-wheel
+   proof, operator-contract synchronization, and release build/platform checks;
+3. publish `v2.0.0-rc.1` so prerelease users can exercise the complete external
+   Shadow path;
+4. complete Gate B on that published RC, including at least seven days of
+   observation and the default-on/read-only soaks;
+5. publish stable `v2.0.0` only after every Gate B row passes.
 
 ---
 

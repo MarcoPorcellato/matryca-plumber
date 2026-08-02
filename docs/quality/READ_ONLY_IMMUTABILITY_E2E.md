@@ -1,5 +1,11 @@
 # Strict Read Only end-to-end immutability gate
 
+**Status:** `PASS` for the deterministic source-tree qualification merged in
+[#364](https://github.com/MarcoPorcellato/matryca-plumber/pull/364). The merge gate
+also completed full CI with 1,559 passed, 2 skipped, and 1 expected failure.
+This is source-level evidence; exact installed-wheel/default-on qualification
+remains a separate Gate A requirement.
+
 This release gate proves that `MATRYCA_READ_ONLY=true` leaves the complete Logseq graph
 tree unchanged while public read surfaces and the external Shadow observer remain usable.
 It complements, and does not replace, the exact-wheel Shadow soak.
@@ -33,4 +39,3 @@ content are not included.
 
 The final graph manifest must equal the baseline exactly. Any missing, added, modified,
 retyped, retargeted, or mode-changed entry makes the gate fail.
-
