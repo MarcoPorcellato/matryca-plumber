@@ -72,6 +72,145 @@ adapter boundary, not embedding an inference cache in Shadow DB. [LMCache
 architecture](https://docs.lmcache.ai/developer_guide/architecture.html) and
 [integration guide](https://docs.lmcache.ai/developer_guide/integration.html).
 
+## Problem statement and success criteria
+
+An interactive question has two independent latency paths:
+
+1. **Retrieval latency:** interpret the request, select graph evidence, rank it,
+   and serialize it for the caller.
+2. **Inference latency:** tokenize the resulting prompt and produce a response.
+
+Improving one must not make the other less correct. Matryca therefore optimizes
+the first path and makes its output easy for an inference runtime to reuse. An
+engine can independently optimize the second path through a local prefix or KV
+cache when its platform supports that feature.
+
+The product goal is both faster and more complete answers. "Fast" means lower
+retrieval p50/p95 and fewer repeated index computations; "complete" means that
+the same request returns a reproducible, explainable set of relevant evidence,
+and that a cache never hides an eligible changed block. A cache hit is valid only
+when it is semantically equivalent to a fresh retrieval for the same graph
+generation.
+
+The following indicators are the decision criteria for each later slice:
+
+| Concern | Primary signal | Guardrail |
+| --- | --- | --- |
+| Retrieval speed | cold/warm p50 and p95 latency by method | warm path must not bypass invalidation |
+| Retrieval completeness | recall@limit against synthetic labelled fixtures | no cache-specific loss of eligible blocks |
+| Determinism | repeated result and fingerprint equality | defined tie-breakers for equal scores |
+| Context reuse | identical canonical-prefix rate | fixed schema/version and field order |
+| Safety | stale-result and privacy test failures | no vault writes; no raw text in telemetry |
+
+These are deliberately independent from model response quality and time-to-first
+token (TTFT). Those are measured at the engine boundary, not attributed to a
+Shadow DB cache.
+
+## Retrieval contract
+
+### Stable results before caching
+
+The cacheable value is the retrieval result, not a rendered MCP response.
+Rendering may gain fields or formatting without changing retrieval semantics;
+putting that representation in a cache would make presentation changes behave
+like data changes. The result contract must instead carry immutable records with
+stable identifiers, method, rank/score, and provenance.
+
+Every method needs a total order:
+
+- FTS/BM25: descending relevance rank, then `block_uuid` ascending.
+- Semantic: descending similarity score, then `block_uuid` ascending.
+- Hybrid/future graph methods: a documented primary score, then source method,
+  then `block_uuid` ascending when previous terms are equal.
+
+The tie rule added in this slice completes the FTS side of that contract. It does
+not alter scoring or broaden the result set; it only removes database-plan
+dependent ordering for otherwise equal results.
+
+### Request normalization
+
+Normalization is conservative because FTS syntax can be meaningful. A cache key
+may trim outer whitespace and normalize Unicode only after the search parser has
+established that the transformation preserves the parsed request. It must not
+silently lowercase quoted text, reorder terms, drop operators, or rewrite a
+semantic query. The canonical request includes:
+
+```text
+schema version | graph generation | retrieval method | parsed/normalized query
+limit | filter set | embedding model and index version (when applicable)
+```
+
+The graph generation is the safety boundary: an entry from any older generation
+is ineligible before its value is inspected. This makes invalidation easy to
+reason about and permits later eviction policies without weakening correctness.
+
+### Canonical envelope and fingerprint
+
+The next envelope should be a typed internal value with a deterministic JSON
+encoding. MCP and prompt builders consume a projection of that value; neither
+becomes its owner. Its compact wire shape is intentionally boring:
+
+```json
+{
+  "schema_version": 1,
+  "provenance": {
+    "graph_generation": "...",
+    "method": "fts",
+    "embedding": null
+  },
+  "query": {"normalized": "...", "limit": 8},
+  "results": [{"block_uuid": "...", "content_hash": "..."}],
+  "instructions": {"version": 1}
+}
+```
+
+The `context_fingerprint` is SHA-256 over the canonical JSON bytes, including
+the ordered result identifiers and content hashes. It is a comparison and
+debugging token, not a bearer credential and not a substitute for access
+control. Logs may contain the fingerprint and counts but never the serialized
+context, query text, page paths, or raw content.
+
+## Cache ownership and invalidation
+
+The existing generational cache is the correct extension point because it already
+models file signatures and incremental graph changes. A query-result layer, if
+introduced, sits beside it in the same process and stores immutable retrieval
+records. It must not become a separate service, shared remote store, or hidden
+second source of truth.
+
+| Event | Required action before the next eligible hit | Reason |
+| --- | --- | --- |
+| Page text/metadata change | advance graph generation; invalidate affected or all query entries | ranking and selected content may change |
+| Page rename or delete | advance generation; remove entries that can mention old identifiers | prevents dangling or stale provenance |
+| Graph watcher reconciliation | reconcile signatures, then advance/invalidate | catches changes outside a direct mutation path |
+| Shadow rebuild or readiness loss | discard query entries for that Shadow generation | FTS state no longer matches cache value |
+| Semantic index/model rebuild | advance semantic index generation | vector scores and candidate space changed |
+| MCP formatting or prompt wording change | retain retrieval entry; regenerate projection | presentation is not retrieval state |
+
+For the first query-cache slice, full invalidation per generation is preferable to
+clever dependency tracking. Targeted invalidation may follow only after traces
+show it materially improves warm-hit value and tests prove correct handling of
+rename/delete edges.
+
+## Context and inference integration
+
+Prompt construction benefits from a stable prefix only when the repeated part
+arrives in the same order and encoding. The envelope permits the builder to put
+stable policy and selected document context before per-turn instructions. It does
+not force a specific prompt template, model, server, or cache provider.
+
+Matryca exports ordinary text/context to a local engine. The engine alone decides
+whether it has a reusable prefix, how its tokenizer segments it, what precision
+to use, and when to evict KV state. No engine cache identifier returns to Shadow
+DB, and retrieval never waits on an engine cache operation. This keeps failures
+isolated: a disabled or unsupported KV cache degrades only inference speed, never
+retrieval correctness.
+
+For the current local deployment, an engine prefix cache can remain an operational
+choice. A fuller persistent-KV implementation currently requires a compatible
+engine/runtime, while this repository work remains useful for local and future
+engines alike.
+
 ## Incremental plan
 
 1. **Deterministic retrieval (now):** retain score-first ordering and use stable
@@ -111,6 +250,49 @@ then assert the next request misses or changes generation and never returns stal
 identifiers. Measure p50/p95 latency for a cold request, a warm retrieval request,
 and an inference-engine prefix hit independently. Report counts and duration only;
 do not retain fixture content in telemetry artifacts.
+
+### Benchmark matrix
+
+Benchmarks use a small, medium, and large synthetic graph with labelled relevant
+blocks, including equal-score ties, renamed blocks, deleted blocks, and semantic
+index-version changes. Each case records only dimensions, method, hit state,
+generation transition, result count, and duration.
+
+| Scenario | Expected result | What it proves |
+| --- | --- | --- |
+| FTS cold | correct ordered top-k | baseline lookup and deterministic ties |
+| FTS warm | same top-k/fingerprint, lower cache-path work | value of generational query caching |
+| Semantic cold/warm | same stable ordered candidates | vector index cache contract |
+| Mutation after warm hit | miss or new generation; no old identifiers | strong invalidation |
+| Rename/delete after warm hit | no stale source identifiers | provenance safety |
+| Prefix-equivalent context | identical envelope bytes/fingerprint | opportunity for engine reuse |
+| Engine prefix hit | separate TTFT measurement | inference optimization without coupling |
+
+Report p50 and p95 after a fixed number of warm-up and measured iterations. Keep
+cold and warm data separate, state hardware/runtime versions, and compare only
+like-for-like fixture sizes. A benchmark that combines retrieval with generation
+cannot attribute an improvement to the correct layer and is not sufficient to
+accept this design.
+
+## Delivery plan
+
+1. **Completed:** document the boundary and make FTS equal-rank ordering stable.
+2. **Validate the contract:** add synthetic determinism and invalidation cases to
+   existing Shadow/BM25 and semantic tests; publish the benchmark harness output
+   format without recording content.
+3. **Introduce provenance:** add the typed canonical envelope and its SHA-256
+   fingerprint, retaining existing MCP output compatibility through a renderer.
+4. **Add a bounded query cache:** extend the in-process generational cache with
+   graph/index generations, explicit size/eviction limits, content-free metrics,
+   and full-generation invalidation first.
+5. **Measure and tune:** compare cold/warm retrieval against the baseline, then
+   separately evaluate local engine prefix/KV behavior where a supported runtime
+   exists. Only optimize invalidation granularity after measured evidence.
+
+Each stage is independently releasable, reversible, and testable without a real
+vault. A stage should stop if it changes relevance ordering unintentionally,
+allows a stale identifier after mutation, or produces no measurable benefit over
+the existing generational cache.
 
 ## Non-goals
 
