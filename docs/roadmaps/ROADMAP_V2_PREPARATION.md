@@ -130,8 +130,8 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 installed-wheel gate and completed its restart-resilient 72-hour soak with a
 terminal `PASS` on 2026-08-03. The sanitized
 [`terminal evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
-records 415 completed cycles, 259,225.349 observed seconds, unchanged source
-Markdown, and no skipped subtree or synthetic CRUD checks. It closes only the
+records 415 completed cycles, 259,225.349 observed seconds, source Markdown
+unchanged during the source-to-working-copy check, and no skipped subtree or synthetic CRUD checks. It closes only the
 exact-beta real-vault row; the remaining Gate A rows still block RC publication.
 
 ---

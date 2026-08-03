@@ -41,8 +41,8 @@ qualification matrix is
 The exact public-beta wheel has passed its fresh installed-wheel gate and its
 restart-resilient 72-hour soak. The sanitized
 [`terminal evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
-records 415 completed cycles, 259,225.349 observed seconds, unchanged source
-Markdown, and a terminal `PASS`; this closes only Gate A's exact-beta
+records 415 completed cycles, 259,225.349 observed seconds, source Markdown
+unchanged during the source-to-working-copy check, and a terminal `PASS`; this closes only Gate A's exact-beta
 real-vault row.
 
 The unreleased RC-target source has merged Strict Read Only enforcement,

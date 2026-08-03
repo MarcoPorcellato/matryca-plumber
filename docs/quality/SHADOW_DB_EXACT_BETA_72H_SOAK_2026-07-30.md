@@ -144,7 +144,7 @@ seconds (25.349 seconds beyond the 259,200-second target). The result records:
 - 415 completed ON/OFF cycles and 831 recorded attempts;
 - 415 passing subtree checks and 415 passing synthetic CRUD checks, with zero
   subtree checks skipped;
-- unchanged source Markdown throughout the working-copy qualification;
+- source Markdown unchanged during the source-to-working-copy check;
 - source count stable at 1,014 and indexed count between 1,005 and 1,010;
 - RSS between 101,600 and 138,160 KiB; probe times between 2,622.379 and
   516,384.345 ms;
