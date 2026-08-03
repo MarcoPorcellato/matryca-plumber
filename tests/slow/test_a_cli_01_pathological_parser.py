@@ -5,8 +5,8 @@ tens of seconds under ``LogosParser().parse``, while a same-scale well-formed
 control page stays well under a healthy budget. This is **pathological
 latency**, not an infinite hang / deadlock.
 
-Excluded from default CI timing contention: pathological probes skip when ``CI=true``
-unless ``MATRYCA_RUN_A_CLI_01=1`` (set by ``make perf``). Hash/control probes still run.
+Excluded from the parallel full-suite timing contention: wall-clock probes run only
+when ``MATRYCA_RUN_A_CLI_01=1`` (set by ``make perf``). The hash contract still runs.
 Track: https://github.com/MarcoPorcellato/matryca-plumber/issues/297
 """
 
@@ -36,20 +36,19 @@ _HEALTHY_BUDGET_S = 2.0
 _HARD_CEILING_S = 90.0
 _TERMINATE_GRACE_S = 5.0
 
-# Ironclad / ``make test-full`` still collect ``tests/slow/`` under ``-n auto`` +
-# coverage; CPU contention can push LogosParser past 90s without a deadlock.
-# Pathological timing probes stay local / ``make perf`` unless explicitly enabled.
-_IN_CI = os.environ.get("CI", "").strip().lower() in {"1", "true", "yes"}
+# ``make test-full`` collects ``tests/slow/`` under ``-n auto`` + coverage; CPU
+# contention invalidates wall-clock thresholds and can push LogosParser past 90s
+# without a deadlock. Timing probes run only through ``make perf`` or explicit opt-in.
 _RUN_A_CLI_01 = os.environ.get("MATRYCA_RUN_A_CLI_01", "").strip().lower() in {
     "1",
     "true",
     "yes",
 }
-_SKIP_PATHOLOGICAL_ON_CI = pytest.mark.skipif(
-    _IN_CI and not _RUN_A_CLI_01,
+_PERF_TIMING_ONLY = pytest.mark.skipif(
+    not _RUN_A_CLI_01,
     reason=(
-        "A-CLI-01 pathological timing: local/make perf only "
-        "(set MATRYCA_RUN_A_CLI_01=1 to enable on CI)"
+        "A-CLI-01 wall-clock timing: make perf only "
+        "(set MATRYCA_RUN_A_CLI_01=1 to enable explicitly)"
     ),
 )
 
@@ -124,6 +123,7 @@ def test_a_cli_01_generator_hash_contract() -> None:
 
 
 @pytest.mark.slow
+@_PERF_TIMING_ONLY
 def test_a_cli_01_control_page_meets_healthy_budget() -> None:
     text = generate_control_page(line_count=PATHOLOGICAL_PAGE_LINE_COUNT)
     started = time.perf_counter()
@@ -134,7 +134,7 @@ def test_a_cli_01_control_page_meets_healthy_budget() -> None:
 
 
 @pytest.mark.slow
-@_SKIP_PATHOLOGICAL_ON_CI
+@_PERF_TIMING_ONLY
 def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
     """Pathological page must finish within hard ceiling (child process enforced)."""
     result = _parse_pathological_bounded(generate_pathological_page())
@@ -142,7 +142,7 @@ def test_a_cli_01_pathological_page_completes_within_hard_ceiling() -> None:
 
 
 @pytest.mark.slow
-@_SKIP_PATHOLOGICAL_ON_CI
+@_PERF_TIMING_ONLY
 def test_a_cli_01_pathological_page_meets_healthy_budget() -> None:
     """Audit probe: pathological shape should meet the healthy single-page budget.
 
