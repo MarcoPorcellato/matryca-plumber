@@ -88,9 +88,11 @@ not replace the unchecked installed-wheel qualification row.
 The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
 The RC and stable exit criteria are fail-closed in [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md) and tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). Biological memory, Logseq DB Safe-Sync, Tana merge, and independent DX tracks are deferred to `v2.1.0` or later.
 The exact public-beta wheel passed its fresh installed-wheel gate on 2026-07-30
-and is now in the required 72-hour real-vault qualification. See the sanitized
-[`running evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md);
-the unchecked readiness row remains authoritative until the soak terminates.
+and completed the required 72-hour real-vault qualification with a terminal
+`PASS` on 2026-08-03. See the sanitized
+[`terminal evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md);
+it closes only the exact-beta real-vault readiness row, while the remaining
+Gate A requirements remain authoritative before RC publication.
 
 ---
 

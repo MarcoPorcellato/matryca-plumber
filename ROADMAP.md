@@ -6,7 +6,7 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-02** — `v2.0.0-beta.1` is the current public prerelease; the unreleased RC-target source now contains the default-on external Shadow/read-only architecture and retrieval hardening described below. Issue numbers link to GitHub; implementation does not imply release qualification.*
+*Status as of **2026-08-03** — `v2.0.0-beta.1` is the current public prerelease; its exact-wheel 72-hour qualification has passed. The unreleased RC-target source now contains the default-on external Shadow/read-only architecture and retrieval hardening described below. Issue numbers link to GitHub; implementation does not imply RC or stable release qualification.*
 
 ---
 
@@ -38,10 +38,12 @@ Biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and
 independent DX tracks are deferred to `v2.1.0` or later. The fail-closed
 qualification matrix is
 [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
-The exact public-beta wheel has passed its fresh installed-wheel gate and is in
-a restart-resilient 72-hour soak; its sanitized
-[`running evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
-remains non-terminal.
+The exact public-beta wheel has passed its fresh installed-wheel gate and its
+restart-resilient 72-hour soak. The sanitized
+[`terminal evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
+records 415 completed cycles, 259,225.349 observed seconds, unchanged source
+Markdown, and a terminal `PASS`; this closes only Gate A's exact-beta
+real-vault row.
 
 The unreleased RC-target source has merged Strict Read Only enforcement,
 external per-user Shadow cache routing, default-on Shadow with explicit opt-out,
@@ -52,15 +54,14 @@ graph-local, while the next candidate is default-on and external.
 
 Promotion therefore remains deliberately sequential:
 
-1. record terminal `PASS` or `FAIL` for the exact `2.0.0b1` soak;
-2. complete every remaining Gate A row on the exact candidate, including
+1. complete every remaining Gate A row on the exact candidate, including
    upgrade/rollback, defect disposition, default-on/read-only installed-wheel
    proof, operator-contract synchronization, and release build/platform checks;
-3. publish `v2.0.0-rc.1` so prerelease users can exercise the complete external
+2. publish `v2.0.0-rc.1` so prerelease users can exercise the complete external
    Shadow path;
-4. complete Gate B on that published RC, including at least seven days of
+3. complete Gate B on that published RC, including at least seven days of
    observation and the default-on/read-only soaks;
-5. publish stable `v2.0.0` only after every Gate B row passes.
+4. publish stable `v2.0.0` only after every Gate B row passes.
 
 ---
 

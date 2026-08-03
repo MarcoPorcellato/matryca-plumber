@@ -127,10 +127,12 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 **Implemented RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md) defines Read Only as a graph-boundary guarantee while permitting a validated external derived cache. The implementation and deterministic source-tree E2E gate are complete; exact-candidate and published-RC qualification remain release blockers.
 
 **Exact-beta re-qualification:** the public `2.0.0b1` wheel passed its fresh
-installed-wheel gate and entered a restart-resilient 72-hour soak on 2026-07-30.
-The sanitized running record is
-[`docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md).
-It does not close the RC gate until a terminal result is recorded.
+installed-wheel gate and completed its restart-resilient 72-hour soak with a
+terminal `PASS` on 2026-08-03. The sanitized
+[`terminal evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
+records 415 completed cycles, 259,225.349 observed seconds, unchanged source
+Markdown, and no skipped subtree or synthetic CRUD checks. It closes only the
+exact-beta real-vault row; the remaining Gate A rows still block RC publication.
 
 ---
 
