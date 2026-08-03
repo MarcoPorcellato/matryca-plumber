@@ -101,7 +101,7 @@ root override. The beta graph-local database is rebuilt externally rather than m
 mutated, or deleted. Decision and implementation slices:
 [`v2-external-shadow-cache-read-only.md`](quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
-**Current RC source contract (Slices 1–4 complete):** an unset
+**Current unreleased RC-target source contract (Slices 1–4 complete):** an unset
 `MATRYCA_SHADOW_DB_ENABLED` now enables Shadow; explicit false remains a zero-Shadow
 opt-out. The Sovereign UI persists independent Strict Read Only and Shadow controls,
 disables graph-mutating controls while Read Only is effective, and keeps Shadow health

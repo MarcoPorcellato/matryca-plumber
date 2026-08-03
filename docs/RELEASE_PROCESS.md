@@ -14,6 +14,22 @@ Add user-facing bullets under **`## [Unreleased]`** (`Added` / `Changed` / `Fixe
 
 Replace `X.Y.Z` with the semver you are shipping (no `v` prefix in `pyproject.toml`; use `vX.Y.Z` for the git tag).
 
+### v2.0 promotion override
+
+The generic checklist below is necessary but not sufficient for the Shadow DB
+release track. The fail-closed decision record is
+[`quality/issue-bodies/v2-rc-stable-readiness.md`](quality/issue-bodies/v2-rc-stable-readiness.md):
+
+- do not tag or publish `v2.0.0-rc.1` until every Gate A row is complete on the
+  exact candidate;
+- do not treat the exact `2.0.0b1` soak as proof of the later default-on,
+  external-cache implementation;
+- after publishing RC, collect Gate B against that installed public artifact;
+- do not tag or publish stable `v2.0.0` until every Gate B row is complete.
+
+Release preparation, tag creation, publication, and the final stable decision
+remain separate maintainer authority gates.
+
 ### 1. Prepare (Cursor or manual)
 
 - [ ] Move everything from `[Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` in `CHANGELOG.md`

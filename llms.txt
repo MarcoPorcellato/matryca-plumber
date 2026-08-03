@@ -220,9 +220,9 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB and Strict Read Only (v2 RC contract)
+### 2.6 Shadow DB and Strict Read Only (unreleased v2 RC-target contract)
 
-Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not** replace Markdown on disk. In the current v2 RC source contract it is **default-on**; an explicit false value is the emergency opt-out. The published `2.0.0b1` wheel remains historically default-off and graph-local.
+Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not** replace Markdown on disk. In the current unreleased v2 RC-target source contract it is **default-on**; an explicit false value is the emergency opt-out. The published `2.0.0b1` wheel remains historically default-off and graph-local.
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|

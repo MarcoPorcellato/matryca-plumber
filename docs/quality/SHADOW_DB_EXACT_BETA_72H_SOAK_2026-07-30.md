@@ -1,6 +1,6 @@
-# Shadow DB exact-beta 72-hour soak — running evidence record
+# Shadow DB exact-beta 72-hour soak — terminal evidence record
 
-**Status:** in-progress evidence record, started 2026-07-30. This is a
+**Status:** terminal `PASS`, recorded 2026-08-03 at 00:52:20 UTC. This is a
 sanitized quality artifact, not a release note and not a release decision. It
 records the exact-artifact re-qualification required before the Shadow read path
 can become default-on. The fail-closed decision remains
@@ -61,7 +61,7 @@ environment cannot silently inherit this evidence.
 | Per-probe timeout | 900 seconds |
 | Phases per completed cycle | `ON`, then `OFF` |
 | Terminal results | `PASS` or `FAIL` |
-| Current result | `RUNNING` |
+| Terminal result | `PASS` |
 
 Each ON phase asserts startup readiness, FTS, bounded subtree behavior,
 watcher-driven create/rename/delete convergence, and count invariants. Every
@@ -138,23 +138,20 @@ Neither rejected setup contributed a cycle, a duration, or release evidence.
 
 ## Completion and publication rules
 
-This record remains `RUNNING` until the machine-readable soak gate writes a
-terminal result.
+The machine-readable soak gate wrote terminal `PASS` after 259,225.349 observed
+seconds (25.349 seconds beyond the 259,200-second target). The result records:
 
-On `PASS`, update this document from the sanitized result with:
+- 415 completed ON/OFF cycles and 831 recorded attempts;
+- 415 passing subtree checks and 415 passing synthetic CRUD checks, with zero
+  subtree checks skipped;
+- source Markdown unchanged during the source-to-working-copy check;
+- source count stable at 1,014 and indexed count between 1,005 and 1,010;
+- RSS between 101,600 and 138,160 KiB; probe times between 2,622.379 and
+  516,384.345 ms;
+- the same candidate provenance and wheel-binding digests stated above.
 
-- observed accumulated duration;
-- completed cycle and attempt counts;
-- ON/OFF, subtree, CRUD, restart, and recovery totals;
-- stable source/indexed/quarantined ranges;
-- bounded RSS and timing observations;
-- interruption and resume history;
-- final source and working-copy integrity results;
-- the repeated wheel binding digest.
-
-On `FAIL`, record the bounded failure category and preserve the terminal result;
-do not convert the failed attempt into a pass by editing its state. Any retry
-must have an explicit new evidence boundary.
+The controlled process-restart proof described above remains valid evidence of
+checkpoint recovery. No physical-reboot observation is claimed.
 
 No RC default change, release tag, or stable-release claim follows
 automatically from this run. Even a passing result closes only the exact-beta

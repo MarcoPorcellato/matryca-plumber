@@ -1049,8 +1049,8 @@
     {
       "path": "docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md",
       "type": "Audit",
-      "title": "Shadow DB exact-beta 72-hour soak — running evidence record",
-      "description": "**Status:** in-progress evidence record, started 2026-07-30.",
+      "title": "Shadow DB exact-beta 72-hour soak — terminal evidence record",
+      "description": "**Status:** terminal PASS, recorded 2026-08-03.",
       "status": "archived",
       "audience": [
         "maintainer",
