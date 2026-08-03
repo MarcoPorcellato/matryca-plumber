@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **RC qualification timeout and provenance** — give the multi-rebuild candidate probe an independent bounded deadline while keeping install commands at 600 seconds, and run installed-package probes from the virtual environment so checkout-local `src` cannot satisfy wheel provenance.
+
 ## [2.0.0-rc.1] - 2026-08-03
 
 ### Fixed

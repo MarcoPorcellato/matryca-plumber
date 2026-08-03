@@ -81,6 +81,39 @@ def test_collector_records_sanitized_pass_for_each_baseline(tmp_path: Path) -> N
     assert json.loads(evidence)["status"] == "PASS"
 
 
+def test_collector_uses_independent_candidate_timeout(tmp_path: Path) -> None:
+    module = _module()
+    source, wheel, expected_source = _source(tmp_path)
+    observed_timeouts: list[int] = []
+
+    def candidate(
+        _python: Path,
+        _graph: Path,
+        _cache_root: Path,
+        _candidate_package: str,
+        timeout: int,
+    ) -> dict[str, bool]:
+        observed_timeouts.append(timeout)
+        return _candidate()
+
+    result = module.collect_upgrade_rollback(
+        tmp_path / "evidence",
+        wheel=wheel,
+        candidate_package="2.0.0rc1",
+        baselines=("2.0.0b1",),
+        source_vault=source,
+        expected_source_file=expected_source,
+        timeout_seconds=30,
+        candidate_timeout_seconds=1_800,
+        command_runner=_command,
+        candidate_probe=candidate,
+        installed_probe=lambda _python, _package: True,
+    )
+
+    assert result["status"] == "PASS"
+    assert observed_timeouts == [1_800]
+
+
 def test_collector_fails_closed_and_preserves_source_on_candidate_failure(tmp_path: Path) -> None:
     module = _module()
     source, wheel, expected_source = _source(tmp_path)
@@ -126,6 +159,25 @@ def test_collector_rejects_duplicate_or_invalid_baselines(tmp_path: Path) -> Non
             assert exc.category == category
         else:
             raise AssertionError("expected a fail-closed validation error")
+
+
+@pytest.mark.parametrize("candidate_timeout", [0, 3_601])
+def test_collector_rejects_invalid_candidate_timeout(
+    tmp_path: Path, candidate_timeout: int
+) -> None:
+    module = _module()
+    source, wheel, expected_source = _source(tmp_path)
+
+    with pytest.raises(module.EvidenceError, match="candidate_timeout_invalid"):
+        module.collect_upgrade_rollback(
+            tmp_path / "evidence",
+            wheel=wheel,
+            candidate_package="2.0.0rc1",
+            baselines=("2.0.0b1",),
+            source_vault=source,
+            expected_source_file=expected_source,
+            candidate_timeout_seconds=candidate_timeout,
+        )
 
 
 def test_collector_rejects_a_source_that_does_not_match_the_private_fingerprint(
@@ -174,8 +226,9 @@ def test_candidate_probe_uses_the_external_cache_location_contract(
     }
     commands: list[list[str]] = []
 
-    def fake_run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         commands.append(command)
+        assert kwargs["cwd"] == Path(sys.executable).parent
         return subprocess.CompletedProcess(command, 0, json.dumps(payload), "")
 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
@@ -190,6 +243,24 @@ def test_candidate_probe_uses_the_external_cache_location_contract(
     assert "schema_mismatch_fallback" in script
     assert "failed_rebuild_fallback" in script
     assert "shadow_read_port_ready(graph)" in script
+
+
+def test_installed_probe_executes_outside_the_checkout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _module()
+    observed_cwd: list[Path] = []
+
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        cwd = kwargs["cwd"]
+        assert isinstance(cwd, Path)
+        observed_cwd.append(cwd)
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module._installed_package_probe(Path(sys.executable), "2.0.0rc1") is True
+    assert observed_cwd == [Path(sys.executable).parent]
 
 
 def test_candidate_probe_exercises_disposable_recovery_paths(tmp_path: Path) -> None:
