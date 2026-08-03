@@ -15,7 +15,12 @@ from unittest.mock import patch
 
 import pytest
 from loguru import logger
-from src.graph.bounded_page_parse import BoundedParseResult, ParseMode, content_hash16
+from src.graph.bounded_page_parse import (
+    BoundedParseResult,
+    ParseMode,
+    content_hash16,
+    parse_page_text_bounded,
+)
 from src.graph.post_write import PageWrittenEvent
 from src.shadow.bootstrap import (
     ensure_shadow_runtime_at_startup,
@@ -240,6 +245,8 @@ def test_real_pathological_page_rolls_back_full_rebuild_with_bounded_error(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    warm = parse_page_text_bounded("- warm\n", mode="stack", timeout_s=15)
+    assert warm.ok
     monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "2")
     root = _graph(tmp_path)
     _write_page(root, "Alpha.md", "- ordinary\n")
@@ -264,10 +271,10 @@ def test_real_pathological_incremental_keeps_last_good_page(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "2")
     root = _graph(tmp_path)
     page = _write_page(root, "Alpha.md", "- last good content\n")
     rebuild_shadow_from_graph(root)
+    monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "2")
     page.write_text(generate_pathological_page(), encoding="utf-8")
 
     with pytest.raises(ShadowPageParseError):
