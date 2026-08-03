@@ -72,3 +72,39 @@ jobs:
 
       - name: Run CI gate (format check, Ruff, Mypy, Pytest)
         run: make ci
+
+  shadow-cross-platform:
+    name: Shadow contract (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          enable-cache: true
+          python-version: "3.12"
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      - name: Sync Python dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Verify the supported Shadow read contract
+        run: >-
+          uv run pytest -q -o addopts=
+          tests/test_shadow_config.py::test_shadow_db_enabled_default_true
+          tests/test_shadow_cache_location.py::test_platform_default_cache_roots
+          tests/test_shadow_connection.py::test_open_shadow_db_uses_only_external_cache_in_read_only_mode
+          tests/test_shadow_connection.py::test_open_shadow_db_rejects_disabled_flag
+          tests/test_shadow_bootstrap.py::test_read_only_startup_builds_external_shadow_without_graph_drift
+          tests/test_shadow_bootstrap.py::test_read_only_shadow_off_touches_neither_graph_nor_external_cache
+          tests/test_shadow_fts_routing.py::test_handle_search_bm25_uses_shadow_when_ready
+          tests/test_shadow_fts_routing.py::test_handle_search_bm25_shadow_not_ready_falls_back
