@@ -132,6 +132,7 @@ def _candidate_probe(
 import hashlib
 import json
 import os
+import sqlite3
 from importlib.metadata import version
 from pathlib import Path
 
@@ -157,6 +158,7 @@ from src.shadow.bootstrap import (
 from src.shadow.config import shadow_db_enabled
 from src.shadow.health import ShadowHealthState, resolve_shadow_health
 from src.shadow.cache_location import resolve_shadow_cache_location
+from src.agent.shadow_graph_repository import shadow_read_port_ready
 
 reset_shadow_bootstrap_checked_for_tests()
 ensure_shadow_runtime_at_startup(graph)
@@ -166,6 +168,38 @@ external_cache_only = (
     default_location.database_path.is_relative_to(cache_root)
     and not default_location.database_path.is_relative_to(graph)
 )
+
+with sqlite3.connect(default_location.database_path) as connection:
+    connection.execute(
+        "UPDATE shadow_meta SET value = ? WHERE key = 'schema_version'", ('999999',)
+    )
+schema_mismatch_fallback = (
+    resolve_shadow_health(graph) is not ShadowHealthState.READY
+    and not shadow_read_port_ready(graph)
+)
+reset_shadow_bootstrap_checked_for_tests()
+ensure_shadow_runtime_at_startup(graph)
+schema_mismatch_recovered = resolve_shadow_health(graph) is ShadowHealthState.READY
+
+with sqlite3.connect(default_location.database_path) as connection:
+    connection.execute(
+        "UPDATE shadow_meta SET value = ? WHERE key = 'last_full_sync_completed'", ('false',)
+    )
+import src.shadow.bootstrap as bootstrap
+original_rebuild = bootstrap.rebuild_shadow_from_graph
+try:
+    bootstrap.rebuild_shadow_from_graph = lambda _graph: (_ for _ in ()).throw(RuntimeError())
+    reset_shadow_bootstrap_checked_for_tests()
+    ensure_shadow_runtime_at_startup(graph)
+finally:
+    bootstrap.rebuild_shadow_from_graph = original_rebuild
+failed_rebuild_fallback = (
+    resolve_shadow_health(graph) is not ShadowHealthState.READY
+    and not shadow_read_port_ready(graph)
+)
+reset_shadow_bootstrap_checked_for_tests()
+ensure_shadow_runtime_at_startup(graph)
+failed_rebuild_recovered = resolve_shadow_health(graph) is ShadowHealthState.READY
 
 os.environ['MATRYCA_SHADOW_DB_ENABLED'] = 'false'
 os.environ['MATRYCA_CACHE_PATH'] = str(cache_root / 'opt-out')
@@ -194,6 +228,10 @@ print(json.dumps({{
     'default_on_ready': default_on_ready,
     'explicit_false': explicit_false,
     'external_cache_only': external_cache_only,
+    'schema_mismatch_fallback': schema_mismatch_fallback,
+    'schema_mismatch_recovered': schema_mismatch_recovered,
+    'failed_rebuild_fallback': failed_rebuild_fallback,
+    'failed_rebuild_recovered': failed_rebuild_recovered,
     'read_only_ready': read_only_ready,
     'read_only_external_cache': read_only_external_cache,
     'markdown_unchanged': before == after,
@@ -223,6 +261,10 @@ print(json.dumps({{
         "default_on_ready",
         "explicit_false",
         "external_cache_only",
+        "schema_mismatch_fallback",
+        "schema_mismatch_recovered",
+        "failed_rebuild_fallback",
+        "failed_rebuild_recovered",
         "read_only_ready",
         "read_only_external_cache",
         "markdown_unchanged",
