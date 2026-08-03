@@ -972,6 +972,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",
+      "type": "Audit",
+      "title": "Gate B public-RC soak runbook",
+      "description": "This runbook starts the two independent, fail-closed soak profiles required by",
+      "status": "archived",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/GITHUB_BUG_BACKLOG.md",
       "type": "Audit",
       "title": "GitHub bug backlog — Expert Audit 2026-06 slice",
@@ -1025,7 +1043,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",

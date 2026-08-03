@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **Gate B public-RC soak qualification** — add separate resumable `default-on` and `read-only-external` profiles bound to the installed `2.0.0rc1` wheel, explicit opt-out controls, full graph-manifest integrity, external-cache isolation, and a terminal-aware supervisor for restart-safe multi-day evidence collection.
+
 ## [2.0.0-rc.1] - 2026-08-03
 
 ### Fixed
