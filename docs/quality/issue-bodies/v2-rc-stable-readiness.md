@@ -24,8 +24,10 @@ candidate. Evidence from one artifact never transfers silently to the other.
 As of 2026-08-03, the unreleased RC-target source contains the Strict Read Only
 policy and guarded runtime, external per-user Shadow routing, default-on Shadow
 with explicit opt-out, read-only observer daemon, deterministic graph
-immutability gate, and bounded 8,192-entry BM25 result cache merged through
-#366. This describes implementation state, not an RC release or Gate A closure.
+immutability gate, bounded 8,192-entry BM25 result cache, and Linux/macOS/Windows
+Shadow contract CI merged through #376. Gate A is qualified on the exact merged
+commit recorded below. This is not an RC publication or a stable release
+decision.
 
 ## Proposed Architectural Solution
 
@@ -39,11 +41,58 @@ Use two fail-closed promotion gates.
 | Exact-wheel functional smoke | Fresh PyPI install verifies flag-off, flag-on `READY`, FTS, bounded subtree reads, quarantine state, warm startup, and unchanged Markdown bytes | [x] — post-publication smoke passed |
 | Exact-wheel real-vault qualification | Sanitized daily-use vault copy; product-default 15 s parse deadline; at least 72 hours and preferably 7 days; restart and watcher CRUD; controlled recovery; unchanged Markdown fingerprints | [x] — terminal `PASS` on 2026-08-03: 415 completed cycles, 831 recorded attempts, 259,225.349 observed seconds, 415 subtree and 415 synthetic CRUD checks with none skipped, and source Markdown unchanged during the source-to-working-copy check. This is exact `2.0.0b1` evidence only. See [`SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md) |
 | Upgrade and rollback safety | Clean install plus `1.14.5`, `2.0.0a5`, and `2.0.0b1` upgrades to the exact RC candidate; schema mismatch and a forced rebuild failure each make the read port non-ready before a clean recovery, while opt-out, rollback, and Markdown integrity remain enforced | [x] — terminal `PASS` on 2026-08-03 against the exact `2.0.0rc1` wheel rebuilt from post-#373 `main@17899f09b82b8b982ff06472d3cfc2a249ebc79c` (SHA-256 `771040b47aac86972cb6da8f9d449a1c739f3ca2dce454739179cabf6de1aaa4`): all three baselines installed, upgraded, recovered, and rolled back; every candidate check was true; source and working Markdown were unchanged. |
-| Defect threshold | No open P0/P1 in Shadow read-path scope; every P2 has an explicit maintainer disposition | [ ] |
+| Defect threshold | No open P0/P1 in Shadow read-path scope; every P2 has an explicit maintainer disposition | [x] — live issue reconciliation found no open P0/P1 Shadow defect; delivered trackers #346 and #351 remain project-management follow-ups, while accepted P2 items A1-BOOT-02 and #333 have explicit fail-safe/deferred dispositions below |
 | External-cache Read Only compatibility | Shadow DB, WAL/SHM, and writer lock resolve outside `LOGSEQ_GRAPH_PATH`; `MATRYCA_READ_ONLY=true` permits only validated external-cache writes; graph fingerprint and graph-local file inventory remain unchanged | [x] — implementation merged through #363; deterministic source-tree E2E gate passes across CLI, MCP, UI, daemon, Shadow, hidden files, Git metadata, and symlink cases. The exact post-#373 RC wheel also reached `READY` under Read Only with an external cache while the graph file inventory and Markdown remained unchanged. See [`READ_ONLY_IMMUTABILITY_E2E.md`](../READ_ONLY_IMMUTABILITY_E2E.md) and [`v2-external-shadow-cache-read-only.md`](v2-external-shadow-cache-read-only.md) |
 | Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads, including under Read Only with a valid external cache; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [x] — implemented and source-tested in #362; the exact post-#373 RC wheel reached `READY` with the flag unset, honored explicit `false`, and excluded Shadow reads during schema-mismatch and forced-rebuild-failure states before clean recovery |
-| Operator contract | `.env.example`, Sovereign UI settings/help, `llms.txt`, `.well-known/llms.txt`, OpenSpec fragments, generated prompt, roadmap, tests, and changelog agree | [ ] — source surfaces synchronized; final exact-candidate review remains pending |
-| Release-candidate proof | Full CI, code audit, clean release build, installed-wheel smoke, and supported-platform checks pass on the exact RC commit | [ ] |
+| Operator contract | `.env.example`, Sovereign UI settings/help, `llms.txt`, `.well-known/llms.txt`, OpenSpec fragments, generated prompt, roadmap, tests, and changelog agree | [x] — exact-candidate review on `ced0c94722d2c7943824ebcd55e9fa437d65746d` confirmed current defaults, Read Only/external-cache semantics, opt-out/fallback wording, byte-identical `llms.txt` surfaces, generated-prompt hash, and UI/config coverage; historical alpha/beta sections retain their historical defaults deliberately |
+| Release-candidate proof | Full CI, code audit, clean release build, installed-wheel smoke, and supported-platform checks pass on the exact RC commit | [x] — exact `main@ced0c94722d2c7943824ebcd55e9fa437d65746d`; Ubuntu full gate plus macOS/Windows Shadow contract jobs and CodeQL passed; clean wheel/sdist build and exact-wheel installed smoke passed with the digests recorded below |
+
+#### Gate A closeout — 2026-08-03
+
+The frozen candidate source is
+`main@ced0c94722d2c7943824ebcd55e9fa437d65746d`, the merge commit for #376.
+GitHub Actions run `30813967874` passed the Ubuntu Ironclad Gatekeeper and the
+supported Shadow read contract on both `macos-latest` and `windows-latest`.
+CodeQL run `30813968213` also passed on the same commit. The full CI gate covers
+formatting, Ruff, mypy, sandbox-read policy, version consistency, agent-router
+coherence, public-metrics policy, generated-prompt hash, and pytest.
+
+A clean tracked-source `make release-build` produced:
+
+- wheel SHA-256
+  `424be4ae6a80f0925b609752a40ebd7b33b8fe0adb15e18244c22fb6eadaaf81`;
+- sdist SHA-256
+  `6ad351cf24ddbd8c4a96f010db555e78b54baadc88288cff371ac870afb12c62`.
+
+This closeout record is documentation-only and is excluded from both release
+archives. A rebuild from the closeout commit confirmed byte-identical extracted
+wheel and sdist member contents. The archive digests themselves are not
+reproducible because the current build records build-time ZIP/tar timestamps;
+the second build therefore had different container digests despite identical
+members. The digests above identify the exact installed artifact used for this
+Gate A smoke, not a reproducible-build guarantee. The resulting `main` merge
+must retain green CI, and release publication must build, record, and smoke the
+final artifacts produced for upload. This explicitly bounds the otherwise
+self-referential act of recording evidence after freezing the runtime
+candidate.
+
+The wheel was installed into a fresh disposable environment outside the
+checkout. Import/version provenance resolved to `site-packages` at
+`2.0.0rc1`. The candidate probe passed default-on readiness, explicit opt-out,
+external-cache-only routing, schema-mismatch fallback and recovery, injected
+rebuild-failure fallback and recovery, Strict Read Only readiness, and unchanged
+Markdown bytes and graph file inventory.
+
+The live v2.0 milestone inventory contains project trackers rather than open
+P0/P1 Shadow defects. #351 was delivered by #360; #346's implementation slices
+#347–#350 and #352–#353 are closed. #17 retains only the later Logseq DB adapter
+scope already assigned outside this release, while #20 and #343 remain release
+trackers. Accepted P2 A1-BOOT-02 remains safe because rollback preserves the
+committed generation and error health forces Markdown/BM25 fallback. Security
+hardening #333 remains explicitly deferred: bounded-parser payloads originate
+from the owned worker and are correlation-checked before deserialization, but
+replacing or restricting pickle remains a tracked defense-in-depth follow-up.
+No raw graph content or private operator path is recorded in this closeout.
 
 #### Upgrade/rollback collector diagnosis — 2026-08-03
 
