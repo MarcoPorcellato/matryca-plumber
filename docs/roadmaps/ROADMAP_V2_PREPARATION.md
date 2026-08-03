@@ -99,7 +99,7 @@ flowchart LR
 
 Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`, page counts, `lag_pages`, `last_sync_error`). No `matryca doctor` — see `llms.txt` §2.5–§2.6.
 
-**Published prerelease baseline:** [`v2.0.0-beta.1`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-beta.1) / `2.0.0b1` supersedes alpha.5 for new prerelease installs. It retains the default-off flag, graph-local cache, mandatory fallback, and Markdown system of record. The current unreleased RC-target source instead implements the external default-on architecture; it remains a candidate until Gate A is complete.
+**Historical published prerelease baseline:** [`v2.0.0-beta.1`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-beta.1) / `2.0.0b1` retains the default-off flag, graph-local cache, mandatory fallback, and Markdown system of record. The Gate-A-qualified `v2.0.0-rc.1` contract implements the external default-on architecture; its public artifact begins Gate B observation before stable promotion.
 
 **Verify:** `uv run pytest tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py tests/test_shadow_state_api.py tests/test_shadow_bootstrap.py tests/test_ui_server.py -q`
 
@@ -117,14 +117,14 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 |-------|-----------------|-------------------|
 | **v2.0.0-alpha.5** | Seven-axis hardening baseline | Pin `@2.0.0-alpha.5`; shadow remains opt-in | **published** 2026-07-19 |
 | **v2.0.0-beta.1** | First public Shadow read-path beta | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **published** 2026-07-30 |
-| **v2.0.0-rc.1** | External Shadow cache works under Read Only; health in UI; exact public-beta predecessor and exact RC candidate qualified | MCP read traffic prefers shadow; explicit `false` remains the opt-out; fallback remains mandatory |
+| **v2.0.0-rc.1** | External Shadow cache works under Read Only; health in UI; exact public-beta predecessor and exact RC candidate qualified | **Gate A qualified**; MCP read traffic prefers shadow; explicit `false` remains the opt-out; fallback remains mandatory; public artifact starts Gate B |
 | **v2.0.0-stable** | RC observation complete; deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
 
 **Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary. Re-qualification against the released source remains required before default-on.
 
 **RC/stable decision record:** [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md), tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). `v2.0.0` is scoped to the stable Shadow read path. Phase 4 biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and independent DX tracks move to `v2.1.0` or later.
 
-**Implemented RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md) defines Read Only as a graph-boundary guarantee while permitting a validated external derived cache. The implementation and deterministic source-tree E2E gate are complete; exact-candidate and published-RC qualification remain release blockers.
+**Implemented RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md) defines Read Only as a graph-boundary guarantee while permitting a validated external derived cache. The implementation, deterministic source-tree E2E gate, and exact-candidate Gate A qualification are complete; published-RC Gate B remains the stable-release blocker.
 
 **Exact-beta re-qualification:** the public `2.0.0b1` wheel passed its fresh
 installed-wheel gate and completed its restart-resilient 72-hour soak with a

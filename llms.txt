@@ -5,7 +5,7 @@
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
-> **v2.0.0-rc.1 candidate:** the pending release candidate makes the external Shadow read cache default-on; `MATRYCA_SHADOW_DB_ENABLED=false` remains the emergency Markdown/BM25 opt-out, and Logseq Markdown remains authoritative. It is not published or qualified for promotion until the fail-closed Gate A rows in `docs/quality/issue-bodies/v2-rc-stable-readiness.md` are complete. The published `v2.0.0-beta.1` / `2.0.0b1` wheel remains the historical default-off, graph-local baseline. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
+> **v2.0.0-rc.1:** the qualified release candidate makes the external Shadow read cache default-on; `MATRYCA_SHADOW_DB_ENABLED=false` remains the emergency Markdown/BM25 opt-out, and Logseq Markdown remains authoritative. Gate A is complete; the public RC begins the separate Gate B observation required before stable `v2.0.0`. The published `v2.0.0-beta.1` / `2.0.0b1` wheel remains the historical default-off, graph-local baseline. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.5 headline:** **Shadow hardening campaign closed** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) — CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)); state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)); Axes 5–7 audit probes green; `MATRYCA_SHADOW_DB_ENABLED=false` by default. **Not an RC** — post-publish soak before beta/RC. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.4 headline:** **Shadow FTS query length bound** — keywords over **512 Unicode characters** (post-`strip`) are rejected before FTS preparation or SQLite `MATCH` ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)); Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail**.
 > **v2.0.0-alpha.3 headline:** **Shadow FTS hyphenated queries** — natural compounds like `state-of-the-art` route through shadow FTS5 without spurious generational fallback ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)).
@@ -18,7 +18,7 @@ Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as thi
 
 ## 0. Graph path (REQUIRED — no `--graph` flag)
 
-The v2.0.0-rc.1 candidate does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
+The v2.0.0-rc.1 release does **not** accept `--graph` on the CLI. You **must** point at the vault root (folder containing `pages/` and usually `journals/`) with the environment variable **`LOGSEQ_GRAPH_PATH`**.
 
 **Set once per shell session (copy-paste):**
 ```bash
@@ -56,7 +56,7 @@ uvx matryca-plumber --json read page "My Project"
 
 ---
 
-## 2. Core CLI (v2.0.0-rc.1 candidate)
+## 2. Core CLI (v2.0.0-rc.1)
 
 Subcommands: `read`, `search`, `mutate`, `refactor`, `lint`, `context`, **`import`**, `service`, `plumber`.  
 Shorthand daemon/UI verbs (routed to `plumber`): `start`, `stop`, `status`, `ui`, `audit`, `cluster`.
@@ -220,9 +220,9 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 uvx matryca-plumber --json plumber audit
 ```
 
-### 2.6 Shadow DB and Strict Read Only (unreleased v2 RC-target contract)
+### 2.6 Shadow DB and Strict Read Only (v2.0.0-rc.1 contract)
 
-Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not** replace Markdown on disk. In the current unreleased v2 RC-target source contract it is **default-on**; an explicit false value is the emergency opt-out. The published `2.0.0b1` wheel remains historically default-off and graph-local.
+Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not** replace Markdown on disk. In v2.0.0-rc.1 it is **default-on**; an explicit false value is the emergency opt-out. The published `2.0.0b1` wheel remains historically default-off and graph-local.
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|

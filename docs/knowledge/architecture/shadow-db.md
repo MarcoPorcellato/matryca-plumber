@@ -24,7 +24,7 @@ legacy_sources:
 > **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
 
 Logseq Markdown on disk remains the **system of record**. The published beta used an
-opt-in graph-local cache. The current unreleased RC-target source uses a **default-on external derived
+opt-in graph-local cache. The v2.0.0-rc.1 contract uses a **default-on external derived
 cache**, isolated per canonical graph path. It accelerates hierarchical reads when
 healthy; it never replaces vault writes or OCC on `.md` files.
 
@@ -33,7 +33,7 @@ healthy; it never replaces vault writes or OCC on `.md` files.
 acceleration. The detailed storage, migration, security, bootstrap, and evidence
 contract is [`v2-external-shadow-cache-read-only.md`](../../quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
-**Introduced:** `v2.0.0-alpha` (opt-in read path). **Hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **Published `v2.0.0-beta.1`:** default-off and graph-local. **Current unreleased RC-target source:** default-on, external, explicit false opt-out; Phase 4 biological memory/Safe-Sync remains out of scope.
+**Introduced:** `v2.0.0-alpha` (opt-in read path). **Hardening baseline:** `v2.0.0-alpha.5` (seven-axis campaign complete — see below). **Published `v2.0.0-beta.1`:** default-off and graph-local. **v2.0.0-rc.1:** Gate A qualified; default-on, external, explicit false opt-out; Phase 4 biological memory/Safe-Sync remains out of scope.
 
 ## Activation gate
 
@@ -80,7 +80,7 @@ flowchart TB
   Health -->|disabled bootstrapping stale error| Fallback
 ```
 
-Under the current unreleased RC-target contract, the same lifecycle writes SQLite, WAL/SHM, and lock
+Under the v2.0.0-rc.1 contract, the same lifecycle writes SQLite, WAL/SHM, and lock
 state only to the resolved external cache. Read Only blocks graph-local provisioning
 and mutations but does not block this validated derived-cache lifecycle.
 
