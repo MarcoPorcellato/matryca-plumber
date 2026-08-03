@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.0.0-rc.1] - 2026-08-03
+
 ### Fixed
 
 - **Prerelease publication metadata** — release tags containing a SemVer prerelease suffix now create GitHub prereleases instead of stable releases while preserving the curated changelog notes and PyPI trusted-publishing flow.

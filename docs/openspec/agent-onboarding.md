@@ -1,10 +1,10 @@
-# Agent onboarding (`llms.txt`) — v2.0.0-beta.1
+# Agent onboarding (`llms.txt`) — v2.0.0rc1
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
 **Companion specs:** [`agent-dx.md`](agent-dx.md) (CLI `--json`, `context load`, Journey Log) · [`agent-ax-robustness.md`](agent-ax-robustness.md) (lenient page titles, safe writes) · [`security-sandbox.md`](security-sandbox.md) (path sandbox, bounded JSON, CI read gate)
 
-External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. `v2.0.0-beta.1` is published as `2.0.0b1`; hosts may pin it, and its opt-in Shadow flag stays default-off. The `llms.txt` files encode that contract: imperative commands, verified flags, and explicit anti-patterns.
+External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. `v2.0.0-beta.1` is published as `2.0.0b1` and remains the historical opt-in Shadow baseline. The pending `v2.0.0rc1` candidate updates the `llms.txt` contract for default-on external Shadow with an explicit false opt-out; it is not published until its Gate A qualification is complete. The `llms.txt` files encode the candidate contract: imperative commands, verified flags, and explicit anti-patterns.
 
 ---
 
