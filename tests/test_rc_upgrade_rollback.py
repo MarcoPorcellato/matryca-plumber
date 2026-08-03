@@ -4,6 +4,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from importlib.metadata import version
 from pathlib import Path
 from types import ModuleType
 
@@ -45,6 +46,10 @@ def _candidate(*_args: object, **_kwargs: object) -> dict[str, bool]:
         "default_on_ready": True,
         "explicit_false": True,
         "external_cache_only": True,
+        "schema_mismatch_fallback": True,
+        "schema_mismatch_recovered": True,
+        "failed_rebuild_fallback": True,
+        "failed_rebuild_recovered": True,
         "read_only_ready": True,
         "read_only_external_cache": True,
         "markdown_unchanged": True,
@@ -158,6 +163,10 @@ def test_candidate_probe_uses_the_external_cache_location_contract(
         "default_on_ready": True,
         "explicit_false": True,
         "external_cache_only": True,
+        "schema_mismatch_fallback": True,
+        "schema_mismatch_recovered": True,
+        "failed_rebuild_fallback": True,
+        "failed_rebuild_recovered": True,
         "read_only_ready": True,
         "read_only_external_cache": True,
         "markdown_unchanged": True,
@@ -178,3 +187,27 @@ def test_candidate_probe_uses_the_external_cache_location_contract(
     script = commands[0][2]
     assert "from src.shadow.cache_location import resolve_shadow_cache_location" in script
     assert ".database_path.is_relative_to(cache_root)" in script
+    assert "schema_mismatch_fallback" in script
+    assert "failed_rebuild_fallback" in script
+    assert "shadow_read_port_ready(graph)" in script
+
+
+def test_candidate_probe_exercises_disposable_recovery_paths(tmp_path: Path) -> None:
+    module = _module()
+    graph = tmp_path / "graph"
+    for directory in ("pages", "journals", "logseq"):
+        (graph / directory).mkdir(parents=True)
+    (graph / "pages" / "Probe.md").write_text(
+        "- recovery probe\n  id:: 11111111-1111-4111-8111-111111111111\n",
+        encoding="utf-8",
+    )
+
+    result = module._candidate_probe(
+        Path(sys.executable),
+        graph,
+        tmp_path / "cache",
+        version("matryca-plumber"),
+        120,
+    )
+
+    assert all(result.values())
