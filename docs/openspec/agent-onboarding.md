@@ -4,7 +4,7 @@
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
 **Companion specs:** [`agent-dx.md`](agent-dx.md) (CLI `--json`, `context load`, Journey Log) · [`agent-ax-robustness.md`](agent-ax-robustness.md) (lenient page titles, safe writes) · [`security-sandbox.md`](security-sandbox.md) (path sandbox, bounded JSON, CI read gate)
 
-External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. `v2.0.0-beta.1` is published as `2.0.0b1` and remains the historical opt-in Shadow baseline. The pending `v2.0.0rc1` candidate updates the `llms.txt` contract for default-on external Shadow with an explicit false opt-out; it is not published until its Gate A qualification is complete. The `llms.txt` files encode the candidate contract: imperative commands, verified flags, and explicit anti-patterns.
+External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. `v2.0.0-beta.1` / `2.0.0b1` remains the historical opt-in Shadow baseline. The Gate-A-qualified `v2.0.0rc1` contract updates `llms.txt` for default-on external Shadow with an explicit false opt-out; its public artifact begins the separate Gate B observation before stable. The `llms.txt` files encode the release-candidate contract: imperative commands, verified flags, and explicit anti-patterns.
 
 ---
 

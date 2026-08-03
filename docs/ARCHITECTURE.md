@@ -1,6 +1,6 @@
 # Matryca Plumber — System Architecture
 
-**Version:** 2.0.0-beta.1 (published; all five readiness gates recorded PASS, with the wheel/soak evidence boundary documented in `docs/quality/issue-bodies/v2-beta-readiness.md`) · previous hardening baseline 2.0.0-alpha.5 (campaign #261 closed — CTE #289, state API #293, Axes 5–7) · builds on 2.0.0-alpha.4 (FTS query bound #279, Axis 4 fully green) · 2.0.0-alpha.3 (FTS hyphenated query #277) · 2.0.0-alpha.2 (rename stale-owner #272, Axis 2–3 audit probes) · 2.0.0-alpha.1 (Shadow DB Axis 1 hardening — writer flock #262, meta/pages health #264) · 1.14.0 (catalog write-safety + leaf-module dependency direction + Tier F env_parse / graph→rag guards), 1.13.1 (parser 1.6.0 alignment), 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)
+**Version:** 2.0.0-rc.1 (Gate A qualified; external default-on Shadow cache with explicit opt-out and Strict Read Only compatibility; Gate B begins from the public RC artifact) · published historical beta 2.0.0-beta.1 (default-off, graph-local) · previous hardening baseline 2.0.0-alpha.5 (campaign #261 closed — CTE #289, state API #293, Axes 5–7)
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
@@ -101,13 +101,13 @@ root override. The beta graph-local database is rebuilt externally rather than m
 mutated, or deleted. Decision and implementation slices:
 [`v2-external-shadow-cache-read-only.md`](quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 
-**Current unreleased RC-target source contract (Slices 1–4 complete):** an unset
+**v2.0.0-rc.1 contract (Slices 1–5 complete):** an unset
 `MATRYCA_SHADOW_DB_ENABLED` now enables Shadow; explicit false remains a zero-Shadow
 opt-out. The Sovereign UI persists independent Strict Read Only and Shadow controls,
 disables graph-mutating controls while Read Only is effective, and keeps Shadow health
 visible. An invalid external cache root reports the content-free `cache_unavailable`
-reason and routes reads to Markdown/BM25 instead of failing the state API. Slice 5
-exact-wheel qualification remains required before an RC or stable release decision.
+reason and routes reads to Markdown/BM25 instead of failing the state API. Exact-wheel
+qualification and Gate A are complete; stable promotion remains blocked on Gate B.
 
 **v1.13.1 focus:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation; **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). Plumber `_headless_append_child` mirrors the **1.4.2** newline normalization.
 

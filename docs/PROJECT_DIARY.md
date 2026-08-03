@@ -1,12 +1,20 @@
 # Project diary — technical lifecycle log
 
-This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; published line **v2.0.0-alpha.5** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.5]`; local **v2.0.0-beta.1** remains a candidate only).
+This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; historical published beta **v2.0.0-beta.1**; Gate-A-qualified release candidate **v2.0.0-rc.1**).
 
 The project began as an MCP-first bridge so external LLM hosts could mutate Logseq Markdown safely. Phases **12–16** completed the pivot to a **fully autonomous background agent** — `MaintenanceDaemon`, Sovereign UI, native AST I/O, OCC, and Zero-Trust cockpit APIs — where **FastMCP is an optional auxiliary surface**, not the product’s center of gravity.
 
 For the engineering contract (modules, diagrams, concurrency), see [`ARCHITECTURE.md`](ARCHITECTURE.md). For **Clean Architecture** on prompts, see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For operator setup, see [`../README.md`](../README.md).
 
 Entries are chronological (**newest first** within each major release block). When a decision is superseded, add a new entry rather than rewriting history.
+
+---
+
+## [2026-08-03] v2.0.0-rc.1 — Gate A qualification
+
+1. **Default-on read contract** — healthy Shadow FTS/subtree reads use a per-user external cache by default; explicit `MATRYCA_SHADOW_DB_ENABLED=false` preserves the Markdown/BM25 opt-out.
+2. **Strict Read Only compatibility** — observer-mode bootstrap and watcher reconciliation may update only the validated external cache; deterministic graph-tree tests and exact-wheel probes preserve Markdown and graph-local inventory.
+3. **Promotion boundary** — Gate A is complete after exact-beta soak, upgrade/rollback, supported-platform CI, installed-wheel recovery, operator-contract, and defect-disposition evidence. Publishing the RC starts Gate B; it does not authorize stable `v2.0.0`.
 
 ---
 

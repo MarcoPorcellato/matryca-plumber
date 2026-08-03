@@ -1,13 +1,10 @@
 ## [Unreleased]
 
-### Fixed
-
-- **RC qualification timeout and provenance** — give the multi-rebuild candidate probe an independent bounded deadline while keeping install commands at 600 seconds, and run installed-package probes from the virtual environment so checkout-local `src` cannot satisfy wheel provenance.
-
 ## [2.0.0-rc.1] - 2026-08-03
 
 ### Fixed
 
+- **RC qualification timeout and provenance** — give the multi-rebuild candidate probe an independent bounded deadline while keeping install commands at 600 seconds, and run installed-package probes from the virtual environment so checkout-local `src` cannot satisfy wheel provenance.
 - **Prerelease publication metadata** — release tags containing a SemVer prerelease suffix now create GitHub prereleases instead of stable releases while preserving the curated changelog notes and PyPI trusted-publishing flow.
 - **Read-only graph persistence safety** — `MATRYCA_READ_ONLY=true` now prevents graph-local cache, index, registry, clustering, daemon recovery/PID/lock, catalog backup/quarantine, vector sidecar, and Shadow DB mutations, while read paths avoid creating `.flock` files and fall back to Markdown when Shadow cannot be opened without writes.
 
