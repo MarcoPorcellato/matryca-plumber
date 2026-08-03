@@ -28,27 +28,28 @@ def _symlink(target: Path, link: Path, *, target_is_directory: bool = False) -> 
 
 
 @pytest.mark.parametrize(
-    ("platform_name", "env", "expected"),
+    ("platform_name", "override_key", "expected"),
     [
-        ("darwin", {}, Path("Library/Caches/matryca-plumber")),
-        ("linux", {}, Path(".cache/matryca-plumber")),
-        ("linux", {"XDG_CACHE_HOME": "/xdg-cache"}, Path("/xdg-cache/matryca-plumber")),
-        (
-            "win32",
-            {"LOCALAPPDATA": "/local-app-data"},
-            Path("/local-app-data/matryca-plumber/Cache"),
-        ),
+        ("darwin", None, Path("Library/Caches/matryca-plumber")),
+        ("linux", None, Path(".cache/matryca-plumber")),
+        ("linux", "XDG_CACHE_HOME", Path("matryca-plumber")),
+        ("win32", "LOCALAPPDATA", Path("matryca-plumber/Cache")),
     ],
 )
 def test_platform_default_cache_roots(
     tmp_path: Path,
     platform_name: str,
-    env: dict[str, str],
+    override_key: str | None,
     expected: Path,
 ) -> None:
     graph = _graph(tmp_path)
     home = tmp_path / "home"
-    expected_root = expected if expected.is_absolute() else home / expected
+    env: dict[str, str] = {}
+    expected_root = home / expected
+    if override_key is not None:
+        override_root = tmp_path / "platform-cache"
+        env[override_key] = str(override_root)
+        expected_root = override_root / expected
 
     location = resolve_shadow_cache_location(
         graph,
