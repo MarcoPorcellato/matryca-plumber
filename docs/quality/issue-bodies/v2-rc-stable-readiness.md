@@ -38,12 +38,30 @@ Use two fail-closed promotion gates.
 | Published-artifact identity | PyPI wheel and sdist digests match the GitHub prerelease assets; installed imports resolve from `site-packages` | [x] — verified after `v2.0.0-beta.1` publication |
 | Exact-wheel functional smoke | Fresh PyPI install verifies flag-off, flag-on `READY`, FTS, bounded subtree reads, quarantine state, warm startup, and unchanged Markdown bytes | [x] — post-publication smoke passed |
 | Exact-wheel real-vault qualification | Sanitized daily-use vault copy; product-default 15 s parse deadline; at least 72 hours and preferably 7 days; restart and watcher CRUD; controlled recovery; unchanged Markdown fingerprints | [x] — terminal `PASS` on 2026-08-03: 415 completed cycles, 831 recorded attempts, 259,225.349 observed seconds, 415 subtree and 415 synthetic CRUD checks with none skipped, and source Markdown unchanged during the source-to-working-copy check. This is exact `2.0.0b1` evidence only. See [`SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md`](../SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md) |
-| Upgrade and rollback safety | Clean install plus `1.14.5`, `2.0.0a5`, and `2.0.0b1` upgrades to the exact RC candidate; schema mismatch and a forced rebuild failure each make the read port non-ready before a clean recovery, while opt-out, rollback, and Markdown integrity remain enforced | [ ] — run `scripts/qualify_rc_upgrade_rollback.py` against the frozen local RC wheel with all three `--baseline` values, an explicit source-vault realpath fingerprint, and a disposable output root; record only its sanitized terminal result. |
+| Upgrade and rollback safety | Clean install plus `1.14.5`, `2.0.0a5`, and `2.0.0b1` upgrades to the exact RC candidate; schema mismatch and a forced rebuild failure each make the read port non-ready before a clean recovery, while opt-out, rollback, and Markdown integrity remain enforced | [ ] — provisional functional `PASS` on 2026-08-03 against the `2.0.0rc1` wheel built from `main@685a99d` (SHA-256 `d6ce932ca17647cafd2df70012012f013b1281b3ad2e1d54803d8cdc889fbb4c`): all three baselines installed, upgraded, recovered, and rolled back; every candidate check was true; source and working Markdown were unchanged. The collector repair must merge and the final post-merge wheel must be rebuilt and rebound before this row is checked complete. |
 | Defect threshold | No open P0/P1 in Shadow read-path scope; every P2 has an explicit maintainer disposition | [ ] |
 | External-cache Read Only compatibility | Shadow DB, WAL/SHM, and writer lock resolve outside `LOGSEQ_GRAPH_PATH`; `MATRYCA_READ_ONLY=true` permits only validated external-cache writes; graph fingerprint and graph-local file inventory remain unchanged | [x] — implementation merged through #363; deterministic source-tree E2E gate passes across CLI, MCP, UI, daemon, Shadow, hidden files, Git metadata, and symlink cases. See [`READ_ONLY_IMMUTABILITY_E2E.md`](../READ_ONLY_IMMUTABILITY_E2E.md) and [`v2-external-shadow-cache-read-only.md`](v2-external-shadow-cache-read-only.md) |
 | Default-on contract | Unset `MATRYCA_SHADOW_DB_ENABLED` prefers Shadow reads, including under Read Only with a valid external cache; explicit `false` restores the legacy path; every non-ready state falls back to Markdown/BM25 | [ ] — implemented and source-tested in #362; exact-candidate installed-wheel qualification remains pending |
 | Operator contract | `.env.example`, Sovereign UI settings/help, `llms.txt`, `.well-known/llms.txt`, OpenSpec fragments, generated prompt, roadmap, tests, and changelog agree | [ ] — source surfaces synchronized; final exact-candidate review remains pending |
 | Release-candidate proof | Full CI, code audit, clean release build, installed-wheel smoke, and supported-platform checks pass on the exact RC commit | [ ] |
+
+#### Upgrade/rollback collector diagnosis — 2026-08-03
+
+The first exact-candidate run failed as `candidate_probe_failed` after the
+collector placed four full real-vault rebuild/recovery phases under one
+600-second subprocess deadline. Historical real-vault evidence already
+recorded individual probe durations up to 516 seconds, so this was a harness
+budget defect rather than a Shadow corruption signal. The collector now keeps
+installation commands capped at 600 seconds and gives only the multi-rebuild
+candidate probe an independent, bounded 3,600-second ceiling.
+
+The corrected-timeout run completed all candidate checks but exposed a second
+provenance defect: subprocesses inherited the repository working directory, so
+`import src` could resolve the checkout instead of the installed wheel. Both
+the installed-package and candidate probes now execute from the virtual
+environment directory. A fresh privacy-bounded run then recorded the
+provisional functional `PASS` summarized above. No private path, graph content,
+or child-process diagnostic is retained in the committed record.
 
 `v2.0.0-rc.1` may be published only when every Gate A row is complete.
 

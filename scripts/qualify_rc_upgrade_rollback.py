@@ -22,6 +22,7 @@ from beta_evidence.wheel import _markdown_fingerprint
 _PACKAGE_VERSION = re.compile(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?")
 _RESULT_NAME = "rc-upgrade-rollback-result.json"
 _PROCESS_TIMEOUT_SECONDS = 600
+_CANDIDATE_PROBE_TIMEOUT_SECONDS = 3_600
 _PAGE_PARSE_TIMEOUT_SECONDS = 15
 
 CommandRunner = Callable[
@@ -114,6 +115,7 @@ def _installed_package_probe(python: Path, expected_package: str) -> bool:
     try:
         completed = subprocess.run(  # noqa: S603
             [str(python), "-c", probe],
+            cwd=python.parent,
             check=False,
             capture_output=True,
             text=True,
@@ -242,6 +244,7 @@ print(json.dumps({{
     try:
         completed = subprocess.run(  # noqa: S603
             [str(python), "-c", script],
+            cwd=python.parent,
             check=False,
             capture_output=True,
             text=True,
@@ -294,6 +297,7 @@ def collect_upgrade_rollback(
     source_vault: Path,
     expected_source_file: Path,
     timeout_seconds: int = _PROCESS_TIMEOUT_SECONDS,
+    candidate_timeout_seconds: int = _CANDIDATE_PROBE_TIMEOUT_SECONDS,
     command_runner: CommandRunner = _run_command,
     candidate_probe: ProbeRunner = _candidate_probe,
     installed_probe: Callable[[Path, str], bool] = _installed_package_probe,
@@ -309,6 +313,8 @@ def collect_upgrade_rollback(
         raise EvidenceError("baseline_packages_invalid")
     if not 1 <= timeout_seconds <= _PROCESS_TIMEOUT_SECONDS:
         raise EvidenceError("timeout_invalid")
+    if not 1 <= candidate_timeout_seconds <= _CANDIDATE_PROBE_TIMEOUT_SECONDS:
+        raise EvidenceError("candidate_timeout_invalid")
     source = _resolve_source_vault(source_vault, expected_source_file)
     try:
         candidate_wheel = wheel.expanduser().resolve(strict=True)
@@ -365,7 +371,11 @@ def collect_upgrade_rollback(
                 )
             )
             candidate = candidate_probe(
-                python, working_vault, cache_root, candidate_package, timeout_seconds
+                python,
+                working_vault,
+                cache_root,
+                candidate_package,
+                candidate_timeout_seconds,
             )
             _require_success(
                 command_runner(
@@ -425,6 +435,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-vault", required=True)
     parser.add_argument("--expected-source-realpath-file", required=True)
     parser.add_argument("--timeout-seconds", type=int, default=_PROCESS_TIMEOUT_SECONDS)
+    parser.add_argument(
+        "--candidate-timeout-seconds",
+        type=int,
+        default=_CANDIDATE_PROBE_TIMEOUT_SECONDS,
+        help=(
+            "Bound for the multi-rebuild candidate probe; install commands keep --timeout-seconds."
+        ),
+    )
     return parser
 
 
@@ -439,6 +457,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             source_vault=Path(args.source_vault),
             expected_source_file=Path(args.expected_source_realpath_file),
             timeout_seconds=args.timeout_seconds,
+            candidate_timeout_seconds=args.candidate_timeout_seconds,
         )
     except EvidenceError as exc:
         print(f"rc upgrade rollback: {exc.category}", file=sys.stderr)
