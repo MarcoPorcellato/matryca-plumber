@@ -1,7 +1,7 @@
 # v2.0 — Shadow DB read path (checklist)
 
 **Detailed index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) — visitor SSOT for all five v2 phases  
-**Status:** Phase 2 **operational** (bootstrap, reconciliation, runtime gating — [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)). Phase 3 **read routing shipped** (opt-in flag, FTS5/BM25 + subtree CTE + Sovereign UI health — [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)). **Published beta:** `v2.0.0-beta.1` / wheel version `2.0.0b1` remains default-off and graph-local. **Unreleased RC-target source:** external per-user cache, default-on Shadow with explicit false opt-out, Strict Read Only observer, deterministic graph-immutability gate, and mandatory Markdown/BM25 fallback (#354–#366).
+**Status:** Phase 2 **operational** (bootstrap, reconciliation, runtime gating — [#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)). Phase 3 **read routing shipped** (opt-in flag, FTS5/BM25 + subtree CTE + Sovereign UI health — [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)). **Published beta:** `v2.0.0-beta.1` / wheel version `2.0.0b1` remains default-off and graph-local. **Published `2.0.0rc1` line:** external per-user cache, default-on Shadow with explicit false opt-out, Strict Read Only observer, deterministic graph-immutability gate, and mandatory Markdown/BM25 fallback (#354–#366). The `2.0.0rc1` Gate B checkpoint is active and `RUNNING`.
 **Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
 **Trackable issue:** [#24 — Shadow DB read path](https://github.com/MarcoPorcellato/matryca-plumber/issues/24)  
 **Prerequisite:** [#17 — GraphRepository abstraction](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 2–3 tracking in [`v2_preparation_blueprints.md`](../../v2_preparation_blueprints.md)  
@@ -37,10 +37,10 @@ Canonical DDL: [`src/shadow/schema.py`](../../src/shadow/schema.py)
 | **Memory graph** | `memory_nodes`, `memory_edges`, `memory_pending_edges`, `memory_episodes`, `memory_episode_entities`, `memory_procedures`, `memory_snapshots` | Nacre-inspired biological memory — see [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md) |
 
 Published beta path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`
-(`shadow_db_path` / `open_shadow_db`). The unreleased RC-target source uses a canonical per-user external cache,
-isolated by versioned graph identity, with `MATRYCA_CACHE_PATH` as an absolute external
-root override. The beta database is rebuilt externally, never moved or mutated in
-place under Read Only.
+(`shadow_db_path` / `open_shadow_db`). The published `2.0.0rc1` line uses a
+canonical per-user external cache, isolated by versioned graph identity, with
+`MATRYCA_CACHE_PATH` as an absolute external root override. The derived Shadow
+database is rebuilt externally and never moved or mutated in place under Read Only.
 
 ---
 
@@ -82,7 +82,7 @@ not replace the unchecked installed-wheel qualification row.
 | v2.0.0-alpha.1 | Axis 1 hardening (#262, #264) | **superseded** |
 | v2.0.0-alpha.5 | Seven-axis hardening campaign close | **published** |
 | v2.0.0-beta.1 | First public Shadow read-path beta; opt-in flag remains default-off | **published** |
-| v2.0.0-rc.1 | External Shadow cache works under Read Only; MCP reads default to Shadow after qualification | planned |
+| v2.0.0-rc.1 | External Shadow cache works under Read Only; MCP reads default to Shadow after qualification | in progress (`RUNNING` Gate B checkpoint) |
 | v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path after RC observation | planned |
 
 The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
@@ -91,8 +91,8 @@ The exact public-beta wheel passed its fresh installed-wheel gate on 2026-07-30
 and completed the required 72-hour real-vault qualification with a terminal
 `PASS` on 2026-08-03. See the sanitized
 [`terminal evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md);
-it closes only the exact-beta real-vault readiness row, while the remaining
-Gate A requirements remain authoritative before RC publication.
+it closes only the exact-beta real-vault readiness row. The active `2.0.0rc1`
+Gate B checkpoint is `RUNNING` and separate from this historical PASS.
 
 ---
 

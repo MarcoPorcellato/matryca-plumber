@@ -10,7 +10,10 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 
 ---
 
-## Where we are today (2026-08-02)
+## Where we are today (2026-08-05)
+
+`v2.0.0rc1` Gate B public-RC qualification is running from the corrected
+checkpoint and remains `RUNNING`; no terminal PASS has been reached yet.
 
 | Layer | Shipped | In tree (not fully operational) | Not wired yet |
 |-------|---------|----------------------------------|---------------|
@@ -19,7 +22,7 @@ Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) f
 | **Shadow query** | `search_blocks_fts` + FTS5 dispatch ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183), [#250](https://github.com/MarcoPorcellato/matryca-plumber/issues/250)) | — | — |
 | **Memory algorithms** | — | [`src/memory/decay.py`](../../src/memory/decay.py) | recall, consolidate, MCP `recall` |
 | **Repository port** | `GraphReadPort`, `MarkdownGraphRepository`, `ShadowGraphRepository`, subtree CTE routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), [#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253), [#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255)) | — | — |
-| **Read path** | Published beta: `master_catalog.json` + in-memory BM25 by default; opt-in graph-local Shadow FTS5/CTE ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | Unreleased RC-target source: default-on external Shadow, explicit false opt-out, Strict Read Only observer, mandatory Markdown/BM25 fallback, bounded 8,192-entry BM25 result cache (#354–#366) | exact-candidate and published-RC qualification |
+| **Read path** | Published beta: `master_catalog.json` + in-memory BM25 by default; opt-in graph-local Shadow FTS5/CTE ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | Published `2.0.0rc1` line: default-on external Shadow, explicit false opt-out, Strict Read Only observer, mandatory Markdown/BM25 fallback, bounded 8,192-entry BM25 result cache (#354–#366) | exact-beta predecessor qualified; exact RC stable-promotion qualification in progress |
 | **Write path (OG)** | OCC + `.md` + `page_rmw_lock` | — | — |
 | **Write path (Logseq DB)** | — | — | official CLI/API bridge ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
 | **Operator health** | Sovereign UI `/api/state.shadow_db` ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)) | — | — |
@@ -117,14 +120,14 @@ Sovereign UI: `GET /api/state` → `shadow_db` row (`state`, `last_full_sync_at`
 |-------|-----------------|-------------------|
 | **v2.0.0-alpha.5** | Seven-axis hardening baseline | Pin `@2.0.0-alpha.5`; shadow remains opt-in | **published** 2026-07-19 |
 | **v2.0.0-beta.1** | First public Shadow read-path beta | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **published** 2026-07-30 |
-| **v2.0.0-rc.1** | External Shadow cache works under Read Only; health in UI; exact public-beta predecessor and exact RC candidate qualified | **Gate A qualified**; MCP read traffic prefers shadow; explicit `false` remains the opt-out; fallback remains mandatory; public artifact starts Gate B |
+| **v2.0.0-rc.1** | External Shadow cache works under Read Only; health in UI; exact public-beta predecessor and exact RC stable-promotion qualification | **Gate A qualified**; `2.0.0rc1` Gate B remains `RUNNING` |
 | **v2.0.0-stable** | RC observation complete; deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
 
 **Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary. Re-qualification against the released source remains required before default-on.
 
 **RC/stable decision record:** [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md), tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). `v2.0.0` is scoped to the stable Shadow read path. Phase 4 biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and independent DX tracks move to `v2.1.0` or later.
 
-**Implemented RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md) defines Read Only as a graph-boundary guarantee while permitting a validated external derived cache. The implementation, deterministic source-tree E2E gate, and exact-candidate Gate A qualification are complete; published-RC Gate B remains the stable-release blocker.
+**Implemented RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md) defines Read Only as a graph-boundary guarantee while permitting a validated external derived cache. The implementation, deterministic source-tree E2E gate, and exact-candidate Gate A qualification are complete; the published `2.0.0rc1` Gate B checkpoint remains the stable-release blocker.
 
 **Exact-beta re-qualification:** the public `2.0.0b1` wheel passed its fresh
 installed-wheel gate and completed its restart-resilient 72-hour soak with a
@@ -132,7 +135,8 @@ terminal `PASS` on 2026-08-03. The sanitized
 [`terminal evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
 records 415 completed cycles, 259,225.349 observed seconds, source Markdown
 unchanged during the source-to-working-copy check, and no skipped subtree or synthetic CRUD checks. It closes only the
-exact-beta real-vault row; the remaining Gate A rows still block RC publication.
+exact-beta real-vault row; the active `2.0.0rc1` Gate B checkpoint remains `RUNNING`
+and independent.
 
 ---
 
