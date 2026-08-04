@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -14,15 +15,25 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from beta_evidence.core import EvidenceError, _atomic_write_json, _is_within
+from beta_evidence.core import (
+    EvidenceError,
+    GateRecord,
+    _atomic_write_json,
+    _candidate_wheel_binding_digest,
+    _canonical_hash,
+    _is_within,
+    _record_gate,
+)
 from beta_evidence.soak import collect_soak
-from beta_evidence.wheel import _copy_vault_without_cache
+from beta_evidence.wheel import _copy_vault_without_cache, _verify_candidate_python
 
 Profile = Literal["default-on", "read-only-external"]
 
 _PROFILE_FILE = "gate-b-profile.json"
 _PROFILE_SCHEMA_VERSION = 1
 _PROFILES: tuple[Profile, ...] = ("default-on", "read-only-external")
+_RC_PACKAGE = "2.0.0rc1"
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 
 _DEFAULT_ON_PROBE = r"""
 import hashlib
@@ -364,6 +375,49 @@ def _bind_manifest(output: Path, profile: Profile, cache_root: Path, working: Pa
         _atomic_write_json(_profile_path(output), payload)
 
 
+def _bind_public_rc_wheel(
+    output: Path,
+    *,
+    candidate_python: Path,
+    candidate_wheel: Path,
+    expected_wheel_sha256: str,
+) -> str:
+    """Record an exact public-RC wheel binding for the installed candidate."""
+    if _SHA256.fullmatch(expected_wheel_sha256) is None:
+        raise EvidenceError("wheel_sha256_invalid")
+    try:
+        wheel = candidate_wheel.expanduser().resolve(strict=True)
+        python = candidate_python.expanduser().absolute()
+        python.parent.resolve(strict=True)
+    except OSError as exc:
+        raise EvidenceError("candidate_artifact_invalid") from exc
+    if not wheel.is_file() or not python.is_file() or not os.access(python, os.X_OK):
+        raise EvidenceError("candidate_artifact_invalid")
+    wheel_sha256 = _sha256(wheel.read_bytes())
+    if wheel_sha256 != expected_wheel_sha256:
+        raise EvidenceError("wheel_sha256_mismatch")
+    provenance = _verify_candidate_python(python, _RC_PACKAGE)
+    binding = _candidate_wheel_binding_digest(wheel_sha256, provenance)
+    input_hash = _canonical_hash({"candidate_package": _RC_PACKAGE, "wheel_sha256": wheel_sha256})
+    _record_gate(
+        output,
+        GateRecord(
+            "wheel",
+            input_hash,
+            "PASS",
+            {
+                "candidate_package": _RC_PACKAGE,
+                "wheel_sha256": wheel_sha256,
+                "candidate_provenance_digest": provenance,
+                "candidate_wheel_binding_digest": binding,
+                "installed_record_verified": True,
+            },
+        ),
+        metadata={"candidate_package": _RC_PACKAGE},
+    )
+    return provenance
+
+
 def _safe_environment(
     graph: Path, cache_root: Path, profile: Profile, cycle: int
 ) -> dict[str, str]:
@@ -443,6 +497,8 @@ def run_gate_b_soak(
     profile: Profile,
     output: Path,
     candidate_python: Path,
+    candidate_wheel: Path,
+    expected_wheel_sha256: str,
     source_vault: Path,
     expected_source_file: Path,
     working_root: Path,
@@ -463,7 +519,25 @@ def run_gate_b_soak(
         output=resolved_output,
         repo=repo,
     )
+    resolved_wheel = candidate_wheel.expanduser().resolve(strict=True)
+    if any(
+        _is_within(resolved_wheel, protected)
+        for protected in (source, work, resolved_output, cache, repo)
+    ):
+        raise EvidenceError("candidate_artifact_unsafe")
+    candidate_provenance = _bind_public_rc_wheel(
+        resolved_output,
+        candidate_python=candidate_python,
+        candidate_wheel=resolved_wheel,
+        expected_wheel_sha256=expected_wheel_sha256,
+    )
     _load_or_create_profile(resolved_output, profile, cache)
+
+    def candidate_verifier(python: Path) -> str:
+        observed = _verify_candidate_python(python, _RC_PACKAGE)
+        if observed != candidate_provenance:
+            raise EvidenceError("soak_candidate_provenance_mismatch")
+        return observed
 
     def copier(copy_source: Path, destination: Path) -> None:
         _copy_vault_without_cache(copy_source, destination)
@@ -491,6 +565,7 @@ def run_gate_b_soak(
         max_cycles=max_cycles,
         interval_seconds=interval_seconds,
         page_parse_timeout_seconds=page_parse_timeout_seconds,
+        candidate_verifier=candidate_verifier,
         probe_runner=probe_runner,
         copier=copier,
     )
@@ -501,6 +576,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=_PROFILES, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--candidate-python", type=Path, required=True)
+    parser.add_argument("--candidate-wheel", type=Path, required=True)
+    parser.add_argument("--expected-wheel-sha256", required=True)
     parser.add_argument("--source-vault", type=Path, required=True)
     parser.add_argument("--expected-source-realpath-file", type=Path, required=True)
     parser.add_argument("--working-root", type=Path, required=True)
@@ -519,6 +596,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             profile=cast(Profile, args.profile),
             output=args.output,
             candidate_python=args.candidate_python,
+            candidate_wheel=args.candidate_wheel,
+            expected_wheel_sha256=args.expected_wheel_sha256,
             source_vault=args.source_vault,
             expected_source_file=args.expected_source_realpath_file,
             working_root=args.working_root,

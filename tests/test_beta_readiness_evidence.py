@@ -686,6 +686,15 @@ def test_soak_rejects_non_executable_candidate_python(tmp_path: Path) -> None:
         soak_module._resolve_candidate_python(candidate_python)
 
 
+def test_candidate_provenance_probe_accepts_explicit_rc_version() -> None:
+    wheel_module = importlib.import_module("beta_evidence.wheel")
+    probe = wheel_module._candidate_probe("2.0.0rc1")
+    assert "version(\"matryca-plumber\") == '2.0.0rc1'" in probe
+    assert wheel_module._candidate_probe("2.0.0b1") == wheel_module._CANDIDATE_PROBE
+    with pytest.raises(wheel_module.EvidenceError, match="candidate_version_invalid"):
+        wheel_module._candidate_probe("v2.0.0-rc.1")
+
+
 def test_wheel_records_only_sanitized_pass_and_keeps_source_untouched(tmp_path: Path) -> None:
     module = _module()
     source, fingerprint, wheel = _wheel_source(tmp_path)

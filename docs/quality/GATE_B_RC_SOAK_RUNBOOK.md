@@ -25,8 +25,9 @@ status categories, and timings.
    exact wheel.
 3. Freeze the committed qualification runner outside the repository, vault,
    working copies, cache roots, and evidence roots; record its commit and digest.
-4. Run the existing installed-wheel evidence gate once in each profile's
-   evidence directory so the resumable collector is bound to the candidate.
+4. Pass the verified wheel path and published SHA-256 to each profile. The
+   collector verifies the installed package RECORD, records the exact wheel
+   binding, and refuses to start the soak if either identity differs.
 5. Copy the private source vault once per profile. Never point either collector
    at the live vault.
 
@@ -39,6 +40,8 @@ Use the profile-specific paths in this template:
   --profile <default-on|read-only-external> \
   --output <evidence-root> \
   --candidate-python <candidate-python> \
+  --candidate-wheel <verified-public-wheel> \
+  --expected-wheel-sha256 <published-wheel-sha256> \
   --source-vault <source-copy> \
   --expected-source-realpath-file <private-realpath-file> \
   --working-root <empty-working-copy-path> \
