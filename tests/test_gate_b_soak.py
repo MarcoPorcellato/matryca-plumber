@@ -162,6 +162,52 @@ def test_invalid_probe_payload_is_rejected() -> None:
         module._validate_payload(payload)
 
 
+def test_public_rc_wheel_binding_records_exact_installed_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    wheel = tmp_path / "matryca_plumber-2.0.0rc1-py3-none-any.whl"
+    wheel.write_bytes(b"public rc wheel")
+    expected_sha256 = module._sha256(wheel.read_bytes())
+    provenance = "b" * 64
+    observed: list[tuple[Path, str]] = []
+
+    def verifier(python: Path, package: str) -> str:
+        observed.append((python, package))
+        return provenance
+
+    monkeypatch.setattr(module, "_verify_candidate_python", verifier)
+    assert (
+        module._bind_public_rc_wheel(
+            output,
+            candidate_python=Path(sys.executable),
+            candidate_wheel=wheel,
+            expected_wheel_sha256=expected_sha256,
+        )
+        == provenance
+    )
+    assert observed == [(Path(sys.executable).absolute(), "2.0.0rc1")]
+    checkpoint = json.loads((output / "checkpoint.json").read_text(encoding="utf-8"))
+    details = checkpoint["gates"]["wheel"]["details"]
+    assert details["wheel_sha256"] == expected_sha256
+    assert details["candidate_provenance_digest"] == provenance
+    assert details["installed_record_verified"] is True
+
+
+def test_public_rc_wheel_binding_rejects_digest_mismatch(tmp_path: Path) -> None:
+    module = _module()
+    wheel = tmp_path / "candidate.whl"
+    wheel.write_bytes(b"wrong artifact")
+    with pytest.raises(module.EvidenceError, match="wheel_sha256_mismatch"):
+        module._bind_public_rc_wheel(
+            tmp_path / "evidence",
+            candidate_python=Path(sys.executable),
+            candidate_wheel=wheel,
+            expected_wheel_sha256="a" * 64,
+        )
+
+
 def test_main_reports_privacy_safe_failure(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -174,6 +220,10 @@ def test_main_reports_privacy_safe_failure(
             str(tmp_path / "evidence"),
             "--candidate-python",
             str(tmp_path / "missing-python"),
+            "--candidate-wheel",
+            str(tmp_path / "missing.whl"),
+            "--expected-wheel-sha256",
+            "a" * 64,
             "--source-vault",
             str(tmp_path / "missing-source"),
             "--expected-source-realpath-file",

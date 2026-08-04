@@ -53,7 +53,12 @@ _PROCESS_ENV_ALLOWLIST = frozenset(
     }
 )
 
-_CANDIDATE_PROBE = f"""
+
+def _candidate_probe(expected_package: str) -> str:
+    """Build the installed-RECORD provenance probe for one package version."""
+    if re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", expected_package) is None:
+        raise EvidenceError("candidate_version_invalid")
+    return f"""
 import base64
 import csv
 import hashlib
@@ -68,7 +73,7 @@ origin = Path(src.__file__).resolve()
 prefix = Path(sys.prefix).resolve()
 assert origin.is_relative_to(prefix)
 assert any(part in ("site-packages", "dist-packages") for part in origin.parts)
-assert version("matryca-plumber") == {_WHEEL_CANDIDATE!r}
+assert version("matryca-plumber") == {expected_package!r}
 installed = distribution("matryca-plumber")
 files = installed.files or ()
 record_candidates = sorted(
@@ -146,6 +151,9 @@ for entry in sorted(entries):
     digest.update(b"\\n")
 print(digest.hexdigest())
 """
+
+
+_CANDIDATE_PROBE = _candidate_probe(_WHEEL_CANDIDATE)
 
 
 class CommandRunner(Protocol):
@@ -369,12 +377,15 @@ def _run_wheel_probe(
         raise EvidenceError("probe_invalid") from exc
 
 
-def _verify_candidate_python(candidate_python: Path) -> str:
+def _verify_candidate_python(
+    candidate_python: Path, expected_package: str = _WHEEL_CANDIDATE
+) -> str:
     """Verify the installed candidate and return its sanitized provenance digest."""
 
+    probe = _candidate_probe(expected_package)
     try:
         completed = subprocess.run(
-            [str(candidate_python), "-c", _CANDIDATE_PROBE],
+            [str(candidate_python), "-c", probe],
             cwd=tempfile.gettempdir(),
             env={"PATH": os.environ.get("PATH", ""), "PYTHONNOUSERSITE": "1"},
             capture_output=True,
