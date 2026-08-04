@@ -99,6 +99,7 @@ def test_profile_probe_uses_unset_default_and_preserves_graph(
     module = _module()
     graph = _graph(tmp_path)
     observed: list[dict[str, str]] = []
+    clock_values = iter((10.0, 10.125))
 
     def command(_command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         environment = kwargs["env"]
@@ -114,9 +115,13 @@ def test_profile_probe_uses_unset_default_and_preserves_graph(
         30,
         0,
         command_runner=command,
+        clock=lambda: next(clock_values),
     )
 
     assert result["synthetic_crud"] == crud
+    assert result["elapsed_ms"] == 125.0
+    soak_module = importlib.import_module("beta_evidence.soak")
+    assert soak_module._validate_probe_payload(result)["elapsed_ms"] == 125.0
     assert "MATRYCA_SHADOW_DB_ENABLED" not in observed[0]
     assert (observed[0].get("MATRYCA_READ_ONLY") == "true") is read_only
 
