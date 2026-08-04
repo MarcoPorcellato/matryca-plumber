@@ -6,7 +6,7 @@
 
 ### Fixed
 
-- **Gate B RC artifact binding** — verify the public wheel SHA-256 and installed RECORD against `2.0.0rc1` before starting either soak, while preserving the historical beta collector's default contract.
+- **Gate B RC artifact and timing binding** — verify the public wheel SHA-256 and installed RECORD against `2.0.0rc1`, and include measured probe time so valid profile probes advance the resumable soak instead of retrying as `probe_invalid`, while preserving the historical beta collector's default contract.
 
 ## [2.0.0-rc.1] - 2026-08-03
 

@@ -11,6 +11,7 @@ import re
 import stat
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -461,11 +462,13 @@ def _run_profile_probe(
     cycle: int,
     *,
     command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    clock: Callable[[], float] = time.monotonic,
 ) -> dict[str, object]:
     working = working.resolve(strict=True)
     cache_root = cache_root.resolve(strict=False)
     before = _graph_manifest_digest(working)
     code = _DEFAULT_ON_PROBE if profile == "default-on" else _READ_ONLY_PROBE
+    started = clock()
     try:
         completed = command_runner(
             [str(candidate_python), "-c", code],
@@ -480,6 +483,7 @@ def _run_profile_probe(
         raise EvidenceError("probe_timeout") from exc
     except OSError as exc:
         raise EvidenceError("probe_launch_failed") from exc
+    elapsed_ms = max(0.0, (clock() - started) * 1_000)
     if completed.returncode != 0:
         raise EvidenceError("probe_flag_on_failed")
     try:
@@ -487,6 +491,7 @@ def _run_profile_probe(
     except json.JSONDecodeError as exc:
         raise EvidenceError("probe_payload_invalid") from exc
     validated = _validate_payload(payload)
+    validated["elapsed_ms"] = elapsed_ms
     if _graph_manifest_digest(working) != before:
         raise EvidenceError("working_copy_changed")
     return validated
