@@ -4,6 +4,67 @@ This runbook starts the two independent, fail-closed soak profiles required by
 the `v2.0.0` Gate B decision. Both profiles run against the installed public
 `matryca-plumber==2.0.0rc1` wheel, never a source checkout.
 
+## Recorded checkpoint snapshot (public candidate `2.0.0rc1`)
+
+The recorded checkpoint for stable-promotion evidence is `RUNNING`
+(no terminal PASS/FAIL yet):
+
+- `checkpoint_recorded_at`: `2026-08-04T23:16:10Z`
+- `attempt_started_at`: `2026-08-04T23:06:09Z` (`2026-08-05 01:06:09`
+  Europe/Rome)
+- `status`: `RUNNING`
+
+| Field | Value |
+| --- | --- |
+| Candidate artifact | `matryca-plumber==2.0.0rc1` |
+| Public wheel SHA-256 | `f9c60cc89049b9524ca9f9346a053bac3c7aba6f2186d9a31a3993bd7a9253cd` |
+| Runner source | `main@1e8805ec99c6471549ecf36e4a261a31013a0f6f` |
+| Qualifier SHA-256 | `b4cee6a2b6c8a8fbd8bb890cf583b7d126f2e40bda8b55cb7a0c499c8490dbe6` |
+| Supervisor SHA-256 | `bfcae04483a5003df8e83fb52ece42c0c933d7c708c9e73d55733309736e7445` |
+| Profiles | `default-on`, `read-only-external` |
+| target_duration_seconds | `259200` |
+| max_cycles | `1000` |
+| interval_seconds | `600` |
+| page_parse_timeout_seconds | `15` |
+| exact installed-wheel/RECORD gate | `PASS` |
+| earliest uninterrupted completion estimate | 2026-08-08 01:06 (Europe/Rome) |
+
+### Recorded checkpoint history and recovery proof
+
+- An earlier attempt sequence accumulated `108` attempts **per profile** and produced
+  zero completed cycles, zero valid elapsed seconds, and `probe_invalid` outcomes.
+  The profile adapter omitted required `elapsed_ms` from otherwise successful probe
+  payloads, so the generic collector rejected each as `probe_invalid`; this evidence
+  is explicitly excluded from qualification and not reused.
+- PR #382 corrected that probe path by adding measured `elapsed_ms` to profile probe
+  payloads and adding adapter-to-collector regression coverage.
+- A corrected preflight launch then failed closed as `working_copy_exists` because
+  previous working/cache roots remained after creating fresh evidence directories.
+  The failed preflight bundle, old roots, and logs were archived and excluded from
+  the active checkpoint.
+- A fully fresh attempt began at `2026-08-04T23:06:09Z` with clean working/cache/
+  evidence roots and the same public wheel.
+- At the first valid checkpoint both profiles reached cycle 1 with:
+  - `cycle 1` completed
+  - two PASS phase attempts each (ON/OFF)
+  - non-empty chained attempt cursor
+  - no stderr errors
+  - elapsed: `440.1835287499998s` (`default-on`), `440.2918676670015s`
+    (`read-only-external`)
+- A controlled service stop/reload proof was then executed. While stopped, state
+  files were byte-identical and no elapsed seconds were credited. Both LaunchAgents
+  reloaded and resumed, advanced to cycle 2, and retained `two completed cycles`
+  with `four PASS phase attempts` per profile at recorded checkpoint
+  `2026-08-04T23:16:10Z`.
+  Post-resume elapsed values became: `448.1676894170014s` (`default-on`) and
+  `447.76504575099534s` (`read-only-external`).
+- At the recorded checkpoint, the corrected fresh attempt had controlled service stop/reload proof;
+  it has not yet been host-reboot-tested. Prior deployment behavior supports
+  LaunchAgent restart resilience, but host-restart behavior has not yet been
+  demonstrated for this attempt.
+- A separate six-hour supervisory health check observes evidence and service health,
+  reporting material changes, interventions, failures, and terminal completion.
+
 ## Profiles
 
 | Profile | Shadow flag | Read Only | Graph activity | Required proof |

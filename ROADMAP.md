@@ -6,7 +6,13 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-03** — `v2.0.0-beta.1` is the current public prerelease; its exact-wheel 72-hour qualification has passed. The unreleased RC-target source now contains the default-on external Shadow/read-only architecture and retrieval hardening described below. Issue numbers link to GitHub; implementation does not imply RC or stable release qualification.*
+*Status as of **2026-08-05** — `v2.0.0-beta.1` is the historical public
+prerelease; `v2.0.0rc1` exact-candidate public qualification is active. The
+`v2.0.0rc1` Gate B soak is currently `RUNNING` and has not yet reached terminal
+`PASS`; implementation progress does not imply stable release qualification.
+The published `2.0.0rc1` line now contains the default-on external
+Shadow/read-only architecture and retrieval hardening described below. Issue numbers
+link to GitHub.*
 
 ---
 
@@ -42,10 +48,11 @@ The exact public-beta wheel has passed its fresh installed-wheel gate and its
 restart-resilient 72-hour soak. The sanitized
 [`terminal evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
 records 415 completed cycles, 259,225.349 observed seconds, source Markdown
-unchanged during the source-to-working-copy check, and a terminal `PASS`; this closes only Gate A's exact-beta
-real-vault row.
+unchanged during the source-to-working-copy check, and a terminal `PASS`; this closes only
+Gate A's exact-beta real-vault row. The currently active `2.0.0rc1` Gate B run
+remains `RUNNING` and is tracked as an independent stable-preparation checkpoint.
 
-The unreleased RC-target source has merged Strict Read Only enforcement,
+The published `2.0.0rc1` candidate line has merged Strict Read Only enforcement,
 external per-user Shadow cache routing, default-on Shadow with explicit opt-out,
 the read-only observer daemon, deterministic graph-immutability qualification,
 and the bounded 8,192-entry BM25 result cache (#354–#366). These source changes
