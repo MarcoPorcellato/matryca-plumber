@@ -291,7 +291,12 @@ def test_collect_snapshot_logs_phase2_progress_metrics_failures(graph_root: Path
     ):
         snap, _ = collect_snapshot(graph_root=graph_root, token_logger=logger)
 
-    assert snap.status in {"Stopped", "Idle", "Running", "Error"} or snap.total_pages >= 0
+    # Phase-2 failure falls back to scan total + checkpoint tallies
+    # (one page on disk, empty checkpoint → all pending).
+    assert snap.total_pages == 1
+    assert snap.processed_pages == 0
+    assert snap.pending_backlog == 1
+    assert snap.skipped_pages == 0
     logged.assert_called()
     assert any("Phase-2 progress metrics" in str(call.args[0]) for call in logged.call_args_list)
 
