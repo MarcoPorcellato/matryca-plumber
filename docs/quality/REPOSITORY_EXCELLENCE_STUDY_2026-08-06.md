@@ -1,10 +1,35 @@
+---
+type: execution-plan
+title: Matryca Plumber repository excellence study
+description: Evidence-backed, gated programme for repository safety, performance, documentation, operations, and governance.
+resource: docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+tags: [quality, roadmap, governance, okf]
+timestamp: 2026-08-06T00:00:00Z
+status: draft
+decision_status: accepted
+classification: active
+last_verified: 2026-08-06
+audience: [maintainer, contributor, agent]
+owner: quality
+authority: roadmap
+execution_mode: gated
+source_repository: MarcoPorcellato/matryca-plumber
+source_ref: origin/main
+source_commit: 1e8805ec99c6471549ecf36e4a261a31013a0f6f
+official_okf_spec_version: "0.2"
+official_okf_conformance: not_claimed
+matryca_quality_profile: transitional
+matryca_knowledge_baseline: 7a3ebd8966340f00aea0730ba14ee2d2fd8ba6c2
+registry_projection: reviewed_only
+---
+
 # Matryca Plumber repository excellence study
 
 **Date:** 2026-08-06
 
 **Baseline:** `origin/main@1e8805ec99c6471549ecf36e4a261a31013a0f6f`
 
-**Status:** evidence-backed plan; no release authorization and no production implementation
+**Decision status:** accepted evidence-backed plan; no release authorization and no production implementation
 
 **Scope:** codebase, architecture, safety, performance, resilience, tests, CI, packaging, documentation, contributor experience, and repository governance
 
@@ -49,6 +74,45 @@ The study began with five gates:
 - Symbolic Python analysis was unavailable in the supporting worktrees; line-numbered current-source inspection was used instead.
 - GitHub was queried read-only to avoid duplicating open work. No issues, pull requests, tags, releases, or remote branches were changed.
 - No production source was edited by this study.
+
+## Matryca Knowledge alignment and authority
+
+This plan adopts the federated documentation direction accepted in the private
+Matryca Knowledge repository at
+`main@7a3ebd8966340f00aea0730ba14ee2d2fd8ba6c2`. The authority boundary is
+deliberate:
+
+| Surface | Authority and role |
+| --- | --- |
+| Matryca Plumber source repository | Authoritative origin for this plan and all Plumber documentation |
+| Matryca Knowledge `knowledge/matryca-plumber/` | Reviewed projection with immutable source provenance; never an editing origin |
+| Plumber `docs/knowledge/` | Transitional maintained bundle and local quality profile |
+| Historical reports and release evidence | Timestamped evidence; preserve rather than mass-normalize |
+
+The accepted model contains two independent result streams:
+
+1. **Official OKF v0.2 conformance** checks only the external format contract.
+2. **Matryca quality** adds stricter ownership, navigation, freshness,
+   classification, link, anchor, provenance, privacy, and canonical-role rules.
+
+This document does **not** claim official OKF v0.2 conformance. The current
+Matryca validator implements a transitional OKF-inspired flat-frontmatter
+profile; the planned nested v0.2 parser and dual-layer conformance reporter are
+not treated as shipped. `status` therefore uses the official lifecycle
+vocabulary (`draft`, `stable`, `deprecated`), while plan acceptance and Matryca
+classification remain separate extension fields.
+
+Adoption rules for this programme:
+
+- maintain stable Markdown paths as concept identities;
+- keep ordinary Markdown links as explicit knowledge edges;
+- bind findings and decisions to repository, commit, path, and verification date;
+- require deterministic checks and stable evidence before any acceptance claim;
+- preserve unknown extension fields and avoid destructive mass migration;
+- refresh Matryca Knowledge only through a separately reviewed projection from
+  authoritative Plumber bytes;
+- report official conformance and Matryca quality separately, never infer one
+  from the other.
 
 ## Verified baseline
 
@@ -349,20 +413,42 @@ Mutable Shadow/read-only/release behavior currently appears in README, CHANGELOG
 | Surface | Authority |
 | --- | --- |
 | `README.md` | stable product overview and one link to operator documentation |
-| `docs/knowledge/architecture/shadow-db.md` | current runtime architecture and operator contract |
+| `docs/knowledge/architecture/shadow-db.md` | maintained runtime architecture and operator contract |
 | `docs/RELEASE_PROCESS.md` | release mechanics and authority gates |
 | `CHANGELOG.md` | user-visible version deltas |
 | `docs/roadmaps/*` | future work only |
 | `docs/quality/*` | immutable or timestamped evidence and decisions |
 | `docs/releases/*` | historical publication text |
 
-Acceptance gate: each mutable claim has one canonical home; other surfaces link rather than restate it; archived evidence remains unchanged.
+Acceptance gate: each mutable claim has one canonical home; other surfaces link
+rather than restate it; maintained concepts expose lifecycle, owner, authority,
+verification date, and provenance; archived evidence remains unchanged. The
+authoritative source is changed in Matryca Plumber first, and any Matryca
+Knowledge refresh is a separate reviewed projection.
 
-#### EX-17 — Make docs checks mandatory and add a calibrated link checker
+#### EX-17 — Make dual-layer documentation checks mandatory
 
-`docs-check` currently passes but is not part of `make ci`. Add it to the mandatory gate. Add a repository-aware internal-link checker that understands relative paths, directory indexes, anchors, generated files, and an explicit external-link policy.
+`docs-check` currently passes but is not part of `make ci`. Add it to the
+mandatory gate. Add a repository-aware internal-link checker that understands
+relative paths, directory indexes, anchors, generated files, and an explicit
+external-link policy.
 
-Acceptance gate: zero false positives on the current baseline; broken path/anchor fixtures fail; generated inventory drift fails CI.
+Evolve validation in separately reviewable slices:
+
+1. preserve the existing transitional Matryca quality gate;
+2. add an official OKF v0.2 parser that accepts unknown types and extension
+   fields and supports the reserved-file and lifecycle contract;
+3. report official conformance and Matryca quality as separate top-level
+   results;
+4. version the specification baseline, Matryca profile, validator, and finding
+   schema independently;
+5. refresh only documents invalidated by changed bytes or policy versions.
+
+Acceptance gate: zero false positives on the current baseline; broken
+path/anchor and lifecycle fixtures fail the Matryca quality layer; official
+format fixtures fail only the official layer; generated inventory drift fails
+CI; identical source bytes and policy versions produce byte-identical results;
+no LLM output participates in acceptance.
 
 #### EX-18 — Expand CI where it buys independent evidence
 
@@ -402,6 +488,58 @@ These gates apply to every accepted slice in addition to its focused tests:
 4. **Failure-injection depth:** generic SQLite open/schema/commit, disk-full-equivalent, filesystem, and callback failures are distinct from parse-error tests.
 5. **No security overclaim:** secret readback and startup-order findings are design-level defects; no remote exploit or credential compromise is claimed without evidence.
 6. **Requalification rule:** a change to any Gate B runtime path or profile invalidates only the affected qualification evidence according to an explicit impact decision; credited evidence is never silently reused.
+7. **Documentation authority:** Plumber bytes remain authoritative; registry
+   projection bytes are never edited as their source.
+8. **Conformance separation:** official OKF v0.2 and Matryca quality have
+   independent versioned results; zero Matryca findings never implies official
+   conformance.
+9. **Provenance and freshness:** maintained documentation evidence records the
+   source repository, exact commit, source path, policy version, and
+   verification date.
+
+## Tranche execution contract
+
+Before any roadmap slice moves from planning to implementation, its issue or
+working record must freeze the following manifest. Empty or inferred fields are
+not sufficient authorization.
+
+```yaml
+tranche_id: EX-<number>-<sequence>
+repository: MarcoPorcellato/matryca-plumber
+base_commit: <exact-sha>
+objective: <one-observable-outcome>
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - <path-or-symbol>
+non_goals:
+  - <explicit-exclusion>
+deterministic_preflight:
+  - <command>
+acceptance:
+  - <observable-check>
+stop_conditions:
+  - <scope-or-safety-boundary>
+rollback: <reversible-path>
+provenance:
+  evidence_commit: <sha>
+  evidence_paths:
+    - <path>
+documentation_impact: none | update | migrate
+official_okf_conformance_impact: none | parser | profile | report
+matryca_quality_impact: none | metadata | navigation | lifecycle | provenance
+residual_risks:
+  - <known-limit>
+```
+
+Authority is cumulative only when explicitly granted. `inspect` does not
+authorize edits; `edit` does not authorize a commit; a local commit does not
+authorize push or pull-request creation; and a pull request does not authorize
+merge, release, publication, or repository-setting changes.
+
+Completion evidence must include the changed-file allowlist, commands and
+results, rollback status, documentation impact, residual risks, and the exact
+accepted commit when one exists. A model-generated proposal may support the
+work but is never acceptance evidence.
 
 ## Benchmark matrix
 
@@ -435,8 +573,10 @@ Rules for benchmark credibility:
 Low runtime risk, no release-line disturbance:
 
 1. Keep monitoring Gate B without crediting downtime.
-2. Reconcile documentation status language and establish the EX-16 authority matrix.
-3. Execute EX-17 once: add `docs-check` to CI and calibrate link validation.
+2. Reconcile documentation lifecycle language and establish the EX-16 authority matrix.
+3. Execute EX-17 incrementally: first add the existing `docs-check` to CI,
+   then introduce separately reported official OKF v0.2 and Matryca quality
+   gates without a mass migration.
 4. Triage milestones and map existing issues to this dossier.
 5. Establish benchmark result schemas and capture a baseline without changing implementation.
 
@@ -497,6 +637,12 @@ These must not retroactively broaden the v2.0 stable-read-path claim.
 - **Using a global lock as the sole `.env` concurrency fix.** It cannot detect uncooperating external writers; OCC is also required.
 - **Running the entire test suite on every OS for every PR immediately.** Targeted per-PR contracts plus scheduled full cross-platform runs provide better cost/evidence balance first.
 - **Mass-moving documentation now.** The knowledge bundle is intentionally in an observation phase; authority labels and links are safer than path churn.
+- **Treating the Matryca Knowledge projection as an editing origin.** Source
+  repositories own imported documents; registry updates are reviewed
+  projections bound to immutable source commits.
+- **Calling a zero-finding Matryca quality report official OKF conformance.**
+  The external format contract and the stricter internal quality profile are
+  independent claims with independent versions and evidence.
 - **Using a green CI run as performance or release proof.** CI, benchmarks, soak qualification, and release authorization are independent gates.
 - **Combining v2.1 Safe-Sync with v2.0 stabilization.** It would change the product and risk profile during qualification.
 
@@ -515,7 +661,11 @@ Every accepted slice should be converted into one English issue with:
 9. benchmark or observability acceptance threshold where applicable;
 10. changelog decision;
 11. dependency links and milestone;
-12. Definition of Done requiring `make ci` and the focused domain gates.
+12. the frozen tranche manifest: base commit, authority, allowlist, preflight,
+    acceptance, stop conditions, rollback, provenance, documentation impact,
+    conformance impact, and residual risks;
+13. Definition of Done requiring `make ci`, the focused domain gates, and any
+    affected documentation-quality layer.
 
 ## North-star repository scorecard
 
