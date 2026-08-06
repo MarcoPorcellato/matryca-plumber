@@ -1047,6 +1047,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md",
+      "type": "Audit",
+      "title": "Matryca Plumber repository excellence study",
+      "description": "Evidence-backed repository improvement plan and prioritized implementation roadmap.",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Improvement-plan artifact; not a release authorization or architecture SSOT."
+    },
+    {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Repomix Architectural Audit — Triage (2026-06)",
