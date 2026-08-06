@@ -4,99 +4,99 @@
 **Status:** planned — schema in [`src/shadow/schema.py`](../../src/shadow/schema.py); decay in [`src/memory/decay.py`](../../src/memory/decay.py)  
 **Preparation index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) · OpenSpec: [`biological-memory.md`](../openspec/biological-memory.md)  
 **Prerequisite:** [`ROADMAP_V2_SHADOW_DB.md`](ROADMAP_V2_SHADOW_DB.md) ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24), [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17))  
-**Inspiration:** [Nacre](https://github.com/marcusschimizzi/nacre) by Marcus Sullivan (Apache-2.0) — port nativo Python, non sidecar Node  
+**Inspiration:** [Nacre](https://github.com/marcusschimizzi/nacre) by Marcus Sullivan (Apache-2.0) — native Python port, not a Node sidecar  
 **RFC:** [Discussion #19](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19)
 
 ---
 
-## Cosa sono i due progetti
+## What the two projects are
 
 | | **Nacre** | **Matryca Plumber** |
 |---|---|---|
-| **Scopo** | Memory layer per agenti long-lived (mesi) | Daemon local-first per vault Logseq OG + agenti MCP/CLI |
-| **Stack** | TypeScript monorepo (`@nacre/core`, parser, viz, CLI) | Python 3.12 + React Sovereign UI |
+| **Purpose** | Memory layer for long-lived agents (months) | Local-first daemon for Logseq OG vaults and MCP/CLI agents |
+| **Stack** | TypeScript monorepo (`@nacre/core`, parser, visualization, CLI) | Python 3.12 + React Sovereign UI |
 | **Storage** | `SqliteStore` (WAL, schema v5, embeddings) | JSON sidecars → **Shadow DB** `shadow.sqlite` |
-| **Unità di memoria** | Nodi tipizzati + archi tipizzati | Blocchi/pagine Logseq + wikilink + indice semantico block-level |
-| **Licenza** | Apache-2.0 — Copyright 2026 Marcus Sullivan | Apache-2.0 — Copyright 2026 Marco Porcellato & Matryca.ai |
+| **Memory unit** | Typed nodes + typed edges | Logseq blocks/pages + wikilinks + block-level semantic index |
+| **License** | Apache-2.0 — Copyright 2026 Marcus Sullivan | Apache-2.0 — Copyright 2026 Marco Porcellato & Matryca.ai |
 
-**Principio:** portare il motore di memoria biologica di Nacre *dentro* l'infrastruttura Logseq esistente — non sostituire il parser o il modello a blocchi.
+**Principle:** bring Nacre's biological memory engine *into* the existing Logseq infrastructure without replacing the parser or block model.
 
 ---
 
-## Gap analysis — cosa fa Nacre che Matryca non ha ancora
+## Gap analysis: what Nacre provides that Matryca Plumber does not yet have
 
-### 1. Decay / reinforcement (P0)
+### 1. Decay and reinforcement (P0)
 
 ```
 weight(t) = baseWeight × e^(-λt / stability)
 stability = 1 + β × ln(reinforcementCount + 1)
 ```
 
-Sorgente Nacre: [`packages/core/src/decay.ts`](https://github.com/marcusschimizzi/nacre/blob/main/packages/core/src/decay.ts)  
-Matryca oggi: nessun decay sulle connessioni.
+Nacre source: [`packages/core/src/decay.ts`](https://github.com/marcusschimizzi/nacre/blob/main/packages/core/src/decay.ts)  
+Matryca Plumber today: no decay on connections.
 
-### 2. Hybrid recall a 4 segnali (P0)
+### 2. Four-signal hybrid recall (P0)
 
 Semantic + graph walk + recency + importance — [`recall.ts`](https://github.com/marcusschimizzi/nacre/blob/main/packages/core/src/recall.ts).  
-Matryca: BM25 + dual embedding + link hops, senza fusione unificata.
+Matryca Plumber: BM25 + dual embeddings + link hops, without unified fusion.
 
-### 3. Memoria episodica + procedurale (P1–P2)
+### 3. Episodic and procedural memory (P1–P2)
 
-Episodi sessione + procedure (lesson/preference/skill/…).  
-Matryca: solo `store_fact` → `matryca-config.md` e Journey Log operativo.
+Session episodes + procedures (lesson/preference/skill/…).  
+Matryca Plumber: only `store_fact` → `matryca-config.md` and the operational Journey Log.
 
-### 4. Intelligence layer zero-LLM (P1)
+### 4. Zero-LLM intelligence layer (P1)
 
-Connection suggestions, emerging/fading topics — [`intelligence.ts`](https://github.com/marcusschimizzi/nacre/blob/main/packages/core/src/intelligence.ts).  
-Matryca: overlap parziale (`unlinked_mentions`, `entity_consolidation`, `insights_engine`, `semantic_clustering`).
+Connection suggestions and emerging/fading topics — [`intelligence.ts`](https://github.com/marcusschimizzi/nacre/blob/main/packages/core/src/intelligence.ts).  
+Matryca Plumber: partial overlap (`unlinked_mentions`, `entity_consolidation`, `insights_engine`, `semantic_clustering`).
 
-### 5. Consolidation sleep/wake (P0)
+### 5. Sleep/wake consolidation (P0)
 
-Batch idle post-sync Shadow DB → Phase 3 daemon.
+Idle post-sync Shadow DB batch → Phase 3 daemon.
 
-### 6. MCP memory-native
+### 6. Memory-native MCP
 
-| Nacre | Matryca oggi |
+| Nacre | Matryca Plumber today |
 |---|---|
-| `nacre_recall` | `search_graph` — parziale |
-| `nacre_brief` | dashboard + Graph Insights — parziale |
-| `nacre_remember` | `store_fact` — limitato |
-| `nacre_forget` / `nacre_feedback` / `nacre_lesson` | assenti |
+| `nacre_recall` | `search_graph` — partial |
+| `nacre_brief` | dashboard + Graph Insights — partial |
+| `nacre_remember` | `store_fact` — limited |
+| `nacre_forget` / `nacre_feedback` / `nacre_lesson` | absent |
 
 ---
 
-## Cosa Matryca ha già (non duplicare)
+## What Matryca Plumber already has and must not duplicate
 
-- Paradigma Logseq outliner, OCC, Safe-Sync ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25))
-- Cognitive lint LLM (MARPA, healer, property hygiene, auto-split, backlink backprop)
+- Logseq outliner paradigm, OCC, and Safe-Sync ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25))
+- LLM cognitive lint (MARPA, healer, property hygiene, auto-split, backlink backpropagation)
 - L1/L2 Karpathy model ([`l1_memory.py`](../../src/agent/l1_memory.py))
-- Ingest atomico + Trust & Safety tiers + dual embedding applicability
+- Atomic ingest + Trust & Safety tiers + dual-embedding applicability
 
 ---
 
-## Roadmap di implementazione
+## Implementation roadmap
 
-### Fase A — Fondamenta in Shadow DB
+### Phase A — Shadow DB foundations
 
 DDL in [`src/shadow/schema.py`](../../src/shadow/schema.py). Package [`src/memory/`](../../src/memory/):
 
-| Modulo | Sorgente Nacre |
-|--------|----------------|
+| Module | Nacre source |
+|--------|--------------|
 | `decay.py` | `decay.ts` |
 | `recall.py` | `recall.ts` |
 | `intelligence.py` | `intelligence.ts` |
 | `resolve.py` | `resolve.ts` (+ `alias_index.py`) |
-| `consolidate.py` | pipeline sleep/wake |
+| `consolidate.py` | sleep/wake pipeline |
 
-Estrazione entità **Logseq-native** (non `@nacre/parser`):
+**Logseq-native** entity extraction (not `@nacre/parser`):
 
-- **Structural:** wikilink, block-ref, tags, page properties via `logseq-matryca-parser`
-- **Co-occurrence:** stesso sotto-albero di blocchi (outliner-aware)
+- **Structural:** wikilinks, block references, tags, and page properties via `logseq-matryca-parser`
+- **Co-occurrence:** within the same block subtree (outliner-aware)
 - **Custom:** entity-map YAML in `.matryca/`
 
-Env: `MATRYCA_MEMORY_GRAPH_ENABLED=false` (opt-in alpha).
+Environment variable: `MATRYCA_MEMORY_GRAPH_ENABLED=false` (opt-in alpha).
 
-### Fase B — Hybrid recall
+### Phase B — Hybrid recall
 
 `search_graph(method="recall")` in [`graph_dispatch.py`](../../src/agent/graph_dispatch.py):
 
@@ -104,71 +104,71 @@ Env: `MATRYCA_MEMORY_GRAPH_ENABLED=false` (opt-in alpha).
 final = w_sem×semantic + w_graph×graphWalk + w_recency×recency + w_importance×importance
 ```
 
-### Fase C — Episodi + procedure
+### Phase C — Episodes and procedures
 
-SQLite + mirror umano su `pages/Matryca Procedures.md`. Estendere `store_fact` per `kind=lesson|preference|…`.
+SQLite + human-readable mirror in `pages/Matryca Procedures.md`. Extend `store_fact` with `kind=lesson|preference|…`.
 
-### Fase D — Intelligence & alerts
+### Phase D — Intelligence and alerts
 
-`memory_intelligence.py` → pagina `Matryca Memory Alerts` + pannello Sovereign UI.
+`memory_intelligence.py` → `Matryca Memory Alerts` page + Sovereign UI panel.
 
-### Fase E — Temporal & viz (post-MVP)
+### Phase E — Temporal features and visualization (post-MVP)
 
-`memory_snapshots`, `as_of` recall, grafo 2D in UI.
+`memory_snapshots`, `as_of` recall, and a 2D graph in the UI.
 
-### Fase F — Hive multi-vault (opzionale)
+### Phase F — Multi-vault hive (optional)
 
-Solo se emerge demand reale.
+Only if real demand emerges.
 
 ---
 
-## Priorità
+## Priorities
 
-| Priorità | Feature |
+| Priority | Feature |
 |---|---|
-| P0 | Decay + consolidation sleep |
-| P0 | Hybrid recall unificato |
+| P0 | Decay + sleep consolidation |
+| P0 | Unified hybrid recall |
 | P1 | Intelligence alerts |
-| P1 | Procedure memory |
+| P1 | Procedural memory |
 | P2 | Episodic memory |
 | P2 | Temporal snapshots |
-| P3 | 2D graph viz |
+| P3 | 2D graph visualization |
 | P3 | Hive federation |
 
 ---
 
-## Conformità Apache-2.0
+## Apache-2.0 compliance
 
-Entrambi i progetti sono Apache-2.0. Per ogni merge di codice portato da Nacre:
+Both projects use Apache-2.0. For every merge that ports code from Nacre:
 
-1. Mantieni [`LICENSE`](../../LICENSE) invariato
-2. Aggiorna [`NOTICE`](../../NOTICE) con attribuzione Marcus Sullivan / Nacre
-3. Header SPDX nei file `src/memory/*.py` portati
-4. [`docs/THIRD_PARTY.md`](../THIRD_PARTY.md) al primo merge (file-per-file map)
-5. Test pytest con parità numerica decay (half-life table Nacre)
-6. Non usare “Nacre” come brand Matryca — solo attribuzione in NOTICE/README
+1. Keep [`LICENSE`](../../LICENSE) unchanged.
+2. Update [`NOTICE`](../../NOTICE) with attribution to Marcus Sullivan and Nacre.
+3. Add SPDX headers to ported `src/memory/*.py` files.
+4. Add [`docs/THIRD_PARTY.md`](../THIRD_PARTY.md) with a file-by-file map at the first merge.
+5. Add pytest tests proving numerical decay parity against Nacre's half-life table.
+6. Do not use “Nacre” as a Matryca Plumber brand; use the name only for attribution in NOTICE/README.
 
-Checklist dettagliata: sezione “Conformità Apache-2.0” nel piano originale (mantainer reference).
+Detailed checklist: “Apache-2.0 compliance” section in the original plan (maintainer reference).
 
 ---
 
-## Rischi
+## Risks
 
-| Rischio | Mitigazione |
+| Risk | Mitigation |
 |---|---|
-| Duplicazione semantic JSON | Shadow DB source of truth v2; deprecazione graduale JSON |
-| `maintenance_daemon.py` ~3200 righe | Phase 3 in modulo dedicato ([#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57)) |
-| Parser Nacre ≠ Logseq | Solo `logseq-matryca-parser` |
-| Embedding dimension mismatch | Meta in `shadow_meta`; stesso fix documentato in Nacre ROADMAP |
-| Scope creep | Flag opt-in; ship decay+recall prima di viz/hive |
+| Duplicate semantic JSON | Shadow DB becomes the v2 source of truth; deprecate JSON gradually |
+| `maintenance_daemon.py` ~3,200 lines | Move Phase 3 into a dedicated module ([#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57)) |
+| Nacre parser ≠ Logseq | Use only `logseq-matryca-parser` |
+| Embedding dimension mismatch | Store metadata in `shadow_meta`; apply the same fix documented in the Nacre roadmap |
+| Scope creep | Keep the flag opt-in; ship decay + recall before visualization/hive |
 
 ---
 
-## Prossimi passi
+## Next steps
 
-1. ~~Salvare roadmap in repo~~ (this file)
-2. Issue **Biological Memory Layer** linkata a #20/#24
-3. RFC Discussion #19: mapping block UUID → memory node
-4. `src/memory/decay.py` + test parità Nacre
-5. Prototipo consolidation su 100 pagine con `MATRYCA_MEMORY_GRAPH_ENABLED=true`
-6. `NOTICE` + `docs/THIRD_PARTY.md` al primo merge codice Nacre
+1. ~~Save the roadmap in the repository~~ (this file)
+2. Link the **Biological Memory Layer** issue to #20/#24.
+3. Use RFC Discussion #19 to map block UUIDs to memory nodes.
+4. Implement `src/memory/decay.py` + Nacre parity tests.
+5. Prototype consolidation on 100 pages with `MATRYCA_MEMORY_GRAPH_ENABLED=true`.
+6. Add `NOTICE` + `docs/THIRD_PARTY.md` at the first merge of Nacre-derived code.
