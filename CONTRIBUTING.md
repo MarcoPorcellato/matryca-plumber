@@ -260,6 +260,10 @@ GitHub Actions on pushes and pull requests to **`main`** runs **`make ci`** (see
 
 Never commit secrets (no `.env`, tokens, or private graph paths in git).
 
+### Documentation language
+
+Write repository documentation and GitHub-facing prose in English. Non-English text is allowed only when it is an explicit localization or parser fixture, or when a source quotation is accompanied by an English translation.
+
 ### Agent-facing documentation (`llms.txt`)
 
 When you add, rename, or remove **CLI subcommands or flags** that external agents rely on:
