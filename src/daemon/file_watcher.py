@@ -6,6 +6,7 @@ import os
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol
 
@@ -40,6 +41,22 @@ FileEventKind = Literal["created", "modified", "deleted"]
 _DEFAULT_DEBOUNCE_MS = 750
 _MIN_DEBOUNCE_MS = 500
 _MAX_DEBOUNCE_MS = 1000
+
+
+@dataclass(frozen=True, slots=True)
+class WatcherDiagnosticsSnapshot:
+    """Content-free process-lifetime debounce diagnostics."""
+
+    schema_version: int
+    pending_count: int
+    scheduled_count: int
+    coalesced_count: int
+    dispatched_count: int
+    callback_failure_count: int
+    oldest_pending_age_ns: int
+    last_convergence_latency_ns: int
+    max_convergence_latency_ns: int
+    stopped: bool
 
 
 def _debounce_ms_from_env() -> float:
@@ -79,10 +96,16 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
         # threading.Timer per file: a bulk change (sync-client re-download, mass tag
         # rewrite) touching thousands of files would otherwise spawn thousands of OS
         # threads at once (F5, TRIZ Principle 20: continuous action / partial-excessive).
-        self._pending: dict[str, tuple[float, Path, FileEventKind]] = {}
+        self._pending: dict[str, tuple[float, float, Path, FileEventKind]] = {}
         self._lock = threading.Lock()
         self._wake = threading.Condition(self._lock)
         self._stopped = False
+        self._scheduled_count = 0
+        self._coalesced_count = 0
+        self._dispatched_count = 0
+        self._callback_failure_count = 0
+        self._last_convergence_latency_ns = 0
+        self._max_convergence_latency_ns = 0
         self._worker = threading.Thread(
             target=self._run, name="matryca-watch-debounce", daemon=True
         )
@@ -90,9 +113,15 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
 
     def _schedule(self, path: Path, kind: FileEventKind) -> None:
         key = str(path)
-        deadline = time.monotonic() + self._debounce_s
+        now = time.monotonic()
+        deadline = now + self._debounce_s
         with self._wake:
-            self._pending[key] = (deadline, path, kind)
+            previous = self._pending.get(key)
+            first_seen = previous[1] if previous is not None else now
+            self._scheduled_count += 1
+            if previous is not None:
+                self._coalesced_count += 1
+            self._pending[key] = (deadline, first_seen, path, kind)
             self._wake.notify_all()
 
     def _run(self) -> None:
@@ -102,28 +131,41 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
                     self._wake.wait()
                     continue
                 now = time.monotonic()
-                next_deadline = min(deadline for deadline, _, _ in self._pending.values())
+                next_deadline = min(deadline for deadline, _, _, _ in self._pending.values())
                 if next_deadline > now:
                     self._wake.wait(timeout=next_deadline - now)
                     continue
                 due = [
-                    (key, path, kind)
-                    for key, (deadline, path, kind) in self._pending.items()
+                    (key, first_seen, path, kind)
+                    for key, (deadline, first_seen, path, kind) in self._pending.items()
                     if deadline <= now
                 ]
-                for key, _, _ in due:
+                for key, _, _, _ in due:
                     del self._pending[key]
                 if not due:
                     continue
                 self._wake.release()
+                completed: list[tuple[int, bool]] = []
                 try:
-                    for _, path, kind in due:
+                    for _, first_seen, path, kind in due:
+                        failed = False
                         try:
                             self._on_debounced(path, kind)
                         except Exception:  # noqa: BLE001
+                            failed = True
                             logger.exception("Debounced file watcher callback failed for {}", path)
+                        finally:
+                            latency_ns = max(0, int((time.monotonic() - first_seen) * 1e9))
+                            completed.append((latency_ns, failed))
                 finally:
                     self._wake.acquire()
+                    for latency_ns, failed in completed:
+                        self._dispatched_count += 1
+                        self._callback_failure_count += int(failed)
+                        self._last_convergence_latency_ns = latency_ns
+                        self._max_convergence_latency_ns = max(
+                            self._max_convergence_latency_ns, latency_ns
+                        )
 
     def on_created(self, event: FileSystemEvent) -> None:
         self._handle(event)
@@ -166,6 +208,30 @@ class _DebouncedMarkdownHandler(FileSystemEventHandler):
             self._pending.clear()
             self._wake.notify_all()
         self._worker.join(timeout=2.0)
+
+    def diagnostics_snapshot(self) -> WatcherDiagnosticsSnapshot:
+        """Return a path-free snapshot under the existing scheduler lock."""
+        now = time.monotonic()
+        with self._wake:
+            oldest_age_ns = max(
+                (
+                    max(0, int((now - first_seen) * 1e9))
+                    for _, first_seen, _, _ in self._pending.values()
+                ),
+                default=0,
+            )
+            return WatcherDiagnosticsSnapshot(
+                schema_version=1,
+                pending_count=len(self._pending),
+                scheduled_count=self._scheduled_count,
+                coalesced_count=self._coalesced_count,
+                dispatched_count=self._dispatched_count,
+                callback_failure_count=self._callback_failure_count,
+                oldest_pending_age_ns=oldest_age_ns,
+                last_convergence_latency_ns=self._last_convergence_latency_ns,
+                max_convergence_latency_ns=self._max_convergence_latency_ns,
+                stopped=self._stopped,
+            )
 
 
 class GraphFileWatcher:
@@ -211,5 +277,11 @@ class GraphFileWatcher:
             self._observer.join(timeout=5.0)
             self._observer = None
 
+    def diagnostics_snapshot(self) -> WatcherDiagnosticsSnapshot:
+        """Return current debounce diagnostics without exposing graph paths."""
+        if self._handler is None:
+            return WatcherDiagnosticsSnapshot(1, 0, 0, 0, 0, 0, 0, 0, 0, True)
+        return self._handler.diagnostics_snapshot()
 
-__all__ = ["FileEventKind", "GraphFileWatcher"]
+
+__all__ = ["FileEventKind", "GraphFileWatcher", "WatcherDiagnosticsSnapshot"]
