@@ -4,8 +4,13 @@ title: Shadow DB read architecture
 description: SQLite read cache, external-cache RC direction, synchronization, health, routing, and fallback boundaries.
 resource: src/shadow/
 tags: [shadow-db, sqlite, fts5, cte, concurrency]
-timestamp: 2026-07-18T00:00:00Z
-status: experimental
+generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
+verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
+last_verified: 2026-08-06
+stale_after: 2027-02-02
+status: stable
+classification: canonical
+canonical_for: architecture.shadow-db
 audience: [maintainer, contributor, operator, agent]
 owner: shadow-runtime
 since: v2.0.0-alpha
@@ -21,7 +26,7 @@ legacy_sources:
 
 # Shadow DB read architecture
 
-> **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
+This maintained concept is the canonical progressive-disclosure entry for Shadow DB. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) and the linked roadmap remain the detailed contracts.
 
 Logseq Markdown on disk remains the **system of record**. The published beta used an
 opt-in graph-local cache. The v2.0.0-rc.1 contract uses a **default-on external derived

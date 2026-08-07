@@ -4,8 +4,12 @@ title: LLM-free information-cluster recognition
 description: Extend deterministic generational retrieval features to recognize, cache, and evaluate information neighborhoods without requiring model inference.
 resource: src/graph/semantic_clustering.py src/graph/generational_cache.py src/graph/insights_engine.py
 tags: [clustering, retrieval, cache, logseq, privacy]
-timestamp: 2026-08-02T00:00:00Z
-status: experimental
+generated: { by: human:marco-porcellato, at: '2026-08-02T00:00:00Z' }
+verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
+last_verified: 2026-08-06
+stale_after: 2027-02-02
+status: draft
+classification: active
 audience: [maintainer, contributor, operator]
 owner: retrieval-runtime
 since: v2.0.0-rc

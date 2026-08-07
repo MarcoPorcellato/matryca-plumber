@@ -251,6 +251,7 @@ make ci           # full CI gate before PR (format-check + lint + types + tests)
 
 | Start here | Go deeper |
 |------------|-----------|
+| [Documentation system](docs/knowledge/index.md) | [Evolution and operating model](docs/knowledge/documentation-evolution.md) |
 | [`AGENTS.md`](AGENTS.md) | [`docs/PROMPT_ARCHITECTURE.md`](docs/PROMPT_ARCHITECTURE.md) — Clean Architecture for prompts |
 | [`SUPPORT.md`](SUPPORT.md) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | [`docs/openspec/README.md`](docs/openspec/README.md) |

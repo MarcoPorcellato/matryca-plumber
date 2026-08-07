@@ -4,8 +4,13 @@ title: Graph plane
 description: Markdown SSOT, parser-backed mutation plane, OCC, locks, and path sandbox boundaries.
 resource: src/graph/
 tags: [graph, occ, parser, sandbox, graph-dispatch]
-timestamp: 2026-07-18T00:00:00Z
-status: experimental
+generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
+verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
+last_verified: 2026-08-06
+stale_after: 2027-02-02
+status: stable
+classification: canonical
+canonical_for: architecture.graph-plane
 audience: [maintainer, contributor, agent]
 owner: graph-runtime
 supersedes: []
@@ -21,7 +26,7 @@ legacy_sources:
 
 # Graph plane
 
-> **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
+This maintained concept is the canonical progressive-disclosure entry for the graph plane. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains the detailed architecture contract.
 
 The graph plane is Matryca's **headless mutation and read contract** over Logseq OG Markdown on disk. All surfaces (daemon, MCP, CLI) share the same path: `graph_dispatch.py` delegates to `dispatch_*_handlers.py` and `src/graph/` primitives. Logseq Markdown under `LOGSEQ_GRAPH_PATH` is the **system of record**.
 

@@ -1,34 +1,37 @@
-# Matryca knowledge bundle
+---
+okf_version: "0.2"
+---
 
-**OKF-inspired pilot — partial conformance.** Existing canonical paths under `docs/` remain authoritative during Phase 1.
+# Matryca Plumber knowledge bundle
 
-This directory introduces structured, metadata-rich documentation for progressive disclosure. See [`profile.md`](profile.md) for the local profile and conformance scope.
+This index provides progressive disclosure across maintained concepts and the classified legacy corpus. Matryca Plumber remains the authoritative editing origin; external projections are read-only, Git-provenanced consumer views.
 
-## Sections
+## Documentation system
 
-| Area | Status | Entry |
-| --- | --- | --- |
-| Architecture | pilot | [`architecture/index.md`](architecture/index.md) |
-| Product | planned Phase 2 | legacy: [`../BRANDING.md`](../BRANDING.md) |
-| Getting started | planned Phase 2 | legacy: [`../FIRST_CONTRIBUTION.md`](../FIRST_CONTRIBUTION.md), [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) |
-| Guides | planned Phase 2 | legacy: [`../integrations/`](../integrations/) |
-| Reference | planned Phase 2 | legacy: [`../../llms.txt`](../../llms.txt), [`../../.env.example`](../../.env.example) |
-| Specifications | planned Phase 3 | legacy: [`../openspec/README.md`](../openspec/README.md) |
-| Decisions | planned Phase 4 | legacy: [`../PROJECT_DIARY.md`](../PROJECT_DIARY.md) |
-| Roadmaps | planned Phase 4 | legacy: [`../roadmaps/`](../roadmaps/), [`../../ROADMAP.md`](../../ROADMAP.md) |
-| Quality | planned Phase 4 | legacy: [`../quality/`](../quality/) |
-| Releases | planned Phase 4 | legacy: [`../releases/`](../releases/) |
+- [Documentation evolution and operating model](documentation-evolution.md) — Rationale, layers, authority boundaries, maintenance workflow, and migration history.
+- [Matryca Plumber knowledge profile](profile.md) — OKF v0.2 compatibility and stricter Matryca producer rules.
+- [Repository documentation inventory](inventory.md) — Generated view of every root and `docs/` Markdown surface.
+- [Documentation update log](log.md) — Material documentation-system changes, newest first.
 
-## Inventory
+## Maintained architecture
 
-- Curated SSOT: [`inventory.json`](inventory.json)
-- Generated view: [`inventory.md`](inventory.md) (do not edit by hand)
+- [Architecture index](architecture/) — Progressive-disclosure entry point for the maintained architecture concepts.
 
-Regenerate with `make docs-inventory-md`. Reconcile new or missing paths with `make docs-inventory-sync`.
+## Detailed established collections
 
-## Verification
+- [Product identity and branding](../BRANDING.md) — Product naming and public identity.
+- [Getting started](../FIRST_CONTRIBUTION.md) — First-contribution path and repository setup.
+- [Contributor guide](../../CONTRIBUTING.md) — Development standards and verification gates.
+- [OpenSpec index](../openspec/README.md) — Normative feature and agent contracts.
+- [Roadmaps](../roadmaps/) — Active and historical delivery plans.
+- [Quality evidence](../quality/) — Audits, qualification evidence, and issue-source records.
+- [Release records](../releases/) — Version-specific public release documentation.
+
+## Maintenance
 
 ```bash
-make docs-check    # blocking: bundle + inventory drift
-make docs-audit    # informational: legacy coverage
+make docs-inventory-sync  # reconcile added, moved, and removed repository documents
+make docs-inventory-md    # regenerate the human-readable inventory
+make docs-check           # blocking metadata, links, lifecycle, and drift checks
+make docs-audit           # informational full-corpus classification report
 ```

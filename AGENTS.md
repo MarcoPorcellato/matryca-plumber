@@ -53,12 +53,15 @@ This file routes coding assistants to the correct instruction layer. **Do not lo
 
 ## Maintainer documentation surfaces
 
-- **Documentation inventory and OKF-inspired migration index:** [`docs/knowledge/index.md`](docs/knowledge/index.md) — discovery only during Phase 1; existing canonical paths remain authoritative.
+- **Documentation system entry point:** [`docs/knowledge/index.md`](docs/knowledge/index.md) — OKF v0.2 progressive disclosure over maintained concepts and the classified legacy corpus.
+- **Governance and authoring model:** [`docs/knowledge/documentation-evolution.md`](docs/knowledge/documentation-evolution.md) and [`docs/knowledge/profile.md`](docs/knowledge/profile.md) — source authority, projection boundary, lifecycle, classification, provenance, and deterministic gates.
 
 ## Verification before merge
 
 ```bash
 make agents-check          # AGENTS.md paths, llms byte-identity, rule index
+make docs-check            # OKF v0.2 bundle, Matryca profile, links, inventory drift
+make docs-audit            # informational full-corpus classification report
 make build-system-prompt   # after editing docs/openspec/agent/ fragments
 make check-system-prompt   # fragment build-hash vs SYSTEM_PROMPT.md
 make ci                  # full CI gate (format-check + lint + types + tests)

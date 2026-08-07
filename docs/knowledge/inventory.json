@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "scope": "repository-documentation",
   "entries": [
     {
@@ -7,7 +7,6 @@
       "type": "Reference",
       "title": "Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-alpha.1)",
       "description": "> **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.",
-      "status": "current",
       "audience": [
         "agent",
         "operator"
@@ -19,14 +18,14 @@
       "action": "generated",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "generated"
     },
     {
       "path": "AGENTS.md",
       "type": "Reference",
       "title": "AGENTS.md — Matryca Plumber instruction router",
       "description": "This file routes coding assistants to the correct instruction layer.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -38,14 +37,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "CHANGELOG.md",
       "type": "Release Note",
       "title": "CHANGELOG.md",
       "description": "**v2.0.0-alpha.1** — Axis 1 hardening on the experimental Shadow DB read cache ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -57,14 +56,14 @@
       "action": "generated",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "generated"
     },
     {
       "path": "CONTRIBUTING.md",
       "type": "Reference",
       "title": "Contributing to Matryca Plumber",
       "description": "Thank you for investing your time in **Matryca Plumber** (`matryca-plumber`), developed by **Marco Porcellato** at **[Matryca.ai](https://matryca.ai)**.",
-      "status": "current",
       "audience": [
         "contributor",
         "operator"
@@ -76,14 +75,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "PROJECT_DIARY.md",
       "type": "Decision",
       "title": "Project diary (moved)",
       "description": "The canonical **project diary** — phase lifecycle log, ADRs, and crushed bottlenecks — lives at:",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -95,14 +94,14 @@
       "action": "split",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "README.md",
       "type": "Reference",
       "title": "Matryca Plumber",
       "description": "[![CI](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)",
-      "status": "current",
       "audience": [
         "contributor",
         "operator"
@@ -114,14 +113,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "ROADMAP.md",
       "type": "Reference",
       "title": "Matryca Plumber Roadmap",
       "description": "**North star:** [v2.0.0 — Shadow DB & Safe-Sync Architecture](https://github.com/MarcoPorcellato/matryca-plumber/milestone/3) ([Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20))",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -133,14 +132,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "SECURITY.md",
       "type": "Reference",
       "title": "Security policy",
       "description": "**Matryca Plumber** (developed by Marco Porcellato · [Matryca.ai](https://matryca.ai)) is a **local-first autonomous background AI daemon** (with an optional MCP sidecar for tool hosts) that can **read and write Markdown files** under your Logseq graph path and uses **credentials** (for example `LOGSEQ_API_TOKEN` and any LLM provider keys in your environment or host).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -152,14 +151,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "SUPPORT.md",
       "type": "Reference",
       "title": "Support",
       "description": "**Matryca Plumber** is maintained by [Marco Porcellato](https://github.com/MarcoPorcellato) · [Matryca.ai](https://matryca.ai).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -171,14 +170,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "SYSTEM_PROMPT.md",
       "type": "Reference",
       "title": "Matryca Plumber — Agent System Prompt",
       "description": "<!-- GENERATED — do not edit -->",
-      "status": "current",
       "audience": [
         "agent",
         "operator"
@@ -190,14 +189,14 @@
       "action": "generated",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "generated"
     },
     {
       "path": "docs/ARCHITECTURE.md",
       "type": "Architecture",
       "title": "Matryca Plumber — System Architecture",
       "description": "**Version:** 2.0.0-alpha.1 (Shadow DB Axis 1 hardening — writer flock #262, meta/pages health #264) · builds on 2.0.0-alpha (Shadow DB opt-in read cache + duplicate UUID diagnostics) · 1.14.0 (catalog write-safety + leaf-module dependency direction + Tier F env_parse / graph→rag guards), 1.13.1 (parser 1.6.0 alignment), 1.13.0 (daemon/dispatch modularization + GraphReadPort v2 Phase 1), 1.12.0 (Tier-1 prompt Clean Architecture + L0 write safety + SYSTEM_PROMPT fragment assembly + AGENTS.md router), and 1.11.2 (graph layer boundary + bounded RAM + OCC ns parity)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -209,14 +208,14 @@
       "action": "split",
       "supersedes": [],
       "notes": "Split pilots: system-overview, graph-plane, shadow-db (Phase 2). Legacy remains SSOT.",
-      "missing": false
+      "missing": false,
+      "classification": "canonical"
     },
     {
       "path": "docs/AUDIT_REPORT_2026-07-16.md",
       "type": "Audit",
       "title": "Deep Code Audit — matryca-plumber",
       "description": "**Date:** 2026-07-16 · **Tooling:** local code audit, ruff static analysis, targeted manual review, TRIZ methodology.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -228,14 +227,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/BRANDING.md",
       "type": "Archive",
       "title": "Branding and naming (Matryca Plumber)",
       "description": "Use this guide in README, UI copy, operator docs, and release notes.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -247,14 +246,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/CLEAN_CODE_ARCHITECTURE.md",
       "type": "Archive",
       "title": "Clean Code & Clean Architecture — Matryca Plumber",
       "description": "**Version:** documents **v2.0.0-alpha.1+** maintainer contracts (Shadow DB writer flock, meta/pages health, read port, catalog write-safety, leaf-module dependency direction, parser 1.6.0 alignment, daemon/dispatch module maps, GraphReadPort)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -266,14 +265,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/FIRST_CONTRIBUTION.md",
       "type": "Archive",
       "title": "First contribution",
       "description": "One-page path from fork to a green PR.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -285,14 +284,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/PROJECT_DIARY.md",
       "type": "Decision",
       "title": "Project diary — technical lifecycle log",
       "description": "This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; current line **v2.0.0-alpha.1** — see [`CHANGELOG.md`](../CHANGELOG.md) `[2.0.0-alpha.1]`).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -304,14 +303,14 @@
       "action": "split",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/PROMPT_ARCHITECTURE.md",
       "type": "Archive",
       "title": "Prompt architecture — Clean Architecture & Clean Code",
       "description": "**Version:** documents **v1.12.0** (plan v3 — shipped)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -323,14 +322,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/RELEASE_PROCESS.md",
       "type": "Archive",
       "title": "Release process",
       "description": "**Matryca Plumber** (Marco Porcellato · [Matryca.ai](https://matryca.ai)) uses a **curated** [`CHANGELOG.md`](../CHANGELOG.md) (Keep a Changelog).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -342,14 +341,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/integrations/hermes-agent.md",
       "type": "Guide",
       "title": "Hermes Agent integration — compatibility report",
       "description": "**Date:** 2026-06-07",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -361,14 +360,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/README.md",
       "type": "Specification",
       "title": "Openspec-style notes (Matryca Plumber)",
       "description": "**Matryca Plumber** — developed by Marco Porcellato · [Matryca.ai](https://matryca.ai).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -380,14 +379,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent-ax-robustness.md",
       "type": "Specification",
       "title": "Agent Experience (AX) robustness — lenient resolution & safe writes (v1.9.7+)",
       "description": "**Milestone:** v1.9.7 — AX Robustness & Lenient Resolution · v1.9.8 — documentation harmonization · v1.9.9 — Security & Sandbox (complements MCP title normalization; see [`security-sandbox.md`](security-sandbox.md))",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -399,14 +398,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent-dx.md",
       "type": "Specification",
       "title": "Agent-centric DX & visual auditing (v1.9 — GitHub #16)",
       "description": "**Milestone:** v1.9.0 — Structural Graph Hygiene",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -418,14 +417,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent-onboarding.md",
       "type": "Specification",
       "title": "Agent onboarding (`llms.txt`) — v2.0.0rc1",
       "description": "**Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -437,14 +436,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/formatting.md",
       "type": "Specification",
       "title": "docs/openspec/agent/formatting.md",
       "description": "These rules mirror Logseq OG's Clojure/Datalog on-disk contract.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -456,14 +455,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/identity.md",
       "type": "Specification",
       "title": "Matryca Plumber — Agent System Prompt",
       "description": "- Operator identity and durable preferences live on Logseq page **`matryca/config`** (`pages/matryca___config.md`) or fallback **`matryca-config`** (`pages/matryca-config.md`).",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -475,14 +474,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/l1-l2-routing.md",
       "type": "Specification",
       "title": "docs/openspec/agent/l1-l2-routing.md",
       "description": "- **L1 (session-critical):** deploy rules, pointers to secrets (never secrets themselves).",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -494,14 +493,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/mcp-tools.md",
       "type": "Specification",
       "title": "docs/openspec/agent/mcp-tools.md",
       "description": "Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, and **`import_tana`**.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -513,14 +512,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/paradigm.md",
       "type": "Specification",
       "title": "docs/openspec/agent/paradigm.md",
       "description": "Matryca Plumber operates on **Logseq OG**: local pure Markdown graphs.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -532,14 +531,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/soft-gate.md",
       "type": "Specification",
       "title": "docs/openspec/agent/soft-gate.md",
       "description": "You operate in a **strictly decoupled** Matryca stack.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -551,14 +550,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/synthetic-ids.md",
       "type": "Specification",
       "title": "docs/openspec/agent/synthetic-ids.md",
       "description": "`read_graph_data` with `target_type=\"page\"` returns Matryca Parser spatial output per block:",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -570,14 +569,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/tool-reference.md",
       "type": "Specification",
       "title": "docs/openspec/agent/tool-reference.md",
       "description": "Invoke tools with the discriminator as a **string literal** plus the parameters shown.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -589,14 +588,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/workflow-footer.md",
       "type": "Specification",
       "title": "docs/openspec/agent/workflow-footer.md",
       "description": "Mirror llm-wiki-style ingest.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -608,14 +607,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/agent/xray.md",
       "type": "Specification",
       "title": "docs/openspec/agent/xray.md",
       "description": "For large pages, prefer **`read_graph_data` / `target_type=\"xray_page\"`** with `query` = page title.",
-      "status": "current",
       "audience": [
         "agent",
         "maintainer"
@@ -627,14 +626,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/biological-memory.md",
       "type": "Specification",
       "title": "Biological memory layer — OpenSpec (planned v2.0)",
       "description": "**Status:** planned — algorithms partially scaffolded in [`src/memory/`](../../src/memory/); persistence in [`src/shadow/schema.py`](../../src/shadow/schema.py) memory tables",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -646,14 +645,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/dual-embedding.md",
       "type": "Specification",
       "title": "Dual embedding strategy (Master RFC — Phase 3)",
       "description": "**Implementation:** `src/semantic/`",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -665,14 +664,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/identity-config.md",
       "type": "Specification",
       "title": "In-graph identity (Telos & AI Constraints)",
       "description": "**Roadmap:** Master architecture RFC — Phase 1 (persona layer)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -684,14 +683,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/ingest.md",
       "type": "Specification",
       "title": "Atomic document ingestion (Master RFC — Phase 2)",
       "description": "**Roadmap:** Master architecture RFC — Phase 2 (external markdown → L2 graph)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -703,14 +702,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/l1-l2-routing.md",
       "type": "Specification",
       "title": "L1 / L2 routing (Matryca Plumber)",
       "description": "**Roadmap:** [`ROADMAP_LLM_WIKI.md`](../../ROADMAP_LLM_WIKI.md)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -722,14 +721,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/link-verification.md",
       "type": "Specification",
       "title": "Structural link verification (v1.9 — GitHub #15)",
       "description": "**Milestone:** v1.9.0 — Structural Graph Hygiene",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -741,14 +740,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/lint.md",
       "type": "Specification",
       "title": "Lint (Matryca Plumber on-disk)",
       "description": "**Roadmap:** [`ROADMAP_LLM_WIKI.md`](../../ROADMAP_LLM_WIKI.md)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -760,14 +759,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/live-telemetry-ui.md",
       "type": "Specification",
       "title": "Live telemetry — Sovereign UI (v1.9.3)",
       "description": "**Milestone:** v1.9.3 — Live Telemetry Update",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -779,14 +778,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/llm-os-instructions.md",
       "type": "Specification",
       "title": "LLM OS instructions — two-tier agent contract",
       "description": "**Artifacts:** [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) (Tier-2 cognitive law), [`llms.txt`](../../llms.txt) / [`.well-known/llms.txt`](../../.well-known/llms.txt) (distribution pointer), optional `matryca-l1/llm-os-rules.md` (operator overlay)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -798,14 +797,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/llm-performance.md",
       "type": "Specification",
       "title": "LLM performance & edge computing (v1.8+)",
       "description": "**Roadmap:** [`../v1.8-OPTIMIZATION-PLAN.md`](../v1.8-OPTIMIZATION-PLAN.md)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -817,14 +816,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/logseq-paradigm.md",
       "type": "Specification",
       "title": "Logseq OG paradigm (SSOT)",
       "description": "Canonical spec: [`docs/openspec/agent/paradigm.md`](agent/paradigm.md).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -836,14 +835,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/runtime-bootstrap.md",
       "type": "Specification",
       "title": "Runtime bootstrap (startup provisioning)",
       "description": "**Roadmap:** [`ROADMAP_LLM_WIKI.md`](../../ROADMAP_LLM_WIKI.md) (L1/L2, `matryca-wiki.yml`)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -855,14 +854,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/security-sandbox.md",
       "type": "Specification",
       "title": "Security & Sandbox (v1.9.9)",
       "description": "**Milestone:** v1.9.9 — Security & Sandbox (v1.9.x perfection track)",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -874,14 +873,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/openspec/tana-import.md",
       "type": "Specification",
       "title": "Tana workspace JSON import (enterprise migration)",
       "description": "**Version:** 1.0",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -893,14 +892,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md",
       "type": "Audit",
       "title": "Beta evidence reproducibility root-cause analysis — draft",
       "description": "Sanitized draft root-cause analysis and rerun protocol for beta-evidence reproducibility.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -912,14 +911,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "Investigation draft; not a release or beta-decision SSOT.",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md",
       "type": "Audit",
       "title": "Claude Architectural Audit — Triage (2026-06-24)",
       "description": "Staff-level review (Repomix snapshot, June 2026).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -931,14 +930,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Clean Architecture Audit — Triage (2026-06)",
       "description": "Third external audit (simulated Staff Engineer review against hexagonal / ports-and-adapters patterns).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -950,14 +949,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Expert Architectural Audit — Triage (2026-06)",
       "description": "Cross-reference between the **Expert Architectural Audit** (external review) and Matryca Plumber's existing backlog: v1.9.x perfection audit (#01–#38), GitHub issues, ROADMAP, openspec, CHANGELOG.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -969,14 +968,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",
       "type": "Audit",
       "title": "Gate B public-RC soak runbook",
       "description": "This runbook starts the two independent, fail-closed soak profiles required by",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -987,14 +986,15 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "classification": "historical",
+      "missing": false
     },
     {
       "path": "docs/quality/GITHUB_BUG_BACKLOG.md",
       "type": "Audit",
       "title": "GitHub bug backlog — Expert Audit 2026-06 slice",
       "description": "**Triage 2026-07-01:** 33 audit/observability issues closed on GitHub (shipped v1.11.2); pass 2 closed #42, #91, #92; pass 3 closed #38, #113; pass 4 closed #97 (OCC filesystem docs).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1006,14 +1006,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/ISSUE_TRIAGE_2026-07-01.md",
       "type": "Audit",
       "title": "Issue triage — 2026-07-01",
       "description": "**Operator:** Marco Porcellato (maintainer)",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1025,14 +1025,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/READ_ONLY_IMMUTABILITY_E2E.md",
       "type": "Audit",
       "title": "Strict Read Only end-to-end immutability gate",
       "description": "This release gate proves that `MATRYCA_READ_ONLY=true` leaves the complete Logseq graph",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1044,14 +1044,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md",
       "type": "Audit",
       "title": "Matryca Plumber repository excellence study",
       "description": "Evidence-backed repository improvement plan and prioritized implementation roadmap.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -1062,14 +1062,15 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Improvement-plan artifact; not a release authorization or architecture SSOT."
+      "notes": "Improvement-plan artifact; not a release authorization or architecture SSOT.",
+      "classification": "active",
+      "missing": false
     },
     {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Repomix Architectural Audit — Triage (2026-06)",
       "description": "Second external audit (Repomix-based).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1081,14 +1082,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md",
       "type": "Audit",
       "title": "Shadow DB exact-beta 72-hour soak — terminal evidence record",
       "description": "**Status:** terminal PASS, recorded 2026-08-03.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1100,14 +1101,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/SHADOW_DB_PARSE_BUDGET_TRIZ_2026-07-27.md",
       "type": "Audit",
       "title": "Shadow DB page-parse budget — measurement, contradiction, and quarantine design",
       "description": "_Recorded 2026-07-27, during `v2.0.0-beta.1` release-candidate preparation._",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1119,14 +1120,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/SHADOW_DB_SOAK_24H_EVIDENCE_2026-07-28.md",
       "type": "Audit",
       "title": "Shadow DB 24-hour soak — evidence record",
       "description": "**Status:** evidence record, 2026-07-28.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1138,14 +1139,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md",
       "type": "Audit",
       "title": "V2 alpha/beta experiment evidence ledger",
       "description": "This is a sanitized supporting record for the v2 Shadow read-cache experiments.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -1157,14 +1158,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "Sanitized supporting record; not an architecture or beta-decision SSOT.",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/V2_SHADOW_DB_VISION_2026-07-25.md",
       "type": "Audit",
       "title": "Cosa ottiene Matryca Plumber con la v2.0 e lo Shadow DB",
       "description": "_Nota di lavoro — 2026-07-25, mentre gira il soak da 24h+ (r8) prima del rilascio beta._",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1176,14 +1177,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
       "description": "In `src/agent/maintenance_daemon.py`, `_process_llm_cycle_file` sets `status=\"processed\"` after a successful cognitive lint write (L2715–2718), then calls `run_dual_embedding_after_semantic_write`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1195,14 +1196,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/131-graph-dispatch-resolve-write-toctou.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/131-graph-dispatch-resolve-write-toctou.md",
       "description": "`src/agent/graph_dispatch.py` `_run_write_outline` resolves the write parent in one `asyncio.to_thread` call (`_resolve_write_parent_target`) and performs the write in a second call (`_headless_write_outline` or `_headless_write_outline_empty_page`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1214,14 +1215,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/132-graph-daemon-post-write-inversion.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/132-graph-daemon-post-write-inversion.md",
       "description": "The graph layer (domain I/O) directly imports orchestration modules:",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1233,14 +1234,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/133-tana-streaming-graph-builder.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/133-tana-streaming-graph-builder.md",
       "description": "`src/agent/importers/tana/load.py` `load_tana_nodes_by_id` streams parse via `ijson` but immediately materializes `{node.id: node for node in iter_tana_nodes(export_path)}` — O(nodes) RAM.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1252,14 +1253,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/134-generational-cache-lru-cap.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/134-generational-cache-lru-cap.md",
       "description": "`src/graph/generational_cache.py` keeps module-level `_alias_cache` and `_bm25_cache` dicts keyed by resolved graph root string.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1271,14 +1272,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/135-phase2-progress-denominator-drift.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/135-phase2-progress-denominator-drift.md",
       "description": "[#70](https://github.com/MarcoPorcellato/matryca-plumber/issues/70) fixed Phase 2 progress **denominator including journals**.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1290,14 +1291,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/136-tui-daemon-state-dedup-load.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/136-tui-daemon-state-dedup-load.md",
       "description": "`src/cli/tui_dashboard.py` `collect_snapshot_safe` calls `collect_snapshot`, which already loads daemon state via `_try_load_daemon_state`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1309,14 +1310,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/137-tana-content-aware-reimport-v2.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/137-tana-content-aware-reimport-v2.md",
       "description": "Tana import v1 idempotency skips subtrees when `tana-id::` already exists in the vault (`src/agent/importers/tana/write.py` `_filter_outline_subtree`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1328,14 +1329,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/140-identity-ast-stale-on-reload.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/140-identity-ast-stale-on-reload.md",
       "description": "`IdentityConfigStore.reload_if_stale` (`src/daemon/config_layer.py`) treats **config file mtime** as the freshness signal, then loads Telos/Constraints via `_load_from_graph()` → `get_graph_ast_cache(graph_root).get_graph()`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1347,14 +1348,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/141-routing-hint-enum.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/141-routing-hint-enum.md",
       "description": "`src/agent/routing_hint.py` emits L1/L2 routing markers as **magic strings** in HTML comments:",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1366,14 +1367,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/142-semantic-config-injection.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/142-semantic-config-injection.md",
       "description": "`src/semantic/config.py` already centralizes embedding env resolution (`EmbeddingSettings`, `HybridWeights`, `dual_embedding_enabled()`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1385,14 +1386,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/143-graph-analytics-catalog-load-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/143-graph-analytics-catalog-load-log.md",
       "description": "`_count_catalog_summaries` in `src/graph/graph_analytics.py` (~L118–124) wraps `load_master_catalog(root)` in bare `except Exception` and returns `0` with **no log line**.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1404,14 +1405,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/144-checkpoint-bak-restore-copy-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/144-checkpoint-bak-restore-copy-log.md",
       "description": "`read_daemon_checkpoint` in `src/daemon/checkpoint.py` (~L64–66) recovers from a corrupt primary checkpoint by reading `.matryca_daemon_state.json.bak`, then restores the primary file via `shutil.copy2(bak_path, path)` inside `contextlib.suppress(OSError)`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1423,14 +1424,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/145-daemon-state-bak-restore-copy-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/145-daemon-state-bak-restore-copy-log.md",
       "description": "`load_daemon_state` in `src/agent/maintenance_daemon.py` (~L793–795) mirrors checkpoint recovery: when the primary `.matryca_daemon_state.json` is unreadable, it loads from `.bak` and attempts `shutil.copy2(bak_path, path)` inside `contextlib.suppress(OSError)`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1442,14 +1443,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/146-daemon-state-bak-write-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/146-daemon-state-bak-write-log.md",
       "description": "`save_daemon_state` in `src/agent/maintenance_daemon.py` (~L830–832) atomically writes the primary daemon state, then copies it to `.matryca_daemon_state.json.bak` inside `contextlib.suppress(OSError)`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1461,14 +1462,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/147-journey-log-upsert-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/147-journey-log-upsert-log.md",
       "description": "`_finalize_link_and_journey_pass` in `src/agent/maintenance_daemon.py` (~L2884–2891) wraps `upsert_journey_log(...)` in `contextlib.suppress(OSError)` when journey logging is enabled and the cycle has journal activity.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1480,14 +1481,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/148-watcher-deleted-link-registry-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/148-watcher-deleted-link-registry-log.md",
       "description": "`_on_watchdog_change` in `src/agent/maintenance_daemon.py` (~L2117–2119) calls `register_page_links_from_path` when the file watcher reports a **deleted** `.md` page and link verification is enabled.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1499,14 +1500,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/149-phase2-lint-link-registry-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/149-phase2-lint-link-registry-log.md",
       "description": "During Phase-2 cognitive lint in `run_cycle` (`src/agent/maintenance_daemon.py`, ~L2636–2638), `merge_page_links_into_registry` runs inside `contextlib.suppress(OSError)` before `run_cognitive_lint_pipeline`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1518,14 +1519,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/150-phase2-end-cycle-totals-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/150-phase2-end-cycle-totals-log.md",
       "description": "At **cycle start**, `run_cycle` already logs `refresh_phase2_cognitive_totals` failures (`logger.warning`, ~L2919–2922).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1537,14 +1538,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/151-fast-track-link-registry-log.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/151-fast-track-link-registry-log.md",
       "description": "In `run_cycle`, fast-track skippable files call `register_page_links_from_path` when link verification is enabled (`src/agent/maintenance_daemon.py`, ~L2962–2964).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1556,14 +1557,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/152-plumber-config-env-int-warning.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/152-plumber-config-env-int-warning.md",
       "description": "`_env_int` in `src/agent/plumber_config.py` (~L58–65) returns the Python default when `int(raw)` raises `ValueError`, with **no warning**.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1575,14 +1576,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/153-occ-mtime-ns-parity.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/153-occ-mtime-ns-parity.md",
       "description": "Page-level OCC in `src/graph/markdown_blocks.py` snapshots and compares `st_mtime` as a `float` (`read_file_mtime`, `file_mtime_drifted`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1594,14 +1595,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/154-tana-slim-nodedump-payloads.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/154-tana-slim-nodedump-payloads.md",
       "description": "Tana import streams JSON via `ijson` (no `json.load()` DOM).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1613,14 +1614,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/155-generational-cache-sig-tou.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/155-generational-cache-sig-tou.md",
       "description": "`get_cached_bm25_corpus` and `cached_build_alias_index` in `src/graph/generational_cache.py` build the corpus/index, then capture `_signature(...)` **after** the build (`sig_after`), and store `(sig_after, artifact)`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1632,14 +1633,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/156-tana-id-stream-scan.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/156-tana-id-stream-scan.md",
       "description": "`scan_existing_tana_ids` in `src/agent/importers/tana/write.py` calls `read_graph_file_text` for every scannable page/journal, materializing full page bodies in RAM to regex-scan `tana-id::` values.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1651,14 +1652,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/157-lock-registry-acquire-hardening.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/157-lock-registry-acquire-hardening.md",
       "description": "`page_write_lock._lock_for_key` evicts LRU registry entries when `not old_lock.locked()` before allocating a new `RLock` for a path (`_MAX_PAGE_LOCK_REGISTRY = 4096`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1670,14 +1671,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/158-link-verification-env-parse.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/158-link-verification-env-parse.md",
       "description": "`src/graph/link_verification.py` already uses `env_bool` for `MATRYCA_LINK_VERIFY_ENABLED`, but `link_verify_strikes_threshold`, `link_verify_batch_size`, and `link_verify_timeout_seconds` duplicate inline `os.environ.get` + `try/except` parsing (~L73–94).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1689,14 +1690,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/159-generational-cache-env-parse.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/159-generational-cache-env-parse.md",
       "description": "`src/graph/generational_cache.py` reads `MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS` and `MATRYCA_BM25_MODE` via inline `os.environ.get` in `_generational_cache_max_graphs()` and `_bm25_mode()` (~L32–72).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1708,14 +1709,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/160-plumber-config-env-int-delegate.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/160-plumber-config-env-int-delegate.md",
       "description": "`src/agent/plumber_config.py` defines a private `_env_int` helper that duplicates `src/utils/env_parse.env_int` (warning on invalid values shipped in [#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152)).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1727,14 +1728,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/161-graph-boundary-forbid-rag.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/161-graph-boundary-forbid-rag.md",
       "description": "`tests/test_graph_layer_boundary.py` forbids `src/graph/` from importing `agent` and `daemon`, enforcing the v1.11.2 layer inversion ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1746,14 +1747,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/162-concurrency-probe-env-bool.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/162-concurrency-probe-env-bool.md",
       "description": "`src/graph/concurrency_probe.py` reads `MATRYCA_ALLOW_FLOCK_DEGRADATION` with inline `os.environ.get` and manual truthy-token parsing (~L33).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1765,14 +1766,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/163-env-parse-clamp-contract-tests.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/163-env-parse-clamp-contract-tests.md",
       "description": "After Tier F slices migrate clamped env reads to `env_parse`, the **clamp-after-parse** pattern (e.g.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1784,14 +1785,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/164-bounded-parse-receive-deadline.md",
       "description": "`BoundedPageParseWorker.parse_text` (`src/graph/bounded_page_parse.py`) bounds the wait for a worker response with `self._out_q.get(timeout=deadline)`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1803,14 +1804,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/shadow-page-parse-quarantine.md",
       "type": "Archive",
       "title": "Shadow DB: per-page quarantine for over-budget page parses",
       "description": "One Logseq page whose parse exceeds the page-parse budget aborts the entire Shadow DB",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1822,14 +1823,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-alpha-hardening-a1-meta-01.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-alpha-hardening-a1-meta-01.md",
       "description": "`resolve_shadow_health` returns **`ready`** when `last_full_sync_completed=true` and `last_sync_error` is empty, **without validating** that `shadow_meta` row counts match the actual `pages` table.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1841,14 +1842,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-alpha-hardening.md",
       "type": "Archive",
       "title": "v2.0-alpha hardening — tracking issue",
       "description": "`v2.0.0-alpha.1` ships Axis 1 hardening on the opt-in Shadow DB read cache behind `MATRYCA_SHADOW_DB_ENABLED`.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1860,14 +1861,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-beta-readiness.md",
       "type": "Archive",
       "title": "v2.0.0-beta.1 readiness — tracking issue",
       "description": "`v2.0.0-alpha.5` / PyPI `2.0.0a5` is the published hardening baseline for the opt-in Shadow DB read cache.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -1879,14 +1880,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "Local SSOT for the v2.0.0-beta.1 release decision; GitHub issue body is derived from this record.",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/issue-bodies/v2-external-shadow-cache-read-only.md",
       "type": "Archive",
       "title": "v2 RC: external Shadow cache compatible with strict Logseq read-only mode",
       "description": "For `v2.0.0-rc.1`, `MATRYCA_READ_ONLY=true` protects the Logseq graph from every",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1898,14 +1899,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase0-prerequisites.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase0-prerequisites.md",
       "description": "v2.0 Shadow DB sync and read routing depend on a modular daemon duty cycle and a thin `graph_dispatch` router.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1917,14 +1918,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase1-dispatch-read-delegate.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase1-dispatch-read-delegate.md",
       "description": "`graph_dispatch` imports graph helpers directly — bypassing any repository port introduced in the graph-read-port slice.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1936,14 +1937,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase1-graph-read-port.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase1-graph-read-port.md",
       "description": "Phase 1 requires a stable read contract before shadow adapters plug in.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1955,14 +1956,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase1-graph-repository.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase1-graph-repository.md",
       "description": "All v2 read routing must pass through a storage abstraction ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17)).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1974,14 +1975,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase2-fts5-search.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase2-fts5-search.md",
       "description": "Shadow FTS5 table `blocks_fts` is created by schema but no query API exists for agent search paths.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -1993,14 +1994,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase2-post-write-sync.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase2-post-write-sync.md",
       "description": "Shadow tables stay empty until Markdown edits flow into `pages`/`blocks` rows.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2012,14 +2013,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase2-shadow-open-connection.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase2-shadow-open-connection.md",
       "description": "[`src/shadow/schema.py`](../../../src/shadow/schema.py) defines DDL and `apply_shadow_schema()` but no production helper opens `shadow.sqlite` under the graph root with correct pragmas and path sandboxing.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2031,14 +2032,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase2-shadow-sync.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase2-shadow-sync.md",
       "description": "Shadow DB DDL exists ([`src/shadow/schema.py`](../../../src/shadow/schema.py)) but no runtime sync populates `pages`/`blocks` from Markdown edits.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2050,14 +2051,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase3-read-routing.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase3-read-routing.md",
       "description": "Shadow sync (Phase 2) must be opt-in before v2.0.0-rc.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2069,14 +2070,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase3-shadow-env-flag.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase3-shadow-env-flag.md",
       "description": "Phase 3 alpha requires an explicit operator opt-in before MCP/CLI prefer shadow reads.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2088,14 +2089,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase3-ui-shadow-health.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase3-ui-shadow-health.md",
       "description": "Operators need visibility into shadow sync health without a `matryca doctor` command (`llms.txt` §2.3).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2107,14 +2108,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase4-memory-safesync.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase4-memory-safesync.md",
       "description": "Biological memory (Nacre-inspired) and Logseq DB Safe-Sync writes are the long-tail v2 deliverables after shadow read path stabilizes.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2126,14 +2127,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-phase4-recall-search-method.md",
       "type": "Archive",
       "title": "docs/quality/issue-bodies/v2-phase4-recall-search-method.md",
       "description": "Biological memory requires a unified recall entry point for agents — beyond separate bm25/semantic/hops calls.",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2145,14 +2146,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/quality/issue-bodies/v2-rc-stable-readiness.md",
       "type": "Archive",
       "title": "v2.0.0 RC and stable readiness — decision record",
       "description": "`v2.0.0-beta.1` published the opt-in Shadow DB read path while preserving",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2164,14 +2165,14 @@
       "action": "artifact",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.10.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.0 (copy-paste)",
       "description": "**Title:** v1.10.0 - Catalog Integrity & OSS Maturity",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2183,14 +2184,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.10.2-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.2 (copy-paste)",
       "description": "**Title:** v1.10.2 - Fast Test Gate & CI Fixes",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2202,14 +2203,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.10.3-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.3 (copy-paste)",
       "description": "**Title:** v1.10.3 - Infrastructure Hardening & Sovereign UI Resilience",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2221,14 +2222,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.10.4-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.4 (copy-paste)",
       "description": "**Title:** v1.10.4 - Dependency Maintenance & CI Toolchain",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2240,14 +2241,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.10.5-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.5 (copy-paste)",
       "description": "**Title:** v1.10.5 - Logseq Matryca Parser 1.3.1 Alignment",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2259,14 +2260,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.10.6-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.6 (copy-paste)",
       "description": "**Title:** v1.10.6 - Concurrency Integrity (Unified Flock + Hub Page OCC)",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2278,14 +2279,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.11.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.11.0 (copy-paste)",
       "description": "**Title:** v1.11.0 - Tana → Logseq OG Migration",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2297,14 +2298,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.11.1-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.11.1 (copy-paste)",
       "description": "**Title:** v1.11.1 - Logseq Matryca Parser 1.4.0 Alignment",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2316,14 +2317,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.11.2-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.11.2 (copy-paste)",
       "description": "**Title:** v1.11.2 - Graph Layer Boundary Refactor",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2335,14 +2336,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.12.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.12.0 (copy-paste)",
       "description": "**Title:** v1.12.0 - Prompt Clean Architecture",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2354,14 +2355,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.12.1-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.12.1 (copy-paste)",
       "description": "**Title:** v1.12.1 - Contributor hygiene & v2 preparation index",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2373,14 +2374,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.13.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.13.0 (copy-paste)",
       "description": "**Title:** v1.13.0 - Daemon & dispatch modularization (v2 Phase 0–1)",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2392,14 +2393,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.13.1-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.13.1 (copy-paste)",
       "description": "**Title:** v1.13.1 - Logseq Matryca Parser 1.6.0 Alignment",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2411,14 +2412,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.14.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.14.0 (copy-paste)",
       "description": "**Title:** v1.14.0 - Catalog Write-Safety & Leaf-Module Dependency Direction",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2430,14 +2431,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.10-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.10 (copy-paste)",
       "description": "**Title:** v1.9.10 - Sovereign UI Fast Startup",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2449,14 +2450,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.11-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.11 (copy-paste)",
       "description": "**Title:** v1.9.11 - Sovereign UI Reliability (Large Vaults)",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2468,14 +2469,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.13-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.13 (copy-paste)",
       "description": "**Title:** v1.9.13 - Enterprise Resilience Update",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2487,14 +2488,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.14-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.14 (copy-paste)",
       "description": "**Title:** v1.9.14 - Contributor Readiness & Tech Debt Cleanup",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2506,14 +2507,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.15-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.15 (copy-paste)",
       "description": "**Title:** v1.9.15 - Strict Mypy Compliance & Journal Phase-2 Bypass",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2525,14 +2526,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.3-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.3 (copy-paste)",
       "description": "**Title:** v1.9.3 - The \"Live Telemetry\" Update",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2544,14 +2545,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.4-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.4 (copy-paste)",
       "description": "**Title:** v1.9.4 - The \"Clean Journal\" Update",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2563,14 +2564,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.5-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.5 (copy-paste)",
       "description": "**Title:** v1.9.5 - The \"LLM OS\" Update",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2582,14 +2583,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.6-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.6 (copy-paste)",
       "description": "**Title:** v1.9.6 - Hermes Agent & Lazy AST Handshake",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2601,14 +2602,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.7-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.7 (copy-paste)",
       "description": "**Title:** v1.9.7 - Agent Experience (AX) Robustness & Lenient Resolution",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2620,14 +2621,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.8-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.8 (copy-paste)",
       "description": "**Title:** v1.9.8 - Documentation Harmonization (AX Robustness)",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2639,14 +2640,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v1.9.9-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.9.9 (copy-paste)",
       "description": "**Title:** v1.9.9 - Security & Sandbox Hardening",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2658,14 +2659,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-alpha-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v2.0.0-alpha (copy-paste)",
       "description": "> **Superseded for new installs by [`v2.0.0-alpha.1`](v2.0.0-alpha.1-GITHUB.md)** — PyPI `2.0.0a0` remains published (not yanked).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2677,14 +2678,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-alpha.1-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v2.0.0-alpha.1 (editorial copy-paste)",
       "description": "> **Workflow source of truth:** CI creates the GitHub Release body from",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2696,14 +2697,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-alpha.2-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v2.0.0-alpha.2 (editorial copy-paste)",
       "description": "> **Workflow source of truth:** CI creates the GitHub Release body from",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2715,14 +2716,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-alpha.3-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v2.0.0-alpha.3 (editorial copy-paste)",
       "description": "> **Workflow source of truth:** CI creates the GitHub Release body from",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2734,14 +2735,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-alpha.4-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v2.0.0-alpha.4 (editorial copy-paste)",
       "description": "> **Workflow source of truth:** CI creates the GitHub Release body from",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2753,14 +2754,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-alpha.5-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v2.0.0-alpha.5 (editorial copy-paste)",
       "description": "> **Workflow source of truth:** CI creates the GitHub Release body from",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -2772,14 +2773,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/releases/v2.0.0-beta.1-GITHUB.md",
       "type": "Release Note",
       "title": "v2.0.0-beta.1",
       "description": "Published release note for the first opt-in Shadow read-path beta.",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -2791,14 +2792,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "All beta publication gates passed with the accepted evidence boundary recorded in the readiness decision.",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/resilience-llm-json-triz.md",
       "type": "Archive",
       "title": "Resilient structured output — TRIZ applied to local LLMs",
       "description": "**Status:** Shipped (see [`CHANGELOG.md`](../CHANGELOG.md) under `[1.10.3]` / recent releases).",
-      "status": "current",
       "audience": [
         "maintainer",
         "contributor"
@@ -2810,14 +2811,14 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md",
       "type": "Roadmap",
       "title": "Phase 8 — Ironclad Shield (checklist)",
       "description": "Actionable checklist for global fence scanning, transactional writes, and generational caching.",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2829,14 +2830,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_LLM_WIKI.md",
       "type": "Roadmap",
       "title": "Roadmap: LLM-Wiki patterns → Matryca Plumber (FastMCP / Logseq OG)",
       "description": "Actionable checklist derived from [MehmetGoekce/llm-wiki](https://github.com/MehmetGoekce/llm-wiki) (L1/L2 architecture, openspec ingest/lint, schema templates, dashboard hub) adapted to **this** repo: **FastMCP**, **uv**, **loguru**, **Pydantic**, **async/await**, external **`logseq-matryca-parser`**, **no SQLite**.",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2848,14 +2849,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_LLM_WIKI_PHASE_3.md",
       "type": "Roadmap",
       "title": "Phase 3 roadmap — High-safety PKM + deep outliner tools (no Postgres)",
       "description": "Actionable checklist aligned with **pure Logseq OG**: on-disk Markdown, **`logseq_matryca_parser`** for spatial truth where structure matters, **FastMCP** tools, and **no PostgreSQL**, **no embeddings**, **no PyMuPDF/VLM ingestion**.",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2867,14 +2868,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_LOGSEQ_SUPERPOWERS.md",
       "type": "Roadmap",
       "title": "Phase 4: Logseq Native Superpowers",
       "description": "Actionable roadmap to evolve the MCP agent into a **proactive knowledge manager** using Logseq-native syntax only: **Advanced Queries**, **journal/task conventions**, and **`alias::` resolution**.",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2886,14 +2887,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_MLDOC_COMPLIANCE.md",
       "type": "Roadmap",
       "title": "Roadmap: mldoc-aligned graph tools (Phase 7)",
       "description": "Pure-Python structural rules inspired by the official Logseq Markdown/Org compiler (`logseq/mldoc`): no Rust/Clojure runtime, no external binary parser.",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2905,14 +2906,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_PHASE_5_6.md",
       "type": "Roadmap",
       "title": "Phase 5 & 6 — Graph Gardener + Synthesis Engine",
       "description": "Actionable checklist for overnight implementation.",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2924,14 +2925,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md",
       "type": "Roadmap",
       "title": "v2.0 — Biological Memory Layer (Nacre-inspired)",
       "description": "**Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2943,14 +2944,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_V2_PREPARATION.md",
       "type": "Roadmap",
       "title": "v2.0 Preparation — Visitor & Maintainer Guide",
       "description": "**North star:** [Epic #20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2962,14 +2963,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/roadmaps/ROADMAP_V2_SHADOW_DB.md",
       "type": "Roadmap",
       "title": "v2.0 — Shadow DB read path (checklist)",
       "description": "**Detailed index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) — visitor SSOT for all five v2 phases",
-      "status": "planned",
       "audience": [
         "maintainer",
         "contributor"
@@ -2981,14 +2982,14 @@
       "action": "migrate",
       "supersedes": [],
       "notes": "Pilot distilled in docs/knowledge/architecture/shadow-db.md (experimental).",
-      "missing": false
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
       "description": "**Status:** Core edge profile shipped in **1.8.0** (see [`CHANGELOG.md`](../CHANGELOG.md) `[1.8.0]`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -3000,14 +3001,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "docs/v1.8-SOFTWARE-EDGE-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8.0 — Edge Software Optimization Plan",
       "description": "**Status:** Shipped in **1.8.0** (see [`CHANGELOG.md`](../CHANGELOG.md) `[1.8.0]`).",
-      "status": "archived",
       "audience": [
         "maintainer",
         "contributor"
@@ -3019,14 +3020,14 @@
       "action": "archive",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "historical"
     },
     {
       "path": "llms.txt",
       "type": "Reference",
       "title": "Matryca Plumber - AI Agent Context & Execution Guide (v2.0.0-beta.1 candidate)",
       "description": "> **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.",
-      "status": "current",
       "audience": [
         "agent",
         "operator"
@@ -3038,7 +3039,8 @@
       "action": "generated",
       "supersedes": [],
       "notes": "",
-      "missing": false
+      "missing": false,
+      "classification": "generated"
     }
   ]
 }
