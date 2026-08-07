@@ -1322,6 +1322,73 @@ without changing runtime, configuration, commands, or agent behavior. Rollback r
 one documentation/generated-prompt revert; Gate B evidence, release state, tags, and
 publication were not touched.
 
+##### EX-16-05 — Separate distribution contract from qualification status
+
+```yaml
+tranche_id: EX-16-05
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 05ff6de
+objective: preserve the versioned external-agent contract without duplicating mutable Gate or stable-promotion status
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - llms.txt
+  - .well-known/llms.txt
+  - docs/openspec/agent-onboarding.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no command, setting, runtime, generated-prompt, MCP, release, Gate B, tag, or publication change
+  - no removal of RC behavior, historical beta behavior, or external-agent anti-patterns
+  - no historical evidence rewrite or Matryca Knowledge projection update
+deterministic_preflight:
+  - cmp -s llms.txt .well-known/llms.txt
+  - make agents-check
+  - make docs-check
+acceptance:
+  - the RC distribution behavior remains explicit and unchanged
+  - mutable qualification and stable-promotion status link to the readiness owner
+  - current operator behavior links to the canonical maintained contract
+  - llms.txt and .well-known/llms.txt remain byte-identical
+  - no other llms command, setting, or behavior byte changes
+stop_conditions:
+  - any required runtime, prompt, release artifact, or Gate B evidence edit
+  - any distribution-contract behavior change outside the single RC header sentence
+rollback: revert the documentation-only commit
+provenance:
+  evidence_commit: 05ff6de
+  evidence_paths:
+    - llms.txt
+    - .well-known/llms.txt
+    - docs/openspec/agent-onboarding.md
+    - docs/knowledge/architecture/shadow-db.md
+    - docs/quality/issue-bodies/v2-rc-stable-readiness.md
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: navigation | provenance
+residual_risks:
+  - llms.txt is a high-fan-out public contract and requires exact byte-level review
+  - planned biological-memory version language requires a separate future-design review
+```
+
+This slice removes mutable qualification narration from distribution guidance without
+changing the RC contract, release evidence, or product behavior.
+
+**EX-16-05 implementation receipt (2026-08-07):** the five-file allowlist above is
+the complete diff. The two distribution mirrors change one byte-identical RC header
+sentence; all commands, settings, behavior tables, anti-patterns, and historical release
+headlines remain unchanged. The header and onboarding now route current operator behavior
+to the canonical maintained contract and current qualification to the readiness record.
+
+The public `llms.txt` surface has high documentation fan-out, so the change received
+explicit byte-level review and exact-worktree validation. Mirror identity, version
+consistency, agent coherence, `make docs-check`, and 29 focused distribution/documentation
+tests passed. Full `make ci` passed formatting, Ruff, strict mypy over 379 source files,
+safety/version/public-metrics checks, generated-prompt verification, and 1,658 tests with
+5 skipped at 83.47% coverage. The changelog gate selected **no entry** because this
+removes mutable status narration without changing any distributed command, setting,
+agent behavior, runtime behavior, or product contract. Rollback remains one documentation-
+only revert; Gate B evidence, release state, tags, and publication were not touched.
+
 #### EX-17 — Make dual-layer documentation checks mandatory
 
 `docs-check` currently passes but is not part of `make ci`. Add it to the
