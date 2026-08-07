@@ -362,14 +362,56 @@ Acceptance gate:
 
 #### EX-09 — Close first-run token ordering
 
-**Verified first-run policy-order defect:** token policy is checked before the UI lifespan may create `.env` from `.env.example` (`src/cli/ui_server.py:649-655`, `src/cli/ui_server.py:1126-1140`). On a clean first run, example defaults can therefore be applied after enforcement. This is not evidence of a remote authentication bypass; LAN binding still has a separate explicit-token requirement.
+**Tranche manifest (frozen 2026-08-07):**
 
-**Smallest slice:** materialize/load defaults before token policy evaluation and before binding.
+```yaml
+tranche_id: EX-09-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: bac65e6820002ffda65fd3fbbeb5e20ac7b6d36f
+objective: enforce materialized UI token defaults before every network-bind decision
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - src/cli/ui_server.py::run_ui_server
+  - tests/test_ui_server.py
+  - CHANGELOG.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - change token generation, LAN policy, API response shapes, or dotenv write concurrency
+  - modify Gate B evidence, release artifacts, tags, releases, or publication state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_ui_server.py tests/test_ui_explicit_token.py tests/test_ui_auth_lan.py tests/test_runtime_bootstrap.py
+acceptance:
+  - clean and existing dotenv states enforce explicit-token defaults before Uvicorn bind
+  - loopback bootstrap and explicit LAN protection remain unchanged
+  - failure remains typed and secret-free
+stop_conditions:
+  - any required change outside the composition-root allowlist or existing auth contract
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: bac65e6820002ffda65fd3fbbeb5e20ac7b6d36f
+  evidence_paths:
+    - src/cli/ui_server.py
+    - src/cli/ui_auth.py
+    - src/utils/runtime_bootstrap.py
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: lifecycle | provenance
+residual_risks:
+  - startup policy remains process-environment driven after deterministic dotenv loading
+```
 
-Acceptance gate:
+**Implemented in #395:** `run_ui_server()` now materializes `.env` from the safe
+template when needed and reloads it before evaluating either LAN binding or explicit
+token policy. The same sequence applies when `.env` already exists, so startup no
+longer depends on installation history. Policy failure remains a typed, secret-free
+`ValueError` and occurs before browser scheduling, frontend preparation, or
+`uvicorn.run()`.
 
-- clean first run with explicit-token-required defaults refuses startup before Uvicorn binds;
-- loopback bootstrap and explicit LAN protection remain intact.
+Parameterized composition-root tests use isolated temporary repositories to exercise
+both clean and existing dotenv states with the real copy-and-reload helpers. The
+template's explicit-token requirement refuses both before bind, while the established
+loopback bootstrap and explicit LAN tests remain green. No token generation, LAN
+policy, endpoint shape, dotenv writer, or Gate B behavior changes in this tranche.
 
 #### EX-10 — Replace string-based architecture tests with AST enforcement
 

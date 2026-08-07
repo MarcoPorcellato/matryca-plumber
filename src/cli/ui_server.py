@@ -1127,12 +1127,15 @@ def run_ui_server(*, host: str = "127.0.0.1", port: int = DEFAULT_UI_PORT) -> No
     """Start Uvicorn and open the Plumber control-room dashboard in the default browser."""
     import uvicorn
 
+    from ..utils.runtime_bootstrap import ensure_repo_dotenv_from_example
+
+    ensure_repo_dotenv_from_example()
+    reload_plumber_dotenv()
     if host == "0.0.0.0" and not _ui_allow_lan():
         raise ValueError(
             "Refusing to bind UI server to 0.0.0.0 without MATRYCA_UI_ALLOW_LAN=1 "
             "(LAN clients could reach authenticated API routes if they obtain a token)."
         )
-    reload_plumber_dotenv()
     from .ui_auth import require_explicit_ui_token_if_configured, warn_if_ephemeral_ui_token
 
     require_explicit_ui_token_if_configured()

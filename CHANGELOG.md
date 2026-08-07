@@ -14,6 +14,10 @@
 - **Read-only startup log isolation (#388)** — redirect graph-local ops and Loguru paths to the validated external per-graph runtime cache before directory creation, preserve explicitly external paths, and bind Loguru to its configured sink rather than the ops JSONL path.
 - **Gate B RC artifact and timing binding** — verify the public wheel SHA-256 and installed RECORD against `2.0.0rc1`, and include measured probe time so valid profile probes advance the resumable soak instead of retrying as `probe_invalid`, while preserving the historical beta collector's default contract.
 
+### Security
+
+- **First-run UI token policy (#395)** — materialize and reload the safe `.env.example` defaults before evaluating UI host and explicit-token policy, so a clean installation refuses insecure startup before browser scheduling or Uvicorn bind just like an existing `.env` installation.
+
 ## [2.0.0-rc.1] - 2026-08-03
 
 ### Fixed
