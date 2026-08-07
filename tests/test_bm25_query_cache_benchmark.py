@@ -39,6 +39,7 @@ def test_workloads_are_deterministic_and_cover_required_distributions(
     }
     assert {request.limit for request in first["capacity_pressure"]} == {1, 8, 32, 100}
     assert any(not request.query.strip() for request in first["edge_cases"])
+    assert len(set(first["uniform"])) > config.capacities[0]
 
 
 def test_benchmark_matrix_preserves_parity_and_capacity_bounds(
@@ -67,6 +68,7 @@ def test_benchmark_matrix_preserves_parity_and_capacity_bounds(
 
     entry_pressure = payload["measurements"]["capacity_matrix"]["capacity_pressure"]
     assert entry_pressure[0]["entry_pressure_evictions"] > 0
+    assert entry_pressure[-1]["cache_hit_ratio"] > entry_pressure[0]["cache_hit_ratio"]
 
     mutation = payload["measurements"]["mutation_storm"]
     assert mutation["parity"] is True

@@ -86,24 +86,30 @@ def _corpus(document_count: int, *, namespace: str = "") -> Bm25Corpus:
 
 def _workloads(config: BenchmarkConfig) -> dict[str, list[Request]]:
     rng = random.Random(config.seed)
-    documents = tuple(f"document{index}" for index in range(config.documents))
-    hot_count = max(1, config.documents // 5)
-    cold_documents = documents[hot_count:] or documents
-    weights = tuple(1.0 / ((index + 1) ** 1.1) for index in range(config.documents))
+    key_count = max(config.capacities)
+    query_keys = tuple(
+        f"document{index % config.documents} nonce{index}" for index in range(key_count)
+    )
+    hot_count = max(1, key_count // 5)
+    cold_keys = query_keys[hot_count:] or query_keys
+    weights = tuple(1.0 / ((index + 1) ** 1.1) for index in range(key_count))
 
-    uniform = [Request(rng.choice(documents), 8) for _ in range(config.requests)]
+    uniform = [Request(rng.choice(query_keys), 8) for _ in range(config.requests)]
     hot_80_20 = [
         Request(
-            rng.choice(documents[:hot_count] if rng.random() < 0.8 else cold_documents),
+            rng.choice(query_keys[:hot_count] if rng.random() < 0.8 else cold_keys),
             8,
         )
         for _ in range(config.requests)
     ]
     zipf = [
-        Request(query, 8) for query in rng.choices(documents, weights=weights, k=config.requests)
+        Request(query, 8) for query in rng.choices(query_keys, weights=weights, k=config.requests)
     ]
     capacity_pressure = [
-        Request(f"absent{index}", _RESULT_LIMITS[index % len(_RESULT_LIMITS)])
+        Request(
+            query_keys[index % key_count],
+            _RESULT_LIMITS[index % len(_RESULT_LIMITS)],
+        )
         for index in range(config.requests)
     ]
     row_pressure = [Request(f"shared absent{index}", 100) for index in range(config.requests)]
@@ -344,6 +350,7 @@ def run_benchmark(config: BenchmarkConfig) -> dict[str, Any]:
         "benchmark_schema_version": 1,
         "config": asdict(config),
         "corpus_manifest": {
+            "benchmark_query_key_cardinality": max(config.capacities),
             "documents": config.documents,
             "terms_per_document": 4,
             "topic_cardinality": 64,
