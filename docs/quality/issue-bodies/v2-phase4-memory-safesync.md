@@ -16,11 +16,11 @@ OpenSpec: [`docs/openspec/biological-memory.md`](../../openspec/biological-memor
 
 Child slice: `v2-phase4-recall-search-method.md`.
 
-**Depends on:** Phase 3 alpha stable on maintainer test vaults.
+**Depends on:** a stabilized and qualified v2.0 Shadow DB read-path baseline.
 
 ## Estimated Impact
 
-**Alto** — v2.0.0-stable differentiators; not required for first alpha.
+**High** — planned v2.1+ deliverables; explicitly excluded from v2.0 stable.
 
 ## Files Involved
 

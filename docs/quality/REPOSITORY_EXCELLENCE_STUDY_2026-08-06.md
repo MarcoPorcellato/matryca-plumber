@@ -1389,6 +1389,49 @@ removes mutable status narration without changing any distributed command, setti
 agent behavior, runtime behavior, or product contract. Rollback remains one documentation-
 only revert; Gate B evidence, release state, tags, and publication were not touched.
 
+##### EX-16-06 — Restore biological-memory delivery scope
+
+```yaml
+tranche_id: EX-16-06
+objective: Align active biological-memory documentation on v2.1+ without changing v2.0 runtime or release qualification.
+allowed_files:
+  - docs/openspec/biological-memory.md
+  - docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md
+  - docs/quality/issue-bodies/v2-phase4-memory-safesync.md
+  - docs/roadmaps/ROADMAP_V2_SHADOW_DB.md
+  - ROADMAP.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: navigation | provenance
+residual_risks:
+  - ROADMAP.md is a high-fan-out navigation surface and requires focused inbound-link validation
+  - feature defaults and rollout policy remain intentionally undecided until a qualified v2.1+ implementation slice
+```
+
+This slice makes issue #178 the active delivery tracker while retaining issue #20 as
+historical architecture context. It labels the memory tables as schema-only, removes
+obsolete alpha-era version and default promises, and keeps the current Shadow DB
+operator contract under its canonical owner. It does not rename documents, alter
+runtime/configuration/prompt surfaces, edit Gate B evidence, or mutate GitHub issues.
+
+**EX-16-06 implementation receipt (2026-08-07):** the seven-file allowlist above is
+the complete diff. An independent read-only audit and primary review agreed that
+biological memory is a v2.1+ initiative, issue #178 is its active delivery tracker,
+and issue #20 remains historical architecture context. The review additionally
+corrected the high-fan-out `ROADMAP.md` navigation label and separated Safe-Sync from
+the v2.0 stable heading without changing historical release facts.
+
+Whitespace validation, stale-language scanning, agent coherence, and the documentation
+knowledge gate passed. Full exact-worktree `make ci` passed formatting, Ruff, strict
+mypy over 379 source files, sandbox/version/public-metrics checks, documentation and
+generated-prompt verification, and 1,658 tests with 5 skipped at 83.47% coverage. The
+changelog gate selected **no entry** because the slice corrects planning authority and
+future scope without changing shipped behavior, configuration, architecture, or public
+runtime contracts. Gate B evidence, release state, tags, publication, and GitHub issue
+state were not touched.
+
 #### EX-17 — Make dual-layer documentation checks mandatory
 
 `docs-check` currently passes but is not part of `make ci`. Add it to the
