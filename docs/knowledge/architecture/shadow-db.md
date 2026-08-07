@@ -5,8 +5,8 @@ description: SQLite read cache, external-cache RC direction, synchronization, he
 resource: src/shadow/
 tags: [shadow-db, sqlite, fts5, cte, concurrency]
 generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-last_verified: 2026-08-06
+verified: { by: human:marco-porcellato, at: '2026-08-07T00:00:00Z' }
+last_verified: 2026-08-07
 stale_after: 2027-02-02
 status: stable
 classification: canonical
@@ -114,6 +114,22 @@ Cross-process writers serialize through advisory **`shadow.writer.flock`** (`sha
 | Full rebuild | `shadow_rebuild_lock` | `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` (120s) |
 
 `MATRYCA_SHADOW_DB_BUSY_TIMEOUT_MS` sets SQLite `busy_timeout` on connections.
+
+## Operational diagnostics
+
+`shadow_diagnostics_snapshot()` reads an existing Shadow connection and returns a
+schema-versioned, content-free snapshot for benchmark and operator adapters. It reports
+the committed generation, a strictly validated last-incremental-sync timestamp, current
+quarantine cardinality, retries, reason-weighted attempts, maximum attempts, and oldest
+age. Invalid timestamps become `None`; graph-relative paths and row content are never
+projected.
+
+The timeout/error attempt fields reflect each currently quarantined row's latest reason
+weighted by its attempt count. The schema does not retain a reason-transition history,
+so these fields are operational pressure indicators rather than lifetime incident
+counters. The snapshot performs only aggregate `SELECT` operations and works with a
+query-only connection. It does not open a database, alter metadata/schema, instrument
+writer-lock wait or sync duration, or change health, routing, and Markdown fallback.
 
 ## Operator surfaces
 
