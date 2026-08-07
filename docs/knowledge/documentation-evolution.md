@@ -128,6 +128,8 @@ Review the new `inventory.json` entry. Heuristics are discovery defaults, not au
 
 `make docs-audit` reports legacy coverage and unresolved `keep` classifications without rewriting files.
 
+`make check` and `make ci` both include `docs-check`, so documentation integrity is part of local acceptance, pull-request CI, and release-source verification.
+
 ## Evolution timeline
 
 | Date | Evolution |

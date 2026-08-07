@@ -2,7 +2,7 @@
 
 ### Added
 
-- **OKF v0.2 documentation governance** — align the maintained knowledge bundle with the pinned portable format, separate Matryca classification from official lifecycle status, add provenance, freshness, canonical-role, link, anchor, and chronology gates, migrate the full documentation inventory to schema v2, and document the repository-to-projection operating model.
+- **OKF v0.2 documentation governance** — align the maintained knowledge bundle with the pinned portable format, separate Matryca classification from official lifecycle status, add provenance, freshness, canonical-role, link, anchor, and chronology gates, migrate the full documentation inventory to schema v2, make documentation integrity mandatory in `make check` and `make ci`, and document the repository-to-projection operating model.
 - **Gate B public-RC soak qualification** — add separate resumable `default-on` and `read-only-external` profiles bound to the installed `2.0.0rc1` wheel, explicit opt-out controls, full graph-manifest integrity, external-cache isolation, and a terminal-aware supervisor for restart-safe multi-day evidence collection.
 
 ### Fixed
