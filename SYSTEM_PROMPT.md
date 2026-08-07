@@ -1,8 +1,8 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: f909741b76f285a807a873775db8235c95350fc81a24829f8f282e97c6791440 -->
+<!-- build-hash: 68de689f39ac532aaf9336a5e45b3f10b864250801ae2a3212df88fa54817860 -->
 
-<!-- package-version: v2.0.0-beta.1 -->
+<!-- package-version: v2.0.0rc1 -->
 
 
 
@@ -156,6 +156,8 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 
 **Requires:** `LOGSEQ_GRAPH_PATH` for every operation except `read_graph_data` with `target_type="memory"`.
 
+`read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
+
 ## Project context
 
 Matryca Plumber operates on **Logseq OG**: local pure Markdown graphs. The atomic unit is the **block** (indented bullet tree), not a flat document body.
@@ -252,7 +254,11 @@ When in doubt: `read_graph_data` / `target_type="page"` first, then `dry_run: tr
 
 ## X-Ray mode and session aliases (`[n]`)
 
-For large pages, prefer **`read_graph_data` / `target_type="xray_page"`** with `query` = page title. The tool returns an ultra-dense outline like `[0] Parent` / `  [1] Child` (properties stripped) and writes **`{graph_root}/.matryca_xray_state.json`** mapping each `[n]` to the real Logseq block UUID.
+For large pages, prefer **`read_graph_data` / `target_type="xray_page"`** with `query` = page title. The tool returns an ultra-dense outline like `[0] Parent` / `  [1] Child` (properties stripped) and writes `.matryca_xray_state.json` mapping each `[n]` to the real Logseq block UUID. Normal mode keeps the established graph-root location. With `MATRYCA_READ_ONLY=true`, state is written instead to the private per-graph external runtime cache at `<cache-root>/graphs/<graph-id>/xray/`; no graph path is created or modified. The graph identity prevents cross-vault sharing, the state file is atomically replaced under a process-safe lock, POSIX directory/file modes are `0700`/`0600`, and its lifetime follows the per-graph runtime cache.
+
+Before #393, strict read-only X-Ray parsed the requested page and only then attempted the graph-root alias write, where the shared lock/write policy raised `GraphReadOnlyError`. The external state route makes the public read classification match runtime behavior without weakening the graph boundary.
+
+**Gate B impact decision (#393):** the published `2.0.0rc1` `read-only-external` probe does not invoke `xray_page`, so it cannot exercise this corrected branch. Existing evidence remains bound to the exact RC artifact and is not rewritten. A stable candidate must pass focused X-Ray generation, subsequent alias resolution, concurrent replacement, cross-graph isolation, and full graph-manifest checks under Strict Read Only; this configuration-excluded change does not restart the historical multi-day RC soak.
 
 On later **`mutate_graph`** or **`refactor_blocks`** calls (including separate CLI invocations), pass **`[n]`** directly wherever you would use a 36-character UUID:
 
@@ -341,7 +347,7 @@ Health snapshot: page counts, `id::` tally, block-ref summary. `query` ignored.
 { "target_type": "xray_page", "query": "My Project" }
 ```
 
-X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the graph root. Pass `[n]` into `target` / `target_uuid` on subsequent mutations (stateless CLI-safe).
+X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the graph root in normal mode or in the private per-graph external runtime cache under Strict Read Only. Pass `[n]` into `target` / `target_uuid` on subsequent operations (stateless CLI-safe).
 
 ---
 

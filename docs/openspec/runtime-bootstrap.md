@@ -117,7 +117,7 @@ does not create, repair, lock, rename, or remove any path inside the graph.
 |----------|--------|
 | Repo **`.env`** (pre-existing) | Never overwritten; auto-created from `.env.example` only when `.env` is absent |
 | **`pages/` / `journals/`** | A valid Logseq graph must already exist; Matryca Plumber does not fabricate vault structure |
-| **`.matryca_daemon_state.json`**, **`.matryca_xray_state.json`** | Runtime ledgers — created on first checkpoint / X-Ray session |
+| **`.matryca_daemon_state.json`**, **`.matryca_xray_state.json`** | Runtime ledgers — created on first checkpoint / X-Ray session in normal mode; X-Ray state moves to the private per-graph external cache under Strict Read Only |
 | **Daemon PID / lock files** | PID sidecar written immediately after `.matryca_plumber_daemon.lock` acquisition in `start_daemon_foreground`; removed on bootstrap failure or `SIGINT`/`SIGTERM` during startup |
 | **`master_catalog.json` body** | Populated by bootstrap harvest, not empty placeholders |
 | **`.matryca_link_registry.json`** | Created on first link extract (v1.9); verification queue only — see [`link-verification.md`](link-verification.md) |

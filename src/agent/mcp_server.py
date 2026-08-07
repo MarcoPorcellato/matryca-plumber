@@ -140,8 +140,9 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         page counts, ``id::`` tally, block-ref health under ``pages/``.
 
         **``target_type=xray_page``** — ``query`` = Logseq **page title**. Ultra-dense
-        ``[n]`` outline (X-Ray mode); persists alias→UUID map to ``.matryca_xray_state.json`` at
-        the graph root. Use ``[n]`` in ``target`` / ``target_uuid`` on later mutations.
+        ``[n]`` outline (X-Ray mode); persists the alias→UUID map at graph root in normal
+        mode or in the per-graph external runtime cache under Strict Read Only. Use ``[n]``
+        in ``target`` / ``target_uuid`` on later operations.
 
         **Requires:** ``LOGSEQ_GRAPH_PATH`` for every target except ``memory`` (still recommended).
 

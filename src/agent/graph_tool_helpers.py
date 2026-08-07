@@ -184,11 +184,16 @@ def read_xray_page_markdown(graph_path: str, page_name: str) -> str:
         safe_update_alias(persist_registry, alias, block_uuid)
     save_alias_registry(graph_path, persist_registry)
     alias_count = len(persistable)
-    state_name = alias_file_path(graph_path).name
+    state_path = alias_file_path(graph_path)
+    state_name = state_path.name
+    graph_root = Path(graph_path).expanduser().resolve(strict=False)
+    state_location = (
+        "the graph root" if state_path.is_relative_to(graph_root) else "external runtime cache"
+    )
     header = (
         f"# X-Ray: [[{title}]]\n\n"
         f"**Aliases:** {alias_count} block(s) mapped to `[0]`…`[{alias_count - 1}]` "
-        f"in `{state_name}` at the graph root. "
+        f"in `{state_name}` in {state_location}. "
         "Pass `[n]` as `target` or in `Page Title|[n]` for `mutate_graph` / `refactor_blocks`.\n\n"
         f"{body}\n"
     )
