@@ -17,6 +17,11 @@ This index provides progressive disclosure across maintained concepts and the cl
 
 - [Architecture index](architecture/) — Progressive-disclosure entry point for the maintained architecture concepts.
 
+## Operator path
+
+- [v2 Shadow DB runtime and operator contract](architecture/shadow-db.md) — Current activation, Read Only, external-cache, health, fallback, quarantine, and evidence links.
+- [Release process](../RELEASE_PROCESS.md#v20-promotion-override) — Qualification, authorization, tag, and publication gates.
+
 ## Detailed established collections
 
 - [Product identity and branding](../BRANDING.md) — Product naming and public identity.

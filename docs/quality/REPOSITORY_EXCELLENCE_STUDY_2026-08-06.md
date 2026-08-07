@@ -1065,6 +1065,73 @@ verification date, and provenance; archived evidence remains unchanged. The
 authoritative source is changed in Matryca Plumber first, and any Matryca
 Knowledge refresh is a separate reviewed projection.
 
+##### EX-16-01 — Establish the v2 operator authority path
+
+```yaml
+tranche_id: EX-16-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: bc6fc840cdc774adbd5f6a16713cb10ae6754d6e
+objective: make the current v2 operator contract discoverable in one navigation step
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - README.md
+  - docs/RELEASE_PROCESS.md
+  - docs/knowledge/architecture/shadow-db.md
+  - docs/knowledge/documentation-evolution.md
+  - docs/knowledge/index.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no runtime, configuration, release, Gate B, tag, or publication change
+  - no historical evidence rewrite or mass documentation move
+  - no Matryca Knowledge projection update
+deterministic_preflight:
+  - make docs-check
+acceptance:
+  - README reaches the canonical operator contract in one link
+  - mutable v2 runtime guidance has one declared maintained owner
+  - release, roadmap, quality, changelog, and release-note roles are explicit
+  - maintained local links and generated inventory remain valid
+stop_conditions:
+  - any required runtime or historical-evidence edit
+  - any official OKF conformance or projection-synchronization change
+rollback: revert the documentation-only commit
+provenance:
+  evidence_commit: bc6fc840cdc774adbd5f6a16713cb10ae6754d6e
+  evidence_paths:
+    - docs/knowledge/profile.md
+    - docs/knowledge/documentation-evolution.md
+    - docs/knowledge/architecture/shadow-db.md
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: navigation | lifecycle | provenance
+residual_risks:
+  - remaining mutable duplication outside this allowlist requires later issue 396 slices
+```
+
+This slice deliberately keeps issue #396 open: it establishes and validates the
+authority path without claiming that every historical or active duplicate has already
+been reconciled.
+
+**EX-16-01 implementation receipt (2026-08-07):** the seven-file allowlist above is
+the complete diff. README now reaches the maintained Shadow operator contract in one
+link and no longer repeats RC activation, quarantine, or storage details. The knowledge
+index, documentation operating model, and release process route readers to that same
+owner while preserving distinct release and evidence authority. Live source inspection
+confirmed the documented default-on flag, external-cache containment, Strict Read Only
+separation, and BM25/Markdown fallback behavior; GitNexus found the corresponding
+fallback and quarantine flows.
+
+Validation passed with `make docs-check`, 27 focused documentation tests, and the full
+`make ci` gate: formatting, Ruff, strict mypy over 379 source files, safety/version/agent/
+public-metrics checks, documentation and generated-prompt checks, and 1,658 tests with
+5 skipped at 83.48% coverage. The sole warning was the pre-existing macOS
+multi-threaded `fork()` deprecation probe. The changelog gate selected **no entry**:
+this slice changes navigation and documentation authority only, not runtime behavior,
+configuration, an operator command, or a public product contract. Rollback remains one
+documentation-only revert; Gate B evidence, release state, tags, and publication were
+not touched.
+
 #### EX-17 — Make dual-layer documentation checks mandatory
 
 `docs-check` currently passes but is not part of `make ci`. Add it to the

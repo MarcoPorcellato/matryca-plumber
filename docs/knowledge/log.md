@@ -2,6 +2,7 @@
 
 ## 2026-08-07
 
+- **Operator authority:** Established one canonical v2 runtime/operator path and explicit roles for README, architecture, release, roadmap, quality, changelog, and release-note surfaces.
 - **Performance evidence:** Added the reproducible BM25 query-cache capacity decision, raw benchmark bindings, memory envelope, and synthetic-evidence boundary.
 
 ## 2026-08-06

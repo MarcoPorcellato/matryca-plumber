@@ -17,7 +17,10 @@ Replace `X.Y.Z` with the semver you are shipping (no `v` prefix in `pyproject.to
 ### v2.0 promotion override
 
 The generic checklist below is necessary but not sufficient for the Shadow DB
-release track. The fail-closed decision record is
+release track. Current runtime defaults, Read Only behavior, external-cache location,
+health, and fallback are owned by the canonical
+[v2 operator contract](knowledge/architecture/shadow-db.md); this document owns only
+release mechanics and maintainer authority gates. The fail-closed decision record is
 [`quality/issue-bodies/v2-rc-stable-readiness.md`](quality/issue-bodies/v2-rc-stable-readiness.md):
 
 - do not tag or publish `v2.0.0-rc.1` until every Gate A row is complete on the
