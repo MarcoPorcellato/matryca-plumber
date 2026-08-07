@@ -1250,6 +1250,78 @@ and navigation only, with no runtime, setting, command, or public product-contra
 change. Rollback remains one documentation-only revert; Gate B evidence, release state,
 tags, and publication were not touched.
 
+##### EX-16-04 — Retire the shipped-Shadow migration trigger
+
+```yaml
+tranche_id: EX-16-04
+repository: MarcoPorcellato/matryca-plumber
+base_commit: f525b0655aaad66f621c5cf27d7f2e72125b4de6
+objective: remove obsolete pre-ship Shadow instructions while preserving one generated-prompt ownership path
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - docs/openspec/agent/soft-gate.md
+  - docs/openspec/llm-os-instructions.md
+  - docs/openspec/agent-onboarding.md
+  - docs/openspec/README.md
+  - SYSTEM_PROMPT.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no runtime, configuration, Python, MCP tool-contract, llms, release, Gate B, tag, or publication change
+  - no direct edit of generated SYSTEM_PROMPT.md
+  - no historical evidence rewrite or Matryca Knowledge projection update
+deterministic_preflight:
+  - make build-system-prompt
+  - make check-system-prompt
+  - make agents-check
+  - make docs-check
+acceptance:
+  - no active OpenSpec instruction waits for Shadow DB to ship
+  - Tier-2 law changes route through source fragments and the prompt builder
+  - current Shadow operator behavior links to the canonical maintained contract
+  - Master Index and Tier-1 Gardener responsibilities remain unchanged
+  - generated prompt hash and documentation inventory remain coherent
+stop_conditions:
+  - any required runtime, MCP docstring, llms, release-status, or Gate B evidence edit
+  - any change to Master Index or Gardener runtime behavior
+rollback: revert the documentation and generated-prompt commit
+provenance:
+  evidence_commit: f525b0655aaad66f621c5cf27d7f2e72125b4de6
+  evidence_paths:
+    - docs/openspec/agent/soft-gate.md
+    - docs/openspec/llm-os-instructions.md
+    - docs/PROMPT_ARCHITECTURE.md
+    - docs/knowledge/architecture/shadow-db.md
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: navigation | lifecycle | provenance
+residual_risks:
+  - llms and agent-onboarding release-status wording requires a separate issue 396 slice
+  - planned biological-memory version language requires a separate future-design review
+```
+
+This slice changes prompt ownership and documentation routing, not agent behavior,
+runtime behavior, release qualification, or the external distribution contract.
+
+**EX-16-04 implementation receipt (2026-08-07):** an independent read-only review
+and primary source audit classified the remaining OpenSpec and generated-surface
+occurrences before editing. The seven-file allowlist above is the complete diff.
+Obsolete pre-ship instructions now describe post-migration ownership, Tier-2 law
+changes route through source fragments and the prompt builder, and current Shadow
+operator behavior links to the canonical maintained contract. The Master Index soft
+gate, Tier-1 Gardener behavior, `llms.txt` distribution contract, and release evidence
+remain unchanged.
+
+Validation passed with generated-prompt rebuild and hash verification, agent coherence,
+`make docs-check`, 29 focused prompt/documentation tests, and full `make ci`: formatting,
+Ruff, strict mypy over 379 source files, safety/version/public-metrics checks, and 1,658
+tests with 5 skipped at 83.49% exact-worktree coverage. Parent and subprocess imports
+were explicitly bound to this worktree before the final gate. The changelog gate selected
+**no entry** because this corrects documentation ownership and stale maintainer guidance
+without changing runtime, configuration, commands, or agent behavior. Rollback remains
+one documentation/generated-prompt revert; Gate B evidence, release state, tags, and
+publication were not touched.
+
 #### EX-17 — Make dual-layer documentation checks mandatory
 
 `docs-check` currently passes but is not part of `make ci`. Add it to the

@@ -11,7 +11,10 @@ You operate in a **strictly decoupled** Matryca stack. Violating tier boundaries
 
 **Terminology guard:** Repo **L1 memory** (`matryca-l1/*.md`) is session deploy rules — not the Gardener. Always disambiguate "L1 memory" vs "Tier-1 Gardener".
 
-**v2.0 note (maintainers):** When Shadow DB SQLite + FTS5 ships, replace JSON-catalog references in this section with Shadow DB query paths. The compiled `[[Matryca Master Index]]` page remains the human-readable catalog; machine retrieval moves to FTS5.
+**Shadow retrieval boundary:** Shadow DB is a derived read cache and does not replace
+this Master Index Soft Gate. Current activation, health, fallback, and storage guidance
+is owned by the [canonical Shadow operator contract](docs/knowledge/architecture/shadow-db.md).
+The compiled `[[Matryca Master Index]]` page remains the human-readable catalog.
 
 ### Master Index Soft Gate (Human-in-the-Loop)
 
