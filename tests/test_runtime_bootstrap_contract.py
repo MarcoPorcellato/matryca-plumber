@@ -7,6 +7,9 @@ or L1 routing behavior changed unintentionally.
 
 from __future__ import annotations
 
+import hashlib
+import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -16,6 +19,7 @@ from src.agent.l1_memory import (
     resolve_matryca_l1_directory,
 )
 from src.config import MatrycaWikiConfig
+from src.shadow.cache_location import resolve_shadow_cache_location
 from src.utils.runtime_bootstrap import (
     _patch_memory_path_in_wiki_yaml,
     ensure_matryca_wiki_config_file,
@@ -42,6 +46,27 @@ def _minimal_graph(tmp_path: Path) -> Path:
 
 def _expected_sibling_l1(graph: Path) -> Path:
     return graph.expanduser().resolve(strict=False).parent / "matryca-l1"
+
+
+def _graph_manifest(root: Path) -> dict[str, tuple[str, int, int, str]]:
+    entries: dict[str, tuple[str, int, int, str]] = {}
+    for path in sorted(root.rglob("*")):
+        metadata = path.lstat()
+        relative = path.relative_to(root).as_posix()
+        mode = stat.S_IMODE(metadata.st_mode)
+        if path.is_symlink():
+            entries[relative] = ("symlink", mode, metadata.st_size, os.readlink(path))
+        elif path.is_file():
+            payload = path.read_bytes()
+            entries[relative] = (
+                "file",
+                mode,
+                len(payload),
+                hashlib.sha256(payload).hexdigest(),
+            )
+        else:
+            entries[relative] = ("directory", mode, metadata.st_size, "")
+    return entries
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +237,33 @@ def test_prepare_matryca_runtime_skips_graph_local_bootstrap_in_read_only_mode(
     assert not (graph / "matryca-wiki.yml").exists()
     assert not _expected_sibling_l1(graph).exists()
     assert shadow_calls == [graph]
+
+
+def test_prepare_read_only_redirects_graph_local_logs_without_graph_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _minimal_graph(tmp_path)
+    page = graph / "pages" / "Alpha.md"
+    page.write_text("- Alpha\n", encoding="utf-8")
+    cache = tmp_path / "external-cache"
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(cache))
+    monkeypatch.setenv("MATRYCA_PLUMBER_LOG_PATH", str(graph / "logs" / "ops.log"))
+    monkeypatch.setenv("MATRYCA_LOGURU_LOG_PATH", str(graph / "logs" / "app.log"))
+    monkeypatch.setattr(
+        "src.shadow.bootstrap.ensure_shadow_runtime_at_startup",
+        lambda _root: None,
+    )
+    before = _graph_manifest(graph)
+
+    prepare_matryca_runtime(graph_root=graph, wiki_config=MatrycaWikiConfig())
+
+    assert _graph_manifest(graph) == before
+    assert not (graph / "logs").exists()
+    external_logs = resolve_shadow_cache_location(graph).shadow_dir.parent / "logs"
+    assert external_logs.is_dir()
 
 
 # ---------------------------------------------------------------------------

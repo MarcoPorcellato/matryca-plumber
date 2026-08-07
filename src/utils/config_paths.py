@@ -77,10 +77,34 @@ def resolve_plumber_log_path(raw: str | None = None) -> Path:
     if raw:
         allowed = resolve_optional_path_under_allowed_roots(raw)
         if allowed is not None:
-            return allowed
+            return _read_only_safe_log_path(allowed)
     if _DEFAULT_OPS_LOG.is_absolute():
         return _DEFAULT_OPS_LOG
-    return Path(__file__).resolve().parents[2] / _DEFAULT_OPS_LOG
+    return _read_only_safe_log_path(Path(__file__).resolve().parents[2] / _DEFAULT_OPS_LOG)
+
+
+def _read_only_safe_log_path(path: Path) -> Path:
+    """Redirect a graph-local log target to this graph's external runtime cache."""
+    graph_root = _graph_root_candidate()
+    if graph_root is None:
+        return path
+
+    from ..graph.safety.write_policy import GraphReadOnlyError, RuntimeWritePolicy
+
+    policy = RuntimeWritePolicy.from_env(graph_root)
+    if not policy.read_only:
+        return path
+    try:
+        return policy.ensure_write_allowed(path, operation="create_log_path")
+    except GraphReadOnlyError as exc:
+        if exc.reason != "graph_root_mutation_blocked":
+            raise
+
+    from ..shadow.cache_location import resolve_shadow_cache_location
+
+    location = resolve_shadow_cache_location(policy.graph_root)
+    external_path = location.shadow_dir.parent / "logs" / path.name
+    return policy.ensure_write_allowed(external_path, operation="create_log_path")
 
 
 def graph_config_allowed_roots() -> list[Path]:
@@ -143,10 +167,10 @@ def resolve_loguru_log_path(raw: str | None = None) -> Path:
     if raw:
         allowed = resolve_optional_path_under_allowed_roots(raw)
         if allowed is not None:
-            return allowed
+            return _read_only_safe_log_path(allowed)
     if _DEFAULT_LOGURU_LOG.is_absolute():
         return _DEFAULT_LOGURU_LOG
-    return Path(__file__).resolve().parents[2] / _DEFAULT_LOGURU_LOG
+    return _read_only_safe_log_path(Path(__file__).resolve().parents[2] / _DEFAULT_LOGURU_LOG)
 
 
 __all__ = [

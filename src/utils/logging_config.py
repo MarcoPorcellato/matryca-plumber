@@ -40,7 +40,7 @@ def configure_loguru(*, level: str = "INFO", stderr: bool = True) -> None:
 
     from .config_paths import ensure_plumber_log_directories
 
-    log_path, _ops_path = ensure_plumber_log_directories()
+    _ops_path, log_path = ensure_plumber_log_directories()
     logger.add(
         str(log_path),
         level=level,

@@ -20,6 +20,66 @@ def _minimal_graph(tmp_path: Path) -> Path:
     return graph
 
 
+@pytest.mark.parametrize("surface", ["mcp", "cli", "ui", "daemon"])
+@pytest.mark.parametrize("graph_local_logs", [False, True])
+def test_read_only_entrypoints_keep_log_bootstrap_external(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    surface: str,
+    graph_local_logs: bool,
+) -> None:
+    from src import cli as cli_module
+    from src import main as mcp_main
+    from src.agent import maintenance_daemon
+    from src.cli import ui_server
+    from src.config import MatrycaWikiConfig
+    from src.shadow.cache_location import resolve_shadow_cache_location
+
+    graph = _minimal_graph(tmp_path)
+    cache = tmp_path / "external-cache"
+    configured_logs = graph / "logs" if graph_local_logs else tmp_path / "external-logs"
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(cache))
+    monkeypatch.setenv("MATRYCA_PLUMBER_LOG_PATH", str(configured_logs / "ops.log"))
+    monkeypatch.setenv("MATRYCA_LOGURU_LOG_PATH", str(configured_logs / "app.log"))
+    monkeypatch.setattr(
+        "src.utils.runtime_bootstrap.ensure_repo_dotenv_from_example",
+        lambda **_kwargs: False,
+    )
+    monkeypatch.setattr(
+        "src.agent.plumber_config.reload_plumber_dotenv",
+        lambda **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "src.shadow.bootstrap.ensure_shadow_runtime_at_startup",
+        lambda _root: None,
+    )
+
+    if surface == "mcp":
+        vars(mcp_main)["prepare_matryca_runtime"](
+            graph_root=graph,
+            wiki_config=MatrycaWikiConfig(),
+            eager_graph=False,
+        )
+    elif surface == "daemon":
+        vars(maintenance_daemon)["prepare_matryca_runtime"](
+            graph_root=graph,
+            wiki_config=MatrycaWikiConfig(),
+            eager_graph=False,
+        )
+    elif surface == "ui":
+        vars(ui_server)["try_prepare_matryca_runtime_from_env"](eager_graph=False)
+    else:
+        vars(cli_module)["try_prepare_matryca_runtime_from_env"](eager_graph=False)
+
+    expected_logs = configured_logs
+    if graph_local_logs:
+        expected_logs = resolve_shadow_cache_location(graph).shadow_dir.parent / "logs"
+        assert not configured_logs.exists()
+    assert expected_logs.is_dir()
+
+
 def test_cli_main_calls_try_prepare_before_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
     import asyncio
 
