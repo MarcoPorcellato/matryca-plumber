@@ -628,13 +628,14 @@ def test_a4_rank_03_limit_boundaries(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_a4_rank_04_zero_hits_no_generational_fallback(tmp_path: Path) -> None:
-    """A4-RANK-04: zero FTS hits stay on shadow envelope (no generational fallback)."""
+    """A4-RANK-04: zero FTS hits fall back because freshness is unproven."""
     graph = _minimal_graph(tmp_path)
     _seed_fts_graph(graph)
     out = await handle_search_bm25(str(graph), "zzznomatchzz")
     assert "- **Matches:** 0" in out
     assert "_No lexical overlap" in out
     assert "block `" not in out
+    assert "`empty_result_unproven`" in out
 
 
 # --- A4-SYNC ---

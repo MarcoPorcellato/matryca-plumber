@@ -132,6 +132,7 @@ async def test_handle_search_bm25_zero_hits_no_fallback(
     assert "- **Matches:** 0" in out
     assert "_No lexical overlap" in out
     assert "Invalid FTS query" not in out
+    assert "`empty_result_unproven`" in out
 
 
 @pytest.mark.asyncio

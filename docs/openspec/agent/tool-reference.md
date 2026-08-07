@@ -28,6 +28,11 @@ On-disk bullet subtree for one `id::` block (`Page Title|block-uuid`). Headless;
 
 Focused excerpt for one block; optional JSON `heading` to narrow to a single bulleted section (token-saving). Prefer over full `page` when you already know the anchor UUID.
 
+When the Shadow row cannot be proven current, the result comes from Markdown and
+ends with a bounded `Shadow fallback` code. If the authoritative page has been
+deleted, the result is an explicit subtree-unavailable envelope; stale cached content
+is never returned.
+
 ```json
 {
   "target_type": "subtree",
@@ -81,6 +86,12 @@ Okapi BM25 over `pages/**/*.md` remains the default lexical path. Optional **`me
 ```
 
 Always follow top hits with `read_graph_data` / `target_type="page"`.
+
+Shadow FTS validates each returned page row before serving it. Changed or missing
+rows, and empty cached results whose freshness cannot be proved, route to
+generational BM25 and append a content-free `Shadow fallback` code. The closed codes
+are `page_untracked`, `source_missing`, `source_changed`, and
+`empty_result_unproven`.
 
 ```json
 { "method": "regex", "query": "TODO|LATER" }

@@ -207,7 +207,7 @@ async def test_a3_health_04_error_meta_routes_generational_bm25(
 
 @pytest.mark.asyncio
 async def test_a3_fts_01_zero_hits_no_generational_fallback(tmp_path: Path) -> None:
-    """A3-FTS-01: zero FTS hits → empty shadow envelope, no BM25 fallback."""
+    """A3-FTS-01: zero FTS hits cannot prove freshness and fall back."""
     graph = _minimal_graph(tmp_path)
     _seed_shadow_ready(graph)
 
@@ -215,6 +215,7 @@ async def test_a3_fts_01_zero_hits_no_generational_fallback(tmp_path: Path) -> N
     assert "- **Matches:** 0" in out
     assert "_No lexical overlap" in out
     assert "block `" not in out
+    assert "`empty_result_unproven`" in out
 
 
 @pytest.mark.asyncio

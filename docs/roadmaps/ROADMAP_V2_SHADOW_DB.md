@@ -85,6 +85,21 @@ not replace the unchecked installed-wheel qualification row.
 | v2.0.0-rc.1 | External Shadow cache works under Read Only; MCP reads default to Shadow after qualification | in progress (`RUNNING` Gate B checkpoint) |
 | v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path after RC observation | planned |
 
+### Explicit read freshness after the RC
+
+Issue [#389](https://github.com/MarcoPorcellato/matryca-plumber/issues/389)
+separates aggregate Shadow health from row-level read eligibility. Before a cached
+subtree or FTS row is returned, Matryca validates its sandboxed source path,
+nanosecond mtime, and size against current Markdown. Untracked, missing, changed, and
+unproven-empty reads fail over with a closed content-free reason; the check is bounded
+to the requested page or returned result rows and never scans the full graph.
+
+This is a post-`2.0.0rc1` read-path correction. The public-RC soak remains valid only
+as evidence for those exact published bytes. Because both Gate B profiles exercise
+FTS and subtree routing, an exact stable candidate containing #389 must repeat the
+focused watcher-disabled edit/delete/rename matrix and both candidate-bound Gate B
+profiles before `v2.0.0` promotion.
+
 The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
 The RC and stable exit criteria are fail-closed in [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md) and tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). Biological memory, Logseq DB Safe-Sync, Tana merge, and independent DX tracks are deferred to `v2.1.0` or later.
 The exact public-beta wheel passed its fresh installed-wheel gate on 2026-07-30

@@ -12,6 +12,7 @@ from ..graph.path_sandbox import resolved_graph_root
 from ..rag.matryca_hooks import get_page_spatial_context
 from ..shadow.config import shadow_db_enabled
 from ..shadow.connection import open_shadow_db
+from ..shadow.freshness import ShadowFreshnessError, ensure_shadow_page_fresh
 from ..shadow.health import ShadowHealthState, resolve_shadow_health
 from ..shadow.subtree import SubtreeStatus, query_subtree_by_block_uuid
 from .graph_tool_helpers import parse_optional_json_query
@@ -130,9 +131,21 @@ class ShadowGraphRepository:
         try:
             conn = open_shadow_db(root)
             try:
+                ensure_shadow_page_fresh(conn, root, title=page_ref)
                 result = query_subtree_by_block_uuid(conn, block_uuid)
             finally:
                 conn.close()
+        except ShadowFreshnessError as exc:
+            logger.bind(reason=exc.reason.value).info(
+                "Shadow subtree freshness unproven; falling back to MarkdownGraphRepository"
+            )
+            try:
+                fallback = self._markdown.read_subtree_markdown(graph_root, query)
+            except FileNotFoundError:
+                fallback = (
+                    "# Subtree unavailable\n\n_The authoritative Markdown page is unavailable._\n"
+                )
+            return f"{fallback.rstrip()}\n\n- **Shadow fallback:** `{exc.reason.value}`\n"
         except Exception:  # noqa: BLE001 — shadow backend failure → markdown fallback
             logger.exception("Shadow subtree read failed; falling back to MarkdownGraphRepository")
             return self._markdown.read_subtree_markdown(graph_root, query)

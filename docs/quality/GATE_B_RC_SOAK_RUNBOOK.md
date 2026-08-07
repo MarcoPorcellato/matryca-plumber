@@ -4,6 +4,16 @@ This runbook starts the two independent, fail-closed soak profiles required by
 the `v2.0.0` Gate B decision. Both profiles run against the installed public
 `matryca-plumber==2.0.0rc1` wheel, never a source checkout.
 
+## Post-RC read-path requalification boundary
+
+The public-RC soak records evidence only for the exact `2.0.0rc1` wheel. Issue
+[#389](https://github.com/MarcoPorcellato/matryca-plumber/issues/389) changes the FTS
+and subtree paths exercised by both profiles by adding requested-row freshness checks
+and explicit Markdown/BM25 fallback reasons. Do not rewrite or transfer the RC result
+to those later bytes. Before stable promotion, bind a fresh candidate artifact and
+repeat the watcher-disabled edit/delete/rename matrix plus both Gate B profiles under
+the same fail-closed integrity rules.
+
 ## Recorded checkpoint snapshot (public candidate `2.0.0rc1`)
 
 The recorded checkpoint for stable-promotion evidence is `RUNNING`
