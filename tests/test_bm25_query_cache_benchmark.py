@@ -42,6 +42,15 @@ def test_workloads_are_deterministic_and_cover_required_distributions(
     assert len(set(first["uniform"])) > config.capacities[0]
 
 
+def test_default_cli_profile_pressures_the_largest_candidate_capacity() -> None:
+    args = benchmark._parser().parse_args([])
+    capacities = tuple(int(value) for value in args.capacities.split(","))
+
+    assert args.requests > max(capacities)
+    assert args.repetitions >= 3
+    assert args.warmup > 0
+
+
 def test_benchmark_matrix_preserves_parity_and_capacity_bounds(
     config: benchmark.BenchmarkConfig,
 ) -> None:
