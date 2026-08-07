@@ -96,11 +96,12 @@ The accepted model contains two independent result streams:
    classification, link, anchor, provenance, privacy, and canonical-role rules.
 
 This document does **not** claim official OKF v0.2 conformance. The current
-Matryca validator implements a transitional OKF-inspired flat-frontmatter
-profile; the planned nested v0.2 parser and dual-layer conformance reporter are
-not treated as shipped. `status` therefore uses the official lifecycle
-vocabulary (`draft`, `stable`, `deprecated`), while plan acceptance and Matryca
-classification remain separate extension fields.
+Matryca validator reports deterministic OKF v0.2 format compatibility separately
+from Matryca quality, while official certification, machine-readable findings,
+changed-policy invalidation, and any future nested parser remain unshipped.
+`status` therefore uses the official lifecycle vocabulary (`draft`, `stable`,
+`deprecated`), while plan acceptance and Matryca classification remain separate
+extension fields.
 
 Adoption rules for this programme:
 
@@ -1434,10 +1435,17 @@ state were not touched.
 
 #### EX-17 — Make dual-layer documentation checks mandatory
 
-`docs-check` currently passes but is not part of `make ci`. Add it to the
-mandatory gate. Add a repository-aware internal-link checker that understands
-relative paths, directory indexes, anchors, generated files, and an explicit
-external-link policy.
+The deterministic baseline is complete under closed issue
+[#400](https://github.com/MarcoPorcellato/matryca-plumber/issues/400): `docs-check`
+is mandatory in both `make check` and `make ci`, GitHub Actions exposes an early
+labelled documentation step, and regression coverage prevents accidental removal.
+The checker already validates maintained local links, anchors, lifecycle metadata,
+reserved files, safe legacy paths, inventory drift, and generated-view parity.
+
+The remaining architecture is tracked by
+[#402](https://github.com/MarcoPorcellato/matryca-plumber/issues/402): report the
+portable OKF v0.2 format contract independently from the stricter Matryca quality
+profile without weakening the single blocking gate.
 
 Evolve validation in separately reviewable slices:
 
@@ -1455,6 +1463,52 @@ path/anchor and lifecycle fixtures fail the Matryca quality layer; official
 format fixtures fail only the official layer; generated inventory drift fails
 CI; identical source bytes and policy versions produce byte-identical results;
 no LLM output participates in acceptance.
+
+##### EX-17A — Separate deterministic validation layers
+
+```yaml
+tranche_id: EX-17A
+issue: 402
+objective: Separate OKF format compatibility from Matryca quality findings without weakening blocking documentation checks.
+allowed_files:
+  - scripts/docs_knowledge_check.py
+  - tests/test_docs_knowledge_check.py
+  - docs/knowledge/profile.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+documentation_impact: update
+official_okf_conformance_impact: compatibility-reporting-only
+matryca_quality_impact: validation | provenance
+residual_risks:
+  - PASS means deterministic format compatibility, not official certification
+  - machine-readable findings and invalidation remain follow-up slices under issue 402
+```
+
+This slice preserves the existing `validate_concept_frontmatter` entry point as a
+combined compatibility facade, keeps both layers blocking, sorts findings before
+emission, tolerates unknown non-empty concept types and extension fields, and versions
+the specification, profile, validator, and finding schema independently. It does not
+change the Makefile, workflow topology, repository metadata, runtime, Gate B, or release
+state.
+
+**EX-17A implementation receipt (2026-08-08):** the six-file allowlist above is the
+complete diff. The mandatory gate now emits separate OKF format-compatibility and
+Matryca-quality results while retaining one final blocking exit. Unknown non-empty
+types and extension fields remain consumable; inventory and generated-view drift are
+reported as Matryca findings instead of bypassing the layer summary. A challenger
+review initially rejected the slice because of one stale planning claim, early
+inventory exits, and missing negative fixtures; all findings were corrected, and the
+second review returned **GO**.
+
+Thirty-five focused documentation-validator tests passed, including official-only,
+Matryca-only, simultaneous-layer, deterministic-order, inventory-drift, and compatibility-
+facade cases. Full exact-worktree `make ci` passed formatting, Ruff, strict mypy over
+379 source files, safety/version/public-metrics checks, documentation and generated-
+prompt verification, and 1,666 tests with 5 skipped at 83.48% coverage. The changelog
+records the developer-facing validation contract. Runtime, Makefile/workflow topology,
+Gate B evidence, release state, tags, publication, and GitHub issue state were not
+touched.
 
 #### EX-18 — Expand CI where it buys independent evidence
 
@@ -1580,8 +1634,8 @@ Low runtime risk, no release-line disturbance:
 
 1. Keep monitoring Gate B without crediting downtime.
 2. Reconcile documentation lifecycle language and establish the EX-16 authority matrix.
-3. Execute EX-17 incrementally: first add the existing `docs-check` to CI,
-   then introduce separately reported official OKF v0.2 and Matryca quality
+3. Continue EX-17 incrementally: retain the completed mandatory `docs-check`
+   baseline, then finish separately reported OKF v0.2 and Matryca quality
    gates without a mass migration.
 4. Triage milestones and map existing issues to this dossier.
 5. Establish benchmark result schemas and capture a baseline without changing implementation.

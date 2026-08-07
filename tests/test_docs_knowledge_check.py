@@ -11,7 +11,11 @@ from typing import Any
 
 import pytest
 from scripts.docs_knowledge_check import (
+    DOCS_VALIDATOR_VERSION,
+    FINDING_SCHEMA_VERSION,
     KNOWLEDGE_DIR,
+    MATRYCA_PROFILE_VERSION,
+    OKF_SPEC_VERSION,
     build_default_entry,
     discover_inventory_paths,
     inventory_sync,
@@ -24,6 +28,8 @@ from scripts.docs_knowledge_check import (
     validate_document_links,
     validate_inventory_schema,
     validate_legacy_sources,
+    validate_matryca_quality_frontmatter,
+    validate_official_okf_frontmatter,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -381,6 +387,136 @@ def test_validate_concept_frontmatter_rejects_legacy_status() -> None:
     errors = validate_concept_frontmatter(path, changed)
 
     assert any("invalid OKF status" in error for error in errors)
+
+
+def test_official_okf_accepts_unknown_types_and_extensions() -> None:
+    path = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    meta, _ = split_frontmatter(path)
+    assert meta is not None
+    changed = dict(meta)
+    changed["type"] = "Domain-Specific Future Type"
+    changed["future_extension"] = {"preserved": True}
+    snapshot = dict(changed)
+
+    assert validate_official_okf_frontmatter(path, changed) == []
+    assert validate_matryca_quality_frontmatter(path, changed) == []
+    assert changed == snapshot
+
+
+def test_official_okf_default_status_is_separate_from_matryca_profile() -> None:
+    path = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    meta, _ = split_frontmatter(path)
+    assert meta is not None
+    changed = dict(meta)
+    changed.pop("status")
+
+    assert validate_official_okf_frontmatter(path, changed) == []
+    assert any(
+        "missing required field status" in error
+        for error in validate_matryca_quality_frontmatter(path, changed)
+    )
+
+
+def test_profile_and_validator_versions_are_independent() -> None:
+    meta, _ = split_frontmatter(KNOWLEDGE_DIR / "profile.md")
+    assert meta is not None
+    assert meta["okf_spec_version"] == OKF_SPEC_VERSION
+    assert meta["profile_version"] == MATRYCA_PROFILE_VERSION
+    assert DOCS_VALIDATOR_VERSION == "1"
+    assert FINDING_SCHEMA_VERSION == "1"
+
+
+def test_check_bundle_reports_separate_top_level_results(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    module.check_bundle()
+    output = capsys.readouterr().out
+
+    assert "OKF v0.2 format compatibility: PASS (0 findings)" in output
+    assert "Matryca quality profile v1.0: PASS (0 findings)" in output
+    assert "Validator v1; finding schema v1" in output
+
+
+def test_combined_frontmatter_validator_preserves_layer_order() -> None:
+    path = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    meta, _ = split_frontmatter(path)
+    assert meta is not None
+    changed = dict(meta)
+    changed["type"] = ""
+    changed.pop("title")
+
+    assert validate_concept_frontmatter(path, changed) == (
+        validate_official_okf_frontmatter(path, changed)
+        + validate_matryca_quality_frontmatter(path, changed)
+    )
+
+
+def test_validation_report_sorts_findings_within_each_layer() -> None:
+    import scripts.docs_knowledge_check as module
+
+    report = module._validation_report(["z", "a"], ["y", "b"])
+
+    assert report.official_okf == ("a", "z")
+    assert report.matryca_quality == ("b", "y")
+
+
+def test_inventory_drift_is_reported_as_matryca_quality_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    def fail_inventory_sync(*, check: bool = False) -> None:
+        assert check is True
+        module._fail("inventory drift fixture")
+
+    monkeypatch.setattr(module, "inventory_sync", fail_inventory_sync)
+
+    with pytest.raises(SystemExit):
+        module.check_bundle()
+
+    captured = capsys.readouterr()
+    assert "OKF v0.2 format compatibility: PASS (0 findings)" in captured.out
+    assert "Matryca quality profile v1.0: FAIL (1 findings)" in captured.out
+    assert "[matryca-quality] inventory drift fixture" in captured.err
+
+
+def test_both_layers_report_before_check_bundle_exits(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    concept = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    original_split = module.split_frontmatter
+
+    def one_concept() -> list[Path]:
+        return [concept]
+
+    def split_with_layer_failures(path: Path) -> tuple[dict[str, Any] | None, str]:
+        meta, body = original_split(path)
+        if path != concept or meta is None:
+            return meta, body
+        changed = dict(meta)
+        changed["type"] = ""
+        changed.pop("title")
+        return changed, body
+
+    monkeypatch.setattr(module, "collect_knowledge_concepts", one_concept)
+    monkeypatch.setattr(module, "split_frontmatter", split_with_layer_failures)
+
+    with pytest.raises(SystemExit):
+        module.check_bundle()
+
+    captured = capsys.readouterr()
+    assert "OKF v0.2 format compatibility: FAIL (1 findings)" in captured.out
+    assert "Matryca quality profile v1.0: FAIL (1 findings)" in captured.out
+    assert "[official-okf] architecture/system-overview.md: type" in captured.err
+    assert "[matryca-quality] architecture/system-overview.md: missing required field title" in (
+        captured.err
+    )
 
 
 def test_validate_concept_frontmatter_rejects_empty_verification() -> None:
