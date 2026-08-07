@@ -10,6 +10,7 @@ from ..graph.path_sandbox import resolved_graph_root
 
 _rebuild_locks: dict[str, threading.Lock] = {}
 _bootstrapping_roots: set[str] = set()
+_invalidated_roots: set[str] = set()
 _deferred_sync_paths: dict[str, set[str]] = defaultdict(set)
 _state_lock = threading.Lock()
 
@@ -38,6 +39,22 @@ def clear_bootstrapping(graph_root: Path | str) -> None:
         _bootstrapping_roots.discard(graph_root_key(graph_root))
 
 
+def mark_shadow_generation_invalid(graph_root: Path | str) -> None:
+    """Fail closed for reads when a sync failure cannot be persisted."""
+    with _state_lock:
+        _invalidated_roots.add(graph_root_key(graph_root))
+
+
+def clear_shadow_generation_invalid(graph_root: Path | str) -> None:
+    """Clear the process-local failure latch after a successful full rebuild."""
+    with _state_lock:
+        _invalidated_roots.discard(graph_root_key(graph_root))
+
+
+def is_shadow_generation_invalid(graph_root: Path | str) -> bool:
+    return graph_root_key(graph_root) in _invalidated_roots
+
+
 def defer_sync_path(graph_root: Path | str, rel_path: str) -> None:
     with _state_lock:
         _deferred_sync_paths[graph_root_key(graph_root)].add(rel_path)
@@ -54,14 +71,18 @@ def reset_shadow_runtime_state_for_tests() -> None:
     with _state_lock:
         _rebuild_locks.clear()
         _bootstrapping_roots.clear()
+        _invalidated_roots.clear()
         _deferred_sync_paths.clear()
 
 
 __all__ = [
     "clear_bootstrapping",
+    "clear_shadow_generation_invalid",
     "defer_sync_path",
     "graph_root_key",
     "is_shadow_bootstrapping",
+    "is_shadow_generation_invalid",
+    "mark_shadow_generation_invalid",
     "mark_bootstrapping",
     "pop_deferred_sync_paths",
     "rebuild_lock_for",

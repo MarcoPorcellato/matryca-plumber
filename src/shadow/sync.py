@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -39,7 +40,11 @@ from .quarantine import (
     normalize_quarantine_reason,
     record_quarantined_page,
 )
-from .runtime_state import defer_sync_path, is_shadow_bootstrapping
+from .runtime_state import (
+    defer_sync_path,
+    is_shadow_bootstrapping,
+)
+from .sync_failure import SHADOW_SYNC_FAILURE_REASON, mark_shadow_sync_failed
 from .writer_lock import shadow_writer_lock
 
 _bridge_lock = threading.Lock()
@@ -146,18 +151,22 @@ def delete_shadow_page_by_file_path(graph_root: Path | str, rel_path: str) -> No
     if not shadow_db_enabled():
         return
     root = resolved_graph_root(graph_root)
-    with shadow_writer_lock(root):
-        conn = open_shadow_db(root)
-        try:
-            conn.execute("DELETE FROM pages WHERE file_path = ?", (rel_path,))
-            clear_quarantined_page(conn, rel_path)
-            set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+    try:
+        with shadow_writer_lock(root):
+            conn = open_shadow_db(root)
+            try:
+                conn.execute("DELETE FROM pages WHERE file_path = ?", (rel_path,))
+                clear_quarantined_page(conn, rel_path)
+                set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+    except Exception:
+        record_shadow_sync_failure(root)
+        raise
 
 
 def sync_page_into_connection(
@@ -288,39 +297,51 @@ def sync_page_to_shadow(graph_root: Path | str, page_path: Path | str) -> None:
         defer_sync_path(root, rel)
         return
 
-    with shadow_writer_lock(root):
-        conn = open_shadow_db(root)
-        parse_error: ShadowPageParseError | None = None
-        try:
-            sync_page_into_connection(conn, root, path)
-            set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
-            conn.commit()
-        except ShadowPageParseError as exc:
-            conn.rollback()
-            parse_error = exc
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-
-        if parse_error is not None:
-            _record_incremental_parse_error(root, str(parse_error))
-            raise parse_error
-
-
-def _record_incremental_parse_error(graph_root: Path, message: str) -> None:
-    """Persist a bounded parse failure after its page transaction has rolled back."""
-    conn = open_shadow_db(graph_root)
     try:
-        ensure_meta_defaults(conn)
-        set_meta(conn, META_LAST_SYNC_ERROR, message)
-        conn.commit()
-    except Exception:  # noqa: BLE001 - sync failure must still propagate to caller
-        conn.rollback()
-        logger.exception("Failed to persist bounded shadow parse error")
+        with shadow_writer_lock(root):
+            conn = open_shadow_db(root)
+            try:
+                sync_page_into_connection(conn, root, path)
+                set_meta(conn, META_LAST_INCREMENTAL_SYNC_AT, _utc_now_iso())
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+    except ShadowPageParseError as exc:
+        record_shadow_sync_failure(root, str(exc))
+        raise
+    except Exception:
+        record_shadow_sync_failure(root)
+        raise
+
+
+def record_shadow_sync_failure(
+    graph_root: Path,
+    message: str = SHADOW_SYNC_FAILURE_REASON,
+) -> None:
+    """Invalidate reads and best-effort persist one bounded failure reason."""
+    mark_shadow_sync_failed(graph_root)
+    try:
+        conn = open_shadow_db(graph_root)
+    except Exception:  # noqa: BLE001 - runtime latch still fails reads closed
+        logger.warning("Failed to open Shadow DB while persisting sync failure")
+        return
+    try:
+        try:
+            ensure_meta_defaults(conn)
+            set_meta(conn, META_LAST_SYNC_ERROR, message)
+            conn.commit()
+        except Exception:  # noqa: BLE001 - runtime latch still fails reads closed
+            with suppress(Exception):
+                conn.rollback()
+            logger.warning("Failed to persist bounded Shadow sync failure")
     finally:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001 - runtime latch remains authoritative
+            logger.warning("Failed to close Shadow DB after sync-failure persistence")
 
 
 def _on_shadow_page_written(event: PageWrittenEvent) -> None:
@@ -331,6 +352,7 @@ def _on_shadow_page_written(event: PageWrittenEvent) -> None:
     except ShadowPageParseError as exc:
         logger.warning("Shadow sync rejected after write: {}", exc)
     except Exception:  # noqa: BLE001 — fail-safe like AST bridge
+        record_shadow_sync_failure(event.graph_root)
         logger.exception("Shadow sync failed after write to {}", event.path)
 
 
@@ -356,6 +378,7 @@ def reset_shadow_sync_bridge_for_tests() -> None:
 __all__ = [
     "delete_shadow_page_by_file_path",
     "ensure_shadow_sync_bridge",
+    "record_shadow_sync_failure",
     "reset_shadow_sync_bridge_for_tests",
     "sync_page_into_connection",
     "sync_page_to_shadow",

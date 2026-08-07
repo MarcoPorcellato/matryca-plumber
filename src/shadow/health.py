@@ -20,6 +20,7 @@ from .meta import (
 from .quarantine import quarantined_page_count
 from .runtime_state import is_shadow_bootstrapping
 from .schema import SHADOW_SCHEMA_VERSION
+from .sync_failure import is_shadow_sync_failed
 
 
 class ShadowHealthState(StrEnum):
@@ -72,6 +73,8 @@ def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
     root = resolved_graph_root(graph_root)
     if is_shadow_bootstrapping(root):
         return ShadowHealthState.BOOTSTRAPPING
+    if is_shadow_sync_failed(root):
+        return ShadowHealthState.ERROR
     try:
         db_path = shadow_db_path(root)
     except (OSError, RuntimeError, PathTraversalSecurityError):

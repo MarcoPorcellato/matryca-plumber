@@ -100,6 +100,10 @@ state falls back to Markdown/BM25. `MATRYCA_CACHE_PATH` remains the explicit ext
 root override. The beta graph-local database is rebuilt externally rather than moved,
 mutated, or deleted. Decision and implementation slices:
 [`v2-external-shadow-cache-read-only.md`](quality/issue-bodies/v2-external-shadow-cache-read-only.md).
+Generic sync failures add a private content-free `shadow.sync-invalid` marker beside
+the external database and latch the generation invalid in-process. Either signal
+forces fallback until a successful full rebuild clears metadata, marker, and latch;
+authoritative Markdown writes never roll back because cache maintenance failed.
 
 **v2.0.0-rc.1 contract (Slices 1–5 complete):** an unset
 `MATRYCA_SHADOW_DB_ENABLED` now enables Shadow; explicit false remains a zero-Shadow
