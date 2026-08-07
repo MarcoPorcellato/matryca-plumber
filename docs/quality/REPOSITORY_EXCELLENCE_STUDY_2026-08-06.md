@@ -338,6 +338,58 @@ Acceptance gate:
 
 #### EX-07 — Stop returning LLM secrets from `/api/config`
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-07-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 34deb3bc02d82f3675c9e1dd50b61319e20ab9b2
+objective: make the UI LLM API key write-only across backend and frontend configuration surfaces
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - src/cli/ui_server.py
+  - tests/test_ui_server.py
+  - frontend/src/types/daemon.ts
+  - frontend/src/hooks/usePlumberPolling.ts
+  - frontend/src/components/SettingsDrawer.tsx
+  - frontend/src/components/MasterHeader.tsx
+  - frontend/src/utils/plumberConfigDefaults.ts
+  - frontend/src/utils/plumberConfigSecrets.ts
+  - frontend/src/utils/plumberConfigSecrets.test.ts
+  - docs/ARCHITECTURE.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+non_goals:
+  - change UI authentication, inference-provider behavior, or unrelated configuration fields
+  - serialize dotenv writers or implement optimistic concurrency reserved for EX-08
+  - modify Gate B evidence, release artifacts, tags, releases, or publication state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_ui_server.py
+  - npm run test -- src/utils/plumberConfigSecrets.test.ts
+  - npm run build
+  - npm run lint
+acceptance:
+  - GET and POST responses never serialize the configured key
+  - omission preserves, a supplied string replaces, and explicit null clears the key
+  - legacy readback is removed before any configuration payload reaches React state
+  - frontend errors and operational logs never include the configured key
+stop_conditions:
+  - any required change to authentication, another secret, or dotenv concurrency
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: 34deb3bc02d82f3675c9e1dd50b61319e20ab9b2
+  evidence_paths:
+    - src/cli/ui_server.py
+    - frontend/src/hooks/usePlumberPolling.ts
+    - frontend/src/components/SettingsDrawer.tsx
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: lifecycle | provenance
+residual_risks:
+  - a newly entered replacement exists transiently in the password control and request until submission settles
+  - dotenv lost-update protection remains owned by EX-08
+```
+
 **Verified secret readback:** `PlumberConfigResponse` contains `llm_api_key` and the GET route returns the live model (`src/cli/ui_server.py:180-228`, `src/cli/ui_server.py:855-876`). Authentication reduces exposure but does not justify echoing a secret to browser state. This is a design-level exposure, not evidence that credentials have been compromised.
 
 **Smallest slice:** return `llm_api_key_configured: bool`; accept key changes through a write-only nullable field and never echo the value.
@@ -347,6 +399,28 @@ Acceptance gate:
 - serialized GET responses, frontend state, exception paths, and logs contain no configured key;
 - update, preserve-without-resending, and explicit clear all work;
 - frontend contract tests cover the new shape.
+
+**Implemented in #390:** read and write schemas are now separate. `GET /api/config`
+and every config response expose only `llm_api_key_configured`; `POST /api/config`
+accepts an optional write-only `llm_api_key`, preserving it when omitted, replacing it
+when supplied, and clearing it only when explicitly `null`. Response-model filtering
+and frontend sanitization independently prevent legacy secret readback from entering
+React configuration state.
+
+The settings drawer keeps the password control empty, reports only configured/not
+configured status, offers an explicit clear action, and removes a replacement from
+component state after submission. Focused API tests assert that response bodies and
+error details do not contain configured values, while frontend contract tests cover
+legacy-response sanitization and all three write operations. Authentication, provider
+behavior, dotenv concurrency, Gate B evidence, and release state remain unchanged.
+
+Candidate validation passed 64 focused Python API/security tests and all 20 frontend
+tests, plus the frontend TypeScript build and lint gates. The complete `make ci` gate
+also passed (format, Ruff, strict mypy over 377 files, graph sandbox, version and agent
+coherence, public-metrics policy, documentation inventory, generated prompt, and the
+full parallel Python suite). The suite retained one pre-existing macOS `fork()`
+deprecation warning in `test_fork_child_clears_flock_depth_state`; this tranche adds no
+new warning.
 
 #### EX-08 — Serialize `.env` read/merge/write updates
 

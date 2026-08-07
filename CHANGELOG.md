@@ -16,6 +16,7 @@
 
 ### Security
 
+- **Write-only UI API keys (#390)** — stop returning configured LLM credentials from `/api/config` or retaining legacy readback in React state; expose only configured status while preserving omitted keys and supporting write-only replacement or explicit clearing.
 - **First-run UI token policy (#395)** — materialize and reload the safe `.env.example` defaults before evaluating UI host and explicit-token policy, so a clean installation refuses insecure startup before browser scheduling or Uvicorn bind just like an existing `.env` installation.
 
 ## [2.0.0-rc.1] - 2026-08-03

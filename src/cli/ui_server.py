@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 import webbrowser
 from collections import defaultdict, deque
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -177,15 +177,14 @@ class DaemonStateResponse(BaseModel):
         return cls.model_validate(payload)
 
 
-class PlumberConfigResponse(BaseModel):
-    """Live Plumber configuration exposed to the React control room."""
+class PlumberConfigValues(BaseModel):
+    """Non-secret Plumber configuration shared by UI reads and writes."""
 
     logseq_graph_path: str
     read_only: bool = False
     shadow_db_enabled: bool = True
     lm_studio_url: str
     lm_model: str
-    llm_api_key: str
     low_priority_mode: bool
     thermal_delay_bootstrap: float
     thermal_delay_cognitive: float
@@ -203,6 +202,12 @@ class PlumberConfigResponse(BaseModel):
     enable_inline_semantic_corrections: bool
     auto_split: bool
 
+
+class PlumberConfigResponse(PlumberConfigValues):
+    """Live Plumber configuration exposed to the React control room."""
+
+    llm_api_key_configured: bool
+
     @classmethod
     def from_lint_config(
         cls,
@@ -211,6 +216,7 @@ class PlumberConfigResponse(BaseModel):
         logseq_graph_path: str | None = None,
         read_only: bool | None = None,
         shadow_db_enabled_value: bool | None = None,
+        llm_api_key_configured_value: bool | None = None,
     ) -> PlumberConfigResponse:
         if isinstance(logseq_graph_path, str):
             graph_path = logseq_graph_path.strip()
@@ -224,7 +230,11 @@ class PlumberConfigResponse(BaseModel):
             ),
             lm_studio_url=config.lm_base_url,
             lm_model=config.lm_model,
-            llm_api_key=config.llm_api_key,
+            llm_api_key_configured=(
+                _llm_api_key_is_configured(os.environ)
+                if llm_api_key_configured_value is None
+                else llm_api_key_configured_value
+            ),
             low_priority_mode=config.low_priority_mode,
             thermal_delay_bootstrap=config.thermal_delay_bootstrap,
             thermal_delay_cognitive=config.thermal_delay_cognitive,
@@ -242,6 +252,12 @@ class PlumberConfigResponse(BaseModel):
             enable_inline_semantic_corrections=not config.disable_semantic_corrections,
             auto_split=config.auto_split,
         )
+
+
+class PlumberConfigUpdateRequest(PlumberConfigValues):
+    """Full UI settings update with an optional write-only LLM API key."""
+
+    llm_api_key: str | None = None
 
 
 class DaemonControlResponse(BaseModel):
@@ -373,7 +389,6 @@ _ENV_KEY_MAP: dict[str, str] = {
     "logseq_graph_path": "LOGSEQ_GRAPH_PATH",
     "lm_studio_url": "LLM_BASE_URL",
     "lm_model": "LLM_MODEL_NAME",
-    "llm_api_key": "LLM_API_KEY",
     "low_priority_mode": "MATRYCA_PLUMBER_LOW_PRIORITY_MODE",
     "thermal_delay_bootstrap": "MATRYCA_THERMAL_DELAY_BOOTSTRAP",
     "thermal_delay_cognitive": "MATRYCA_THERMAL_DELAY_COGNITIVE",
@@ -390,6 +405,11 @@ _ENV_KEY_MAP: dict[str, str] = {
     "backpropagate_links": "MATRYCA_LINT_BACKPROPAGATE_LINKS",
     "auto_split": "MATRYCA_LINT_AUTO_SPLIT",
 }
+
+
+def _llm_api_key_is_configured(env: Mapping[str, str]) -> bool:
+    """Return whether an explicit non-empty LLM API key is present."""
+    return bool((env.get("LLM_API_KEY") or "").strip())
 
 
 def _resolve_dotenv_path() -> Path:
@@ -576,7 +596,7 @@ def _apply_dotenv_updates(updates: dict[str, str], *, env_path: Path | None = No
     return target
 
 
-def _update_dotenv(payload: PlumberConfigResponse) -> None:
+def _update_dotenv(payload: PlumberConfigUpdateRequest) -> None:
     """Persist configuration updates to ``.env`` and the active process environment."""
     validated_lm_url = assert_safe_lm_proxy_url(payload.lm_studio_url)
     updates: dict[str, str] = {}
@@ -586,6 +606,12 @@ def _update_dotenv(payload: PlumberConfigResponse) -> None:
     updates["MATRYCA_LINT_DISABLE_SEMANTIC_CORRECTIONS"] = (
         "false" if payload.enable_inline_semantic_corrections else "true"
     )
+    if "llm_api_key" in payload.model_fields_set:
+        updates["LLM_API_KEY"] = (
+            ""
+            if payload.llm_api_key is None
+            else serialize_plumber_config_field_for_dotenv("llm_api_key", payload.llm_api_key)
+        )
     _apply_dotenv_updates(updates)
 
 
@@ -612,7 +638,7 @@ def _persist_graph_path_update(payload: GraphPathUpdateRequest) -> PlumberConfig
     return PlumberConfigResponse.from_lint_config(load_plumber_lint_config())
 
 
-def _persist_config_update(payload: PlumberConfigResponse) -> PlumberConfigResponse:
+def _persist_config_update(payload: PlumberConfigUpdateRequest) -> PlumberConfigResponse:
     """Persist settings to ``.env`` and re-bootstrap runtime (blocking; off event loop)."""
     try:
         _update_dotenv(payload)
@@ -872,6 +898,7 @@ def _load_config_response() -> PlumberConfigResponse:
             logseq_graph_path=graph_path,
             read_only=is_graph_read_only(merged),
             shadow_db_enabled_value=shadow_db_enabled(merged),
+            llm_api_key_configured_value=_llm_api_key_is_configured(merged),
         )
     return PlumberConfigResponse.from_lint_config(load_plumber_lint_config())
 
@@ -911,7 +938,7 @@ async def save_graph_path(
 
 @app.post("/api/config", response_model=PlumberConfigResponse)
 async def post_config(
-    payload: PlumberConfigResponse,
+    payload: PlumberConfigUpdateRequest,
     _: None = Depends(_require_ui_token),
 ) -> PlumberConfigResponse:
     """Update ``.env`` and in-process settings from the control-room form."""
@@ -1172,6 +1199,7 @@ __all__ = [
     "GraphAnalyticsResponse",
     "LmModelsResponse",
     "PlumberConfigResponse",
+    "PlumberConfigUpdateRequest",
     "UpdateCheckResponse",
     "assert_safe_lm_proxy_url",
     "app",

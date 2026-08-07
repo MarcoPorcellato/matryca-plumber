@@ -384,7 +384,7 @@ These commands start the **control room only** — not the maintenance daemon. O
 
 A **monolithic** Uvicorn process serves:
 
-- **REST API** — `/api/state`, `/api/logs`, `/api/config`, daemon control, LM model discovery (SSRF-hardened)
+- **REST API** — `/api/state`, `/api/logs`, `/api/config`, daemon control, LM model discovery (SSRF-hardened). Config responses expose only whether an LLM API key is configured; replacement and explicit clearing use a write-only request field that is never echoed to browser state.
 - **Static SPA** — `frontend/dist/` built from Vite; polls on a **5s distributed cycle** via `usePlumberPolling` (`/api/state` every cycle — including a background **5s** poll when `daemon_pid` is live but logs are frozen; `/api/logs` staggered; `/api/graph-analytics` ~every 20s)
 - **Zero-Trust auth** — `X-Matryca-Token` on protected routes (`ui_auth.py`)
 

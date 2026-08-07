@@ -423,7 +423,7 @@ export interface PlumberConfig {
   shadow_db_enabled: boolean
   lm_studio_url: string
   lm_model: string
-  llm_api_key: string
+  llm_api_key_configured: boolean
   low_priority_mode: boolean
   thermal_delay_bootstrap: number
   thermal_delay_cognitive: number
@@ -440,6 +440,11 @@ export interface PlumberConfig {
   backpropagate_links: boolean
   enable_inline_semantic_corrections: boolean
   auto_split: boolean
+}
+
+/** Full settings write; the optional API key is write-only. */
+export type PlumberConfigUpdate = Omit<PlumberConfig, 'llm_api_key_configured'> & {
+  llm_api_key?: string | null
 }
 
 /** Mirrors ``LmModelsResponse`` from ``src/cli/ui_server.py``. */
@@ -478,7 +483,7 @@ export interface PlumberPollSnapshot {
   engineError: string | null
   startEngine: () => Promise<void>
   stopEngine: () => Promise<void>
-  saveConfig: (payload: PlumberConfig) => Promise<PlumberConfig | null>
+  saveConfig: (payload: PlumberConfigUpdate) => Promise<PlumberConfig | null>
   refreshConfig: () => Promise<PlumberConfig | null>
   applyConfig: (payload: PlumberConfig) => void
 }
