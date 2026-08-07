@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from loguru import logger
 
@@ -26,6 +26,8 @@ class DaemonCheckpointView:
     bootstrap_scanned: int = 0
     bootstrap_total: int = 0
     status: str | None = None
+    recovery_source: Literal["missing", "primary", "backup", "reset"] = "missing"
+    reset_event: bool = False
 
 
 def checkpoint_path(graph_root: Path) -> Path:
@@ -54,6 +56,7 @@ def read_daemon_checkpoint(graph_root: str | Path) -> DaemonCheckpointView:
     if not path.is_file() and not bak_path.is_file():
         return DaemonCheckpointView()
 
+    recovery_source: Literal["primary", "backup"] = "primary"
     payload = _read_checkpoint_payload(path) if path.is_file() else None
     if payload is None and bak_path.is_file():
         logger.warning(
@@ -61,6 +64,7 @@ def read_daemon_checkpoint(graph_root: str | Path) -> DaemonCheckpointView:
             "attempting recovery from .bak backup."
         )
         payload = _read_checkpoint_payload(bak_path)
+        recovery_source = "backup"
         if payload is not None and not is_graph_read_only():
             try:
                 shutil.copy2(bak_path, path)
@@ -75,7 +79,7 @@ def read_daemon_checkpoint(graph_root: str | Path) -> DaemonCheckpointView:
             "[METADATA CORRUPTION DETECTED] Checkpoint and backup both unreadable; "
             "using empty bootstrap gate defaults."
         )
-        return DaemonCheckpointView()
+        return DaemonCheckpointView(recovery_source="reset", reset_event=True)
 
     reason = payload.get("bootstrap_failed_reason")
     status = payload.get("status")
@@ -86,6 +90,7 @@ def read_daemon_checkpoint(graph_root: str | Path) -> DaemonCheckpointView:
         bootstrap_scanned=int(payload.get("bootstrap_scanned", 0)),
         bootstrap_total=int(payload.get("bootstrap_total", 0)),
         status=str(status) if status not in (None, "") else None,
+        recovery_source=recovery_source,
     )
 
 

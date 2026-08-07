@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Checkpoint recovery diagnostics (#391)** — expose a bounded recovery-source vocabulary and explicit reset event in the bootstrap status projection, distinguishing missing, primary, backup, and unreadable checkpoint states without changing recovery, Soft Gate, or read-only behavior.
 - **Typed BM25 operational snapshot (#391)** — expose a versioned, content-free per-corpus snapshot of document/token cardinality, query-cache capacity and row pressure, hit/miss/invalidation/eviction counters, aggregate uncached-scoring timing, and a deterministic retained-payload estimate for machine-readable diagnostics without changing scoring or cache behavior.
 - **Reproducible BM25 capacity evidence** — add deterministic capacity, distribution, tail-latency, RSS, row-pressure, invalidation, rebuild, concurrent-corpus, and correctness-parity benchmarks; retain the 8,192-entry and 65,536-row production defaults under an explicit synthetic-evidence boundary.
 - **OKF v0.2 documentation governance** — align the maintained knowledge bundle with the pinned portable format, separate Matryca classification from official lifecycle status, add provenance, freshness, canonical-role, link, anchor, and chronology gates, migrate the full documentation inventory to schema v2, make documentation integrity mandatory in `make check` and `make ci`, and document the repository-to-projection operating model.

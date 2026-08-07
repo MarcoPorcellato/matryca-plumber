@@ -5,8 +5,8 @@ description: Markdown SSOT, parser-backed mutation plane, OCC, locks, and path s
 resource: src/graph/
 tags: [graph, occ, parser, sandbox, graph-dispatch]
 generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-last_verified: 2026-08-06
+verified: { by: human:marco-porcellato, at: '2026-08-07T00:00:00Z' }
+last_verified: 2026-08-07
 stale_after: 2027-02-02
 status: stable
 classification: canonical
@@ -106,6 +106,17 @@ Canonical order: `occ_snapshot` → inference → `occ_verify_before_write` → 
 | Page lock registry | LRU cap in `page_write_lock.py`; cross-process sidecar via `platform_lock` |
 
 Full security contract: [`openspec/security-sandbox.md`](../../openspec/security-sandbox.md). Layer map: [`CLEAN_CODE_ARCHITECTURE.md`](../../CLEAN_CODE_ARCHITECTURE.md).
+
+## Checkpoint recovery diagnostics
+
+The read-only bootstrap status projection reports how the daemon checkpoint view was
+obtained through a closed `missing`, `primary`, `backup`, or `reset` vocabulary. The
+separate `checkpoint_reset_event` boolean is true only when checkpoint files exist but
+neither the primary nor backup payload is readable, so an operator can distinguish an
+ordinary first run from explicit fallback to empty gate defaults. These fields add no
+paths or checkpoint payload content and do not change backup restoration, Soft Gate
+calculation, or graph read-only behavior. The existing bootstrap envelope continues to
+carry its established `graph_root` operator field.
 
 ## Legacy deep dives
 

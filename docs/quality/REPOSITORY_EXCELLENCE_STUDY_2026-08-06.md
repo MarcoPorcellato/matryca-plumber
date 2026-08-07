@@ -814,6 +814,64 @@ deprecation probe. A sandboxed first run denied the unrelated `ps` subprocess us
 one daemon-lock test; that test and the complete gate both passed with normal host
 permissions.
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-11-03
+repository: MarcoPorcellato/matryca-plumber
+base_commit: a8082df4499d695eb17187494ae41187dcb40c38
+objective: expose checkpoint recovery source and an explicit reset event
+authority: inspect | edit | commit | push | pr
+tracking_issue: 391
+allowlist:
+  - src/graph/daemon_checkpoint.py
+  - src/graph/bootstrap_status.py
+  - tests/test_daemon_checkpoint.py
+  - tests/test_bootstrap_status.py
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - docs/knowledge/architecture/graph-plane.md
+  - CHANGELOG.md
+non_goals:
+  - change checkpoint recovery, backup restoration, or graph read-only policy
+  - modify src/agent/daemon_state.py or load_daemon_state()
+  - add persistence, cumulative counters, paths, or checkpoint payload content
+  - change Shadow, watcher, fallback, capacity, concurrency, Gate B, or release state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_daemon_checkpoint.py tests/test_bootstrap_status.py
+  - make ci
+acceptance:
+  - recovery source uses only missing, primary, backup, or reset
+  - reset event is true only when existing checkpoint copies are all unreadable
+  - existing bootstrap gate fields and decisions remain identical
+  - new fields add no path or checkpoint payload content to the existing envelope
+  - read-only backup recovery does not restore the primary file
+stop_conditions:
+  - any need to change loader, persistence, recovery, Soft Gate, or write-policy behavior
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: a8082df4499d695eb17187494ae41187dcb40c38
+  impact_evidence: LOW; one direct and one indirect caller; no affected process
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: metadata | lifecycle | provenance
+residual_risks:
+  - reset_event is a current-read projection, not a persistent cumulative counter
+  - the established bootstrap envelope still includes its operator-facing graph_root field
+```
+
+**EX-11-03 implemented:** `DaemonCheckpointView` now identifies whether bootstrap fields
+came from a missing checkpoint, the primary payload, the backup payload, or empty reset
+defaults after all existing copies proved unreadable. `BootstrapStatusSnapshot` projects
+that closed vocabulary and a separate reset boolean without changing bootstrap or Soft
+Gate calculations. Focused tests cover all four sources, explicit reset, failed primary
+restoration, and read-only backup recovery without graph mutation. No loader, persistence,
+Shadow, watcher, fallback, capacity, concurrency, Gate B, tag, or publication behavior
+changed. The complete `make ci` gate passed with 1,654 tests, 5 skips, 83.43% coverage,
+Ruff, format checks, strict mypy over 377 source files, graph sandbox, version and agent
+coherence, public-metrics policy, documentation inventory, and generated prompt checks.
+The sole warning remains the pre-existing macOS multi-threaded `fork()` deprecation
+probe.
+
 Expose content-free metrics for:
 
 - Shadow sync duration, writer-lock wait, generation, fallback reason, last successful incremental sync, parser timeout count, quarantine age and retry count;
