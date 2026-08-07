@@ -1,5 +1,9 @@
 # Documentation update log
 
+## 2026-08-07
+
+- **Performance evidence:** Added the reproducible BM25 query-cache capacity decision, raw benchmark bindings, memory envelope, and synthetic-evidence boundary.
+
 ## 2026-08-06
 
 - **Upgrade:** Aligned the maintained bundle with the pinned Open Knowledge Format v0.2 contract.

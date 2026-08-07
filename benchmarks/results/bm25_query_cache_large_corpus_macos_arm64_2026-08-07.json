@@ -1,0 +1,742 @@
+{
+  "benchmark_schema_version": 1,
+  "config": {
+    "capacities": [
+      512,
+      2048,
+      8192,
+      16384
+    ],
+    "documents": 8192,
+    "multi_corpora": 4,
+    "repetitions": 1,
+    "requests": 1000,
+    "seed": 20260802,
+    "warmup": 128
+  },
+  "corpus_manifest": {
+    "benchmark_query_key_cardinality": 16384,
+    "bucket_cardinality": 29,
+    "documents": 8192,
+    "terms_per_document": 4,
+    "topic_cardinality": 64
+  },
+  "environment": {
+    "machine": "arm64",
+    "os": "macOS-15.7.3-arm64-arm-64bit",
+    "python": "3.12.13",
+    "source_commit": "5ef1418602a0363b2e9457920e9af34011743507"
+  },
+  "measurements": {
+    "capacity_matrix": {
+      "capacity_pressure": [
+        {
+          "cache": {
+            "capacity": 512,
+            "entries": 512,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 512
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 512,
+          "entry_pressure_evictions": 488,
+          "latency_us": {
+            "median": 521.292,
+            "p50": 521.292,
+            "p95": 566.175,
+            "p99": 610.252
+          },
+          "parity": true,
+          "peak_rss_bytes": 47808512,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 425984,
+          "rss_end_bytes": 48136192,
+          "unique_requests": 1000
+        },
+        {
+          "cache": {
+            "capacity": 2048,
+            "entries": 1000,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 1000
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 2048,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 518.917,
+            "p50": 518.917,
+            "p95": 565.307,
+            "p99": 590.464
+          },
+          "parity": true,
+          "peak_rss_bytes": 49102848,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 294912,
+          "rss_end_bytes": 49266688,
+          "unique_requests": 1000
+        },
+        {
+          "cache": {
+            "capacity": 8192,
+            "entries": 1000,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 1000
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 8192,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 518.833,
+            "p50": 518.833,
+            "p95": 566.807,
+            "p99": 598.474
+          },
+          "parity": true,
+          "peak_rss_bytes": 50020352,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 50069504,
+          "unique_requests": 1000
+        },
+        {
+          "cache": {
+            "capacity": 16384,
+            "entries": 1000,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 1000
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 16384,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 518.875,
+            "p50": 518.875,
+            "p95": 567.873,
+            "p99": 597.371
+          },
+          "parity": true,
+          "peak_rss_bytes": 50839552,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 49152,
+          "rss_end_bytes": 50855936,
+          "unique_requests": 1000
+        }
+      ],
+      "edge_cases": [
+        {
+          "cache": {
+            "capacity": 512,
+            "entries": 4,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 4,
+            "result_row_capacity": 65536,
+            "result_rows": 109
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 512,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 585.062,
+            "p50": 585.062,
+            "p95": 4045.657,
+            "p99": 4164.499
+          },
+          "parity": true,
+          "peak_rss_bytes": 51888128,
+          "repetition": 1,
+          "requests": 6,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 51888128,
+          "unique_requests": 6
+        },
+        {
+          "cache": {
+            "capacity": 2048,
+            "entries": 4,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 4,
+            "result_row_capacity": 65536,
+            "result_rows": 109
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 2048,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 593.542,
+            "p50": 593.542,
+            "p95": 3857.865,
+            "p99": 3917.707
+          },
+          "parity": true,
+          "peak_rss_bytes": 52035584,
+          "repetition": 1,
+          "requests": 6,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 52035584,
+          "unique_requests": 6
+        },
+        {
+          "cache": {
+            "capacity": 8192,
+            "entries": 4,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 4,
+            "result_row_capacity": 65536,
+            "result_rows": 109
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 8192,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 625.5,
+            "p50": 625.5,
+            "p95": 4048.896,
+            "p99": 4169.546
+          },
+          "parity": true,
+          "peak_rss_bytes": 52232192,
+          "repetition": 1,
+          "requests": 6,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 52232192,
+          "unique_requests": 6
+        },
+        {
+          "cache": {
+            "capacity": 16384,
+            "entries": 4,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 4,
+            "result_row_capacity": 65536,
+            "result_rows": 109
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 16384,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 585.042,
+            "p50": 585.042,
+            "p95": 4027.584,
+            "p99": 4150.15
+          },
+          "parity": true,
+          "peak_rss_bytes": 52363264,
+          "repetition": 1,
+          "requests": 6,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 52363264,
+          "unique_requests": 6
+        }
+      ],
+      "hot_80_20": [
+        {
+          "cache": {
+            "capacity": 512,
+            "entries": 512,
+            "hits": 69,
+            "invalidations": 0,
+            "misses": 931,
+            "result_row_capacity": 65536,
+            "result_rows": 512
+          },
+          "cache_hit_ratio": 0.069,
+          "capacity": 512,
+          "entry_pressure_evictions": 419,
+          "latency_us": {
+            "median": 520.75,
+            "p50": 520.75,
+            "p95": 570.149,
+            "p99": 601.168
+          },
+          "parity": true,
+          "peak_rss_bytes": 52363264,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 52363264,
+          "unique_requests": 909
+        },
+        {
+          "cache": {
+            "capacity": 2048,
+            "entries": 909,
+            "hits": 91,
+            "invalidations": 0,
+            "misses": 909,
+            "result_row_capacity": 65536,
+            "result_rows": 909
+          },
+          "cache_hit_ratio": 0.091,
+          "capacity": 2048,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 515.792,
+            "p50": 515.792,
+            "p95": 563.085,
+            "p99": 587.497
+          },
+          "parity": true,
+          "peak_rss_bytes": 52379648,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 52379648,
+          "unique_requests": 909
+        },
+        {
+          "cache": {
+            "capacity": 8192,
+            "entries": 909,
+            "hits": 91,
+            "invalidations": 0,
+            "misses": 909,
+            "result_row_capacity": 65536,
+            "result_rows": 909
+          },
+          "cache_hit_ratio": 0.091,
+          "capacity": 8192,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 522.959,
+            "p50": 522.959,
+            "p95": 575.538,
+            "p99": 613.215
+          },
+          "parity": true,
+          "peak_rss_bytes": 52494336,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 49152,
+          "rss_end_bytes": 52494336,
+          "unique_requests": 909
+        },
+        {
+          "cache": {
+            "capacity": 16384,
+            "entries": 909,
+            "hits": 91,
+            "invalidations": 0,
+            "misses": 909,
+            "result_row_capacity": 65536,
+            "result_rows": 909
+          },
+          "cache_hit_ratio": 0.091,
+          "capacity": 16384,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 519.604,
+            "p50": 519.604,
+            "p95": 575.3,
+            "p99": 640.536
+          },
+          "parity": true,
+          "peak_rss_bytes": 52494336,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 52494336,
+          "unique_requests": 909
+        }
+      ],
+      "row_pressure": [
+        {
+          "cache": {
+            "capacity": 512,
+            "entries": 512,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 51200
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 512,
+          "entry_pressure_evictions": 488,
+          "latency_us": {
+            "median": 2380.812,
+            "p50": 2380.812,
+            "p95": 2563.083,
+            "p99": 2745.782
+          },
+          "parity": true,
+          "peak_rss_bytes": 57901056,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 3932160,
+          "rss_end_bytes": 57982976,
+          "unique_requests": 1000
+        },
+        {
+          "cache": {
+            "capacity": 2048,
+            "entries": 655,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 65500
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 2048,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 2380.125,
+            "p50": 2380.125,
+            "p95": 2554.309,
+            "p99": 2671.181
+          },
+          "parity": true,
+          "peak_rss_bytes": 60096512,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 345,
+          "rss_delta_bytes": 1540096,
+          "rss_end_bytes": 60096512,
+          "unique_requests": 1000
+        },
+        {
+          "cache": {
+            "capacity": 8192,
+            "entries": 655,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 65500
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 8192,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 2389.833,
+            "p50": 2389.833,
+            "p95": 2539.066,
+            "p99": 2632.748
+          },
+          "parity": true,
+          "peak_rss_bytes": 60948480,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 345,
+          "rss_delta_bytes": 819200,
+          "rss_end_bytes": 60948480,
+          "unique_requests": 1000
+        },
+        {
+          "cache": {
+            "capacity": 16384,
+            "entries": 655,
+            "hits": 0,
+            "invalidations": 0,
+            "misses": 1000,
+            "result_row_capacity": 65536,
+            "result_rows": 65500
+          },
+          "cache_hit_ratio": 0.0,
+          "capacity": 16384,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 2358.979,
+            "p50": 2358.979,
+            "p95": 2500.162,
+            "p99": 2612.354
+          },
+          "parity": true,
+          "peak_rss_bytes": 60948480,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 345,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 60948480,
+          "unique_requests": 1000
+        }
+      ],
+      "uniform": [
+        {
+          "cache": {
+            "capacity": 512,
+            "entries": 512,
+            "hits": 25,
+            "invalidations": 0,
+            "misses": 975,
+            "result_row_capacity": 65536,
+            "result_rows": 512
+          },
+          "cache_hit_ratio": 0.025,
+          "capacity": 512,
+          "entry_pressure_evictions": 463,
+          "latency_us": {
+            "median": 517.188,
+            "p50": 517.188,
+            "p95": 567.375,
+            "p99": 610.926
+          },
+          "parity": true,
+          "peak_rss_bytes": 60948480,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 60948480,
+          "unique_requests": 967
+        },
+        {
+          "cache": {
+            "capacity": 2048,
+            "entries": 967,
+            "hits": 33,
+            "invalidations": 0,
+            "misses": 967,
+            "result_row_capacity": 65536,
+            "result_rows": 967
+          },
+          "cache_hit_ratio": 0.033,
+          "capacity": 2048,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 521.812,
+            "p50": 521.812,
+            "p95": 571.809,
+            "p99": 607.779
+          },
+          "parity": true,
+          "peak_rss_bytes": 61243392,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61243392,
+          "unique_requests": 967
+        },
+        {
+          "cache": {
+            "capacity": 8192,
+            "entries": 967,
+            "hits": 33,
+            "invalidations": 0,
+            "misses": 967,
+            "result_row_capacity": 65536,
+            "result_rows": 967
+          },
+          "cache_hit_ratio": 0.033,
+          "capacity": 8192,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 521.375,
+            "p50": 521.375,
+            "p95": 572.504,
+            "p99": 608.253
+          },
+          "parity": true,
+          "peak_rss_bytes": 61259776,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61259776,
+          "unique_requests": 967
+        },
+        {
+          "cache": {
+            "capacity": 16384,
+            "entries": 967,
+            "hits": 33,
+            "invalidations": 0,
+            "misses": 967,
+            "result_row_capacity": 65536,
+            "result_rows": 967
+          },
+          "cache_hit_ratio": 0.033,
+          "capacity": 16384,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 523.583,
+            "p50": 523.583,
+            "p95": 571.175,
+            "p99": 612.609
+          },
+          "parity": true,
+          "peak_rss_bytes": 61259776,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61259776,
+          "unique_requests": 967
+        }
+      ],
+      "zipf": [
+        {
+          "cache": {
+            "capacity": 512,
+            "entries": 414,
+            "hits": 586,
+            "invalidations": 0,
+            "misses": 414,
+            "result_row_capacity": 65536,
+            "result_rows": 414
+          },
+          "cache_hit_ratio": 0.586,
+          "capacity": 512,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 1.708,
+            "p50": 1.708,
+            "p95": 548.669,
+            "p99": 573.339
+          },
+          "parity": true,
+          "peak_rss_bytes": 61292544,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61292544,
+          "unique_requests": 414
+        },
+        {
+          "cache": {
+            "capacity": 2048,
+            "entries": 414,
+            "hits": 586,
+            "invalidations": 0,
+            "misses": 414,
+            "result_row_capacity": 65536,
+            "result_rows": 414
+          },
+          "cache_hit_ratio": 0.586,
+          "capacity": 2048,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 1.667,
+            "p50": 1.667,
+            "p95": 551.021,
+            "p99": 575.259
+          },
+          "parity": true,
+          "peak_rss_bytes": 61292544,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61292544,
+          "unique_requests": 414
+        },
+        {
+          "cache": {
+            "capacity": 8192,
+            "entries": 414,
+            "hits": 586,
+            "invalidations": 0,
+            "misses": 414,
+            "result_row_capacity": 65536,
+            "result_rows": 414
+          },
+          "cache_hit_ratio": 0.586,
+          "capacity": 8192,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 1.667,
+            "p50": 1.667,
+            "p95": 555.171,
+            "p99": 585.133
+          },
+          "parity": true,
+          "peak_rss_bytes": 61292544,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61292544,
+          "unique_requests": 414
+        },
+        {
+          "cache": {
+            "capacity": 16384,
+            "entries": 414,
+            "hits": 586,
+            "invalidations": 0,
+            "misses": 414,
+            "result_row_capacity": 65536,
+            "result_rows": 414
+          },
+          "cache_hit_ratio": 0.586,
+          "capacity": 16384,
+          "entry_pressure_evictions": 0,
+          "latency_us": {
+            "median": 1.625,
+            "p50": 1.625,
+            "p95": 543.81,
+            "p99": 583.722
+          },
+          "parity": true,
+          "peak_rss_bytes": 61292544,
+          "repetition": 1,
+          "requests": 1000,
+          "row_pressure_evictions": 0,
+          "rss_delta_bytes": 0,
+          "rss_end_bytes": 61292544,
+          "unique_requests": 414
+        }
+      ]
+    },
+    "corpus_build_seconds": 0.005445,
+    "multi_corpus": {
+      "corpora": 4,
+      "parity": true,
+      "peak_rss_bytes": 63930368,
+      "requests_per_corpus": 1000,
+      "rss_end_bytes": 63930368,
+      "wall_seconds": 2.080604
+    },
+    "mutation_storm": {
+      "cache": {
+        "capacity": 8192,
+        "entries": 10,
+        "hits": 0,
+        "invalidations": 99,
+        "misses": 10,
+        "result_row_capacity": 65536,
+        "result_rows": 10
+      },
+      "invalidation_latency_us_p99": 4.34,
+      "parity": true,
+      "rebuild_latency_us_p99": 5527.052
+    }
+  },
+  "production_default_entries": 8192
+}
