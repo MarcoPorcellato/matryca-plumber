@@ -264,6 +264,8 @@ Never commit secrets (no `.env`, tokens, or private graph paths in git).
 
 Write repository documentation and GitHub-facing prose in English. Non-English text is allowed only when it is an explicit localization or parser fixture, or when a source quotation is accompanied by an English translation.
 
+The maintained documentation model, OKF v0.2 compatibility layer, Matryca quality profile, source-of-truth boundary, inventory workflow, and authoring procedure are defined in [`docs/knowledge/documentation-evolution.md`](docs/knowledge/documentation-evolution.md) and [`docs/knowledge/profile.md`](docs/knowledge/profile.md). After adding, moving, or removing repository Markdown, reconcile and verify the inventory with `make docs-inventory-sync`, `make docs-inventory-md`, and `make docs-check`.
+
 ### Agent-facing documentation (`llms.txt`)
 
 When you add, rename, or remove **CLI subcommands or flags** that external agents rely on:

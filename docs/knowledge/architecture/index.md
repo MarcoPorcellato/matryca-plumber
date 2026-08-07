@@ -1,8 +1,8 @@
 # Architecture
 
-Pilot index for system structure. **Legacy [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
+Progressive-disclosure index for maintained system concepts. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains the detailed architecture contract.
 
-## Current pilot
+## Maintained concepts
 
 - [System overview](system-overview.md) — Three-surface runtime, vault topology, daemon phase model.
 - [Graph plane](graph-plane.md) — Markdown SSOT, parser, OCC, locks, sandbox, `graph_dispatch`.

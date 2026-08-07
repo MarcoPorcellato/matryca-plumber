@@ -15,10 +15,13 @@ from scripts.docs_knowledge_check import (
     build_default_entry,
     discover_inventory_paths,
     inventory_sync,
+    migrate_inventory_schema,
     render_inventory_md,
     resolve_bundle_link,
     resolve_legacy_source,
     split_frontmatter,
+    validate_concept_frontmatter,
+    validate_document_links,
     validate_inventory_schema,
     validate_legacy_sources,
 )
@@ -45,7 +48,7 @@ def test_build_default_entry_marks_issue_bodies_as_artifact() -> None:
 def test_inventory_sync_preserves_curated_fields(tmp_path: Path) -> None:
     inventory_path = tmp_path / "inventory.json"
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "scope": "repository-documentation",
         "entries": [
             {
@@ -53,7 +56,7 @@ def test_inventory_sync_preserves_curated_fields(tmp_path: Path) -> None:
                 "type": "Architecture",
                 "title": "Curated title",
                 "description": "Curated description",
-                "status": "current",
+                "classification": "canonical",
                 "audience": ["maintainer"],
                 "surface_class": "concept-candidate",
                 "canonical_for": "architecture.system",
@@ -88,7 +91,7 @@ def test_inventory_sync_preserves_curated_fields(tmp_path: Path) -> None:
 def test_inventory_sync_marks_missing_without_deletion(tmp_path: Path) -> None:
     inventory_path = tmp_path / "inventory.json"
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "scope": "repository-documentation",
         "entries": [
             {
@@ -96,7 +99,7 @@ def test_inventory_sync_marks_missing_without_deletion(tmp_path: Path) -> None:
                 "type": "Archive",
                 "title": "Gone",
                 "description": "Missing file",
-                "status": "archived",
+                "classification": "historical",
                 "audience": ["maintainer"],
                 "surface_class": "concept-candidate",
                 "canonical_for": None,
@@ -138,12 +141,12 @@ def test_validate_inventory_schema_rejects_unsorted_paths() -> None:
         "type": "Archive",
         "title": "z",
         "description": "z",
-        "status": "current",
+        "classification": "active",
         "action": "keep",
         "surface_class": "concept-candidate",
     }
     data = {
-        "schema_version": 1,
+        "schema_version": 2,
         "scope": "repository-documentation",
         "entries": [
             {"path": "docs/z.md", **entry},
@@ -154,16 +157,68 @@ def test_validate_inventory_schema_rejects_unsorted_paths() -> None:
     assert any("sorted by path" in error for error in errors)
 
 
+def test_validate_inventory_schema_rejects_duplicate_canonical_roles() -> None:
+    common = {
+        "type": "Architecture",
+        "title": "Architecture",
+        "description": "Architecture contract.",
+        "classification": "canonical",
+        "canonical_for": "architecture.system",
+        "action": "keep",
+        "surface_class": "concept-candidate",
+    }
+    data = {
+        "schema_version": 2,
+        "scope": "repository-documentation",
+        "entries": [
+            {"path": "docs/a.md", **common},
+            {"path": "docs/b.md", **common},
+        ],
+    }
+
+    errors = validate_inventory_schema(data)
+
+    assert any("duplicate inventory canonical_for" in error for error in errors)
+
+
 def test_resolve_bundle_link() -> None:
     target = resolve_bundle_link("/architecture/system-overview.md")
     assert target.name == "system-overview.md"
+
+
+def test_migrate_inventory_schema_separates_classification() -> None:
+    data: dict[str, Any] = {
+        "schema_version": 1,
+        "scope": "repository-documentation",
+        "entries": [
+            {"path": "docs/history.md", "status": "archived", "action": "archive"},
+            {
+                "path": "docs/ARCHITECTURE.md",
+                "status": "current",
+                "action": "split",
+                "canonical_for": "architecture.system",
+            },
+            {"path": "CHANGELOG.md", "status": "current", "action": "generated"},
+        ],
+    }
+
+    assert migrate_inventory_schema(data) is True
+    assert data["schema_version"] == 2
+    entries = data["entries"]
+    assert isinstance(entries, list)
+    assert [entry["classification"] for entry in entries] == [
+        "historical",
+        "canonical",
+        "generated",
+    ]
+    assert all("status" not in entry for entry in entries)
 
 
 def test_split_frontmatter_parses_profile() -> None:
     meta, body = split_frontmatter(ROOT / "docs" / "knowledge" / "profile.md")
     assert meta is not None
     assert meta["type"] == "Specification"
-    assert "Matryca knowledge profile" in body
+    assert "Matryca Plumber knowledge profile" in body
 
 
 def test_docs_check_script_exits_zero() -> None:
@@ -283,15 +338,84 @@ def test_validate_legacy_sources_rejects_absolute() -> None:
 
 
 def test_architecture_pilot_frontmatter_required_fields() -> None:
-    required = ("type", "title", "description", "tags", "timestamp", "status", "audience", "owner")
+    required = (
+        "type",
+        "title",
+        "description",
+        "tags",
+        "generated",
+        "verified",
+        "last_verified",
+        "stale_after",
+        "status",
+        "classification",
+        "canonical_for",
+        "audience",
+        "owner",
+    )
     for rel in ARCHITECTURE_PILOTS:
         meta, _ = split_frontmatter(KNOWLEDGE_DIR / rel)
         assert meta is not None, rel
         for field in required:
             assert field in meta, f"{rel} missing {field}"
         assert meta["type"] == "Architecture"
-        assert meta["status"] == "experimental"
-        assert "canonical_for" not in meta
+        assert meta["status"] == "stable"
+        assert meta["classification"] == "canonical"
+
+
+def test_validate_concept_frontmatter_rejects_legacy_status() -> None:
+    path = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    meta, _ = split_frontmatter(path)
+    assert meta is not None
+    changed = dict(meta)
+    changed["status"] = "experimental"
+
+    errors = validate_concept_frontmatter(path, changed)
+
+    assert any("invalid OKF status" in error for error in errors)
+
+
+def test_validate_concept_frontmatter_rejects_empty_verification() -> None:
+    path = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    meta, _ = split_frontmatter(path)
+    assert meta is not None
+    changed = dict(meta)
+    changed["verified"] = []
+
+    errors = validate_concept_frontmatter(path, changed)
+
+    assert any("at least one verification event" in error for error in errors)
+
+
+def test_validate_concept_frontmatter_rejects_inconsistent_freshness() -> None:
+    path = KNOWLEDGE_DIR / "architecture" / "system-overview.md"
+    meta, _ = split_frontmatter(path)
+    assert meta is not None
+    changed = dict(meta)
+    changed["last_verified"] = "2026-08-05"
+    changed["stale_after"] = "2026-08-05"
+
+    errors = validate_concept_frontmatter(path, changed)
+
+    assert any("stale_after must be after last_verified" in error for error in errors)
+    assert any("latest verified event date" in error for error in errors)
+
+
+def test_validate_document_links_rejects_missing_anchor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    source = tmp_path / "source.md"
+    target = tmp_path / "target.md"
+    source.write_text("[Missing](target.md#absent)\n", encoding="utf-8")
+    target.write_text("# Present\n", encoding="utf-8")
+
+    errors = validate_document_links(source, source.read_text(encoding="utf-8"), "source.md")
+
+    assert any("broken local anchor" in error for error in errors)
 
 
 def test_shadow_db_since_version() -> None:

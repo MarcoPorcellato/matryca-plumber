@@ -4,8 +4,12 @@ title: Cache-friendly retrieval and inference context
 description: Keep document retrieval and inference KV caches separate while making retrieval output deterministic, attributable, and suitable for reusable prefixes.
 resource: src/shadow/ src/graph/generational_cache.py src/semantic/
 tags: [retrieval, cache, shadow-db, context, privacy]
-timestamp: 2026-08-02T00:00:00Z
-status: experimental
+generated: { by: human:marco-porcellato, at: '2026-08-02T00:00:00Z' }
+verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
+last_verified: 2026-08-06
+stale_after: 2027-02-02
+status: draft
+classification: active
 audience: [maintainer, contributor, operator]
 owner: retrieval-runtime
 since: v2.0.0-rc

@@ -4,8 +4,13 @@ title: System overview
 description: Three-surface runtime, shared mutation plane, vault topology, and daemon phase model.
 resource: src/
 tags: [architecture, daemon, mcp, sovereign-ui, graph-dispatch]
-timestamp: 2026-07-18T00:00:00Z
-status: experimental
+generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
+verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
+last_verified: 2026-08-06
+stale_after: 2027-02-02
+status: stable
+classification: canonical
+canonical_for: architecture.summary
 audience: [maintainer, contributor, operator]
 owner: core-runtime
 supersedes: []
@@ -21,7 +26,7 @@ legacy_sources:
 
 # System overview
 
-> **Pilot document — [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains authoritative during Phase 1.**
+This maintained concept is the canonical progressive-disclosure overview. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains the detailed architecture contract.
 
 Matryca Plumber is a **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees. Safety on the graph plane — AST parity, OCC, path sandboxing — is documented in [Graph plane](graph-plane.md). Operator Trust & Safety tiers remain in the legacy architecture contract.
 
@@ -196,4 +201,4 @@ This pilot omits operational depth available in the legacy architecture contract
 | Sandboxing (normative) | [`openspec/security-sandbox.md`](../../openspec/security-sandbox.md) |
 | Release engineering | [`RELEASE_PROCESS.md`](../../RELEASE_PROCESS.md) |
 | Maintainer timeline | [`PROJECT_DIARY.md`](../../PROJECT_DIARY.md) |
-| Agent runtime law | [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) |
+| Agent runtime law | [`SYSTEM_PROMPT.md`](../../../SYSTEM_PROMPT.md) |

@@ -9,9 +9,10 @@ import re
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, NoReturn, cast
+from urllib.parse import unquote, urlsplit
 
 import yaml
 
@@ -39,9 +40,10 @@ DOC_TYPES: frozenset[str] = frozenset(
     }
 )
 
-STATUSES: frozenset[str] = frozenset(
-    {"current", "experimental", "planned", "deprecated", "archived"}
-)
+INVENTORY_SCHEMA_VERSION = 2
+OKF_VERSION = "0.2"
+OKF_STATUSES: frozenset[str] = frozenset({"draft", "stable", "deprecated"})
+CLASSIFICATIONS: frozenset[str] = frozenset({"canonical", "active", "historical", "generated"})
 
 ACTIONS: frozenset[str] = frozenset(
     {"keep", "migrate", "split", "merge", "archive", "artifact", "generated"}
@@ -73,7 +75,7 @@ ROOT_SURFACE_PATHS: tuple[str, ...] = (
     "PROJECT_DIARY.md",
 )
 
-INDEX_EXCEPTIONS: frozenset[str] = frozenset({"index.md"})
+RESERVED_FILENAMES: frozenset[str] = frozenset({"index.md", "log.md"})
 
 CURATED_ENTRY_FIELDS: frozenset[str] = frozenset(
     {
@@ -81,7 +83,7 @@ CURATED_ENTRY_FIELDS: frozenset[str] = frozenset(
         "type",
         "title",
         "description",
-        "status",
+        "classification",
         "audience",
         "surface_class",
         "canonical_for",
@@ -103,7 +105,7 @@ class HeuristicDefaults:
     destination: str | None = None
 
 
-def _fail(message: str) -> None:
+def _fail(message: str) -> NoReturn:
     print(message, file=sys.stderr)
     raise SystemExit(1)
 
@@ -266,12 +268,14 @@ def _default_audience(path: str) -> list[str]:
     return ["maintainer", "contributor"]
 
 
-def _default_status(path: str, action: str) -> str:
+def _default_classification(path: str, action: str) -> str:
+    if action == "generated":
+        return "generated"
     if action in {"artifact", "archive"}:
-        return "archived"
-    if path.startswith("docs/roadmaps/"):
-        return "planned"
-    return "current"
+        return "historical"
+    if path in ROOT_SURFACE_PATHS:
+        return "canonical"
+    return "active"
 
 
 def discover_inventory_paths() -> list[str]:
@@ -291,13 +295,13 @@ def build_default_entry(path: str) -> dict[str, Any]:
     title = _first_heading_title(text) or path
     description = _first_sentence(text) or f"Documentation file at {path}."
     defaults = _heuristic_defaults(path)
-    status = _default_status(path, defaults.action)
+    classification = _default_classification(path, defaults.action)
     entry: dict[str, Any] = {
         "path": path,
         "type": defaults.doc_type,
         "title": title,
         "description": description,
-        "status": status,
+        "classification": classification,
         "audience": _default_audience(path),
         "surface_class": defaults.surface_class,
         "canonical_for": None,
@@ -323,8 +327,8 @@ def load_inventory() -> dict[str, Any]:
 
 def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
-    if data.get("schema_version") != 1:
-        errors.append("inventory.json schema_version must be 1")
+    if data.get("schema_version") != INVENTORY_SCHEMA_VERSION:
+        errors.append(f"inventory.json schema_version must be {INVENTORY_SCHEMA_VERSION}")
     if data.get("scope") != "repository-documentation":
         errors.append("inventory.json scope must be 'repository-documentation'")
     entries = data.get("entries")
@@ -333,6 +337,7 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
         return errors
 
     seen_paths: set[str] = set()
+    canonical_roles: dict[str, str] = {}
     for index, entry in enumerate(entries):
         prefix = f"entries[{index}]"
         if not isinstance(entry, dict):
@@ -345,15 +350,22 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
         if path in seen_paths:
             errors.append(f"duplicate inventory path: {path}")
         seen_paths.add(path)
-        for field in ("type", "title", "description", "status", "action", "surface_class"):
+        for field in (
+            "type",
+            "title",
+            "description",
+            "classification",
+            "action",
+            "surface_class",
+        ):
             if field not in entry:
                 errors.append(f"{prefix}.{field} is required")
         doc_type = entry.get("type")
         if isinstance(doc_type, str) and doc_type not in DOC_TYPES:
             errors.append(f"{prefix}.type invalid: {doc_type}")
-        status = entry.get("status")
-        if isinstance(status, str) and status not in STATUSES:
-            errors.append(f"{prefix}.status invalid: {status}")
+        classification = entry.get("classification")
+        if isinstance(classification, str) and classification not in CLASSIFICATIONS:
+            errors.append(f"{prefix}.classification invalid: {classification}")
         action = entry.get("action")
         if isinstance(action, str) and action not in ACTIONS:
             errors.append(f"{prefix}.action invalid: {action}")
@@ -372,6 +384,18 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
         canonical_for = entry.get("canonical_for")
         if canonical_for is not None and not isinstance(canonical_for, str):
             errors.append(f"{prefix}.canonical_for must be a string or null")
+        if classification == "canonical" and not canonical_for:
+            errors.append(f"{prefix}.classification canonical requires canonical_for")
+        if canonical_for and classification != "canonical":
+            errors.append(f"{prefix}.canonical_for requires classification canonical")
+        if isinstance(canonical_for, str) and canonical_for:
+            previous = canonical_roles.get(canonical_for)
+            if previous is not None:
+                errors.append(
+                    f"duplicate inventory canonical_for {canonical_for!r} in {previous} and {path}"
+                )
+            else:
+                canonical_roles[canonical_for] = path
 
     sorted_paths = [
         entry["path"] for entry in entries if isinstance(entry, dict) and "path" in entry
@@ -379,6 +403,36 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
     if sorted_paths != sorted(sorted_paths):
         errors.append("inventory.json entries must be sorted by path")
     return errors
+
+
+def migrate_inventory_schema(data: dict[str, Any]) -> bool:
+    """Upgrade the legacy inventory lifecycle field to Matryca classification."""
+    if data.get("schema_version") != 1:
+        return False
+    entries = data.get("entries")
+    if not isinstance(entries, list):
+        _fail("inventory.json entries must be a list")
+    legacy_mapping = {
+        "archived": "historical",
+        "current": "active",
+        "planned": "active",
+        "deprecated": "historical",
+        "experimental": "active",
+    }
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        legacy_status = entry.pop("status", None)
+        action = entry.get("action")
+        if action == "generated":
+            classification = "generated"
+        elif entry.get("canonical_for"):
+            classification = "canonical"
+        else:
+            classification = legacy_mapping.get(legacy_status, "active")
+        entry["classification"] = classification
+    data["schema_version"] = INVENTORY_SCHEMA_VERSION
+    return True
 
 
 def inventory_init(*, force: bool = False) -> None:
@@ -389,7 +443,7 @@ def inventory_init(*, force: bool = False) -> None:
         )
     entries = [build_default_entry(path) for path in discover_inventory_paths()]
     payload = {
-        "schema_version": 1,
+        "schema_version": INVENTORY_SCHEMA_VERSION,
         "scope": "repository-documentation",
         "entries": entries,
     }
@@ -403,6 +457,7 @@ def inventory_init(*, force: bool = False) -> None:
 
 def inventory_sync(*, check: bool = False) -> None:
     data = load_inventory()
+    migrated = migrate_inventory_schema(data) if not check else False
     existing_entries = data.get("entries", [])
     if not isinstance(existing_entries, list):
         _fail("inventory.json entries must be a list")
@@ -450,6 +505,7 @@ def inventory_sync(*, check: bool = False) -> None:
     )
     print(
         f"inventory synced: {len(new_paths)} added, {len(missing_paths)} marked missing, "
+        f"schema migrated={'yes' if migrated else 'no'}, "
         f"{len(merged_entries)} total"
     )
 
@@ -464,8 +520,12 @@ def render_inventory_md(data: Mapping[str, Any]) -> str:
         "type: Reference",
         "title: Repository documentation inventory",
         "description: Generated view of curated documentation inventory entries.",
-        "timestamp: 2026-07-18T00:00:00Z",
-        "status: experimental",
+        "generated: { by: process:docs-knowledge-inventory, at: '2026-08-06T00:00:00Z' }",
+        "verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }",
+        "last_verified: 2026-08-06",
+        "stale_after: 2027-02-02",
+        "status: stable",
+        "classification: generated",
         "audience: [maintainer, agent]",
         "owner: core-runtime",
         "supersedes: []",
@@ -490,18 +550,18 @@ def render_inventory_md(data: Mapping[str, Any]) -> str:
     for action in sorted(grouped):
         lines.append(f"## {action}")
         lines.append("")
-        lines.append("| path | type | status | destination | canonical_for | missing |")
+        lines.append("| path | type | classification | destination | canonical_for | missing |")
         lines.append("| --- | --- | --- | --- | --- | --- |")
         for entry in sorted(grouped[action], key=lambda item: str(item.get("path", ""))):
             path = str(entry.get("path", ""))
             doc_type = str(entry.get("type", ""))
-            status = str(entry.get("status", ""))
+            classification = str(entry.get("classification", ""))
             destination = entry.get("destination") or ""
             canonical_for = entry.get("canonical_for") or ""
             missing = "yes" if entry.get("missing") else ""
             lines.append(
                 "| "
-                f"`{path}` | {doc_type} | {status} | {destination} | "
+                f"`{path}` | {doc_type} | {classification} | {destination} | "
                 f"{canonical_for} | {missing} |"
             )
         lines.append("")
@@ -535,8 +595,87 @@ def _validate_timestamp(value: Any, label: str) -> list[str]:
     return []
 
 
-def _bundle_link_targets(body: str) -> list[str]:
-    return re.findall(r"\]\((/[^)]+)\)", body)
+def _validate_iso_date(value: Any, label: str) -> list[str]:
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return []
+    if not isinstance(value, str):
+        return [f"{label} must be an ISO 8601 date"]
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return [f"{label} must be an ISO 8601 date"]
+    return []
+
+
+def _parse_iso_date(value: Any) -> date | None:
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _parse_timestamp_date(value: Any) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def _validate_actor_event(value: Any, label: str, *, allow_many: bool) -> list[str]:
+    if allow_many and isinstance(value, list) and not value:
+        return [f"{label} must contain at least one verification event"]
+    events = value if allow_many and isinstance(value, list) else [value]
+    errors: list[str] = []
+    for index, event in enumerate(events):
+        event_label = f"{label}[{index}]" if len(events) > 1 else label
+        if not isinstance(event, dict):
+            errors.append(f"{event_label} must be a mapping")
+            continue
+        actor = event.get("by")
+        if not isinstance(actor, str) or not actor:
+            errors.append(f"{event_label}.by must be a non-empty actor")
+        errors.extend(_validate_timestamp(event.get("at"), f"{event_label}.at"))
+    return errors
+
+
+def _markdown_link_targets(text: str) -> list[str]:
+    targets: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        targets.extend(re.findall(r"(?<!!)\[[^]]*\]\(([^)]+)\)", line))
+    return targets
+
+
+def _heading_anchors(text: str) -> set[str]:
+    anchors: set[str] = set()
+    counts: dict[str, int] = {}
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            continue
+        if fenced or not (match := re.match(r"^#{1,6}\s+(.+?)\s*#*\s*$", line)):
+            continue
+        heading = re.sub(r"\[([^]]+)\]\([^)]+\)", r"\1", match.group(1))
+        slug = re.sub(r"[^\w\- ]", "", heading.lower(), flags=re.UNICODE)
+        slug = slug.strip().replace(" ", "-")
+        occurrence = counts.get(slug, 0)
+        counts[slug] = occurrence + 1
+        anchors.add(slug if occurrence == 0 else f"{slug}-{occurrence}")
+    return anchors
 
 
 def resolve_bundle_link(target: str) -> Path:
@@ -545,6 +684,39 @@ def resolve_bundle_link(target: str) -> Path:
         msg = f"bundle link must start with /: {target}"
         raise ValueError(msg)
     return KNOWLEDGE_DIR / clean.lstrip("/")
+
+
+def validate_document_links(path: Path, text: str, label: str) -> list[str]:
+    errors: list[str] = []
+    root = ROOT.resolve()
+    for raw_target in _markdown_link_targets(text):
+        target = raw_target.strip()
+        if target.startswith("<") and target.endswith(">"):
+            target = target[1:-1]
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc:
+            continue
+        relative = unquote(parsed.path)
+        if relative.startswith("/"):
+            destination = (KNOWLEDGE_DIR / relative.lstrip("/")).resolve()
+        elif relative:
+            destination = (path.parent / relative).resolve()
+        else:
+            destination = path.resolve()
+        try:
+            destination.relative_to(root)
+        except ValueError:
+            errors.append(f"{label}: local link escapes repository: {raw_target}")
+            continue
+        if not destination.exists():
+            errors.append(f"{label}: broken local link {raw_target}")
+            continue
+        anchor = unquote(parsed.fragment)
+        if anchor and destination.is_file():
+            anchors = _heading_anchors(_read_text(destination))
+            if anchor not in anchors:
+                errors.append(f"{label}: broken local anchor {raw_target}")
+    return errors
 
 
 def resolve_legacy_source(source: str, concept_path: Path) -> Path:
@@ -600,13 +772,32 @@ def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[st
     if not isinstance(doc_type, str) or doc_type not in DOC_TYPES:
         errors.append(f"{label}: type must be one of profile types")
 
-    for field in ("title", "description", "timestamp"):
+    for field in (
+        "title",
+        "description",
+        "status",
+        "classification",
+        "verified",
+        "last_verified",
+        "stale_after",
+    ):
         if field not in meta:
             errors.append(f"{label}: missing required field {field}")
 
     status = meta.get("status")
-    if status is not None and (not isinstance(status, str) or status not in STATUSES):
-        errors.append(f"{label}: invalid status")
+    if status is not None and (not isinstance(status, str) or status not in OKF_STATUSES):
+        errors.append(f"{label}: invalid OKF status")
+
+    classification = meta.get("classification")
+    if classification is not None and (
+        not isinstance(classification, str) or classification not in CLASSIFICATIONS
+    ):
+        errors.append(f"{label}: invalid Matryca classification")
+    canonical_for = meta.get("canonical_for")
+    if classification == "canonical" and (not isinstance(canonical_for, str) or not canonical_for):
+        errors.append(f"{label}: canonical concepts require canonical_for")
+    if classification == "generated" and "generated" not in meta:
+        errors.append(f"{label}: generated concepts require generated provenance")
 
     audience = meta.get("audience")
     if audience is not None and (
@@ -615,15 +806,46 @@ def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[st
     ):
         errors.append(f"{label}: invalid audience")
 
-    errors.extend(_validate_timestamp(meta.get("timestamp"), f"{label}.timestamp"))
+    if "generated" in meta:
+        errors.extend(
+            _validate_actor_event(meta.get("generated"), f"{label}.generated", allow_many=False)
+        )
+    if "verified" in meta:
+        errors.extend(
+            _validate_actor_event(meta.get("verified"), f"{label}.verified", allow_many=True)
+        )
+    errors.extend(_validate_iso_date(meta.get("last_verified"), f"{label}.last_verified"))
+    errors.extend(_validate_iso_date(meta.get("stale_after"), f"{label}.stale_after"))
+    last_verified = meta.get("last_verified")
+    stale_after = meta.get("stale_after")
+    last_verified_date = _parse_iso_date(last_verified)
+    stale_after_date = _parse_iso_date(stale_after)
+    if (
+        last_verified_date is not None
+        and stale_after_date is not None
+        and stale_after_date <= last_verified_date
+    ):
+        errors.append(f"{label}: stale_after must be after last_verified")
+
+    verified = meta.get("verified")
+    events = verified if isinstance(verified, list) else [verified]
+    verified_dates = [
+        parsed
+        for event in events
+        if isinstance(event, dict)
+        if (parsed := _parse_timestamp_date(event.get("at"))) is not None
+    ]
+    if verified_dates and last_verified_date is not None:
+        expected = max(verified_dates)
+        if last_verified_date != expected:
+            errors.append(f"{label}: last_verified must match the latest verified event date")
     return errors
 
 
 def collect_knowledge_concepts() -> list[Path]:
     concepts: list[Path] = []
     for path in sorted(KNOWLEDGE_DIR.rglob("*.md")):
-        rel = path.relative_to(KNOWLEDGE_DIR).as_posix()
-        if rel in INDEX_EXCEPTIONS or rel.endswith("/index.md"):
+        if path.name in RESERVED_FILENAMES:
             continue
         concepts.append(path)
     return concepts
@@ -638,7 +860,15 @@ def check_bundle() -> None:
     data = load_inventory()
     errors.extend(validate_inventory_schema(data))
 
-    canonical_for_values: dict[str, str] = {}
+    entries = data.get("entries", [])
+    canonical_for_values = {
+        str(entry["canonical_for"]): f"inventory:{entry['path']}"
+        for entry in entries
+        if isinstance(entry, dict)
+        and isinstance(entry.get("canonical_for"), str)
+        and entry.get("canonical_for")
+        and isinstance(entry.get("path"), str)
+    }
     for concept_path in collect_knowledge_concepts():
         rel = concept_path.relative_to(KNOWLEDGE_DIR).as_posix()
         meta, body = split_frontmatter(concept_path)
@@ -660,28 +890,33 @@ def check_bundle() -> None:
             else:
                 canonical_for_values[canonical_for] = rel
 
-        for target in _bundle_link_targets(body):
-            try:
-                resolved = resolve_bundle_link(target)
-            except ValueError as exc:
-                errors.append(f"{rel}: {exc}")
-                continue
-            if not resolved.is_file():
-                errors.append(f"{rel}: broken bundle link {target}")
+        errors.extend(validate_document_links(concept_path, body, rel))
 
     for index_path in sorted(KNOWLEDGE_DIR.rglob("index.md")):
         rel = index_path.relative_to(KNOWLEDGE_DIR).as_posix()
-        body = _read_text(index_path)
-        for match in re.findall(r"\]\(([^)#]+\.md)\)", body):
-            if match.startswith("/"):
-                target = KNOWLEDGE_DIR / match.lstrip("/")
-            else:
-                target = (index_path.parent / match).resolve()
-            if not target.is_file():
-                errors.append(f"{rel}: broken index link {match}")
+        meta, body = split_frontmatter(index_path)
+        if index_path == KNOWLEDGE_DIR / "index.md":
+            if meta != {"okf_version": OKF_VERSION}:
+                errors.append(
+                    f"{rel}: root index frontmatter must contain only okf_version: {OKF_VERSION!r}"
+                )
+        elif meta is not None:
+            errors.append(f"{rel}: nested OKF indexes must not have frontmatter")
+        errors.extend(validate_document_links(index_path, body, rel))
 
-    if (KNOWLEDGE_DIR / "log.md").exists():
-        errors.append("docs/knowledge/log.md is reserved for future decision logs")
+    log_path = KNOWLEDGE_DIR / "log.md"
+    if not log_path.is_file():
+        errors.append("missing docs/knowledge/log.md")
+    else:
+        meta, body = split_frontmatter(log_path)
+        if meta is not None:
+            errors.append("log.md: OKF log files must not have frontmatter")
+        date_headings = re.findall(r"^## (\d{4}-\d{2}-\d{2})$", body, re.MULTILINE)
+        if not date_headings:
+            errors.append("log.md: expected at least one ISO date heading")
+        elif date_headings != sorted(date_headings, reverse=True):
+            errors.append("log.md: date headings must be newest first")
+        errors.extend(validate_document_links(log_path, body, "log.md"))
 
     inventory_sync(check=True)
     inventory_md(check=True)
