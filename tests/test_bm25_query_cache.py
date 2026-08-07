@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import random
 import threading
@@ -11,6 +12,7 @@ from pathlib import Path
 import pytest
 from src.graph.generational_cache import (
     Bm25Corpus,
+    bm25_diagnostics_snapshot,
     bm25_query_cache_stats,
     clear_generational_caches,
     get_cached_bm25_corpus,
@@ -224,3 +226,35 @@ def test_bm25_query_cache_keys_include_limit_and_scoring_parameters() -> None:
     result_rows = stats["result_rows"]
     score_bm25_query(corpus, "shared", limit=3, k1=2.0, b=0.5)
     assert bm25_query_cache_stats(corpus)["result_rows"] == result_rows
+
+
+def test_bm25_diagnostics_snapshot_is_typed_content_free_and_deterministic() -> None:
+    corpus = _synthetic_corpus(document_count=32)
+    score_bm25_query(corpus, "shared topic1", limit=8)
+    score_bm25_query(corpus, "shared topic1", limit=8)
+
+    first = bm25_diagnostics_snapshot(corpus)
+    second = bm25_diagnostics_snapshot(corpus)
+
+    assert first == second
+    assert first.schema_version == 1
+    assert first.corpus_documents == 32
+    assert first.corpus_unique_terms == len(corpus.df)
+    assert first.corpus_tokens == sum(corpus.doc_lens)
+    assert first.query_cache_entries == 1
+    assert first.query_cache_result_rows == 8
+    assert first.query_cache_hits == first.query_cache_misses == 1
+    assert first.query_cache_invalidations == 0
+    assert first.estimated_payload_bytes > 0
+    payload = json.dumps(first.to_dict(), sort_keys=True)
+    assert "pages/" not in payload
+    assert "shared" not in payload
+    assert "topic1" not in payload
+
+
+def test_bm25_diagnostics_payload_estimate_tracks_retained_structure() -> None:
+    small = bm25_diagnostics_snapshot(_synthetic_corpus(document_count=8))
+    large = bm25_diagnostics_snapshot(_synthetic_corpus(document_count=64))
+
+    assert large.estimated_payload_bytes > small.estimated_payload_bytes
+    assert large.corpus_documents > small.corpus_documents
