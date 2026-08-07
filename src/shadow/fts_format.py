@@ -10,7 +10,7 @@ from loguru import logger
 from ..graph.path_sandbox import resolved_graph_root
 from ..rag.local_query import format_keyword_query_markdown
 from .config import shadow_db_enabled
-from .connection import open_shadow_db
+from .connection import open_shadow_db_query_only
 from .freshness import (
     ShadowFreshnessError,
     ShadowFreshnessReason,
@@ -52,7 +52,7 @@ def format_shadow_fts_markdown(
     """Format shadow FTS block hits using the BM25 search_graph markdown envelope."""
     validate_fts_match_query(keyword)
     root = resolved_graph_root(graph_root)
-    conn = open_shadow_db(root)
+    conn = open_shadow_db_query_only(root)
     try:
         try:
             hits = search_blocks_fts(conn, keyword, limit=limit)

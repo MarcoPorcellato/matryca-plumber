@@ -324,6 +324,50 @@ not restart the historical RC soak clock.
 
 #### EX-06 — Separate query-only cache connections from schema application
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-06-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 791fbd8b8e1af0c7ff766f82c5ca694618deaaa8
+objective: make every pure Shadow SQLite read physically query-only without changing writer ownership
+authority: inspect | edit | commit | push | pr
+tracking_issue: 413
+allowlist:
+  - src/shadow/connection.py
+  - src/shadow/health.py
+  - src/agent/shadow_graph_repository.py
+  - src/shadow/fts_format.py
+  - src/shadow/state_api.py
+  - tests/test_shadow_connection.py
+  - tests/test_shadow_hardening_axis6_security.py
+  - docs/ARCHITECTURE.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+non_goals:
+  - change the external cache location, graph read-only policy, schema, or migration rules
+  - change FTS, subtree, health, state, or fallback response contracts
+  - modify Gate B evidence, services, artifacts, tags, releases, or publication state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_shadow_connection.py
+  - uv run pytest --no-cov -q tests/test_shadow_state_api.py tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py
+  - uv run pytest --no-cov -q tests/test_shadow_hardening_axis6_security.py
+  - make ci
+acceptance:
+  - missing query targets create no cache directory, database, schema, WAL, or SHM
+  - every pure reader uses mode=ro with PRAGMA query_only=ON
+  - writer/bootstrap/sync schema ownership and existing fallback contracts remain unchanged
+stop_conditions:
+  - any required schema, cache-location, graph-write-policy, or public response change
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: 791fbd8b8e1af0c7ff766f82c5ca694618deaaa8
+  gitnexus_open_writer_impact: CRITICAL
+  gitnexus_health_impact: HIGH
+  gitnexus_subtree_impact: LOW
+  gitnexus_fts_impact: MEDIUM
+```
+
 **Priority:** P2 operational hygiene and defense in depth, not evidence of a graph-write bypass.
 
 **Finding:** `open_shadow_db()` always creates/opens, applies DDL, and commits (`src/shadow/connection.py:34-65`). Health and subtree reads call it. External cache writes are allowed under graph read-only, but a nominal read path is still write-capable.
@@ -335,6 +379,36 @@ Acceptance gate:
 - health and subtree queries do not create a missing database, DDL, WAL, or SHM;
 - missing/stale/corrupt databases fall back cleanly;
 - writer paths retain schema migration behavior.
+
+**Implemented in #413:** the schema-capable opener remains unchanged for bootstrap,
+reconciliation, and sync. Health, state telemetry, FTS, and subtree reads now share a
+separate opener that requires an existing database through SQLite URI `mode=ro` and
+enables `PRAGMA query_only=ON`. The query path does not create the external cache
+directory, apply pragmas that change persistent journal state, run DDL, or commit.
+Missing and unreadable databases retain the existing stale/error and Markdown/BM25
+fallback contracts.
+
+The side-effect boundary is intentionally precise: when no database exists, the query
+opener creates no directory, database, WAL, or SHM. For an existing live WAL database,
+SQLite may create or reuse `-wal` and `-shm` sidecars to coordinate a current read. The
+`immutable=1` URI option is rejected because reconciliation can update this derived
+cache concurrently; asserting immutability could serve a stale snapshot. This follows
+SQLite's documented [read-only WAL contract](https://www.sqlite.org/wal.html#read_only_databases).
+
+**Validation:** the focused connection primitive suite passes `8/8`; health/state/FTS/
+subtree routing and fallback suites pass `49/49`; the Axis-6 security suite passes
+`24/24`; strict typing passes for all five changed source modules; and the documentation
+bundle reports no drift. The complete macOS arm64 Python 3.12 gate passes with `1,649`
+tests, `5` skips, and `83.33%` coverage. Its only warning is the pre-existing macOS
+multi-threaded `fork()` deprecation probe. An initial sandboxed run also demonstrated
+that the Windows-fallback process-lock test needs `ps`; that exact test passed separately
+and the authoritative full gate passed outside the sandbox restriction.
+
+**Gate B impact:** the public `2.0.0rc1` wheel used the schema-capable opener for these
+reads, so its exact-artifact soak remains valid historical RC evidence but does not
+qualify this post-RC implementation. The stable candidate requires focused exact-wheel
+query-only/fallback probes and both candidate Gate B profiles; #413 does not rewrite or
+restart the historical RC evidence chain.
 
 #### EX-07 — Stop returning LLM secrets from `/api/config`
 

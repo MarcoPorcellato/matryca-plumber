@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from ..graph.path_sandbox import PathTraversalSecurityError, resolved_graph_root
 from ..utils.console_sanitize import sanitize_for_console
 from .config import shadow_db_enabled
-from .connection import shadow_db_path
+from .connection import open_shadow_db_query_only, shadow_db_path
 from .health import shadow_meta_matches_page_rows
 from .meta import (
     META_INDEXED_PAGE_COUNT,
@@ -157,8 +157,8 @@ def _read_quarantined_count(connection: sqlite3.Connection) -> int:
     return int(row[0]) if row else 0
 
 
-def _read_meta_readonly(db_path: Path) -> tuple[dict[str, str | None], int, int]:
-    connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+def _read_meta_readonly(graph_root: Path) -> tuple[dict[str, str | None], int, int]:
+    connection = open_shadow_db_query_only(graph_root)
     try:
         meta = {
             META_SCHEMA_VERSION: get_meta(connection, META_SCHEMA_VERSION),
@@ -252,7 +252,7 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
         )
 
     try:
-        meta, page_count, quarantined = _read_meta_readonly(db_path)
+        meta, page_count, quarantined = _read_meta_readonly(root)
     except sqlite3.Error as exc:
         return ShadowDbStateResponse(
             enabled=True,

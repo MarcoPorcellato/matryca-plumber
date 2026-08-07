@@ -237,7 +237,7 @@ def test_a6_errors_02_subtree_sqlite_failure_fallback_omits_injected_path(
     leak_token = f"SENSITIVE-DB-PATH::{shadow_db_path(graph)}"
 
     with patch(
-        "src.agent.shadow_graph_repository.open_shadow_db",
+        "src.agent.shadow_graph_repository.open_shadow_db_query_only",
         side_effect=sqlite3.OperationalError(f"database is locked: {leak_token}"),
     ):
         out = ShadowGraphRepository().read_subtree_markdown(
@@ -442,12 +442,18 @@ async def test_a6_flag_05_false_flag_leaves_preexisting_db_untouched(
     reset_shadow_runtime_state_for_tests()
 
     def _forbid_open(*_args: object, **_kwargs: object) -> sqlite3.Connection:
-        raise AssertionError("open_shadow_db must not be called when shadow flag is false")
+        raise AssertionError("Shadow DB must not be opened when its flag is false")
 
     with (
         patch("src.shadow.connection.open_shadow_db", side_effect=_forbid_open),
-        patch("src.agent.shadow_graph_repository.open_shadow_db", side_effect=_forbid_open),
-        patch("src.shadow.fts_format.open_shadow_db", side_effect=_forbid_open),
+        patch("src.shadow.connection.open_shadow_db_query_only", side_effect=_forbid_open),
+        patch(
+            "src.agent.shadow_graph_repository.open_shadow_db_query_only",
+            side_effect=_forbid_open,
+        ),
+        patch("src.shadow.fts_format.open_shadow_db_query_only", side_effect=_forbid_open),
+        patch("src.shadow.health.open_shadow_db_query_only", side_effect=_forbid_open),
+        patch("src.shadow.state_api.open_shadow_db_query_only", side_effect=_forbid_open),
         patch("src.shadow.bootstrap.open_shadow_db", side_effect=_forbid_open),
         patch("src.shadow.sync.open_shadow_db", side_effect=_forbid_open),
     ):
