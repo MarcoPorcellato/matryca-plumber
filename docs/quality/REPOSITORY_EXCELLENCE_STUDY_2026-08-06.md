@@ -257,17 +257,37 @@ Non-goal: do not remove X-Ray aliases.
 
 #### EX-04 — Make Shadow freshness explicit
 
-**Verified gap; plausible stale-read risk:** `resolve_shadow_health()` validates schema, sync-error metadata, completion, and aggregate counts but not current source mtimes (`src/shadow/health.py:68-106`). Shadow rows store `file_mtime_ns`, but subtree reads do not compare it before serving (`src/agent/shadow_graph_repository.py:110-153`). A page changed while the watcher is stopped or after a missed event can remain eligible for `READY` reads despite source changes that were not reconciled. This study did not observe that outcome in production.
+**Implemented in #389:** `READY` remains an aggregate cache-health state, while each
+cached read now proves the source identity of the rows it is about to serve. Subtree
+reads validate the requested page; FTS reads validate every unique returned page.
+The check is bounded by the request (`1` page for subtree, at most the result limit for
+FTS) and compares the sandboxed graph-relative path, nanosecond mtime, and byte size
+with the persisted page row. It never performs a full graph scan.
 
-**Smallest slice:** validate freshness for the requested page or maintain a bounded dirty/freshness index; if freshness cannot be proved, use Markdown.
+Changed, missing, or untracked rows route to authoritative Markdown or generational
+BM25. A zero-hit FTS result also routes to BM25 because an empty cached result cannot
+prove that an unreconciled page has not gained the query term. Every such route adds
+one closed, content-free reason: `page_untracked`, `source_missing`, `source_changed`,
+or `empty_result_unproven`. A deleted subtree source returns an explicit unavailable
+envelope rather than stale cached content or a raw file exception.
 
-Acceptance gate:
+Watcher-disabled edit, delete, and rename fixtures pass. Fresh-hit tests reject any
+attempted `Path.rglob`, proving the read-time check is request-bounded. On macOS
+15.7.3 arm64 with Python 3.12.13, 500 warm synthetic iterations measured subtree
+p95/p99 at 9.638/12.579 ms and FTS p95/p99 at 9.265/11.343 ms. CI retains deliberately
+looser 250/500 ms p95/p99 soft ceilings to detect pathological regressions without
+turning ordinary runner jitter into failures.
 
-- edit, delete, and rename a page after a healthy rebuild with the watcher disabled, with explicit authoritative expected results for every case;
-- every read returns current Markdown or an explicit stale/fallback result;
-- healthy warm Shadow latency remains within an agreed regression budget.
+**Proof boundary:** non-empty FTS responses prove every cached row returned, not the
+global absence of a newly matching unreconciled page elsewhere in the graph. Watcher
+reconciliation remains the normal completeness mechanism; a future durable dirty
+index or platform event-journal proof would be required to strengthen that global
+negative guarantee without violating the no-scan constraint.
 
-Non-goal: do not scan the full graph on every read.
+**Gate B impact:** the published `2.0.0rc1` probes execute FTS and subtree reads, so
+their historical evidence cannot qualify these post-RC bytes. Preserve that evidence
+as exact-RC history, but run focused watcher-disabled cases and both exact-candidate
+Gate B profiles again before stable promotion.
 
 #### EX-05 — Invalidate stale Shadow generations on every sync failure
 

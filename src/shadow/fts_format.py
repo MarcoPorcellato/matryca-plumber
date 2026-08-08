@@ -11,6 +11,11 @@ from ..graph.path_sandbox import resolved_graph_root
 from ..rag.local_query import format_keyword_query_markdown
 from .config import shadow_db_enabled
 from .connection import open_shadow_db
+from .freshness import (
+    ShadowFreshnessError,
+    ShadowFreshnessReason,
+    ensure_shadow_page_fresh,
+)
 from .fts_validation import (
     _FTS_VALIDATION_PREFIX,
     MAX_FTS_MATCH_QUERY_CHARS,
@@ -66,6 +71,10 @@ def format_shadow_fts_markdown(
                 ) from exc
             raise
         page_rows = _page_rows_for_hits(conn, hits)
+        if not hits:
+            raise ShadowFreshnessError(ShadowFreshnessReason.EMPTY_RESULT_UNPROVEN)
+        for page_id in page_rows:
+            ensure_shadow_page_fresh(conn, root, page_id=page_id)
     finally:
         conn.close()
 
@@ -113,6 +122,12 @@ def resolve_bm25_search_markdown(
             return format_shadow_fts_markdown(root, keyword, limit=limit)
         except FtsQueryValidationError:
             raise
+        except ShadowFreshnessError as exc:
+            logger.bind(reason=exc.reason.value).info(
+                "Shadow FTS freshness unproven; falling back to generational BM25"
+            )
+            fallback = format_keyword_query_markdown(root, keyword, limit=limit, mode="bm25")
+            return f"{fallback.rstrip()}\n\n- **Shadow fallback:** `{exc.reason.value}`\n"
         except Exception:  # noqa: BLE001 — shadow backend failure → v1 fallback
             logger.exception("Shadow FTS search failed; falling back to generational BM25")
     return format_keyword_query_markdown(root, keyword, limit=limit, mode="bm25")

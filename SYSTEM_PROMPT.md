@@ -1,6 +1,6 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: 68de689f39ac532aaf9336a5e45b3f10b864250801ae2a3212df88fa54817860 -->
+<!-- build-hash: 8e03e878d71566b61699b60828640902174aef8813e8bff3f2f7dc98367e9ed4 -->
 
 <!-- package-version: v2.0.0rc1 -->
 
@@ -158,6 +158,14 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 
 `read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
 
+When Shadow is `ready`, subtree and BM25/FTS reads validate requested cached page
+rows against authoritative Markdown before returning them. If a row is untracked,
+missing, or changed—or an empty FTS result cannot prove freshness—the tool uses the
+Markdown/generational BM25 fallback and appends one content-free `Shadow fallback`
+code: `page_untracked`, `source_missing`, `source_changed`, or
+`empty_result_unproven`. Treat the fallback output as authoritative; do not retry the
+cache path.
+
 ## Project context
 
 Matryca Plumber operates on **Logseq OG**: local pure Markdown graphs. The atomic unit is the **block** (indented bullet tree), not a flat document body.
@@ -311,6 +319,11 @@ On-disk bullet subtree for one `id::` block (`Page Title|block-uuid`). Headless;
 
 Focused excerpt for one block; optional JSON `heading` to narrow to a single bulleted section (token-saving). Prefer over full `page` when you already know the anchor UUID.
 
+When the Shadow row cannot be proven current, the result comes from Markdown and
+ends with a bounded `Shadow fallback` code. If the authoritative page has been
+deleted, the result is an explicit subtree-unavailable envelope; stale cached content
+is never returned.
+
 ```json
 {
   "target_type": "subtree",
@@ -364,6 +377,12 @@ Okapi BM25 over `pages/**/*.md` remains the default lexical path. Optional **`me
 ```
 
 Always follow top hits with `read_graph_data` / `target_type="page"`.
+
+Shadow FTS validates each returned page row before serving it. Changed or missing
+rows, and empty cached results whose freshness cannot be proved, route to
+generational BM25 and append a content-free `Shadow fallback` code. The closed codes
+are `page_untracked`, `source_missing`, `source_changed`, and
+`empty_result_unproven`.
 
 ```json
 { "method": "regex", "query": "TODO|LATER" }
