@@ -434,9 +434,14 @@ def test_check_bundle_reports_separate_top_level_results(
     module.check_bundle()
     output = capsys.readouterr().out
 
-    assert "OKF v0.2 format compatibility: PASS (0 findings)" in output
-    assert "Matryca quality profile v1.0: PASS (0 findings)" in output
-    assert "Validator v1; finding schema v1" in output
+    assert output == (
+        "inventory sync OK (no drift)\n"
+        "inventory.md OK\n"
+        "OKF v0.2 format compatibility: PASS (0 findings)\n"
+        "Matryca quality profile v1.0: PASS (0 findings)\n"
+        "Validator v1; finding schema v1\n"
+        "docs knowledge check OK\n"
+    )
 
 
 def test_combined_frontmatter_validator_preserves_layer_order() -> None:
@@ -456,10 +461,37 @@ def test_combined_frontmatter_validator_preserves_layer_order() -> None:
 def test_validation_report_sorts_findings_within_each_layer() -> None:
     import scripts.docs_knowledge_check as module
 
-    report = module._validation_report(["z", "a"], ["y", "b"])
+    report = module._validation_report(
+        [
+            module._finding(
+                layer="matryca_quality",
+                code="z",
+                path="z.md",
+                message="z",
+            ),
+            module._finding(
+                layer="official_okf",
+                code="z",
+                path="z.md",
+                message="z",
+            ),
+            module._finding(
+                layer="matryca_quality",
+                code="b",
+                path="b.md",
+                message="b",
+            ),
+            module._finding(
+                layer="official_okf",
+                code="a",
+                path="a.md",
+                message="a",
+            ),
+        ]
+    )
 
     assert report.official_okf == ("a", "z")
-    assert report.matryca_quality == ("b", "y")
+    assert report.matryca_quality == ("b", "z")
 
 
 def test_inventory_drift_is_reported_as_matryca_quality_failure(
@@ -468,11 +500,14 @@ def test_inventory_drift_is_reported_as_matryca_quality_failure(
 ) -> None:
     import scripts.docs_knowledge_check as module
 
-    def fail_inventory_sync(*, check: bool = False) -> None:
-        assert check is True
-        module._fail("inventory drift fixture")
+    finding = module._finding(
+        layer="matryca_quality",
+        code="inventory.paths.drift",
+        path="docs/knowledge/inventory.json",
+        message="inventory drift fixture",
+    )
 
-    monkeypatch.setattr(module, "inventory_sync", fail_inventory_sync)
+    monkeypatch.setattr(module, "_inventory_drift_finding", lambda data: finding)
 
     with pytest.raises(SystemExit):
         module.check_bundle()
@@ -598,9 +633,15 @@ def test_check_bundle_passes_concept_rel_to_validate_legacy_sources(
 
     captured: list[str] = []
 
-    def spy(meta: Mapping[str, Any], concept_path: Path, label: str) -> list[str]:
+    def spy(
+        meta: Mapping[str, Any],
+        concept_path: Path,
+        label: str,
+        *,
+        findings: list[Any] | None = None,
+    ) -> list[str]:
         captured.append(label)
-        return validate_legacy_sources(meta, concept_path, label)
+        return validate_legacy_sources(meta, concept_path, label, findings=findings)
 
     monkeypatch.setattr(module, "validate_legacy_sources", spy)
     module.check_bundle()
@@ -608,3 +649,454 @@ def test_check_bundle_passes_concept_rel_to_validate_legacy_sources(
     assert "architecture/shadow-db.md" in captured
     assert "architecture/graph-plane.md" in captured
     assert all(isinstance(label, str) and label for label in captured)
+
+
+def test_machine_report_is_byte_stable_and_sorted() -> None:
+    import scripts.docs_knowledge_check as module
+
+    source = module._SourcePayload(
+        repository="github.com/MarcoPorcellato/matryca-plumber",
+        commit="a" * 40,
+        path="docs/knowledge",
+        provenance_state="clean",
+    )
+    findings = [
+        module._finding(
+            layer="matryca_quality",
+            code="z.code",
+            path="docs/knowledge/z.md",
+            pointer="frontmatter.z",
+            message="z",
+        ),
+        module._finding(
+            layer="official_okf",
+            code="a.code",
+            path="docs/knowledge/a.md",
+            pointer="frontmatter.a",
+            message="a",
+        ),
+    ]
+
+    first = module._render_machine_report(
+        module._build_machine_report(module._validation_report(findings), source=source)
+    )
+    second = module._render_machine_report(
+        module._build_machine_report(
+            module._validation_report(list(reversed(findings))), source=source
+        )
+    )
+
+    assert first == second
+    payload = json.loads(first)
+    assert [finding["code"] for finding in payload["findings"]] == ["a.code", "z.code"]
+
+
+def test_fingerprint_ignores_message_but_binds_every_policy_version() -> None:
+    import scripts.docs_knowledge_check as module
+
+    finding = module._finding(
+        layer="matryca_quality",
+        code="example.code",
+        path="docs/knowledge/example.md",
+        pointer="frontmatter.title",
+        parameters={"expected": "value"},
+        message="human wording one",
+    )
+    reworded = module._finding(
+        layer="matryca_quality",
+        code="example.code",
+        path="docs/knowledge/example.md",
+        pointer="frontmatter.title",
+        parameters={"expected": "value"},
+        message="human wording two",
+    )
+    policy = module._policy_payload()
+    baseline = module._finding_fingerprint(finding, policy)
+
+    assert module._finding_fingerprint(reworded, policy) == baseline
+    for field in ("okf_spec_version", "matryca_profile_version", "validator_version"):
+        changed = policy.model_copy(update={field: "different"})
+        assert module._finding_fingerprint(finding, changed) != baseline
+
+
+@pytest.mark.parametrize("path", ["/private/secret.md", "../secret.md", "docs/../secret.md"])
+def test_machine_finding_rejects_non_repository_paths(path: str) -> None:
+    import scripts.docs_knowledge_check as module
+
+    with pytest.raises(ValueError, match="repository-relative"):
+        module._finding(
+            layer="matryca_quality",
+            code="example.code",
+            path=path,
+            message="example",
+        )
+
+
+def test_machine_findings_redact_raw_link_and_legacy_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "KNOWLEDGE_DIR", tmp_path / "docs" / "knowledge")
+    concept = tmp_path / "docs" / "knowledge" / "concept.md"
+    concept.parent.mkdir(parents=True)
+    concept.write_text("[secret](missing.md?token=raw-secret)\n", encoding="utf-8")
+    findings: list[Any] = []
+
+    module.validate_document_links(
+        concept,
+        concept.read_text(encoding="utf-8"),
+        "concept.md",
+        findings=findings,
+    )
+    module.validate_legacy_sources(
+        {"legacy_sources": ["/Users/private/raw-secret.md"]},
+        concept,
+        "concept.md",
+        findings=findings,
+    )
+
+    report = module._build_machine_report(
+        module._validation_report(findings),
+        source=module._SourcePayload(
+            repository="github.com/owner/repo",
+            commit=None,
+            path="docs/knowledge",
+            provenance_state="unavailable",
+        ),
+    )
+    rendered = module._render_machine_report(report)
+    assert "raw-secret" not in rendered
+    assert "/Users/private" not in rendered
+    assert any("sha256" in key for finding in findings for key, _ in finding.parameters)
+
+
+def test_machine_report_hashes_adversarial_inventory_values() -> None:
+    import scripts.docs_knowledge_check as module
+
+    raw_values = (
+        "/private/secret.md",
+        "https://user:password@example.invalid/private",
+        "token-" + ("x" * 2_000),
+    )
+    data = {
+        "schema_version": 2,
+        "scope": "repository-documentation",
+        "entries": [
+            {
+                "path": raw_values[0],
+                "type": raw_values[1],
+                "classification": "canonical",
+                "canonical_for": raw_values[2],
+            },
+            {
+                "path": "safe.md",
+                "type": "Guide",
+                "classification": "canonical",
+                "canonical_for": raw_values[2],
+            },
+        ],
+    }
+    findings: list[Any] = []
+    module.validate_inventory_schema(data, findings=findings)
+    payload = module._build_machine_report(
+        module._validation_report(findings),
+        source=module._SourcePayload(
+            repository="github.com/owner/repo",
+            commit=None,
+            path="docs/knowledge",
+            provenance_state="unavailable",
+        ),
+    )
+    rendered = module._render_machine_report(payload)
+
+    assert findings
+    assert all(raw not in rendered for raw in raw_values)
+    assert all(
+        not isinstance(value, str) or value.startswith("sha256:")
+        for finding in payload.findings
+        for value in finding.parameters.values()
+    )
+
+
+def test_machine_parameter_does_not_trust_an_invalid_digest_suffix() -> None:
+    import scripts.docs_knowledge_check as module
+
+    finding = module._finding(
+        layer="matryca_quality",
+        code="future.extension",
+        path="docs/knowledge/example.md",
+        parameters={"future_sha256": "raw-secret"},
+        message="example",
+    )
+
+    assert dict(finding.parameters)["future_sha256"] == (
+        "sha256:" + module._text_digest("raw-secret")
+    )
+
+
+@pytest.mark.parametrize(
+    ("remote", "expected"),
+    [
+        (
+            "https://user:secret@github.com/MarcoPorcellato/matryca-plumber.git?token=x",
+            "github.com/MarcoPorcellato/matryca-plumber",
+        ),
+        (
+            "git@github.com:MarcoPorcellato/matryca-plumber.git",
+            "github.com/MarcoPorcellato/matryca-plumber",
+        ),
+    ],
+)
+def test_repository_normalization_removes_credentials(remote: str, expected: str) -> None:
+    import scripts.docs_knowledge_check as module
+
+    assert module._normalized_repository(remote) == expected
+
+
+def test_source_payload_reports_dirty_and_unavailable_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    values = {
+        ("rev-parse", "HEAD"): "b" * 40,
+        ("status", "--porcelain"): " M docs/knowledge/profile.md",
+        ("remote", "get-url", "origin"): "git@github.com:owner/repo.git",
+    }
+    monkeypatch.setattr(module, "_git_output", lambda *args: values.get(args))
+    dirty = module._source_payload()
+
+    assert dirty.provenance_state == "dirty"
+    assert dirty.commit == "b" * 40
+    assert dirty.repository == "github.com/owner/repo"
+    assert not dirty.path.startswith("/")
+
+    monkeypatch.setattr(module, "_git_output", lambda *args: None)
+    unavailable = module._source_payload()
+    assert unavailable.provenance_state == "unavailable"
+    assert unavailable.commit is None
+
+
+def test_check_bundle_json_is_one_document_with_exact_provenance() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "docs_knowledge_check.py"),
+            "check-bundle",
+            "--format",
+            "json",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["kind"] == "matryca.docs.validation-report"
+    assert payload["finding_schema_version"] == FINDING_SCHEMA_VERSION
+    assert payload["policy"] == {
+        "matryca_profile_version": MATRYCA_PROFILE_VERSION,
+        "okf_spec_version": OKF_SPEC_VERSION,
+        "validator_version": DOCS_VALIDATOR_VERSION,
+    }
+    assert payload["source"]["repository"] == "github.com/MarcoPorcellato/matryca-plumber"
+    assert payload["source"]["path"] == "docs/knowledge"
+    assert (
+        payload["source"]["commit"]
+        == subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    )
+    status = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert payload["source"]["provenance_state"] == ("dirty" if status else "clean")
+    assert payload["summary"]["status"] == "pass"
+    assert payload["findings"] == []
+
+
+def test_check_bundle_json_failure_uses_one_exit_and_no_stderr(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import scripts.docs_knowledge_check as module
+
+    finding = module._finding(
+        layer="official_okf",
+        code="example.failure",
+        path="docs/knowledge/example.md",
+        message="raw human detail",
+        machine_message="bounded machine detail",
+    )
+    monkeypatch.setattr(
+        module,
+        "_check_bundle_report",
+        lambda: module._validation_report([finding]),
+    )
+    monkeypatch.setattr(
+        module,
+        "_source_payload",
+        lambda: module._SourcePayload(
+            repository="github.com/owner/repo",
+            commit=None,
+            path="docs/knowledge",
+            provenance_state="unavailable",
+        ),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        module.check_bundle(output_format="json")
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exc.value.code == 1
+    assert captured.err == ""
+    assert payload["summary"]["official_okf"] == {"finding_count": 1, "status": "fail"}
+    assert payload["findings"][0]["message"] == "bounded machine detail"
+
+
+def test_malformed_yaml_still_emits_one_json_document(
+    tmp_path: Path,
+) -> None:
+    knowledge = tmp_path / "docs" / "knowledge"
+    knowledge.mkdir(parents=True)
+    inventory = knowledge / "inventory.json"
+    inventory.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "scope": "repository-documentation",
+                "entries": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (knowledge / "profile.md").write_text("profile\n", encoding="utf-8")
+    malformed = knowledge / "malformed.md"
+    malformed.write_text("---\ntitle: [unterminated\n---\n# Body\n", encoding="utf-8")
+    probe = """
+import pathlib
+import sys
+import scripts.docs_knowledge_check as module
+
+root = pathlib.Path(sys.argv[1])
+knowledge = root / "docs" / "knowledge"
+module.ROOT = root
+module.KNOWLEDGE_DIR = knowledge
+module.INVENTORY_JSON = knowledge / "inventory.json"
+module.INVENTORY_MD = knowledge / "inventory.md"
+module.PROFILE_MD = knowledge / "profile.md"
+module.collect_knowledge_concepts = lambda: [knowledge / "malformed.md"]
+module._inventory_drift_finding = lambda data: None
+module._inventory_md_finding = lambda data: None
+module._source_payload = lambda: module._SourcePayload(
+    repository="github.com/owner/repo",
+    commit=None,
+    path="docs/knowledge",
+    provenance_state="unavailable",
+)
+module.check_bundle(output_format="json")
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", probe, str(tmp_path)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["summary"]["status"] == "fail"
+    assert any(finding["code"] == "frontmatter.missing" for finding in payload["findings"])
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected_code"),
+    [
+        ("anchor", "link.local.target_read_failed"),
+        ("inventory", "inventory.generated_view.read_failed"),
+    ],
+)
+def test_unreadable_report_inputs_still_emit_one_json_document(
+    tmp_path: Path,
+    mode: str,
+    expected_code: str,
+) -> None:
+    source = tmp_path / "source.md"
+    target = tmp_path / "target.md"
+    inventory_md = tmp_path / "inventory.md"
+    source.write_text("[target](target.md#heading)\n", encoding="utf-8")
+    target.write_text("# Heading\n", encoding="utf-8")
+    inventory_md.write_text("generated\n", encoding="utf-8")
+    probe = """
+import pathlib
+import sys
+import scripts.docs_knowledge_check as module
+
+root = pathlib.Path(sys.argv[1])
+mode = sys.argv[2]
+source = root / "source.md"
+target = root / "target.md"
+inventory_md = root / "inventory.md"
+module.ROOT = root
+module.KNOWLEDGE_DIR = root
+module.INVENTORY_MD = inventory_md
+original_read = module._read_text
+blocked = target if mode == "anchor" else inventory_md
+module._read_text = lambda path: (
+    (_ for _ in ()).throw(UnicodeError("unreadable fixture"))
+    if path == blocked
+    else original_read(path)
+)
+findings = []
+if mode == "anchor":
+    module.validate_document_links(
+        source,
+        original_read(source),
+        "source.md",
+        findings=findings,
+    )
+else:
+    finding = module._inventory_md_finding(
+        {"schema_version": 2, "scope": "repository-documentation", "entries": []}
+    )
+    if finding is not None:
+        findings.append(finding)
+module._check_bundle_report = lambda: module._validation_report(findings)
+module._source_payload = lambda: module._SourcePayload(
+    repository="github.com/owner/repo",
+    commit=None,
+    path="docs/knowledge",
+    provenance_state="unavailable",
+)
+module.check_bundle(output_format="json")
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", probe, str(tmp_path), mode],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert [finding["code"] for finding in payload["findings"]] == [expected_code]
