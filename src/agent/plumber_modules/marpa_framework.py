@@ -71,14 +71,20 @@ def _has_top_level_type(content: str) -> bool:
     return "type" in page_property_keys(content)
 
 
-def _scan_ssot_duplication(graph_root: Path, page_path: Path, content: str) -> list[str]:
-    """Flag large verbatim blocks that appear to duplicate another page (SSoT guard)."""
-    flags: list[str] = []
+def _large_bullet_blocks(content: str) -> list[str]:
+    """Return normalized bullet bodies large enough for SSoT comparison."""
     blocks: list[str] = []
     for line in content.splitlines():
         match = _BULLET.match(line.rstrip("\n"))
         if match and len(match.group(2)) >= _MIN_DUP_CHARS:
             blocks.append(match.group(2).strip())
+    return blocks
+
+
+def _scan_ssot_duplication(graph_root: Path, page_path: Path, content: str) -> list[str]:
+    """Flag large verbatim blocks that appear to duplicate another page (SSoT guard)."""
+    flags: list[str] = []
+    blocks = _large_bullet_blocks(content)
     if not blocks:
         return flags
 
