@@ -235,7 +235,7 @@ uv run pytest tests/test_ui_server.py tests/test_maintenance_daemon.py tests/tes
 
 ### Frontend (Sovereign UI)
 
-Same build as in **Daemon-first dev loop**; CI runs `npm ci` + `npm run build` before `make check`.
+Same build as in **Daemon-first dev loop**; CI runs `npm ci`, lint, tests, and the production build before `make ci`.
 
 ```bash
 cd frontend
@@ -254,9 +254,9 @@ That means, in order:
 1. **Ruff** — lint clean (`make ci` also runs `format-check` without mutating the tree)
 2. **Mypy** — strict type-check on `src/` and `tests/` (**zero `# type: ignore` in `src/`** — see [Strict typing](#strict-typing-zero-mypy-suppressions-in-src))
 3. **Sandbox read gate** — `make sandbox-read-check` (no new `Path.read_text()` bypasses in graph/agent/rag; daemon pid/lock reads need `# sandbox-read-ok`)
-4. **Pytest** — full suite via `make test-full` / `make test` (**720+** targets on `main`; slow tests excluded unless you run `make perf`). Use **`make test-fast`** during iteration (`NUM_WORKERS` default `4`, no coverage).
+4. **Pytest** — full suite via `make test-full` / `make test`; opt-in slow probes remain under `make perf`. Use **`make test-fast`** during iteration (`NUM_WORKERS` default `4`, no coverage).
 
-GitHub Actions on pushes and pull requests to **`main`** runs **`make ci`** (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)): `uv sync`, frontend `npm ci` + `npm run build`, then `make ci`. **Any failing test blocks merge.**
+GitHub Actions on pushes and pull requests to **`main`** runs the blocking Python 3.12 **`make ci`** gate (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), including frontend lint, tests, and build. A separate non-blocking Python 3.13 job runs the full Python test suite without duplicating coverage or static-analysis work. It remains observational until its compatibility findings are fixed and the documented duration and flake promotion budget is satisfied. **Any failing blocking check prevents merge.**
 
 Never commit secrets (no `.env`, tokens, or private graph paths in git).
 
