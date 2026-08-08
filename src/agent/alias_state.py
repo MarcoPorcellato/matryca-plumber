@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 from collections.abc import ItemsView
 from pathlib import Path
 from typing import cast
@@ -37,14 +39,72 @@ _ALIAS_TARGET_RE = re.compile(r"^\[\s*(\d+)\s*\]$")
 
 
 def alias_file_path(graph_root: str | Path) -> Path:
-    """Hidden X-Ray alias state file at the Logseq graph root."""
-    root = Path(graph_root).expanduser().resolve(strict=False)
+    """Resolve graph-local or strict-read-only external X-Ray alias state."""
+    root = _graph_root_path(graph_root)
     state_name = str(XRAY_STATE_FILENAME)
+    from ..graph.safety.write_policy import RuntimeWritePolicy
+
+    policy = RuntimeWritePolicy.from_env(root)
+    if policy.read_only:
+        from ..shadow.cache_location import (
+            ShadowCacheLocationError,
+            resolve_shadow_cache_location,
+        )
+
+        location = resolve_shadow_cache_location(root)
+        state_dir = location.shadow_dir.parent / "xray"
+        state_path = state_dir / state_name
+        if state_dir.is_symlink():
+            raise ShadowCacheLocationError("xray_directory_symlink")
+        if state_path.is_symlink():
+            raise ShadowCacheLocationError("xray_state_symlink")
+        resolved = state_path.resolve(strict=False)
+        if not resolved.is_relative_to(location.cache_root):
+            raise ShadowCacheLocationError("xray_directory_escape")
+        return resolved
     return root / state_name
 
 
 def _graph_root_path(graph_root: str | Path) -> Path:
     return Path(graph_root).expanduser().resolve(strict=False)
+
+
+def _ensure_private_parent(path: Path) -> None:
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if os.name == "posix":
+        path.parent.chmod(0o700)
+
+
+def _atomic_write_private_state(path: Path, data: bytes) -> None:
+    """Atomically replace external runtime state with private permissions."""
+    _ensure_private_parent(path)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=str(path.parent),
+    )
+    tmp_path = Path(tmp_name)
+    committed = False
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
+        committed = True
+        if os.name == "posix":
+            path.chmod(0o600)
+        try:
+            directory_fd = os.open(str(path.parent), os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            pass
+    finally:
+        if not committed:
+            tmp_path.unlink(missing_ok=True)
 
 
 def load_alias_registry(graph_root: str | Path) -> SessionAliasRegistry:
@@ -70,13 +130,18 @@ def load_alias_registry(graph_root: str | Path) -> SessionAliasRegistry:
 
 
 def save_alias_registry(graph_root: str | Path, registry: SessionAliasRegistry) -> Path:
-    """Persist ``SessionAliasRegistry`` atomically under an exclusive file lock."""
+    """Persist aliases atomically under an exclusive graph-local or external lock."""
     path = alias_file_path(graph_root)
     root = _graph_root_path(graph_root)
     payload = {str(alias): block_uuid for alias, block_uuid in safe_alias_items(registry)}
     data = json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
-    with page_rmw_lock(path):
-        atomic_write_bytes(path, data, graph_root=root)
+    if path.is_relative_to(root):
+        with page_rmw_lock(path):
+            atomic_write_bytes(path, data, graph_root=root)
+    else:
+        _ensure_private_parent(path)
+        with page_rmw_lock(path):
+            _atomic_write_private_state(path, data)
     return path
 
 

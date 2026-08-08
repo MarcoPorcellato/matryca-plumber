@@ -261,3 +261,26 @@ def test_xray_page_persists_state_file(tmp_path: Path) -> None:
     md = read_xray_page_markdown(str(tmp_path), "Alias Demo")
     assert "[0]" in md
     assert (tmp_path / XRAY_STATE_FILENAME).is_file()
+
+
+def test_xray_page_read_only_uses_external_alias_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pages = tmp_path / "pages"
+    pages.mkdir()
+    block_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    page = pages / "Alias Demo.md"
+    page.write_text(f"- Parent bullet\n  id:: {block_id}\n", encoding="utf-8")
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(tmp_path.parent / "external-cache"))
+    before = page.read_bytes()
+
+    md = read_xray_page_markdown(str(tmp_path), "Alias Demo")
+
+    assert "[0]" in md
+    assert "external runtime cache" in md
+    assert page.read_bytes() == before
+    assert not (tmp_path / XRAY_STATE_FILENAME).exists()
+    assert block_id in read_block_ast_markdown(str(tmp_path), "Alias Demo|[0]")

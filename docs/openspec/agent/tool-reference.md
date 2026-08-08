@@ -64,7 +64,7 @@ Health snapshot: page counts, `id::` tally, block-ref summary. `query` ignored.
 { "target_type": "xray_page", "query": "My Project" }
 ```
 
-X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the graph root. Pass `[n]` into `target` / `target_uuid` on subsequent mutations (stateless CLI-safe).
+X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the graph root in normal mode or in the private per-graph external runtime cache under Strict Read Only. Pass `[n]` into `target` / `target_uuid` on subsequent operations (stateless CLI-safe).
 
 ---
 
