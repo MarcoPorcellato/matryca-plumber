@@ -29,6 +29,8 @@ def test_read_daemon_checkpoint_reads_bootstrap_fields(tmp_path: Path) -> None:
     assert view.bootstrap_failed is True
     assert view.bootstrap_failed_reason == "disk full"
     assert view.status == "idle"
+    assert view.recovery_source == "primary"
+    assert view.reset_event is False
 
 
 def test_read_daemon_checkpoint_empty_when_missing(tmp_path: Path) -> None:
@@ -36,6 +38,8 @@ def test_read_daemon_checkpoint_empty_when_missing(tmp_path: Path) -> None:
     view = read_daemon_checkpoint(tmp_path)
     assert view.bootstrap_complete is False
     assert view.bootstrap_total == 0
+    assert view.recovery_source == "missing"
+    assert view.reset_event is False
 
 
 def test_read_daemon_checkpoint_logs_when_bak_restore_fails(
@@ -68,6 +72,8 @@ def test_read_daemon_checkpoint_logs_when_bak_restore_fails(
     assert view.bootstrap_complete is True
     assert view.bootstrap_scanned == 2
     assert view.bootstrap_total == 5
+    assert view.recovery_source == "backup"
+    assert view.reset_event is False
     assert any("restore primary" in err for err in errors)
 
 
@@ -85,5 +91,24 @@ def test_read_daemon_checkpoint_uses_backup_without_restore_in_read_only_mode(
     before = primary.read_bytes()
     monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
 
-    assert read_daemon_checkpoint(tmp_path).bootstrap_complete is True
+    view = read_daemon_checkpoint(tmp_path)
+    assert view.bootstrap_complete is True
+    assert view.recovery_source == "backup"
+    assert view.reset_event is False
     assert primary.read_bytes() == before
+
+
+def test_read_daemon_checkpoint_reports_explicit_reset_when_all_copies_are_invalid(
+    tmp_path: Path,
+) -> None:
+    from src.daemon.checkpoint import CHECKPOINT_BAK_FILENAME, CHECKPOINT_FILENAME
+
+    (tmp_path / "pages").mkdir()
+    (tmp_path / CHECKPOINT_FILENAME).write_text("{not-json", encoding="utf-8")
+    (tmp_path / CHECKPOINT_BAK_FILENAME).write_text("[]", encoding="utf-8")
+
+    view = read_daemon_checkpoint(tmp_path)
+
+    assert view.bootstrap_complete is False
+    assert view.recovery_source == "reset"
+    assert view.reset_event is True

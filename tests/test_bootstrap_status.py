@@ -48,6 +48,8 @@ def test_collect_bootstrap_status_phase1_in_progress(tmp_path: Path) -> None:
     assert snap.soft_gate_active is True
     assert snap.bootstrap_scanned == 3
     assert snap.bootstrap_total == 10
+    assert snap.checkpoint_recovery_source == "primary"
+    assert snap.checkpoint_reset_event is False
 
 
 def test_collect_bootstrap_status_green_when_catalog_complete(
@@ -94,6 +96,22 @@ def test_format_bootstrap_status_markdown_includes_json(tmp_path: Path) -> None:
     payload = json.loads(md[start:end])
     assert payload["ok"] is True
     assert "graph_root" in payload
+    assert payload["checkpoint_recovery_source"] == "missing"
+    assert payload["checkpoint_reset_event"] is False
+
+
+def test_collect_bootstrap_status_projects_checkpoint_reset_event(tmp_path: Path) -> None:
+    from src.daemon.checkpoint import CHECKPOINT_BAK_FILENAME, CHECKPOINT_FILENAME
+
+    (tmp_path / "pages").mkdir()
+    (tmp_path / CHECKPOINT_FILENAME).write_text("{not-json", encoding="utf-8")
+    (tmp_path / CHECKPOINT_BAK_FILENAME).write_text("[]", encoding="utf-8")
+
+    snapshot = collect_bootstrap_status(tmp_path)
+
+    assert snapshot.checkpoint_recovery_source == "reset"
+    assert snapshot.checkpoint_reset_event is True
+    assert snapshot.soft_gate_active is True
 
 
 def test_state_path_written(tmp_path: Path) -> None:

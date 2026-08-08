@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from .master_catalog import is_bootstrap_catalog_complete, master_index_page_path
 
@@ -25,6 +25,8 @@ class BootstrapStatusSnapshot:
     phase1_in_progress: bool
     soft_gate_active: bool
     daemon_status: str | None
+    checkpoint_recovery_source: Literal["missing", "primary", "backup", "reset"]
+    checkpoint_reset_event: bool
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +41,8 @@ class BootstrapStatusSnapshot:
             "phase1_in_progress": self.phase1_in_progress,
             "soft_gate_active": self.soft_gate_active,
             "daemon_status": self.daemon_status,
+            "checkpoint_recovery_source": self.checkpoint_recovery_source,
+            "checkpoint_reset_event": self.checkpoint_reset_event,
         }
 
 
@@ -78,6 +82,8 @@ def collect_bootstrap_status(graph_root: str | Path) -> BootstrapStatusSnapshot:
         phase1_in_progress=phase1_in_progress,
         soft_gate_active=soft_gate_active,
         daemon_status=checkpoint.status,
+        checkpoint_recovery_source=checkpoint.recovery_source,
+        checkpoint_reset_event=checkpoint.reset_event,
     )
 
 
