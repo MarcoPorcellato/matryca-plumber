@@ -1730,7 +1730,12 @@ first_slice:
     cryptography: 50.0.0
     GitPython: 3.1.58
 second_slice:
-  objective: Update only the transitive PostCSS lock selection to a fixed version.
+  branch: security/frontend-advisories-2026-08
+  objective: Update only the vulnerable transitive frontend lock selections to fixed versions.
+  selected_versions:
+    postcss: 8.5.23
+    nanoid: 3.3.17
+    brace-expansion: 5.0.9
 non_goals:
   - no MCP major-version expansion
   - no grouped frontend or GitHub Actions upgrade
