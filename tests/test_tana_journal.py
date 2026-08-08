@@ -70,6 +70,30 @@ def test_escaped_quote_literal() -> None:
     assert format_edn_date_pattern("yyyy''MMdd", _SAMPLE_DAY) == "2026'0622"
 
 
+def test_doubled_quote_inside_literal() -> None:
+    assert format_edn_date_pattern("'o''clock' yyyy", _SAMPLE_DAY) == "o'clock 2026"
+
+
+def test_unmatched_quote_consumes_remaining_literal() -> None:
+    assert format_edn_date_pattern("yyyy 'journal MM", _SAMPLE_DAY) == "2026 journal MM"
+
+
+def test_whitespace_pattern_uses_default_format() -> None:
+    assert format_edn_date_pattern("   ", _SAMPLE_DAY) == "2026-06-22"
+
+
+@pytest.mark.parametrize(
+    ("pattern", "expected"),
+    [
+        ("MMMMM", "June6"),
+        ("EEEEE", "MondayE"),
+        ("'Q' q yyyy", "Q q 2026"),
+    ],
+)
+def test_token_longest_prefix_boundaries(pattern: str, expected: str) -> None:
+    assert format_edn_date_pattern(pattern, _SAMPLE_DAY) == expected
+
+
 def test_format_journal_page_title_alias() -> None:
     assert format_journal_page_title(_SAMPLE_DAY, "yyyy-MM-dd") == "2026-06-22"
 
