@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Typed Shadow operational snapshot (#391)** — expose content-free generation, validated last-incremental-sync time, quarantine retry/reason pressure, maximum attempts, and oldest age from an existing SQLite connection without changing schema, synchronization, locks, routing, or fallback.
 - **Typed watcher operational snapshot (#391)** — expose path-free pending depth, coalescing, dispatch/failure counters, oldest-event age, and last/maximum convergence latency under the existing debounce lock without changing scheduling, callback routing, or backlog policy.
 - **Checkpoint recovery diagnostics (#391)** — expose a bounded recovery-source vocabulary and explicit reset event in the bootstrap status projection, distinguishing missing, primary, backup, and unreadable checkpoint states without changing recovery, Soft Gate, or read-only behavior.
 - **Typed BM25 operational snapshot (#391)** — expose a versioned, content-free per-corpus snapshot of document/token cardinality, query-cache capacity and row pressure, hit/miss/invalidation/eviction counters, aggregate uncached-scoring timing, and a deterministic retained-payload estimate for machine-readable diagnostics without changing scoring or cache behavior.

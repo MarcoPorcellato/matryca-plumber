@@ -931,6 +931,67 @@ multi-threaded `fork()` deprecation probe. A sandboxed first run denied the unre
 `ps` subprocess used by one daemon-lock test; the complete gate passed with normal host
 permissions.
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-11-05
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 3f1ff3bcc39ebb58af18404e9c150545da06bf47
+objective: expose read-only Shadow generation and quarantine pressure diagnostics
+authority: inspect | edit | commit | push | pr
+tracking_issue: 391
+allowlist:
+  - src/shadow/diagnostics.py
+  - tests/test_shadow_diagnostics.py
+  - docs/knowledge/architecture/shadow-db.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+non_goals:
+  - modify generation helpers, schema, sync, writer locks, health, state API, UI, or fallback
+  - expose graph-relative paths, row content, queries, or unvalidated metadata strings
+  - instrument sync duration, lock wait, persistence, Gate B, tags, releases, or publication
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_shadow_diagnostics.py
+  - make ci
+acceptance:
+  - immutable schema-versioned snapshot is machine-readable and content-free
+  - aggregate reads work after PRAGMA query_only is enabled and add zero connection changes
+  - generation and validated incremental-sync time are projected from existing metadata
+  - quarantine count, retries, current reason-weighted attempts, maximum attempts, and age are explicit
+  - invalid or naive timestamps cannot enter the serialized snapshot
+stop_conditions:
+  - any need for schema migration, write-path instrumentation, state API, UI, or routing changes
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: 3f1ff3bcc39ebb58af18404e9c150545da06bf47
+  new_module_impact: no pre-existing callers or execution flows
+  referenced_generation_helper: HIGH if modified; imported read-only and left unchanged
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: metadata | lifecycle | provenance
+residual_risks:
+  - reason-weighted attempts reflect current row classification, not reason-transition history
+  - oldest age depends on valid timezone-aware persisted timestamps
+  - writer-lock wait, sync duration, and fallback counts remain for later tranches
+```
+
+**EX-11-05 implemented:** `ShadowDiagnosticsSnapshot` projects committed generation,
+strictly validated incremental-sync time, quarantine cardinality and retries, current
+reason-weighted attempt pressure, maximum attempts, and oldest age. Its aggregate SQL
+runs on a caller-owned query-only connection, adds no changes, and serializes no paths,
+queries, row content, or invalid metadata strings. Focused tests cover empty state,
+multi-row retry/reason aggregation, exact age, query-only operation, content exclusion,
+invalid timestamps, and naive-clock rejection. No existing generation helper, schema,
+sync, writer lock, health, state API, UI, fallback, Gate B, tag, or publication behavior
+changed.
+Focused diagnostics tests pass `3/3`. The complete `make ci` gate passes with 1,658
+tests, 5 skips, and 83.46% coverage; format, Ruff, strict mypy over 379 source files,
+graph sandbox, version and agent coherence, public-metrics policy, documentation
+inventory, and generated prompt checks are green. The only warning remains the
+pre-existing macOS multi-threaded `fork()` deprecation probe. A sandboxed first run
+denied the unrelated `ps` subprocess used by one daemon-lock test; the complete gate
+passed unchanged with normal host permissions.
+
 Expose content-free metrics for:
 
 - Shadow sync duration, writer-lock wait, generation, fallback reason, last successful incremental sync, parser timeout count, quarantine age and retry count;
