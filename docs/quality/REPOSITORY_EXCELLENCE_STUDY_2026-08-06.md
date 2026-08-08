@@ -1709,6 +1709,47 @@ checks and the default-branch-only ruleset scope; neither remote setting was cha
 Runtime source, dependencies, Gate B evidence, packages, tags, releases, publication,
 and branch protection remain untouched.
 
+#### EX-18C — Reconcile current dependency advisories without broad upgrades
+
+```yaml
+tranche_id: EX-18C
+objective: Remove the current vulnerable dependency selections through resolver-consistent, independently reviewable Python and frontend slices.
+base: ci/stacked-pr-gate-401
+first_slice:
+  branch: security/python-advisories-2026-08
+  allowed_files:
+    - pyproject.toml
+    - uv.lock
+    - CHANGELOG.md
+    - docs/quality/DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md
+    - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+    - docs/knowledge/inventory.json
+    - docs/knowledge/inventory.md
+  selected_versions:
+    aiohttp: 3.14.3
+    cryptography: 50.0.0
+    GitPython: 3.1.58
+second_slice:
+  objective: Update only the transitive PostCSS lock selection to a fixed version.
+non_goals:
+  - no MCP major-version expansion
+  - no grouped frontend or GitHub Actions upgrade
+  - no alert dismissal or closure claim before a default-branch rescan
+  - no Gate B evidence, release artifact, tag, publication, or repository-setting mutation
+acceptance:
+  - exact dependency diff is limited to the mapped vulnerable packages
+  - locked installs and relevant focused tests pass
+  - make ci passes for the Python slice
+  - frontend install, lint, tests, and build pass for the PostCSS slice
+  - GitHub alert closure is verified only after each slice merges and the default branch is rescanned
+release_boundary: Inclusion in v2.0.0 requires a new exact wheel and an explicit requalification decision; existing RC evidence is not reusable for changed artifact bytes.
+rollback: Revert each dependency slice independently; never dismiss an alert to hide unresolved dependency state.
+```
+
+The complete alert map, automated-update pull-request assessment, execution order, and
+evidence distinctions are retained in
+[`DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md`](DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md).
+
 #### EX-19 — Reconcile the issue and milestone control plane
 
 The original 2026-08-06 baseline contained 49 open issues and 29 without
