@@ -84,6 +84,22 @@ def is_logseq_block_property_line(stripped_line: str) -> bool:
     return parse_logseq_property_line(stripped_line) is not None
 
 
+def _append_property_list_piece(values: list[str], current: list[str]) -> None:
+    piece = "".join(current).strip()
+    if piece:
+        values.append(piece)
+    current.clear()
+
+
+def _consume_quoted_property_char(value: str, index: int, current: list[str]) -> tuple[int, bool]:
+    ch = value[index]
+    if ch == "\\" and index + 1 < len(value):
+        current.extend((ch, value[index + 1]))
+        return index + 2, True
+    current.append(ch)
+    return index + 1, ch != '"'
+
+
 def split_logseq_property_list_values(raw_value: str) -> list[str]:
     """Split comma-separated property values without breaking quotes or ``[[...]]``.
 
@@ -101,15 +117,7 @@ def split_logseq_property_list_values(raw_value: str) -> list[str]:
     while i < len(v):
         ch = v[i]
         if in_dq:
-            if ch == "\\" and i + 1 < len(v):
-                cur.append(ch)
-                cur.append(v[i + 1])
-                i += 2
-                continue
-            if ch == '"':
-                in_dq = False
-            cur.append(ch)
-            i += 1
+            i, in_dq = _consume_quoted_property_char(v, i, cur)
             continue
         if ch == '"':
             in_dq = True
@@ -127,17 +135,12 @@ def split_logseq_property_list_values(raw_value: str) -> list[str]:
             i += 2
             continue
         if ch == "," and link_depth == 0:
-            piece = "".join(cur).strip()
-            if piece:
-                out.append(piece)
-            cur = []
+            _append_property_list_piece(out, cur)
             i += 1
             continue
         cur.append(ch)
         i += 1
-    tail = "".join(cur).strip()
-    if tail:
-        out.append(tail)
+    _append_property_list_piece(out, cur)
     return out
 
 
