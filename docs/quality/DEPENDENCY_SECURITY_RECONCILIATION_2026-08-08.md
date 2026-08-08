@@ -10,13 +10,17 @@ This record reconciles the eight open Dependabot alerts observed on the default 
 
 No alert was dismissed or claimed closed during this work. No repository setting, release artifact, Gate B record, tag, publication, or protected-branch rule was changed.
 
-Source snapshot: `MarcoPorcellato/matryca-plumber`, branch `ci/stacked-pr-gate-401`, commit `d5ad6224fbb9d9785989ec8c00d9954ea3f8a11a`, reviewed on 2026-08-08.
+Evidence provenance:
+
+- initial GitHub alert inventory: `MarcoPorcellato/matryca-plumber`, branch `ci/stacked-pr-gate-401`, commit `d5ad6224fbb9d9785989ec8c00d9954ea3f8a11a`, live query at `2026-08-08T01:23:00Z`;
+- Python implementation slice: branch `security/python-advisories-2026-08`, parent `d5ad6224fbb9d9785989ec8c00d9954ea3f8a11a`, committed as `65505e6c121944482a5fe5c48f23b5b61d578d66`;
+- frontend implementation slice: branch `security/frontend-advisories-2026-08`, parent `65505e6c121944482a5fe5c48f23b5b61d578d66`, registry and validation window `2026-08-08T01:43:00Z`–`2026-08-08T01:47:00Z`.
 
 ## Alert inventory and remediation map
 
 | Alert | Package | Severity | Scope | Locked before | Affected range | First fixed | Planned resolution |
 | ---: | --- | --- | --- | --- | --- | --- | --- |
-| #46 | `postcss` (npm) | moderate | transitive development dependency in `frontend/package-lock.json` | `8.5.20` | `<=8.5.22` | `8.5.23` | Separate frontend lock-only slice at `>=8.5.23`; do not couple it to Python runtime changes. [GHSA-fxqj-rqcc-2cmp](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp) |
+| #46 | `postcss` (npm) | moderate | transitive development dependency in `frontend/package-lock.json` | `8.5.20` | `<=8.5.22` | `8.5.23` | The stacked frontend slice locks `8.5.23`; do not couple it to Python runtime changes. [GHSA-fxqj-rqcc-2cmp](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp) |
 | #45 | `cryptography` (PyPI) | high | transitive runtime dependency through `PyJWT[crypto]` and MCP | `49.0.0` | `>=44,<50` | `50.0.0` | This Python slice locks `50.0.0`. [GHSA-g6cj-pr64-35w5](https://github.com/advisories/GHSA-g6cj-pr64-35w5) |
 | #44 | `aiohttp` (PyPI) | high | transitive runtime dependency through Instructor | `3.14.1` | `<=3.14.2` | `3.14.3` | This Python slice locks `3.14.3`. [GHSA-cq5v-8q36-5273](https://github.com/advisories/GHSA-cq5v-8q36-5273) |
 | #43 | `aiohttp` (PyPI) | moderate | transitive runtime dependency through Instructor | `3.14.1` | `<=3.14.1` | `3.14.2` | This Python slice locks `3.14.3`, superseding the minimum fix. [GHSA-mfx4-hv73-q22v](https://github.com/advisories/GHSA-mfx4-hv73-q22v) |
@@ -34,6 +38,17 @@ The Python resolver selected only these package-version changes:
 
 Wheel URLs, hashes, sizes, and upload timestamps necessarily changed for the three refreshed package records. No unrelated package version changed.
 
+## Frontend registry follow-up
+
+After the timestamped Dependabot query above, an `npm audit --json` registry report at `2026-08-08T01:43:00Z` returned two additional high-severity transitive development findings. They were absent from that exact eight-alert GitHub response and are not represented as GitHub alert numbers here.
+
+| Package | Severity and registry finding | Locked before | Affected range | First fixed | Dependency path | Advisory |
+| --- | --- | --- | --- | --- | --- | --- |
+| `nanoid` | high — custom generators can loop indefinitely when size is zero | `3.3.16` | `<3.3.17` | `3.3.17` | Tailwind PostCSS integration → PostCSS → Nano ID | [GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8) |
+| `brace-expansion` | high — unbounded intermediate arrays can cause denial of service | `5.0.7` | `>=4.0.0,<5.0.9` | `5.0.9` | ESLint → minimatch → brace-expansion | [GHSA-rgw5-rvv9-x895](https://github.com/advisories/GHSA-rgw5-rvv9-x895) |
+
+The same brace-expansion selection was also affected by [GHSA-mh99-v99m-4gvg](https://github.com/advisories/GHSA-mh99-v99m-4gvg), fixed in `5.0.8`; selecting `5.0.9` covers both advisories. These registry findings remain distinct from GitHub alert closure evidence.
+
 ## Existing automated-update pull requests
 
 | Pull request | Scope | Alert coverage | Decision |
@@ -49,17 +64,30 @@ These decisions do not reject the unrelated maintenance objectives of the three 
 1. Update the three Python runtime packages in one resolver-consistent slice and raise the direct GitPython floor.
 2. Verify the locked environment, exact installed versions, focused integration tests, and the complete repository CI contract.
 3. Submit that slice independently; after merge, wait for the default-branch Dependabot rescan before claiming alerts #38–#45 closed.
-4. Stack a separate PostCSS lock-only slice, prove that no unrelated npm package changed, and run frontend install, lint, tests, and build.
-5. After that merge, wait for the default-branch rescan before claiming alert #46 closed.
+4. Stack a separate frontend lock-only slice for PostCSS and the newly surfaced Nano ID and brace-expansion advisories; prove that no unrelated npm package changed, and run install, audit, lint, tests, and build.
+5. After that merge, wait for the default-branch rescan before claiming alert #46 or any later-ingested frontend alert closed.
 6. Reassess #368, #369, and #377 only against their own maintenance objectives and current base conflicts.
 
 ## Release and Gate B boundary
 
 The Python slice changes runtime dependency metadata and the exact installed bytes. If it is included in v2.0.0, the release must be built as a new exact artifact and the maintainer must make an explicit requalification decision; existing `v2.0.0-rc.1` Gate B evidence cannot be rebound or reused as proof for that new wheel. Keeping this slice on the post-stable stack avoids invalidating the current RC qualification, but also means the affected default-branch alerts remain open until the change is merged and rescanned.
 
-The PostCSS slice is development-tooling-only, but it still requires its normal frontend and CI evidence. Neither slice authorizes a tag, release, package publication, alert dismissal, or Gate B mutation.
+The frontend lock slice is development-tooling-only, but it still requires its normal frontend and CI evidence. Neither slice authorizes a tag, release, package publication, alert dismissal, or Gate B mutation.
 
 ## Validation receipt
+
+| Slice | Reproducible command | Observed result |
+| --- | --- | --- |
+| Python | `uv sync --locked --extra dev` | exit 0; 101 packages resolved; expected three fixed versions installed |
+| Python 3.12 | focused `pytest --no-cov` invocation for Git audit, MCP, URL-policy, prompt-injection, and adaptive LLM client tests | exit 0; 38 passed |
+| Python 3.13 | the same focused test invocation under CPython 3.13.2 | exit 0; 38 passed |
+| Python | `make ci` | exit 0; 1,685 passed, 5 skipped, 83.48% coverage |
+| Frontend | `npm ci --ignore-scripts` | exit 0; 192 packages installed |
+| Frontend | `npm audit --audit-level=moderate` | exit 0; zero vulnerabilities |
+| Frontend | `npm run lint` | exit 0 |
+| Frontend | `npm test` | exit 0; 20 passed |
+| Frontend | `npm run build` | exit 0; production bundle built |
+| Frontend child | `make ci` | exit 0; 1,685 passed, 5 skipped, 83.46% coverage |
 
 The Python slice produced the following local evidence on macOS arm64 with CPython 3.12.13:
 
@@ -73,6 +101,6 @@ The Python slice produced the following local evidence on macOS arm64 with CPyth
 
 One first sandboxed full-suite run denied the existing daemon-lock test permission to execute macOS `ps`. The exact test passed with normal process permissions, and the complete `make ci` rerun then passed. This was an execution-environment restriction, not a dependency or source regression.
 
-An independent read-only review remains required on the final staged diff before commit.
+Each slice receives an independent read-only diff review before commit.
 
-The later PostCSS slice must separately record `npm ci`, frontend lint, tests, and production build, plus a package-lock diff proving the update is isolated.
+The stacked frontend slice selects PostCSS `8.5.23`, Nano ID `3.3.17`, and brace-expansion `5.0.9`, whose dependency requirements remain satisfied by the existing lock. A clean `npm ci` installed 192 packages; `npm audit --audit-level=moderate` reported zero vulnerabilities; frontend lint passed; all 20 frontend tests passed; and the production build completed. The complete `make ci` gate also passed with 1,685 Python tests passed, 5 skipped, and 83.46% coverage. The package-lock diff changes only the version, resolved URL, and integrity fields for those three transitive packages.
