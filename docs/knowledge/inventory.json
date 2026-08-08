@@ -953,6 +953,24 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md",
+      "type": "Audit",
+      "title": "Dependency security reconciliation — 2026-08-08",
+      "description": "This record reconciles the eight open Dependabot alerts observed on the default branch with the smallest reviewable dependency updates.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Dependency-advisory evidence artifact; GitHub alert state remains authoritative after default-branch rescans."
+    },
+    {
       "path": "docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Expert Architectural Audit — Triage (2026-06)",
@@ -1025,7 +1043,8 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Control-plane evidence artifact; not a release authorization or live GitHub source of truth."
+      "notes": "Control-plane evidence artifact; not a release authorization or live GitHub source of truth.",
+      "missing": false
     },
     {
       "path": "docs/quality/ISSUE_TRIAGE_2026-07-01.md",
