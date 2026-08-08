@@ -291,18 +291,34 @@ Gate B profiles again before stable promotion.
 
 #### EX-05 — Invalidate stale Shadow generations on every sync failure
 
-**Verified failure-handling gap; outcome hypothesis:** generic incremental failures roll back and propagate, but the post-write bridge catches and logs them (`src/shadow/sync.py:291-335`). Only selected parse failures persist error metadata. Some generic failures may leave old rows eligible for `READY`; others will make the next open/health operation return `ERROR`. Fault injection must establish the exact transition for each class.
+**Implemented in #386:** every generic incremental or delete failure now latches the
+current Shadow generation invalid before propagating to direct callers or being
+contained by post-write/watchdog adapters. Reads report `ERROR` and use Markdown/BM25
+fallback; the state API exposes the closed content-free reason
+`incremental_sync_failed` under `not_ready_reason=sync_error`.
 
-**Smallest slice:** persist a content-free invalid-generation/sync-error marker after any failed transaction; route reads to Markdown until successful reconciliation clears it.
+Invalidation has three fail-closed layers. The process-local latch works even when no
+cache write is possible. A private `0600` `shadow.sync-invalid` marker in the external
+per-graph cache survives process restart and SQLite writer contention. When SQLite is
+writable, `last_sync_error` stores the same bounded reason. The marker rejects symlink
+targets and contains no graph path, page title, block identifier, content, or raw
+exception. Failure to persist either durable channel never clears the runtime latch or
+masks the original sync exception.
 
-Acceptance gate:
+Focused fault injection covers connection, schema, commit, disk-full-equivalent,
+filesystem, post-write callback, and watchdog failures. The committed Markdown write
+survives callback failure; the prior generation and generation number remain intact
+but ineligible. A successful full rebuild increments the generation, clears metadata,
+removes the durable marker, clears the runtime latch, and restores `READY`.
 
-- inject generic connection, schema, commit, disk-full-equivalent, filesystem, callback, and watchdog failures;
-- authoritative Markdown writes still succeed;
-- every class either already becomes non-`READY` or is made explicitly non-`READY`, with a bounded content-free reason;
-- successful reconciliation clears the marker with defined generation semantics and restores `READY`.
+Unrelated successful incremental writes deliberately do not clear a global failure:
+only full reconciliation proves that every source page has been reconsidered.
 
-Non-goal: do not make cache failure fail the authoritative write.
+**Gate B impact:** the public RC's controlled recovery probe writes
+`last_sync_error` directly; it does not inject these generic incremental branches.
+Keep the multi-day RC result bound to the exact published wheel. The stable candidate
+must run the focused exact-wheel failure/restart/rebuild matrix, but #386 alone does
+not restart the historical RC soak clock.
 
 ### P1 — Security, operability, and architectural enforcement
 

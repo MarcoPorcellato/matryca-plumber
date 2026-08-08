@@ -33,7 +33,12 @@ from .runtime_state import (
     rebuild_lock_for,
 )
 from .schema import SHADOW_SCHEMA_VERSION
-from .sync import delete_shadow_page_by_file_path, sync_page_to_shadow
+from .sync import (
+    delete_shadow_page_by_file_path,
+    record_shadow_sync_failure,
+    sync_page_to_shadow,
+)
+from .sync_failure import clear_shadow_sync_failed, is_shadow_sync_failed
 from .writer_lock import shadow_rebuild_lock
 
 _BOOTSTRAP_CHECKED: set[str] = set()
@@ -46,6 +51,8 @@ def _utc_now_iso() -> str:
 def shadow_needs_bootstrap(graph_root: Path | str) -> bool:
     """Return whether a compatible full sync generation is missing."""
     root = resolved_graph_root(graph_root)
+    if is_shadow_sync_failed(root):
+        return True
     if not shadow_db_path(root).is_file():
         return True
     conn = open_shadow_db(root)
@@ -108,6 +115,7 @@ def rebuild_shadow_from_graph(graph_root: Path | str) -> None:
                 set_meta(conn, META_QUARANTINED_PAGE_COUNT, str(quarantined))
                 set_meta(conn, META_LAST_SYNC_ERROR, "")
                 conn.commit()
+                clear_shadow_sync_failed(root)
                 if quarantined:
                     logger.warning(
                         "Shadow rebuild parked {} of {} pages outside the read cache; "
@@ -183,6 +191,7 @@ def handle_shadow_watchdog_change(
     """Sync or delete shadow rows after debounced external vault edits."""
     if not shadow_db_enabled():
         return
+    root: Path | None = None
     try:
         root = resolved_graph_root(graph_root)
         safe = assert_path_within_graph(path, root)
@@ -201,6 +210,8 @@ def handle_shadow_watchdog_change(
     except ShadowPageParseError as exc:
         logger.warning("Shadow watchdog sync rejected: {}", exc)
     except Exception:  # noqa: BLE001 — fail-safe like AST bridge
+        if root is not None:
+            record_shadow_sync_failure(root)
         logger.exception("Shadow watchdog sync failed for {} ({})", path, kind)
 
 

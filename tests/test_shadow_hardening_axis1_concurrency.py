@@ -251,6 +251,7 @@ def test_a1_sqlite_writer_lock_blocks_incremental_without_meta_corruption(
         assert conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0] == 1
     finally:
         conn.close()
+    assert resolve_shadow_health(graph) == ShadowHealthState.ERROR
 
 
 def _multiprocess_rebuild_worker(graph_str: str) -> None:

@@ -14,6 +14,14 @@ to those later bytes. Before stable promotion, bind a fresh candidate artifact a
 repeat the watcher-disabled edit/delete/rename matrix plus both Gate B profiles under
 the same fail-closed integrity rules.
 
+Issue [#386](https://github.com/MarcoPorcellato/matryca-plumber/issues/386) also
+changes post-RC generic sync-failure containment. The public RC recovery phase writes
+a controlled metadata error; it does not inject connection, schema, commit,
+disk-full-equivalent, filesystem, callback, or watchdog failures. Preserve the RC
+soak as exact-artifact history and require that focused failure/restart/full-rebuild
+matrix against the exact stable candidate; this configuration-excluded branch does
+not restart the historical multi-day RC timer by itself.
+
 ## Recorded checkpoint snapshot (public candidate `2.0.0rc1`)
 
 The recorded checkpoint for stable-promotion evidence is `RUNNING`

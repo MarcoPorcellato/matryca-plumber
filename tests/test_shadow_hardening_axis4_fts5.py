@@ -850,5 +850,5 @@ def test_a4_fail_05_writer_lock_does_not_corrupt_fts_meta(tmp_path: Path) -> Non
     finally:
         holder.rollback()
         holder.close()
-    assert resolve_shadow_health(graph) == ShadowHealthState.READY
+    assert resolve_shadow_health(graph) == ShadowHealthState.ERROR
     assert shadow_db_path(graph).is_file()

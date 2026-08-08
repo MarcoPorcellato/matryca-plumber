@@ -25,6 +25,7 @@ from .meta import (
 )
 from .runtime_state import is_shadow_bootstrapping
 from .schema import SHADOW_SCHEMA_VERSION
+from .sync_failure import SHADOW_SYNC_FAILURE_REASON, is_shadow_sync_failed
 
 ShadowDbStateValue = Literal["disabled", "bootstrapping", "ready", "stale", "error"]
 
@@ -225,6 +226,13 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
             enabled=True,
             state="bootstrapping",
             not_ready_reason="bootstrap_in_progress",
+        )
+    if is_shadow_sync_failed(root):
+        return ShadowDbStateResponse(
+            enabled=True,
+            state="error",
+            last_sync_error=SHADOW_SYNC_FAILURE_REASON,
+            not_ready_reason="sync_error",
         )
 
     try:

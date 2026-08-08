@@ -41,6 +41,10 @@ Published beta path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`
 canonical per-user external cache, isolated by versioned graph identity, with
 `MATRYCA_CACHE_PATH` as an absolute external root override. The derived Shadow
 database is rebuilt externally and never moved or mutated in place under Read Only.
+Generic sync failures additionally create a private content-free
+`shadow.sync-invalid` marker in that external per-graph directory. Health and state
+reads treat either this durable marker or the in-process invalid-generation latch as
+an error until a successful full rebuild clears both ([#386](https://github.com/MarcoPorcellato/matryca-plumber/issues/386)).
 
 ---
 
@@ -53,6 +57,7 @@ database is rebuilt externally and never moved or mutated in place under Read On
 - [x] Incremental post-write upsert — `sync_page_to_shadow` ([#182](https://github.com/MarcoPorcellato/matryca-plumber/issues/182))
 - [x] FTS5 query helper — `search_blocks_fts` ([#183](https://github.com/MarcoPorcellato/matryca-plumber/issues/183); dispatch wiring [#250](https://github.com/MarcoPorcellato/matryca-plumber/issues/250))
 - [x] Full bootstrap / reconciliation / freshness contract ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248))
+- [x] Fail-closed generic sync invalidation and deterministic full-rebuild recovery ([#386](https://github.com/MarcoPorcellato/matryca-plumber/issues/386))
 - [x] `GraphRepository` read routing — `ShadowGraphRepository` + `get_graph_read_port` ([#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255))
 - [x] Recursive CTEs (`query_subtree_by_block_uuid`) ([#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253))
 - [x] Opt-in env flag `MATRYCA_SHADOW_DB_ENABLED` ([#184](https://github.com/MarcoPorcellato/matryca-plumber/issues/184))

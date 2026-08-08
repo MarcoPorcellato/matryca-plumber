@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- **Fail-closed Shadow sync failures (#386)** — invalidate cached reads after every generic incremental, delete, callback, or watchdog failure; persist the content-free `incremental_sync_failed` reason in both Shadow metadata and a private external-cache marker when available, retain an in-process latch when storage is unavailable, and clear all invalidation only after a successful full reconciliation.
 - **Explicit Shadow read freshness (#389)** — validate requested subtree pages and every returned FTS page against the authoritative Markdown path, nanosecond mtime, and size before serving cached rows; route changed, missing, untracked, and unproven-empty reads to Markdown/generational BM25 with a bounded content-free reason, without a per-read graph scan.
 - **Read-only X-Ray aliases (#393)** — keep `xray_page` a graph-immutable read by routing its atomically replaced, process-locked alias map to the private per-graph external runtime cache under Strict Read Only while preserving graph-root state and UUID semantics in normal mode.
 - **Read-only startup log isolation (#388)** — redirect graph-local ops and Loguru paths to the validated external per-graph runtime cache before directory creation, preserve explicitly external paths, and bind Loguru to its configured sink rather than the ops JSONL path.
