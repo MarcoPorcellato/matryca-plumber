@@ -1651,6 +1651,64 @@ protect the mandatory 3.12 gate and prevent duplicated frontend, documentation, 
 static-analysis work in the 3.13 lane. No runtime source, dependency lock, release
 workflow, Gate B evidence, package artifact, tag, publication, or changelog entry changed.
 
+##### EX-18B — Validate stacked pull requests within a bounded cost envelope
+
+```yaml
+tranche_id: EX-18B
+issue: 401
+objective: Run the established CI evidence on every pull request, including branch-based review stacks, without multiplying the experimental Python 3.13 lane.
+base: docs/issue-control-plane-385
+allowed_files:
+  - .github/workflows/ci.yml
+  - tests/test_ci_workflow_contract.py
+  - CONTRIBUTING.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no runtime, dependency, lockfile, Makefile, frontend, release-workflow, or branch-protection change
+  - no Gate B evidence, package, tag, publication, or artifact change
+  - no full cross-platform suite; retain only the established focused Shadow contracts
+acceptance:
+  - pull requests targeting any branch run the blocking Linux gate, dependency review, and focused macOS/Windows Shadow contracts
+  - pushes remain limited to main
+  - the full Python 3.13 observation remains limited to pushes and pull requests targeting main
+  - dependency review has a 5-minute timeout, focused Shadow jobs 15 minutes, and the full Linux gate 20 minutes
+  - contract tests prevent silent trigger, condition, or timeout drift
+rollback: revert the four-file CI-topology commit
+documentation_impact: update
+release_qualification_impact: none
+residual_risks:
+  - a stacked result validates the declared parent branch, not the eventual main merge base
+  - the live ruleset requires Ironclad Gatekeeper only on the default branch; stacked parent branches rely on maintainer policy unless separately authorized ruleset scope changes
+  - existing pull requests need a new pull-request event before checks from a later workflow revision appear
+  - opening or updating a large stack starts one bounded blocking matrix per changed pull request
+```
+
+Live inspection on 2026-08-08 found that root pull request #406 had the full Linux,
+dependency-review, macOS, and Windows evidence from this workflow plus CodeQL from its
+separate workflow, while child pull requests
+#407–#422 exposed only the unrelated skipped lock-fix job. The cause was the CI workflow's
+`pull_request.branches: [main]` filter: every child targets its parent branch. EX-18B
+removes only that target filter. It retains the established blocking Linux and focused
+Shadow responsibilities for every pull request, while keeping the experimental full
+Python 3.13 observation on `main`-targeted events. Job timeouts provide a deterministic
+upper cost bound, and contributor guidance requires final base refresh and revalidation.
+Live ruleset inspection confirmed that only the default branch technically requires
+Ironclad Gatekeeper; stacked parent branches remain governed by the documented
+green-before-merge policy unless a separate repository-setting change is authorized.
+The changelog gate selects **no entry** because this is CI and contributor-process
+behavior only; distributed runtime and operator behavior are unchanged.
+
+**EX-18B implementation receipt (2026-08-08):** the exact four-file allowlist above is
+the complete diff. Three workflow-contract tests passed on both Python 3.12 and 3.13;
+Ruff formatting and lint, Mypy, documentation validation, and whitespace checks passed.
+The complete Python 3.12 `make ci` gate passed with 1,685 tests, 5 skips, and 83.45%
+coverage. An independent challenger review returned **GO** with no blocking findings
+after checking trigger and condition semantics, timeout coverage, incremental-versus-main
+guidance, and the release boundary. Live GitHub evidence established the missing child-PR
+checks and the default-branch-only ruleset scope; neither remote setting was changed.
+Runtime source, dependencies, Gate B evidence, packages, tags, releases, publication,
+and branch protection remain untouched.
+
 #### EX-19 — Reconcile the issue and milestone control plane
 
 The original 2026-08-06 baseline contained 49 open issues and 29 without
