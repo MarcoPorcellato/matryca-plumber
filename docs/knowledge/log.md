@@ -2,6 +2,7 @@
 
 ## 2026-08-07
 
+- **Distribution authority:** Preserved the versioned RC agent contract while routing mutable qualification and stable-promotion status to the readiness record.
 - **OpenSpec authority:** Retired the pre-ship Shadow migration trigger, corrected generated-prompt ownership, and routed current operator behavior to its canonical contract.
 - **Roadmap authority:** Replaced duplicated current Shadow defaults and live Gate B state with canonical operator and readiness links while preserving milestone history.
 - **Architecture authority:** Removed mutable Shadow defaults, release status, and exact test-count ownership from the system architecture document while preserving its internal design role.
