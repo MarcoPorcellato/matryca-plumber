@@ -5,8 +5,8 @@ description: Three-surface runtime, shared mutation plane, vault topology, and d
 resource: src/
 tags: [architecture, daemon, mcp, sovereign-ui, graph-dispatch]
 generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-last_verified: 2026-08-06
+verified: { by: human:marco-porcellato, at: '2026-08-07T00:00:00Z' }
+last_verified: 2026-08-07
 stale_after: 2027-02-02
 status: stable
 classification: canonical
@@ -83,6 +83,16 @@ flowchart TB
 ```
 
 **Quality bar:** Mypy strict on `src` and `tests`, Ruff lint/format clean via `make ci`; maintainer gates include `make agents-check` and `make check-system-prompt`.
+
+### Watcher diagnostics
+
+`GraphFileWatcher.diagnostics_snapshot()` exposes a schema-versioned, content-free view
+of debounce pressure and convergence: pending depth, schedule/coalescing and
+dispatch/failure counters, oldest pending age, and last/maximum callback-completion
+latency. The snapshot is captured under the existing condition lock and contains no graph
+paths or event content. It does not cap pending paths, coalesce overflow into a rescan, or
+change scheduler deadlines and callback routing; those resilience policies remain tracked
+separately by issue #398.
 
 ## Separation of concerns
 

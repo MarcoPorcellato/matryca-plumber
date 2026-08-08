@@ -872,6 +872,65 @@ coherence, public-metrics policy, documentation inventory, and generated prompt 
 The sole warning remains the pre-existing macOS multi-threaded `fork()` deprecation
 probe.
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-11-04
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 2bc6217512404208eb8c9e98720ed5a4cea319d5
+objective: expose bounded watcher debounce and convergence diagnostics
+authority: inspect | edit | commit | push | pr
+tracking_issue: 391
+allowlist:
+  - src/daemon/file_watcher.py
+  - tests/test_file_watcher.py
+  - docs/knowledge/architecture/system-overview.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+non_goals:
+  - cap pending paths or implement overflow/rescan policy from issue 398
+  - change debounce deadlines, event filtering, callback routing, or daemon state
+  - change Shadow, Gate B, tags, releases, or publication state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_file_watcher.py
+  - make ci
+acceptance:
+  - typed snapshot contains no paths, queries, or graph content
+  - pending, scheduled, coalesced, dispatched, and callback-failure counts are explicit
+  - oldest pending age and last/maximum callback-completion latency use monotonic time
+  - counters are captured under the existing condition lock
+  - existing debounce and callback behavior remains unchanged
+stop_conditions:
+  - any need for backlog caps, rescan policy, persistence, or daemon/API integration
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: 2bc6217512404208eb8c9e98720ed5a4cea319d5
+  handler_impact: MEDIUM; five direct import dependents; no affected process
+  schedule_and_worker_impact: LOW
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: metadata | lifecycle | provenance
+residual_risks:
+  - counters reset with the process and are not persisted
+  - maximum latency is not a percentile
+  - overflow remains unimplemented until issue 398
+```
+
+**EX-11-04 implemented:** `WatcherDiagnosticsSnapshot` reports current pending depth,
+process-lifetime schedule/coalescing and dispatch/failure counters, oldest pending age,
+and last/maximum callback-completion latency. The handler preserves the first-seen time
+when repeated events reset a debounce deadline, captures state under its existing
+condition lock, and exposes no path or event content. The public watcher delegates to the
+active handler or returns an explicit stopped zero snapshot. No backlog cap, rescan,
+persistence, daemon/API integration, Shadow, Gate B, or release behavior changed.
+Focused watcher tests pass `2/2`. The complete `make ci` gate passes with 1,655 tests,
+5 skips, and 83.45% coverage; format, Ruff, strict mypy over 377 source files, graph
+sandbox, version and agent coherence, public-metrics policy, documentation inventory,
+and generated prompt checks are green. The only warning remains the pre-existing macOS
+multi-threaded `fork()` deprecation probe. A sandboxed first run denied the unrelated
+`ps` subprocess used by one daemon-lock test; the complete gate passed with normal host
+permissions.
+
 Expose content-free metrics for:
 
 - Shadow sync duration, writer-lock wait, generation, fallback reason, last successful incremental sync, parser timeout count, quarantine age and retry count;

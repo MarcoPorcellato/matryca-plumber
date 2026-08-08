@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Typed watcher operational snapshot (#391)** — expose path-free pending depth, coalescing, dispatch/failure counters, oldest-event age, and last/maximum convergence latency under the existing debounce lock without changing scheduling, callback routing, or backlog policy.
 - **Checkpoint recovery diagnostics (#391)** — expose a bounded recovery-source vocabulary and explicit reset event in the bootstrap status projection, distinguishing missing, primary, backup, and unreadable checkpoint states without changing recovery, Soft Gate, or read-only behavior.
 - **Typed BM25 operational snapshot (#391)** — expose a versioned, content-free per-corpus snapshot of document/token cardinality, query-cache capacity and row pressure, hit/miss/invalidation/eviction counters, aggregate uncached-scoring timing, and a deterministic retained-payload estimate for machine-readable diagnostics without changing scoring or cache behavior.
 - **Reproducible BM25 capacity evidence** — add deterministic capacity, distribution, tail-latency, RSS, row-pressure, invalidation, rebuild, concurrent-corpus, and correctness-parity benchmarks; retain the 8,192-entry and 65,536-row production defaults under an explicit synthetic-evidence boundary.
