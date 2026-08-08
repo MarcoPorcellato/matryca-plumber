@@ -25,7 +25,9 @@ If `LOGSEQ_GRAPH_PATH` is unset or invalid, only **log directories** are ensured
 
 With `MATRYCA_READ_ONLY=true`, every entry surface still runs the light runtime
 bootstrap, but graph-local provisioning, AST/identity refresh, write-back hooks, and
-sidecar maintenance are skipped. When Shadow is enabled, startup may read
+sidecar maintenance are skipped. A configured graph-local ops or Loguru path is
+redirected to the validated external per-graph runtime cache before any directory is
+created; explicitly external log paths keep their configured locations. When Shadow is enabled, startup may read
 `pages/` and `journals/` and create or reconcile only the validated external Shadow
 cache. Explicit Shadow-off remains zero-touch for that cache.
 
@@ -45,6 +47,15 @@ On first startup, if repo **`.env`** is missing and **`.env.example`** exists, M
 **Rationale:** Parent directories are created with `mkdir(parents=True, exist_ok=True)` so the Sovereign UI activity feed and Loguru rotation never fail on first write. Paths must resolve under allowed roots (`$HOME`, repo, temp) — see `src/utils/config_paths.py`.
 
 `configure_loguru()` delegates to the same helper so file sinks and bootstrap stay aligned.
+
+**Gate B impact decision (#388):** the published `2.0.0rc1`
+`read-only-external` profile uses an external cache and does not configure graph-local
+log overrides, so it cannot enter the corrected redirection branch. Existing Gate B
+credit remains evidence for the exact RC artifact and is not rewritten. A stable
+candidate that includes this fix must pass the focused MCP, CLI, UI, and daemon startup
+matrix with both graph-local and external log settings, including an unchanged
+byte-and-metadata graph manifest; the historical multi-day RC soak does not need to be
+restarted for this configuration-excluded branch.
 
 ### 2. L1 memory (when a valid graph is configured)
 

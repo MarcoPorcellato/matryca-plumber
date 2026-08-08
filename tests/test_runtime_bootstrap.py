@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from src.agent.l1_memory import collect_l1_markdown_paths, ensure_matryca_l1_dir
 from src.config import MatrycaWikiConfig
+from src.shadow.cache_location import resolve_shadow_cache_location
 from src.utils.config_paths import ensure_plumber_log_directories
 from src.utils.runtime_bootstrap import (
     ensure_graph_runtime_directories,
@@ -77,6 +78,29 @@ def test_ensure_plumber_log_directories(tmp_path: Path, monkeypatch: pytest.Monk
     assert resolved_loguru == loguru
     assert ops.parent.is_dir()
     assert loguru.parent.is_dir()
+
+
+def test_ensure_plumber_log_directories_redirects_graph_local_read_only_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = tmp_path / "vault"
+    (graph / "pages").mkdir(parents=True)
+    cache = tmp_path / "external-cache"
+    graph_logs = graph / "logs"
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(graph))
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(cache))
+    monkeypatch.setenv("MATRYCA_PLUMBER_LOG_PATH", str(graph_logs / "ops.log"))
+    monkeypatch.setenv("MATRYCA_LOGURU_LOG_PATH", str(graph_logs / "app.log"))
+
+    resolved_ops, resolved_loguru = ensure_plumber_log_directories()
+
+    runtime_logs = resolve_shadow_cache_location(graph).shadow_dir.parent / "logs"
+    assert resolved_ops == runtime_logs / "ops.log"
+    assert resolved_loguru == runtime_logs / "app.log"
+    assert resolved_ops.parent.is_dir()
+    assert not graph_logs.exists()
 
 
 def test_collect_l1_skips_readme(tmp_path: Path) -> None:
