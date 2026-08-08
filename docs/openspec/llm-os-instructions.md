@@ -62,18 +62,28 @@ uvx matryca-plumber --json read bootstrap_status
 
 When changing agent contracts:
 
-1. Update **`SYSTEM_PROMPT.md`** (full law) and **`llms.txt`** + **`.well-known/llms.txt`** (byte-identical pointer) in the same PR.
-2. Sync MCP docstrings in [`src/agent/mcp_server.py`](../../src/agent/mcp_server.py) (`read_graph_data`, `search_graph`).
-3. Cross-check [`agent-onboarding.md`](agent-onboarding.md) and [`agent-dx.md`](agent-dx.md) if CLI discriminators change.
-4. Run `tests/test_bootstrap_status.py` and `tests/test_mcp_server.py`.
+1. Edit the source fragments under [`agent/`](agent/) and regenerate
+   **`SYSTEM_PROMPT.md`** with `make build-system-prompt`; never edit the generated
+   output directly.
+2. Update **`llms.txt`** + **`.well-known/llms.txt`** together only when the external
+   agent contract changes; the two files must remain byte-identical.
+3. Sync MCP docstrings in [`src/agent/mcp_server.py`](../../src/agent/mcp_server.py)
+   only when the MCP tool contract changes.
+4. Cross-check [`agent-onboarding.md`](agent-onboarding.md) and
+   [`agent-dx.md`](agent-dx.md) if CLI discriminators change.
+5. Run `make check-system-prompt`, `make agents-check`, and the focused contract tests.
 
-### v2.0 SQLite Shadow DB migration trigger
+### Shadow DB post-migration ownership
 
-When Shadow DB SQLite + FTS5 + recursive CTEs ship:
+Shadow DB SQLite, FTS5, and recursive CTE reads have shipped as a derived read cache.
+They do not replace the Tier-1 Gardener or the human-readable Master Index.
 
-1. Update `SYSTEM_PROMPT.md` § "LLM OS" — replace JSON catalog / BM25 wording with Shadow DB + FTS5 paths.
-2. Update Tier-1 Gardener embedded prompts (`semantic_lint_prompts.py`, harvest map-reduce).
-3. Document CONTRIBUTING carve-out: Matryca Shadow DB is a daemon cache — not Logseq native storage.
+1. Keep current activation, storage, health, and fallback guidance in the
+   [canonical Shadow operator contract](../knowledge/architecture/shadow-db.md).
+2. Change the assembled Tier-2 law only through [`agent/`](agent/) fragments and the
+   prompt builder.
+3. Change Tier-1 Gardener prompts only when Gardener behavior changes, not when Shadow
+   operator defaults or release status changes.
 4. Keep `[[Matryca Master Index]]` as the human-readable hub page.
 
 ---

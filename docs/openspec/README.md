@@ -15,7 +15,7 @@ Trimmed behavioral specs aligned with [MehmetGoekce/llm-wiki](https://github.com
 | [`agent-ax-robustness.md`](agent-ax-robustness.md) | v1.9.7+ lenient page resolution, safe `write_outline` fallback, `heading_level` coercion, chaos tests. |
 | [`security-sandbox.md`](security-sandbox.md) | v1.9.9 path sandbox reads, bounded JSON checkpoints, CI `sandbox-read-check`; v1.10.0 flock + atomic JSON sidecars ([#35](https://github.com/MarcoPorcellato/matryca-plumber/issues/35)–[#37](https://github.com/MarcoPorcellato/matryca-plumber/issues/37), [#41](https://github.com/MarcoPorcellato/matryca-plumber/issues/41)); v1.10.3 flock sidecar `0o600`. |
 | [`../integrations/hermes-agent.md`](../integrations/hermes-agent.md) | v1.9.6 Hermes Agent MCP: lazy AST handshake, `connect_timeout` vs tool `timeout`, verified config. |
-| [`llm-os-instructions.md`](llm-os-instructions.md) | Two-tier LLM OS, Master Index Soft Gate, `bootstrap_status`, Safe-Sync, v2.0 SQLite migration trigger. |
+| [`llm-os-instructions.md`](llm-os-instructions.md) | Two-tier LLM OS, Master Index Soft Gate, `bootstrap_status`, Safe-Sync, and Shadow post-migration ownership. |
 | [`link-verification.md`](link-verification.md) | v1.9 zero-LLM URL/asset hygiene, `.matryca_link_registry.json`, `dead-link::` / `missing-asset::`; v1.10.0 atomic registry save (#41). |
 | [`agent-dx.md`](agent-dx.md) | v1.9 CLI `--json`, `context load`, `read subtree`, Journey Log (single cumulative bullet per day). |
 | [`dual-embedding.md`](dual-embedding.md) | Phase 3 dual vectors (content + applicability) and `search_graph` / `method=semantic`. |
@@ -27,8 +27,9 @@ Trimmed behavioral specs aligned with [MehmetGoekce/llm-wiki](https://github.com
 | [`runtime-bootstrap.md`](runtime-bootstrap.md) | Startup directory/config provisioning (logs, L1, cache, wiki YAML); master catalog flock/merge persistence (v1.10.0). |
 | [`llm-performance.md`](llm-performance.md) | v1.8 KV-cache layout, RAM caps, cooperative bootstrap I/O; v1.12 Tier-1 builders + L0 safety; journal Phase-2 semantic bypass. |
 | [`../PROMPT_ARCHITECTURE.md`](../PROMPT_ARCHITECTURE.md) | **v1.12** — Clean Architecture map for prompts (plan v3), semver recommendation, mermaid/ASCII flows. |
-| [`../roadmaps/ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md) | **v2 visitor SSOT** — five phases, Safe-Sync, contribute guide |
-| [`../roadmaps/ROADMAP_V2_SHADOW_DB.md`](../roadmaps/ROADMAP_V2_SHADOW_DB.md) | v2.0 `shadow.sqlite` read cache (FTS5, CTEs, `src/shadow/schema.py`) |
+| [`../knowledge/architecture/shadow-db.md`](../knowledge/architecture/shadow-db.md) | Canonical current Shadow runtime and operator contract. |
+| [`../roadmaps/ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md) | v2 sequencing, contribution guidance, and milestone history. |
+| [`../roadmaps/ROADMAP_V2_SHADOW_DB.md`](../roadmaps/ROADMAP_V2_SHADOW_DB.md) | Shadow read-path sequencing and completed implementation history. |
 | [`../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | Nacre-inspired decay/recall/procedure memory |
 | [`biological-memory.md`](biological-memory.md) | Planned env vars, `search_graph(method=recall)`, Safe-Sync contract |
 | [`../v1.8-SOFTWARE-EDGE-PLAN.md`](../v1.8-SOFTWARE-EDGE-PLAN.md) | CPU sandbox, frozen KV prefix, adaptive LLM, mmap reads. |

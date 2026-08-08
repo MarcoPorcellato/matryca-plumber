@@ -97,7 +97,9 @@ When adding or renaming CLI subcommands:
 3. Cross-check [`agent-dx.md`](agent-dx.md), [`agent-ax-robustness.md`](agent-ax-robustness.md), [`security-sandbox.md`](security-sandbox.md) (when touching graph reads or JSON sidecars), [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md), and [`llm-os-instructions.md`](llm-os-instructions.md) if MCP discriminators or agent contracts change.
 4. Ship a **patch release** so `uvx` consumers pick up accurate instructions on PyPI.
 
-When Shadow DB SQLite + FTS5 ships (v2.0), follow the migration trigger in [`llm-os-instructions.md`](llm-os-instructions.md).
+For Shadow-related agent-contract changes, follow the post-migration ownership rules in
+[`llm-os-instructions.md`](llm-os-instructions.md). Current operator behavior belongs to
+the [canonical Shadow operator contract](../knowledge/architecture/shadow-db.md).
 
 ---
 
