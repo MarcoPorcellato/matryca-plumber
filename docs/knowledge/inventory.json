@@ -1010,6 +1010,24 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/ISSUE_CONTROL_PLANE_2026-08-08.md",
+      "type": "Audit",
+      "title": "Issue and milestone control plane — 2026-08-08",
+      "description": "Timestamped EX-19 issue and milestone disposition ledger with reversible governance batches.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Control-plane evidence artifact; not a release authorization or live GitHub source of truth."
+    },
+    {
       "path": "docs/quality/ISSUE_TRIAGE_2026-07-01.md",
       "type": "Audit",
       "title": "Issue triage — 2026-07-01",
