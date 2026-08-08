@@ -29,6 +29,35 @@ def test_parse_property_quoted_commas() -> None:
     assert split_logseq_property_list_values(p.value_raw) == ['"Foo, Inc"', "[[Bar]]"]
 
 
+def test_parse_property_nested_wikilinks() -> None:
+    p = parse_logseq_property_line('alias:: [[Outer, [[Inner, A]], B]], "flat"')
+    assert p is not None
+    assert split_logseq_property_list_values(p.value_raw) == [
+        "[[Outer, [[Inner, A]], B]]",
+        '"flat"',
+    ]
+
+
+def test_parse_property_escaped_commas_and_quotes() -> None:
+    p = parse_logseq_property_line('alias:: "a\\,b", "c\\"d"')
+    assert p is not None
+    assert split_logseq_property_list_values(p.value_raw) == ['"a\\,b"', '"c\\"d"']
+
+
+def test_parse_property_unterminated_quote_is_preserved() -> None:
+    raw = '"unterminated, A, B'
+    assert split_logseq_property_list_values(raw) == [raw]
+
+
+def test_parse_property_trailing_backslash_in_quote_is_preserved() -> None:
+    raw = '"A' + "\\"
+    assert split_logseq_property_list_values(raw) == [raw]
+
+
+def test_parse_property_empty_segments_are_omitted() -> None:
+    assert split_logseq_property_list_values('a,, , "b",[[c]],,') == ["a", '"b"', "[[c]]"]
+
+
 def test_bullet_with_double_colon_is_not_property() -> None:
     assert is_logseq_block_property_line("  - Question here :: Answer") is False
 
