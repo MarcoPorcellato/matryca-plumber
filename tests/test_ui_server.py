@@ -885,6 +885,37 @@ def test_run_ui_server_opens_dashboard_and_starts_uvicorn() -> None:
     )
 
 
+@pytest.mark.parametrize("dotenv_preexists", [False, True])
+def test_run_ui_server_enforces_explicit_token_after_startup_defaults(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    dotenv_preexists: bool,
+) -> None:
+    from src.cli import ui_server
+
+    policy = "MATRYCA_UI_REQUIRE_EXPLICIT_TOKEN=true\nMATRYCA_UI_TOKEN=\n"
+    if dotenv_preexists:
+        (tmp_path / ".env").write_text(policy, encoding="utf-8")
+    else:
+        (tmp_path / ".env.example").write_text(policy, encoding="utf-8")
+    monkeypatch.delenv("MATRYCA_UI_TOKEN", raising=False)
+    monkeypatch.delenv("MATRYCA_UI_REQUIRE_EXPLICIT_TOKEN", raising=False)
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setattr("src.utils.runtime_bootstrap._REPO_ROOT", tmp_path)
+    monkeypatch.setattr("src.agent.plumber_config._REPO_ROOT", tmp_path)
+
+    with (
+        patch("src.cli.ui_server._schedule_browser_open") as mock_schedule,
+        patch("uvicorn.run") as mock_run,
+        pytest.raises(ValueError, match="MATRYCA_UI_TOKEN"),
+    ):
+        ui_server.run_ui_server()
+
+    assert (tmp_path / ".env").read_text(encoding="utf-8") == policy
+    mock_schedule.assert_not_called()
+    mock_run.assert_not_called()
+
+
 def test_ui_server_serves_frontend_index_when_dist_exists(
     tmp_path: Path,
     auth_headers: dict[str, str],
