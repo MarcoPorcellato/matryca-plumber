@@ -1653,7 +1653,14 @@ workflow, Gate B evidence, package artifact, tag, publication, or changelog entr
 
 #### EX-19 — Reconcile the issue and milestone control plane
 
-There are 49 open issues and 29 without milestones. Run a read-only duplicate/obsolescence audit, then classify every issue into:
+The original 2026-08-06 baseline contained 49 open issues and 29 without
+milestones. The live 2026-08-08 EX-19 audit found 65 open issues, 28 without a
+milestone, and 20 open pull requests. These are timestamped snapshots, not
+permanent repository facts. The complete disposition matrix, relationship
+decisions, and reversible mutation batches are recorded in
+[`ISSUE_CONTROL_PLANE_2026-08-08.md`](ISSUE_CONTROL_PLANE_2026-08-08.md).
+
+Run a read-only duplicate/obsolescence audit, then classify every issue into:
 
 - v2.0 release-blocking;
 - v2.0 follow-up;
