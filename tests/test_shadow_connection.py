@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
 from src.shadow.cache_location import resolve_shadow_cache_location
-from src.shadow.connection import open_shadow_db, shadow_db_path
+from src.shadow.connection import open_shadow_db, open_shadow_db_query_only, shadow_db_path
 from src.shadow.schema import SHADOW_SCHEMA_VERSION
 
 
@@ -57,6 +58,46 @@ def test_open_shadow_db_idempotent(tmp_path: Path) -> None:
         assert "blocks" in tables
     finally:
         second.close()
+
+
+def test_open_shadow_db_query_only_requires_existing_database(
+    tmp_path: Path,
+    _cache_root: Path,
+) -> None:
+    location = resolve_shadow_cache_location(
+        tmp_path,
+        env={"MATRYCA_CACHE_PATH": str(_cache_root)},
+    )
+
+    with pytest.raises(sqlite3.OperationalError):
+        open_shadow_db_query_only(tmp_path)
+
+    assert not location.shadow_dir.exists()
+    assert not location.database_path.exists()
+    assert not location.shadow_db_wal_path.exists()
+    assert not location.shadow_db_shm_path.exists()
+
+
+def test_open_shadow_db_query_only_cannot_write_application_data(tmp_path: Path) -> None:
+    writer = open_shadow_db(tmp_path)
+    writer.close()
+    location = resolve_shadow_cache_location(tmp_path)
+    before = {path.name for path in location.shadow_dir.iterdir()}
+
+    reader = open_shadow_db_query_only(tmp_path)
+    try:
+        assert reader.execute("PRAGMA query_only").fetchone() == (1,)
+        with pytest.raises(sqlite3.OperationalError, match="readonly"):
+            reader.execute("CREATE TABLE query_path_must_not_write (id INTEGER)")
+        schema = reader.execute(
+            "SELECT value FROM shadow_meta WHERE key = 'schema_version'"
+        ).fetchone()
+        assert schema == (str(SHADOW_SCHEMA_VERSION),)
+    finally:
+        reader.close()
+
+    after = {path.name for path in location.shadow_dir.iterdir()}
+    assert after - before <= {"shadow.sqlite-wal", "shadow.sqlite-shm"}
 
 
 def test_open_shadow_db_uses_only_external_cache_in_read_only_mode(

@@ -104,6 +104,13 @@ Generic sync failures add a private content-free `shadow.sync-invalid` marker be
 the external database and latch the generation invalid in-process. Either signal
 forces fallback until a successful full rebuild clears metadata, marker, and latch;
 authoritative Markdown writes never roll back because cache maintenance failed.
+Pure health, state, FTS, and subtree reads open the existing database with SQLite URI
+`mode=ro` and `PRAGMA query_only=ON`; they never create the cache directory, apply DDL,
+or migrate schema. Because the live database uses WAL mode, SQLite may create or reuse
+`-wal` and `-shm` sidecars for read coordination; declaring the database `immutable`
+would be unsafe while reconciliation can update it. Bootstrap and synchronization
+retain the separate schema-capable writer opener because the external derived cache
+remains daemon-owned and rebuildable.
 
 **v2.0.0-rc.1 contract (Slices 1–5 complete):** an unset
 `MATRYCA_SHADOW_DB_ENABLED` now enables Shadow; explicit false remains a zero-Shadow

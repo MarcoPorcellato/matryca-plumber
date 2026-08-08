@@ -11,7 +11,7 @@ from loguru import logger
 from ..graph.path_sandbox import resolved_graph_root
 from ..rag.matryca_hooks import get_page_spatial_context
 from ..shadow.config import shadow_db_enabled
-from ..shadow.connection import open_shadow_db
+from ..shadow.connection import open_shadow_db_query_only
 from ..shadow.freshness import ShadowFreshnessError, ensure_shadow_page_fresh
 from ..shadow.health import ShadowHealthState, resolve_shadow_health
 from ..shadow.subtree import SubtreeStatus, query_subtree_by_block_uuid
@@ -129,7 +129,7 @@ class ShadowGraphRepository:
             raise ValueError(msg)
 
         try:
-            conn = open_shadow_db(root)
+            conn = open_shadow_db_query_only(root)
             try:
                 ensure_shadow_page_fresh(conn, root, title=page_ref)
                 result = query_subtree_by_block_uuid(conn, block_uuid)

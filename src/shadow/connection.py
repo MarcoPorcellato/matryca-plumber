@@ -65,7 +65,30 @@ def open_shadow_db(graph_root: Path | str) -> sqlite3.Connection:
     return connection
 
 
+def open_shadow_db_query_only(graph_root: Path | str) -> sqlite3.Connection:
+    """Open an existing Shadow DB for queries without creating or migrating it.
+
+    Caller owns the connection lifetime (``close()``).
+    """
+    if not shadow_db_enabled():
+        raise RuntimeError("Shadow DB disabled via MATRYCA_SHADOW_DB_ENABLED=false")
+
+    root = resolved_graph_root(graph_root)
+    db_path = _resolve_shadow_location_for_graph(root).database_path
+    connection = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        busy_timeout_ms = shadow_db_busy_timeout_ms()
+        if busy_timeout_ms > 0:
+            connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
+        connection.execute("PRAGMA query_only = ON")
+    except Exception:
+        connection.close()
+        raise
+    return connection
+
+
 __all__ = [
     "open_shadow_db",
+    "open_shadow_db_query_only",
     "shadow_db_path",
 ]

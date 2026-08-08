@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ..graph.path_sandbox import PathTraversalSecurityError, resolved_graph_root
 from .config import shadow_db_enabled
-from .connection import open_shadow_db, shadow_db_path
+from .connection import open_shadow_db_query_only, shadow_db_path
 from .meta import (
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_COMPLETED,
@@ -83,7 +83,7 @@ def resolve_shadow_health(graph_root: Path | str) -> ShadowHealthState:
         return ShadowHealthState.STALE
 
     try:
-        conn = open_shadow_db(root)
+        conn = open_shadow_db_query_only(root)
     except (OSError, RuntimeError, sqlite3.Error, PathTraversalSecurityError):
         return ShadowHealthState.ERROR
     try:

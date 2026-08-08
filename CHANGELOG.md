@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- **Query-only Shadow read connections (#413)** — separate health, state, FTS, and subtree queries from the schema-capable writer opener by requiring an existing SQLite database in `mode=ro` with `PRAGMA query_only=ON`; missing or unreadable caches continue through established stale/error and Markdown/BM25 fallback paths without creating cache directories, databases, or schema.
 - **Serialized dotenv updates with OCC (#387)** — serialize cooperating UI configuration writers across the complete read/merge/atomic-replace transaction; bind each source snapshot to device, inode, nanosecond mtime, size, and SHA-256; and return the typed `dotenv_conflict` HTTP 409 response when an external edit intervenes, while preserving comments, unknown keys, ordering, and failed-replace cleanup.
 - **Fail-closed Shadow sync failures (#386)** — invalidate cached reads after every generic incremental, delete, callback, or watchdog failure; persist the content-free `incremental_sync_failed` reason in both Shadow metadata and a private external-cache marker when available, retain an in-process latch when storage is unavailable, and clear all invalidation only after a successful full reconciliation.
 - **Explicit Shadow read freshness (#389)** — validate requested subtree pages and every returned FTS page against the authoritative Markdown path, nanosecond mtime, and size before serving cached rows; route changed, missing, untracked, and unproven-empty reads to Markdown/generational BM25 with a bounded content-free reason, without a per-read graph scan.
