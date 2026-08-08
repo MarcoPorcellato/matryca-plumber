@@ -1577,15 +1577,79 @@ evidence, release state, tags, publication, and GitHub issue state were not touc
 
 #### EX-18 — Expand CI where it buys independent evidence
 
+Current baseline: frontend lint, tests, and production build already block the Linux
+Python 3.12 gate and release verification. Focused macOS and Windows Shadow contracts
+already run on every pull request. The remaining work must add independent evidence,
+not duplicate those completed checks.
+
 Recommended order:
 
-1. run frontend tests in CI, not only build/lint;
-2. add Python 3.13 alongside 3.12 for the declared support contract;
-3. keep focused macOS/Windows Shadow contract lanes on every PR;
+1. observe the full Python suite under 3.13 without duplicating static, coverage, or frontend work;
+2. remediate compatibility findings through separately qualified runtime slices;
+3. promote the 3.13 lane only after a measured duration and flake budget;
 4. run fuller cross-platform suites on a scheduled cadence before making all OSes mandatory for every PR;
 5. add scheduled performance and mutation/property-test jobs for bounded allowlisted modules.
 
 This is more cost-effective than immediately tripling every PR's full CI workload.
+
+##### EX-18A — Add bounded Python 3.13 observation evidence
+
+```yaml
+tranche_id: EX-18A
+issue: 401
+objective: Observe the complete Python 3.13 test contract without weakening or duplicating the blocking Python 3.12 gate.
+base: ci/docs-machine-report-402
+allowed_files:
+  - .github/workflows/ci.yml
+  - tests/test_ci_workflow_contract.py
+  - CONTRIBUTING.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no runtime, dependency, lockfile, Makefile, frontend, or release-workflow change
+  - no Gate B evidence, package, tag, publication, artifact, or branch-protection change
+  - no action-reference hardening; immutable action pinning requires a separate security review
+acceptance:
+  - locked dependencies install under Python 3.13 without changing uv.lock
+  - the complete Python suite runs without duplicate coverage, static analysis, docs, or frontend work
+  - the observation job cannot block the established Python 3.12 release gate
+  - the job has a 15-minute hard timeout and uploads no repository artifact
+  - promotion requires ten consecutive green runs, zero test or infrastructure flakes, and observed p95 duration no greater than four minutes
+rollback: revert the four-file CI-evidence commit
+documentation_impact: update
+release_qualification_impact: none
+residual_risks:
+  - Python 3.13 changes non-strict pathlib symlink-loop behavior and currently exposes one fail-closed policy incompatibility
+  - observational success is not release qualification and cannot replace Gate B evidence
+```
+
+Local preflight on CPython 3.13.2 installed the locked dependency graph and ran the
+complete suite without coverage in 101.38 seconds: 1,681 tests passed, 5 skipped, and
+`test_runtime_write_policy_fails_closed_on_unresolvable_cache_path` failed. Python 3.13
+changed `Path.resolve(strict=False)` so a symlink loop no longer raises; the current
+policy therefore does not detect that adversarial path through its legacy exception
+branch. This is a real supported-version safety finding, not a reason to hide the test
+behind a passing selector allowlist.
+
+The workflow lane is intentionally non-blocking until the runtime defect is fixed in a
+separate safety slice and its read-only qualification impact is explicitly decided.
+Changing `RuntimeWritePolicy` here would alter a high-fan-out Gate B surface. Workflow
+logs remain available subject to the repository's platform retention policy, but the
+lane uploads no artifacts. After remediation, ten
+consecutive green observations with no test or infrastructure flakes and p95 duration
+at or below four minutes are required before a separately reviewed branch-protection
+change may make it mandatory. The changelog gate selects **no entry** because this slice
+changes repository CI evidence only, not the distributed package or operator behavior.
+
+Implementation receipt (2026-08-08): focused workflow-contract tests passed on Python
+3.12 and 3.13 (2 each), with Ruff formatting and lint, Mypy, the documentation knowledge
+gate, and whitespace validation all clean. The unchanged blocking Python 3.12 `make ci`
+gate passed with 1,684 tests, 5 skips, and 83.47% coverage. The complete Python 3.13
+observation finished in 108.12 seconds with 1,683 passes, 5 skips, and exactly the one
+known `RuntimeWritePolicy` symlink-loop failure documented above. An independent
+challenger review found no blocking issue after the contract test was strengthened to
+protect the mandatory 3.12 gate and prevent duplicated frontend, documentation, or
+static-analysis work in the 3.13 lane. No runtime source, dependency lock, release
+workflow, Gate B evidence, package artifact, tag, publication, or changelog entry changed.
 
 #### EX-19 — Reconcile the issue and milestone control plane
 
