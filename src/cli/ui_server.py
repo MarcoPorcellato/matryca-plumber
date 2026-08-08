@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import ipaddress
 import json
 import os
@@ -17,6 +18,7 @@ import webbrowser
 from collections import defaultdict, deque
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
@@ -90,6 +92,34 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _FRONTEND_ROOT = _REPO_ROOT / "frontend"
 _FRONTEND_DIST = _FRONTEND_ROOT / "dist"
 _FRONTEND_SRC = _FRONTEND_ROOT / "src"
+_DOTENV_UPDATE_LOCK = threading.Lock()
+
+
+@dataclass(frozen=True, slots=True)
+class _DotenvIdentity:
+    """Content-bound identity for optimistic concurrency on one dotenv file."""
+
+    exists: bool
+    device: int | None = None
+    inode: int | None = None
+    mtime_ns: int | None = None
+    size: int | None = None
+    sha256: str | None = None
+
+
+class _DotenvConflictError(RuntimeError):
+    """Raised when the dotenv source changes before atomic replacement."""
+
+
+_DOTENV_CONFLICT_DETAIL = {
+    "code": "dotenv_conflict",
+    "message": "Configuration changed during the update; reload and retry.",
+}
+
+
+def _dotenv_stat_signature(stat: os.stat_result) -> tuple[int, int, int, int]:
+    """Return the bounded metadata used to detect a changed file object."""
+    return stat.st_dev, stat.st_ino, stat.st_mtime_ns, stat.st_size
 
 
 class FileStateResponse(BaseModel):
@@ -517,8 +547,49 @@ class _UiRateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-def _atomic_write_text(path: Path, text: str) -> None:
-    """Write UTF-8 text atomically (temp file + ``os.replace``)."""
+def _read_dotenv_snapshot(path: Path) -> tuple[bytes | None, _DotenvIdentity]:
+    """Read a stable dotenv snapshot and bind it to metadata plus a content hash."""
+    try:
+        with path.open("rb") as handle:
+            before = os.fstat(handle.fileno())
+            content = handle.read()
+            after = os.fstat(handle.fileno())
+    except FileNotFoundError:
+        return None, _DotenvIdentity(exists=False)
+
+    if _dotenv_stat_signature(before) != _dotenv_stat_signature(after):
+        raise _DotenvConflictError("dotenv changed while it was being read")
+
+    try:
+        current = path.stat()
+    except FileNotFoundError as exc:
+        raise _DotenvConflictError("dotenv disappeared while it was being read") from exc
+    if _dotenv_stat_signature(current) != _dotenv_stat_signature(after):
+        raise _DotenvConflictError("dotenv changed while it was being read")
+
+    return content, _DotenvIdentity(
+        exists=True,
+        device=after.st_dev,
+        inode=after.st_ino,
+        mtime_ns=after.st_mtime_ns,
+        size=after.st_size,
+        sha256=hashlib.sha256(content).hexdigest(),
+    )
+
+
+def _capture_dotenv_identity(path: Path) -> _DotenvIdentity:
+    """Capture the current content-bound identity without exposing dotenv content."""
+    _, identity = _read_dotenv_snapshot(path)
+    return identity
+
+
+def _atomic_write_text(
+    path: Path,
+    text: str,
+    *,
+    expected_identity: _DotenvIdentity,
+) -> None:
+    """Write UTF-8 text atomically when the source identity still matches."""
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(
         prefix=f".{path.name}.",
@@ -532,6 +603,8 @@ def _atomic_write_text(path: Path, text: str) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
+        if _capture_dotenv_identity(path) != expected_identity:
+            raise _DotenvConflictError("dotenv changed before atomic replacement")
         os.replace(tmp_path, path)
         committed = True
     finally:
@@ -562,37 +635,45 @@ def _redact_log_line(line: str) -> str:
 def _apply_dotenv_updates(updates: dict[str, str], *, env_path: Path | None = None) -> Path:
     """Merge ``updates`` into the repo ``.env`` and refresh ``os.environ``."""
     target = env_path or _resolve_dotenv_path()
-    if target.is_file():
-        lines = target.read_text(encoding="utf-8").splitlines()
-    else:
-        example_path = _REPO_ROOT / ".env.example"
-        lines = (
-            example_path.read_text(encoding="utf-8").splitlines() if example_path.is_file() else []
-        )
-
-    seen: set[str] = set()
-    new_lines: list[str] = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in line:
-            new_lines.append(line)
-            continue
-        key, _, _ = line.partition("=")
-        key = key.strip()
-        if key in updates:
-            new_lines.append(f"{key}={format_dotenv_value(updates[key])}")
-            seen.add(key)
+    with _DOTENV_UPDATE_LOCK:
+        source, source_identity = _read_dotenv_snapshot(target)
+        if source is not None:
+            lines = source.decode("utf-8").splitlines()
         else:
-            new_lines.append(line)
+            example_path = _REPO_ROOT / ".env.example"
+            lines = (
+                example_path.read_text(encoding="utf-8").splitlines()
+                if example_path.is_file()
+                else []
+            )
 
-    for key, value in updates.items():
-        if key not in seen:
-            new_lines.append(f"{key}={format_dotenv_value(value)}")
+        seen: set[str] = set()
+        new_lines: list[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in line:
+                new_lines.append(line)
+                continue
+            key, _, _ = line.partition("=")
+            key = key.strip()
+            if key in updates:
+                new_lines.append(f"{key}={format_dotenv_value(updates[key])}")
+                seen.add(key)
+            else:
+                new_lines.append(line)
 
-    _atomic_write_text(target, "\n".join(new_lines).rstrip() + "\n")
-    for key, value in updates.items():
-        os.environ[key] = value
-    load_dotenv(target, override=True)
+        for key, value in updates.items():
+            if key not in seen:
+                new_lines.append(f"{key}={format_dotenv_value(value)}")
+
+        _atomic_write_text(
+            target,
+            "\n".join(new_lines).rstrip() + "\n",
+            expected_identity=source_identity,
+        )
+        for key, value in updates.items():
+            os.environ[key] = value
+        load_dotenv(target, override=True)
     return target
 
 
@@ -626,6 +707,8 @@ def _persist_graph_path_update(payload: GraphPathUpdateRequest) -> PlumberConfig
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     try:
         _apply_dotenv_updates({"LOGSEQ_GRAPH_PATH": validated_path})
+    except _DotenvConflictError as exc:
+        raise HTTPException(status_code=409, detail=_DOTENV_CONFLICT_DETAIL) from exc
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Failed to write .env: {exc}") from exc
     reload_plumber_dotenv(override=True)
@@ -642,6 +725,8 @@ def _persist_config_update(payload: PlumberConfigUpdateRequest) -> PlumberConfig
     """Persist settings to ``.env`` and re-bootstrap runtime (blocking; off event loop)."""
     try:
         _update_dotenv(payload)
+    except _DotenvConflictError as exc:
+        raise HTTPException(status_code=409, detail=_DOTENV_CONFLICT_DETAIL) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except OSError as exc:

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
@@ -502,6 +505,166 @@ def test_post_config_rejects_unsafe_lm_studio_url(
     assert "not allowed" in response.json()["detail"]
     assert "dummy-key" not in response.text
     assert env_path.read_text(encoding="utf-8") == 'LOGSEQ_GRAPH_PATH="/old/path"\n'
+
+
+def test_dotenv_updates_serialize_disjoint_writers_and_preserve_layout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.cli import ui_server
+
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "# retained comment\nUNKNOWN_FLAG=keep\nMATRYCA_TEST_ALPHA=old\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MATRYCA_TEST_ALPHA", "process-old")
+    monkeypatch.setenv("MATRYCA_TEST_BETA", "process-old")
+    read_snapshot = ui_server._read_dotenv_snapshot
+    first_read_blocked = threading.Event()
+    release_first_read = threading.Event()
+    second_started = threading.Event()
+    call_guard = threading.Lock()
+    snapshot_calls = 0
+
+    def controlled_snapshot(path: Path) -> object:
+        nonlocal snapshot_calls
+        with call_guard:
+            snapshot_calls += 1
+            call_number = snapshot_calls
+        if call_number == 1:
+            first_read_blocked.set()
+            assert release_first_read.wait(timeout=5)
+        return read_snapshot(path)
+
+    def update(values: dict[str, str], *, started: threading.Event | None = None) -> None:
+        if started is not None:
+            started.set()
+        ui_server._apply_dotenv_updates(values, env_path=env_path)
+
+    monkeypatch.setattr(ui_server, "_read_dotenv_snapshot", controlled_snapshot)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(update, {"MATRYCA_TEST_ALPHA": "new-alpha"})
+        assert first_read_blocked.wait(timeout=5)
+        second = executor.submit(
+            update,
+            {"MATRYCA_TEST_BETA": "new-beta"},
+            started=second_started,
+        )
+        try:
+            assert second_started.wait(timeout=5)
+            with call_guard:
+                assert snapshot_calls == 1
+        finally:
+            release_first_read.set()
+        first.result(timeout=5)
+        second.result(timeout=5)
+
+    assert env_path.read_text(encoding="utf-8").splitlines() == [
+        "# retained comment",
+        "UNKNOWN_FLAG=keep",
+        "MATRYCA_TEST_ALPHA=new-alpha",
+        "MATRYCA_TEST_BETA=new-beta",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("initial_text", "external_text"),
+    [
+        ("SETTING=original\n", "# external edit\nSETTING=external\n"),
+        (None, "# external creation\nSETTING=external\n"),
+        ("SETTING=original\n", None),
+    ],
+)
+def test_dotenv_update_rejects_external_edit_before_replace(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    initial_text: str | None,
+    external_text: str | None,
+) -> None:
+    from src.cli import ui_server
+
+    env_path = tmp_path / ".env"
+    if initial_text is not None:
+        env_path.write_text(initial_text, encoding="utf-8")
+    monkeypatch.setenv("SETTING", "process-original")
+    capture_identity = ui_server._capture_dotenv_identity
+
+    def inject_external_edit(path: Path) -> object:
+        if external_text is None:
+            path.unlink()
+        else:
+            path.write_text(external_text, encoding="utf-8")
+        return capture_identity(path)
+
+    monkeypatch.setattr(ui_server, "_capture_dotenv_identity", inject_external_edit)
+
+    with pytest.raises(ui_server._DotenvConflictError, match="before atomic replacement"):
+        ui_server._apply_dotenv_updates({"SETTING": "ours"}, env_path=env_path)
+
+    if external_text is None:
+        assert not env_path.exists()
+    else:
+        assert env_path.read_text(encoding="utf-8") == external_text
+    assert os.environ["SETTING"] == "process-original"
+    assert not list(tmp_path.glob("..env.*.tmp"))
+
+
+def test_dotenv_atomic_replace_failure_preserves_source_and_cleans_temp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.cli import ui_server
+
+    env_path = tmp_path / ".env"
+    env_path.write_text("SETTING=original\n", encoding="utf-8")
+    monkeypatch.setenv("SETTING", "process-original")
+
+    def fail_replace(_source: Path, _target: Path) -> None:
+        raise OSError("replace failed")
+
+    monkeypatch.setattr("src.cli.ui_server.os.replace", fail_replace)
+
+    with pytest.raises(OSError, match="replace failed"):
+        ui_server._apply_dotenv_updates({"SETTING": "ours"}, env_path=env_path)
+
+    assert env_path.read_text(encoding="utf-8") == "SETTING=original\n"
+    assert os.environ["SETTING"] == "process-original"
+    assert not list(tmp_path.glob("..env.*.tmp"))
+
+
+@pytest.mark.parametrize("endpoint", ["/api/config", "/api/config/graph-path"])
+def test_config_updates_return_typed_dotenv_conflict(
+    endpoint: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    auth_headers: dict[str, str],
+) -> None:
+    from src.cli import ui_server
+
+    graph = tmp_path / "graph"
+    (graph / "pages").mkdir(parents=True)
+
+    def conflict(*_args: object, **_kwargs: object) -> Path:
+        raise ui_server._DotenvConflictError("test conflict")
+
+    monkeypatch.setattr(ui_server, "_apply_dotenv_updates", conflict)
+    body = (
+        _ui_config_update_payload(graph)
+        if endpoint == "/api/config"
+        else {"logseq_graph_path": str(graph)}
+    )
+
+    with TestClient(app) as client:
+        response = client.post(endpoint, json=body, headers=auth_headers)
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": {
+            "code": "dotenv_conflict",
+            "message": "Configuration changed during the update; reload and retry.",
+        }
+    }
 
 
 def test_fetch_lm_studio_models_parses_httpx_response(monkeypatch: pytest.MonkeyPatch) -> None:

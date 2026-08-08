@@ -424,7 +424,49 @@ new warning.
 
 #### EX-08 — Serialize `.env` read/merge/write updates
 
-**Finding:** config routes run in worker threads and use read-merge-atomic-replace without a shared lock or OCC version (`src/cli/ui_server.py:542-576`, `src/cli/ui_server.py:902-918`). Concurrent full-config and graph-path updates can lose disjoint changes.
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-08-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: d05522e58072f7c85f329f70804e672b58183df4
+objective: prevent lost and externally overwritten dotenv updates from concurrent UI routes
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - src/cli/ui_server.py
+  - tests/test_ui_server.py
+  - docs/ARCHITECTURE.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+non_goals:
+  - broaden the configuration schema or alter unrelated settings behavior
+  - claim a portable filesystem compare-and-swap primitive that Python does not provide
+  - modify Gate B evidence, services, artifacts, tags, releases, or publication state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_ui_server.py -k "dotenv or post_config or post_graph_path"
+  - uv run ruff check src/cli/ui_server.py tests/test_ui_server.py
+  - uv run mypy --strict src/cli/ui_server.py tests/test_ui_server.py
+acceptance:
+  - concurrent cooperating writers serialize and preserve disjoint changes
+  - device, inode, nanosecond mtime, size, and content hash bind each source snapshot
+  - an intervening external edit returns HTTP 409 with code dotenv_conflict
+  - comments, ordering, unknown keys, and crash-safe atomic replacement survive
+stop_conditions:
+  - cross-process mandatory locking or a platform-specific filesystem CAS becomes required
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: d05522e58072f7c85f329f70804e672b58183df4
+  evidence_paths:
+    - src/cli/ui_server.py
+    - tests/test_ui_server.py
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: lifecycle | provenance | safety
+residual_risks:
+  - an uncooperating writer can still race in the irreducible interval between the final identity check and os.replace
+```
+
+**Finding:** at the frozen base, config routes run in worker threads and `_apply_dotenv_updates` performs read-merge-atomic-replace without a shared lock or OCC version. Concurrent full-config and graph-path updates can lose disjoint changes.
 
 **Smallest slice:** use a lock for cooperating writers and source-identity OCC for uncooperating/external writers; define the identity contract (for example mtime/size plus content hash) and return a conflict instead of overwriting an intervening edit.
 
@@ -432,7 +474,35 @@ Acceptance gate:
 
 - concurrent disjoint updates preserve both changes;
 - an external edit yields a typed conflict;
-- comments and unknown keys survive.
+- comments, ordering, and unknown keys survive;
+- a failed atomic replacement leaves the source intact and removes its temporary file.
+
+**Implemented for #387:** a process-wide lock now owns the complete dotenv
+read/merge/write transaction for both UI configuration routes. The source snapshot is
+bound to existence, device, inode, nanosecond mtime, size, and SHA-256. After the
+candidate temporary file is flushed and synchronized, the writer captures that identity
+again immediately before `os.replace`; a mismatch raises a private typed conflict that
+both routes map to HTTP 409 with the stable, content-free code `dotenv_conflict`.
+Process-environment mutation and dotenv reload occur only after replacement commits.
+
+Deterministic concurrency coverage holds the first writer inside the snapshot boundary,
+proves a second worker has started but cannot enter it, and then verifies that both
+disjoint updates survive. External replacement, creation, and deletion are injected
+before commit and all preserve the external result. Additional regressions retain
+comments, established ordering, unknown keys, API conflict shape, original source
+content on `os.replace` failure, and temporary-file cleanup.
+
+Candidate validation passed 13 focused dotenv/config tests, all 56 UI and dotenv
+serialization tests, focused Ruff and strict mypy, and the documentation bundle gate.
+The complete `make ci` gate passed with 1,647 tests, 5 skips, 83.34% coverage, format,
+Ruff, strict mypy over 377 source files, graph sandbox, version and agent coherence,
+public-metrics policy, documentation inventory, and generated prompt checks. The suite
+retained the pre-existing macOS `fork()` deprecation warning. An earlier restricted run
+was blocked only when macOS process inspection was denied; the exact test and the full
+gate both passed when run with standard process-inspection access. A later exact-tree
+parallel repetition recorded one unrelated 30-second MCP handshake timeout after 1,646
+passes; the isolated handshake then passed in 1.05 seconds, so no unrelated runtime
+change was introduced.
 
 #### EX-09 — Close first-run token ordering
 
