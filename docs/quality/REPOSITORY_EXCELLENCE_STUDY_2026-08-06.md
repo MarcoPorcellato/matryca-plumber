@@ -633,6 +633,57 @@ policy, endpoint shape, dotenv writer, or Gate B behavior changes in this tranch
 
 #### EX-10 — Replace string-based architecture tests with AST enforcement
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-10-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 44fab70d358ecc6f5f40cdf33619a57d5b32ac91
+objective: replace broad graph-layer string/file exemptions with exact AST-enforced import boundaries
+authority: inspect | edit | commit | push | pr
+tracking_issue: 394
+allowlist:
+  - tests/test_graph_layer_boundary.py
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - move the CRITICAL shared tokenizer or prompt compiler in this tranche
+  - change runtime imports, behavior, Gate B evidence, releases, tags, or publication state
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_graph_layer_boundary.py
+  - make ci
+acceptance:
+  - absolute imports and every relative depth resolve through the Python AST
+  - comments and strings cannot trigger false positives
+  - exceptions identify the exact path, module, imported names, issue, and expiry criterion
+  - stale exceptions fail the gate when their production import disappears
+stop_conditions:
+  - any production symbol move or new exception without an issue-bound expiry criterion
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: 44fab70d358ecc6f5f40cdf33619a57d5b32ac91
+  tokenizer_impact: CRITICAL
+  boundary_test_impacts: LOW
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: lifecycle | provenance
+residual_risks:
+  - two exact production imports remain until later #394 tranches prove safe extraction
+```
+
+**EX-10-01 implemented:** the boundary gate now parses every Python import with the
+standard-library AST, resolves absolute imports and arbitrary relative depth against the
+source package, and ignores import-shaped text in comments and strings. The previous
+whole-file exemptions are replaced by two exact records that bind path, resolved module,
+imported names, issue #394, and a concrete expiry criterion. The gate fails both on any
+new graph-to-agent/daemon/rag import and when a recorded exception becomes stale.
+
+Focused validation passes `2/2`. The complete macOS arm64 Python 3.12 gate passes with
+`1,648` tests, `5` skips, and `83.33%` coverage; format, Ruff, strict mypy over 377 source
+files, graph sandbox, version and agent coherence, public-metrics policy, documentation
+inventory, and generated prompt checks are all green. The only warning remains the
+pre-existing macOS multi-threaded `fork()` deprecation probe. No changelog entry is
+required because this tranche changes test enforcement and its evidence record only.
+
 **Finding:** the current graph boundary test misses deeper relative imports and exempts an entire production file (`tests/test_graph_layer_boundary.py:8-44`). The live violations are visible at `src/graph/insights/prompts.py:8` and `src/graph/generational_cache.py:225-255`.
 
 **Smallest slice:** first reconcile the absolute `graph`-must-not-import-`agent` rule with the documented Tier-1 prompt-core exception. Then parse imports with the standard-library AST, extract tokenization and prompt compilation behind domain-owned helpers/protocols where appropriate, and remove broad exemptions.
