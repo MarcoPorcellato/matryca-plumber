@@ -26,7 +26,28 @@ legacy_sources:
 
 # Shadow DB read architecture
 
-This maintained concept is the canonical progressive-disclosure entry for Shadow DB. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) and the linked roadmap remain the detailed contracts.
+This maintained concept is the canonical current runtime and operator contract for the
+v2 Shadow read path. Change current activation, Read Only, cache-location, health,
+fallback, or quarantine guidance here first; other maintained surfaces link here rather
+than restating those mutable claims. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md)
+retains deeper system design, while roadmaps describe future work only.
+
+## Operator start
+
+| Question | Authoritative answer |
+| --- | --- |
+| What is authoritative? | Logseq Markdown on disk; Shadow is disposable derived state. |
+| Where is Shadow stored? | In the per-user external cache resolved by `shadow_db_path()`, optionally rooted by `MATRYCA_CACHE_PATH`; never in the graph under the RC contract. |
+| Is Shadow enabled? | Yes by default; `MATRYCA_SHADOW_DB_ENABLED=false` opts out explicitly. |
+| Can Strict Read Only use Shadow? | Yes. `MATRYCA_READ_ONLY=true` blocks graph-local mutation while validated external derived-cache writes remain available. |
+| What happens when Shadow is unavailable or unhealthy? | Reads fall back to generational BM25 and the Markdown repository; graph writes never depend on cache success. |
+| Where are release gates defined? | [`docs/RELEASE_PROCESS.md`](../../RELEASE_PROCESS.md#v20-promotion-override). |
+| Where is current qualification evidence recorded? | [`v2-rc-stable-readiness.md`](../../quality/issue-bodies/v2-rc-stable-readiness.md). |
+
+The sections below own the detailed current contract. Version deltas belong in
+[`CHANGELOG.md`](../../../CHANGELOG.md), release mechanics in
+[`docs/RELEASE_PROCESS.md`](../../RELEASE_PROCESS.md), future proposals in roadmaps,
+and timestamped observations in `docs/quality/`.
 
 Logseq Markdown on disk remains the **system of record**. The published beta used an
 opt-in graph-local cache. The v2.0.0-rc.1 contract uses a **default-on external derived

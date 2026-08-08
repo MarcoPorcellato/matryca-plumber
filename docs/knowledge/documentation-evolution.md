@@ -5,9 +5,9 @@ description: How Matryca Plumber documentation evolved into an OKF v0.2-compatib
 resource: docs/knowledge/
 tags: [documentation, okf, governance, maintenance, provenance]
 generated: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-last_verified: 2026-08-06
-stale_after: 2027-02-02
+verified: { by: human:marco-porcellato, at: '2026-08-07T00:00:00Z' }
+last_verified: 2026-08-07
+stale_after: 2027-02-03
 status: stable
 classification: canonical
 canonical_for: documentation.governance
@@ -87,6 +87,27 @@ Use the smallest surface that answers the question:
 4. Use the generated [inventory](inventory.md) to locate, classify, or migrate legacy documentation.
 5. Follow detailed architecture, OpenSpec, roadmap, release, and quality links only when deeper evidence is required.
 
+For v2 operation, use one path: the README links to the canonical
+[Shadow DB runtime and operator contract](architecture/shadow-db.md). That contract
+links onward to release mechanics and current qualification evidence without making
+either surface a second runtime authority.
+
+## Authority by surface
+
+| Surface | Sole role |
+| --- | --- |
+| `README.md` | Stable product overview and navigation |
+| `docs/knowledge/architecture/shadow-db.md` | Current v2 Shadow runtime and operator contract |
+| `docs/RELEASE_PROCESS.md` | Release mechanics and maintainer authority gates |
+| `CHANGELOG.md` | User-visible version deltas |
+| `docs/roadmaps/` | Future work and sequencing |
+| `docs/quality/` | Timestamped evidence and decisions |
+| `docs/releases/` | Historical publication text |
+
+When a mutable statement appears outside its owning surface, replace it with a concise
+stable summary and a link. Do not rewrite historical release or quality evidence to
+match the current runtime.
+
 ## How to add or update a maintained concept
 
 1. Choose a stable lowercase path under `docs/knowledge/`; renaming changes the OKF concept ID.
@@ -137,6 +158,7 @@ Review the new `inventory.json` entry. Heuristics are discovery defaults, not au
 | 2026-07-18 | Introduced the OKF-inspired pilot bundle, architecture concepts, and repository inventory |
 | 2026-07 to 2026-08 | Expanded architecture knowledge for Shadow DB, deterministic retrieval caching, and LLM-free cluster recognition |
 | 2026-08-06 | Adopted the pinned OKF v0.2 contract, separated official lifecycle from Matryca classification, added trust/freshness metadata, enabled canonical roles and anchors, and documented the source/projection boundary |
+| 2026-08-07 | Established one navigable v2 operator path and an explicit authority role for each maintained documentation surface |
 
 ## Future evolution
 
