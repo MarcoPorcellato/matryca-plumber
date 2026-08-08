@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OKF-inspired knowledge bundle checks, inventory sync, and legacy audit."""
+"""Dual-layer knowledge checks, inventory sync, and legacy audit."""
 
 from __future__ import annotations
 
@@ -8,8 +8,10 @@ import json
 import re
 import sys
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import redirect_stderr
 from dataclasses import dataclass
 from datetime import date, datetime
+from io import StringIO
 from pathlib import Path
 from typing import Any, NoReturn, cast
 from urllib.parse import unquote, urlsplit
@@ -41,7 +43,11 @@ DOC_TYPES: frozenset[str] = frozenset(
 )
 
 INVENTORY_SCHEMA_VERSION = 2
-OKF_VERSION = "0.2"
+OKF_SPEC_VERSION = "0.2"
+MATRYCA_PROFILE_VERSION = "1.0"
+DOCS_VALIDATOR_VERSION = "1"
+FINDING_SCHEMA_VERSION = "1"
+OKF_VERSION = OKF_SPEC_VERSION
 OKF_STATUSES: frozenset[str] = frozenset({"draft", "stable", "deprecated"})
 CLASSIFICATIONS: frozenset[str] = frozenset({"canonical", "active", "historical", "generated"})
 
@@ -103,6 +109,16 @@ class HeuristicDefaults:
     action: str
     surface_class: str
     destination: str | None = None
+
+
+@dataclass(frozen=True)
+class ValidationReport:
+    official_okf: tuple[str, ...]
+    matryca_quality: tuple[str, ...]
+
+    @property
+    def has_findings(self) -> bool:
+        return bool(self.official_okf or self.matryca_quality)
 
 
 def _fail(message: str) -> NoReturn:
@@ -763,14 +779,35 @@ def validate_legacy_sources(
     return errors
 
 
-def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
+def validate_official_okf_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     rel = path.relative_to(KNOWLEDGE_DIR).as_posix()
-    label = f"{rel}"
+    label = rel
 
     doc_type = meta.get("type")
-    if not isinstance(doc_type, str) or doc_type not in DOC_TYPES:
-        errors.append(f"{label}: type must be one of profile types")
+    if not isinstance(doc_type, str) or not doc_type.strip():
+        errors.append(f"{label}: type must be a non-empty string")
+
+    status = meta.get("status")
+    if status is not None and (not isinstance(status, str) or status not in OKF_STATUSES):
+        errors.append(f"{label}: invalid OKF status")
+
+    if "generated" in meta:
+        errors.extend(
+            _validate_actor_event(meta.get("generated"), f"{label}.generated", allow_many=False)
+        )
+    if "verified" in meta:
+        errors.extend(
+            _validate_actor_event(meta.get("verified"), f"{label}.verified", allow_many=True)
+        )
+    if "stale_after" in meta:
+        errors.extend(_validate_iso_date(meta.get("stale_after"), f"{label}.stale_after"))
+    return errors
+
+
+def validate_matryca_quality_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
+    errors: list[str] = []
+    label = path.relative_to(KNOWLEDGE_DIR).as_posix()
 
     for field in (
         "title",
@@ -783,10 +820,6 @@ def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[st
     ):
         if field not in meta:
             errors.append(f"{label}: missing required field {field}")
-
-    status = meta.get("status")
-    if status is not None and (not isinstance(status, str) or status not in OKF_STATUSES):
-        errors.append(f"{label}: invalid OKF status")
 
     classification = meta.get("classification")
     if classification is not None and (
@@ -806,16 +839,7 @@ def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[st
     ):
         errors.append(f"{label}: invalid audience")
 
-    if "generated" in meta:
-        errors.extend(
-            _validate_actor_event(meta.get("generated"), f"{label}.generated", allow_many=False)
-        )
-    if "verified" in meta:
-        errors.extend(
-            _validate_actor_event(meta.get("verified"), f"{label}.verified", allow_many=True)
-        )
     errors.extend(_validate_iso_date(meta.get("last_verified"), f"{label}.last_verified"))
-    errors.extend(_validate_iso_date(meta.get("stale_after"), f"{label}.stale_after"))
     last_verified = meta.get("last_verified")
     stale_after = meta.get("stale_after")
     last_verified_date = _parse_iso_date(last_verified)
@@ -842,6 +866,13 @@ def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[st
     return errors
 
 
+def validate_concept_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
+    """Return the combined findings for compatibility with existing callers."""
+    return validate_official_okf_frontmatter(path, meta) + validate_matryca_quality_frontmatter(
+        path, meta
+    )
+
+
 def collect_knowledge_concepts() -> list[Path]:
     concepts: list[Path] = []
     for path in sorted(KNOWLEDGE_DIR.rglob("*.md")):
@@ -851,14 +882,50 @@ def collect_knowledge_concepts() -> list[Path]:
     return concepts
 
 
+def _validation_report(
+    official_okf: list[str],
+    matryca_quality: list[str],
+) -> ValidationReport:
+    return ValidationReport(
+        official_okf=tuple(sorted(official_okf)),
+        matryca_quality=tuple(sorted(matryca_quality)),
+    )
+
+
+def _print_validation_report(report: ValidationReport) -> None:
+    print(
+        f"OKF v{OKF_SPEC_VERSION} format compatibility: "
+        f"{'FAIL' if report.official_okf else 'PASS'} "
+        f"({len(report.official_okf)} findings)"
+    )
+    print(
+        f"Matryca quality profile v{MATRYCA_PROFILE_VERSION}: "
+        f"{'FAIL' if report.matryca_quality else 'PASS'} "
+        f"({len(report.matryca_quality)} findings)"
+    )
+    print(f"Validator v{DOCS_VALIDATOR_VERSION}; finding schema v{FINDING_SCHEMA_VERSION}")
+
+
+def _collect_check_failures(check: Callable[[], None]) -> list[str]:
+    stderr = StringIO()
+    try:
+        with redirect_stderr(stderr):
+            check()
+    except SystemExit:
+        findings = [line for line in stderr.getvalue().splitlines() if line]
+        return findings or ["validation command failed without a diagnostic"]
+    return []
+
+
 def check_bundle() -> None:
-    errors: list[str] = []
+    official_okf: list[str] = []
+    matryca_quality: list[str] = []
 
     if not PROFILE_MD.is_file():
-        errors.append("missing docs/knowledge/profile.md")
+        matryca_quality.append("missing docs/knowledge/profile.md")
 
     data = load_inventory()
-    errors.extend(validate_inventory_schema(data))
+    matryca_quality.extend(validate_inventory_schema(data))
 
     entries = data.get("entries", [])
     canonical_for_values = {
@@ -873,58 +940,64 @@ def check_bundle() -> None:
         rel = concept_path.relative_to(KNOWLEDGE_DIR).as_posix()
         meta, body = split_frontmatter(concept_path)
         if meta is None:
-            errors.append(f"{rel}: concept documents require YAML frontmatter")
+            official_okf.append(f"{rel}: concept documents require YAML frontmatter")
             continue
-        errors.extend(validate_concept_frontmatter(concept_path, meta))
-        errors.extend(validate_legacy_sources(meta, concept_path, rel))
+        official_okf.extend(validate_official_okf_frontmatter(concept_path, meta))
+        matryca_quality.extend(validate_matryca_quality_frontmatter(concept_path, meta))
+        matryca_quality.extend(validate_legacy_sources(meta, concept_path, rel))
 
         canonical_for = meta.get("canonical_for")
         if canonical_for is not None:
             if not isinstance(canonical_for, str):
-                errors.append(f"{rel}: canonical_for must be a string")
+                matryca_quality.append(f"{rel}: canonical_for must be a string")
             elif canonical_for in canonical_for_values:
-                errors.append(
+                matryca_quality.append(
                     f"duplicate canonical_for {canonical_for!r} in "
                     f"{canonical_for_values[canonical_for]} and {rel}"
                 )
             else:
                 canonical_for_values[canonical_for] = rel
 
-        errors.extend(validate_document_links(concept_path, body, rel))
+        matryca_quality.extend(validate_document_links(concept_path, body, rel))
 
     for index_path in sorted(KNOWLEDGE_DIR.rglob("index.md")):
         rel = index_path.relative_to(KNOWLEDGE_DIR).as_posix()
         meta, body = split_frontmatter(index_path)
         if index_path == KNOWLEDGE_DIR / "index.md":
             if meta != {"okf_version": OKF_VERSION}:
-                errors.append(
+                official_okf.append(
                     f"{rel}: root index frontmatter must contain only okf_version: {OKF_VERSION!r}"
                 )
         elif meta is not None:
-            errors.append(f"{rel}: nested OKF indexes must not have frontmatter")
-        errors.extend(validate_document_links(index_path, body, rel))
+            official_okf.append(f"{rel}: nested OKF indexes must not have frontmatter")
+        matryca_quality.extend(validate_document_links(index_path, body, rel))
 
     log_path = KNOWLEDGE_DIR / "log.md"
     if not log_path.is_file():
-        errors.append("missing docs/knowledge/log.md")
+        official_okf.append("missing docs/knowledge/log.md")
     else:
         meta, body = split_frontmatter(log_path)
         if meta is not None:
-            errors.append("log.md: OKF log files must not have frontmatter")
+            official_okf.append("log.md: OKF log files must not have frontmatter")
         date_headings = re.findall(r"^## (\d{4}-\d{2}-\d{2})$", body, re.MULTILINE)
         if not date_headings:
-            errors.append("log.md: expected at least one ISO date heading")
+            matryca_quality.append("log.md: expected at least one ISO date heading")
         elif date_headings != sorted(date_headings, reverse=True):
-            errors.append("log.md: date headings must be newest first")
-        errors.extend(validate_document_links(log_path, body, "log.md"))
+            matryca_quality.append("log.md: date headings must be newest first")
+        matryca_quality.extend(validate_document_links(log_path, body, "log.md"))
 
-    inventory_sync(check=True)
-    inventory_md(check=True)
+    matryca_quality.extend(_collect_check_failures(lambda: inventory_sync(check=True)))
+    matryca_quality.extend(_collect_check_failures(lambda: inventory_md(check=True)))
 
-    if errors:
-        for error in errors:
-            print(error, file=sys.stderr)
-        _fail(f"docs knowledge check failed ({len(errors)} issue(s))")
+    report = _validation_report(official_okf, matryca_quality)
+    _print_validation_report(report)
+    if report.has_findings:
+        for error in report.official_okf:
+            print(f"[official-okf] {error}", file=sys.stderr)
+        for error in report.matryca_quality:
+            print(f"[matryca-quality] {error}", file=sys.stderr)
+        total = len(report.official_okf) + len(report.matryca_quality)
+        _fail(f"docs knowledge check failed ({total} issue(s))")
     print("docs knowledge check OK")
 
 

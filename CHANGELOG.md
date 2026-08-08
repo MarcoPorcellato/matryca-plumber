@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Dual-layer documentation validation (#402)** — report deterministic OKF v0.2 format compatibility separately from the stricter Matryca quality profile, preserve unknown concept types and extension fields, and keep both layers blocking under independently versioned specification, profile, validator, and finding-schema contracts.
 - **Typed Shadow operational snapshot (#391)** — expose content-free generation, validated last-incremental-sync time, quarantine retry/reason pressure, maximum attempts, and oldest age from an existing SQLite connection without changing schema, synchronization, locks, routing, or fallback.
 - **Typed watcher operational snapshot (#391)** — expose path-free pending depth, coalescing, dispatch/failure counters, oldest-event age, and last/maximum convergence latency under the existing debounce lock without changing scheduling, callback routing, or backlog policy.
 - **Checkpoint recovery diagnostics (#391)** — expose a bounded recovery-source vocabulary and explicit reset event in the bootstrap status projection, distinguishing missing, primary, backup, and unreadable checkpoint states without changing recovery, Soft Gate, or read-only behavior.

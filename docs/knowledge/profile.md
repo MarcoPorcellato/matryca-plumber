@@ -72,6 +72,21 @@ Maintained concepts require:
 | `audience` | Any of `maintainer`, `contributor`, `operator`, or `agent` when present |
 | `owner` | Maintainer area responsible for the concept |
 
+## Validator reporting contract
+
+`make docs-check` reports two independent top-level results: **OKF v0.2 format
+compatibility** and **Matryca quality profile v1.0**. Passing the format gate is
+not an official certification and does not imply that the stricter repository
+profile passes. Unknown concept types and extension fields remain consumable;
+the Matryca layer owns repository-specific links, anchors, freshness, canonical
+roles, safe local paths, inventory drift, and generated-view integrity.
+
+The specification, profile, validator, and finding-schema versions advance
+independently. Text findings are sorted before emission so identical source bytes
+and policy versions produce stable output. Machine-readable findings and
+changed-policy invalidation remain separately reviewable follow-up work under
+[#402](https://github.com/MarcoPorcellato/matryca-plumber/issues/402).
+
 `last_verified` is intentionally dual-written during the transition to native OKF v0.2 trust parsing in Matryca Knowledge. It may be removed only after the registry validates `verified[].at` directly for freshness.
 
 ## Classification and lifecycle are different
