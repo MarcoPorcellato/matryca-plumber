@@ -700,6 +700,61 @@ Non-goal: no repository-wide hexagonal rewrite.
 
 #### EX-11 — Add operational diagnostics before concurrency refactors
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-11-01
+repository: MarcoPorcellato/matryca-plumber
+base_commit: b2be63a1f737ce248ca722d7cbb51c9f60a03d59
+objective: expose existing BM25 corpus and query-cache state as a typed content-free snapshot
+authority: inspect | edit | commit | push | pr
+tracking_issue: 391
+allowlist:
+  - src/graph/generational_cache.py
+  - tests/test_bm25_query_cache.py
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - docs/knowledge/architecture/cache-friendly-retrieval.md
+  - CHANGELOG.md
+non_goals:
+  - instrument scoring latency or cumulative evictions in this tranche
+  - change Bm25Corpus fields, cache capacities, scoring, locking, or invalidation behavior
+  - expose graph paths, lexical terms, raw queries, result rows, or process RSS claims
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_bm25_query_cache.py
+  - make ci
+acceptance:
+  - snapshot fields are bounded aggregate integers with an explicit schema version
+  - repeated snapshots over unchanged state are equal and machine-readable
+  - output contains no paths, terms, queries, secrets, or graph content
+  - diagnostics remain passive and use the existing per-corpus query lock
+stop_conditions:
+  - any required cache-field, scoring-path, capacity, or lock-model mutation
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: b2be63a1f737ce248ca722d7cbb51c9f60a03d59
+  bm25_corpus_impact: CRITICAL
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: lifecycle | provenance
+residual_risks:
+  - retained-payload bytes are a deterministic structural estimate, not Python object RSS
+  - scoring latency and cumulative eviction counters remain for later #391 tranches
+```
+
+**EX-11-01 implemented:** `Bm25DiagnosticsSnapshot` is an immutable schema-v1 payload
+captured under the existing per-corpus query lock. It reports document, unique-term, and
+token cardinality; query-cache entry and row pressure against both capacities; existing
+hit, miss, and invalidation counters; and a deterministic retained-payload estimate.
+`to_dict()` exposes only stable integer fields. Tests prove repeated snapshots are equal,
+the estimate grows with retained structure, and serialized output contains no paths,
+terms, or query text. No `Bm25Corpus` field or scoring/cache path changed.
+
+Focused validation passes `9/9`. The complete macOS arm64 Python 3.12 gate passes with
+`1,650` tests, `5` skips, and `83.38%` coverage; format, Ruff, strict mypy over 377 source
+files, graph sandbox, version and agent coherence, public-metrics policy, documentation
+inventory, and generated prompt checks are all green. The only warning remains the
+pre-existing macOS multi-threaded `fork()` deprecation probe.
+
 Expose content-free metrics for:
 
 - Shadow sync duration, writer-lock wait, generation, fallback reason, last successful incremental sync, parser timeout count, quarantine age and retry count;

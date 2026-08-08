@@ -334,6 +334,85 @@ class Bm25Corpus:
     )
 
 
+@dataclass(frozen=True, slots=True)
+class Bm25DiagnosticsSnapshot:
+    """Bounded, content-free operational view of one in-process BM25 corpus."""
+
+    schema_version: int
+    corpus_documents: int
+    corpus_unique_terms: int
+    corpus_tokens: int
+    query_cache_entries: int
+    query_cache_capacity: int
+    query_cache_result_rows: int
+    query_cache_result_row_capacity: int
+    query_cache_hits: int
+    query_cache_misses: int
+    query_cache_invalidations: int
+    estimated_payload_bytes: int
+
+    def to_dict(self) -> dict[str, int]:
+        """Return a stable machine-readable mapping without paths, terms, or queries."""
+        return {
+            "schema_version": self.schema_version,
+            "corpus_documents": self.corpus_documents,
+            "corpus_unique_terms": self.corpus_unique_terms,
+            "corpus_tokens": self.corpus_tokens,
+            "query_cache_entries": self.query_cache_entries,
+            "query_cache_capacity": self.query_cache_capacity,
+            "query_cache_result_rows": self.query_cache_result_rows,
+            "query_cache_result_row_capacity": self.query_cache_result_row_capacity,
+            "query_cache_hits": self.query_cache_hits,
+            "query_cache_misses": self.query_cache_misses,
+            "query_cache_invalidations": self.query_cache_invalidations,
+            "estimated_payload_bytes": self.estimated_payload_bytes,
+        }
+
+
+def _bm25_estimated_payload_bytes(corpus: Bm25Corpus) -> int:
+    """Estimate retained lexical payload deterministically; this is not process RSS."""
+    relation_bytes = sum(len(rel.encode("utf-8")) for rel in corpus.rels)
+    corpus_term_bytes = sum(
+        len(term.encode("utf-8")) + 8 for term_freqs in corpus.doc_term_freqs for term in term_freqs
+    )
+    document_length_bytes = len(corpus.doc_lens) * 8
+    document_frequency_bytes = sum(len(term.encode("utf-8")) + 8 for term in corpus.df)
+    query_bytes = sum(
+        sum(len(token.encode("utf-8")) for token in key[0]) + 24 for key in corpus.query_cache
+    )
+    result_bytes = sum(
+        sum(len(rel.encode("utf-8")) + 8 for rel, _score in rows)
+        for rows in corpus.query_cache.values()
+    )
+    return (
+        relation_bytes
+        + corpus_term_bytes
+        + document_length_bytes
+        + document_frequency_bytes
+        + query_bytes
+        + result_bytes
+    )
+
+
+def bm25_diagnostics_snapshot(corpus: Bm25Corpus) -> Bm25DiagnosticsSnapshot:
+    """Capture existing BM25 counters and bounded structure under the query lock."""
+    with corpus._query_lock:
+        return Bm25DiagnosticsSnapshot(
+            schema_version=1,
+            corpus_documents=corpus.n_docs,
+            corpus_unique_terms=len(corpus.df),
+            corpus_tokens=sum(corpus.doc_lens),
+            query_cache_entries=len(corpus.query_cache),
+            query_cache_capacity=_DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES,
+            query_cache_result_rows=corpus.query_cache_result_rows,
+            query_cache_result_row_capacity=_DEFAULT_BM25_QUERY_CACHE_MAX_RESULT_ROWS,
+            query_cache_hits=corpus.query_cache_hits,
+            query_cache_misses=corpus.query_cache_misses,
+            query_cache_invalidations=corpus.query_cache_invalidations,
+            estimated_payload_bytes=_bm25_estimated_payload_bytes(corpus),
+        )
+
+
 def bm25_query_cache_stats(corpus: Bm25Corpus) -> dict[str, int]:
     """Return content-free, per-corpus query-cache counters for diagnostics/tests."""
     with corpus._query_lock:
@@ -481,6 +560,8 @@ def score_bm25_query(
 
 __all__ = [
     "Bm25Corpus",
+    "Bm25DiagnosticsSnapshot",
+    "bm25_diagnostics_snapshot",
     "bm25_query_cache_stats",
     "cached_build_alias_index",
     "clear_generational_caches",

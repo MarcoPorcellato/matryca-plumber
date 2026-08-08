@@ -233,6 +233,13 @@ entry capacity, result rows, result-row capacity, hits, misses, and invalidation
 They support local diagnostics and synthetic benchmarks without recording
 queries, paths, or document text.
 
+`bm25_diagnostics_snapshot()` is the stable machine-readable boundary for these
+in-process measurements. Its versioned payload contains aggregate integer cardinality,
+capacity, row-pressure, hit/miss/invalidation, and deterministic retained-payload
+fields only. The payload estimate counts retained lexical structures and is not a claim
+about Python object overhead or process RSS. Capturing a snapshot uses the existing
+per-corpus query lock and does not alter scoring, invalidation, capacity, or publication.
+
 This is not an FTS or semantic cache. Shadow FTS continues to execute against
 SQLite, whose own page/query machinery remains the only cache at that layer; the
 semantic index also remains unchanged. The bounded BM25 LRU accelerates repeated
