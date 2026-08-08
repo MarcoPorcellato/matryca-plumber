@@ -25,7 +25,7 @@ from src.agent.plumber_modules import run_cognitive_lint_pipeline
 from src.agent.plumber_modules.auto_split import run_auto_split
 from src.agent.plumber_modules.dangling_healer import run_dangling_healer
 from src.agent.plumber_modules.entity_consolidation import run_entity_consolidation
-from src.agent.plumber_modules.marpa_framework import run_marpa_framework
+from src.agent.plumber_modules.marpa_framework import _scan_ssot_duplication, run_marpa_framework
 from src.agent.plumber_modules.property_hygiene import run_property_hygiene
 from src.agent.semantic_lint_prompts import build_semantic_lint_system_prompt
 from src.graph.master_catalog import load_master_catalog
@@ -427,6 +427,29 @@ def test_marpa_framework_classifies_project_with_deadline(graph_root: Path) -> N
     assert outcome.pages_modified == [page_title]
     type_line_idx = next(i for i, line in enumerate(text.splitlines()) if "type:: progetto" in line)
     assert not text.splitlines()[type_line_idx].lstrip().startswith("- ")
+
+
+def test_scan_ssot_duplication_flags_only_large_bullet_blocks(graph_root: Path) -> None:
+    short_block = "s" * 79
+    large_block = "l" * 80
+    body = f"- {short_block}\n- {large_block}\n"
+    page_path = _write_page(graph_root, "Source", body)
+    _write_page(graph_root, "Duplicate", body)
+
+    assert _scan_ssot_duplication(graph_root, page_path, body) == [
+        "ssot_duplicate:pages/Duplicate.md",
+    ]
+
+
+def test_scan_ssot_duplication_ignores_hidden_pages(graph_root: Path) -> None:
+    large_block = "l" * 80
+    body = f"- {large_block}\n"
+    page_path = _write_page(graph_root, "Source", body)
+    hidden_dir = graph_root / "pages" / ".hidden"
+    hidden_dir.mkdir()
+    (hidden_dir / "Duplicate.md").write_text(body, encoding="utf-8")
+
+    assert _scan_ssot_duplication(graph_root, page_path, body) == []
 
 
 def test_marpa_disabled_by_default_leaves_file_untouched(graph_root: Path) -> None:
