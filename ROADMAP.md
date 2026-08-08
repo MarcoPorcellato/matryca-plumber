@@ -145,7 +145,7 @@ Promotion therefore remains deliberately sequential:
 
 **Tag:** [`v2.0.0-alpha`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0-alpha) · PyPI `matryca-plumber==2.0.0a0` · **superseded by v2.0.0-alpha.1** for new installs.
 
-**Next v2 slice:** Phase 4 biological memory + Logseq DB Safe-Sync ([#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178), [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)).
+**Next post-v2.0 slice:** Phase 4 biological memory + Logseq DB Safe-Sync ([#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178), [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)).
 
 ---
 
@@ -269,7 +269,7 @@ Promotion therefore remains deliberately sequential:
 | Initiative | Issue | Goal | Status |
 |------------|-------|------|--------|
 | Shadow DB read path | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) | `shadow.sqlite`, FTS5, CTEs, background sync from Markdown | **shipped** (`v2.0.0-alpha`) |
-| Biological memory layer | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Nacre-inspired decay/recall in `shadow.sqlite` — [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | Phase 4 |
+| Biological memory layer | [#178](https://github.com/MarcoPorcellato/matryca-plumber/issues/178) (historical epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)) | Nacre-inspired decay/recall in `shadow.sqlite` — [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | v2.1+ Phase 4 |
 | GraphRepository abstraction | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) | Coexistent Markdown / SQLite backends | read port **done** |
 | Hardware Profiler & LLM Recommender | [#23](https://github.com/MarcoPorcellato/matryca-plumber/issues/23) | Sovereign UI guidance for 16 GB CPU-only laptops | planned |
 | **v2.0.0-alpha.5** | Epic [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20) | Experimental `shadow.sqlite` behind opt-in env flag | **published** |
@@ -282,17 +282,17 @@ Deeper maintainer checklists (completed or in flight):
 - [`docs/roadmaps/ROADMAP_LLM_WIKI.md`](docs/roadmaps/ROADMAP_LLM_WIKI.md) — LLM-Wiki baseline (done)
 - [`docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md`](docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md) — resilience and safety hardening
 - [`docs/roadmaps/ROADMAP_V2_SHADOW_DB.md`](docs/roadmaps/ROADMAP_V2_SHADOW_DB.md) — v2.0 Shadow DB read path ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24))
-- [`docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) — v2.0 biological memory layer (Nacre-inspired, depends on Shadow DB)
+- [`docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) — v2.1+ biological memory layer (Nacre-inspired, depends on Shadow DB)
 
 ---
 
-## Long-term (v2.0 stable)
+## Long-term (v2.0 stable and post-v2.0)
 
 | Track | Target |
 |-------|--------|
 | **v2.0.0-rc** | MCP read traffic routed to Shadow DB by default |
 | **v2.0.0-stable** | Deprecate pure in-memory BM25 as default discovery path |
-| **Safe-Sync** | Logseq DB write path via official CLI only ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
+| **Safe-Sync (v2.1+)** | Logseq DB write path via official CLI only ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
 
 Safe-Sync contract (read/write decoupling):
 

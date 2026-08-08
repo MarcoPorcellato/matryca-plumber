@@ -1,7 +1,11 @@
-# v2.0 — Biological Memory Layer (Nacre-inspired)
+# v2.1+ — Biological Memory Layer (Nacre-inspired)
 
-**Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
-**Status:** planned — schema in [`src/shadow/schema.py`](../../src/shadow/schema.py); decay in [`src/memory/decay.py`](../../src/memory/decay.py)  
+**Historical architecture context:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
+
+**Active delivery tracker:** [#178 — Biological memory + Logseq DB Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/178)
+
+**Status:** planned for v2.1+ — schema-only tables exist in [`src/shadow/schema.py`](../../src/shadow/schema.py); decay algorithms are scaffolded in [`src/memory/decay.py`](../../src/memory/decay.py), but no memory read/write path is shipped
+
 **Preparation index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) · OpenSpec: [`biological-memory.md`](../openspec/biological-memory.md)  
 **Prerequisite:** [`ROADMAP_V2_SHADOW_DB.md`](ROADMAP_V2_SHADOW_DB.md) ([#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24), [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17))  
 **Inspiration:** [Nacre](https://github.com/marcusschimizzi/nacre) by Marcus Sullivan (Apache-2.0) — native Python port, not a Node sidecar  
@@ -94,7 +98,8 @@ DDL in [`src/shadow/schema.py`](../../src/shadow/schema.py). Package [`src/memor
 - **Co-occurrence:** within the same block subtree (outliner-aware)
 - **Custom:** entity-map YAML in `.matryca/`
 
-Environment variable: `MATRYCA_MEMORY_GRAPH_ENABLED=false` (opt-in alpha).
+Future feature gate: `MATRYCA_MEMORY_GRAPH_ENABLED`. Its public default and
+rollout policy remain design decisions for a separately qualified v2.1+ slice.
 
 ### Phase B — Hybrid recall
 
@@ -160,14 +165,14 @@ Detailed checklist: “Apache-2.0 compliance” section in the original plan (ma
 | `maintenance_daemon.py` ~3,200 lines | Move Phase 3 into a dedicated module ([#57](https://github.com/MarcoPorcellato/matryca-plumber/issues/57)) |
 | Nacre parser ≠ Logseq | Use only `logseq-matryca-parser` |
 | Embedding dimension mismatch | Store metadata in `shadow_meta`; apply the same fix documented in the Nacre roadmap |
-| Scope creep | Keep the flag opt-in; ship decay + recall before visualization/hive |
+| Scope creep | Keep the feature gated pending v2.1+ design and qualification; ship decay + recall before visualization/hive |
 
 ---
 
 ## Next steps
 
 1. ~~Save the roadmap in the repository~~ (this file)
-2. Link the **Biological Memory Layer** issue to #20/#24.
+2. Keep delivery issue #178 linked to historical context #20 and Shadow DB prerequisite #24.
 3. Use RFC Discussion #19 to map block UUIDs to memory nodes.
 4. Implement `src/memory/decay.py` + Nacre parity tests.
 5. Prototype consolidation on 100 pages with `MATRYCA_MEMORY_GRAPH_ENABLED=true`.

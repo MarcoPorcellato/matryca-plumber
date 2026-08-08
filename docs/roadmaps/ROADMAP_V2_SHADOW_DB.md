@@ -34,7 +34,7 @@ Canonical DDL: [`src/shadow/schema.py`](../../src/shadow/schema.py)
 |-------|--------|---------|
 | **Meta** | `shadow_meta` | Schema version, last full sync, embedding provider metadata |
 | **Read cache** | `pages`, `blocks`, `block_refs`, `blocks_fts` | Logseq OG mirror for FTS5 + recursive CTE subtree reads |
-| **Memory graph** | `memory_nodes`, `memory_edges`, `memory_pending_edges`, `memory_episodes`, `memory_episode_entities`, `memory_procedures`, `memory_snapshots` | Nacre-inspired biological memory — see [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md) |
+| **Memory graph** | `memory_nodes`, `memory_edges`, `memory_pending_edges`, `memory_episodes`, `memory_episode_entities`, `memory_procedures`, `memory_snapshots` | Schema only — planned Phase 4; no memory read/write path is shipped. See [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md) |
 
 Historical published beta path: `<LOGSEQ_GRAPH_PATH>/.matryca_semantic_cache/shadow.sqlite`
 (`shadow_db_path` / `open_shadow_db`). Current RC storage, invalidation, health, and

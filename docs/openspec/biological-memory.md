@@ -1,7 +1,11 @@
-# Biological memory layer — OpenSpec (planned v2.0)
+# Biological memory layer — OpenSpec (planned v2.1+)
 
-**Status:** planned — algorithms partially scaffolded in [`src/memory/`](../../src/memory/); persistence in [`src/shadow/schema.py`](../../src/shadow/schema.py) memory tables  
-**Parent epic:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  
+**Status:** planned for v2.1+ — algorithms partially scaffolded in [`src/memory/`](../../src/memory/); schema-only tables exist in [`src/shadow/schema.py`](../../src/shadow/schema.py), but no memory read/write path is shipped
+
+**Historical architecture context:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
+
+**Active delivery tracker:** [#178 — Biological memory + Logseq DB Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/178)
+
 **Maintainer roadmap:** [`docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md)  
 **Preparation index:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md) § Phase 4
 
@@ -9,26 +13,31 @@ Nacre-inspired decay, recall, and consolidation **inside** Matryca's Logseq-nati
 
 ---
 
-## Environment variables (planned)
+## Future feature gate
 
-| Variable | Default (planned) | Role |
-|----------|-------------------|------|
-| `MATRYCA_MEMORY_GRAPH_ENABLED` | `false` | Opt-in alpha — memory graph read/write in `shadow.sqlite` |
-| `MATRYCA_SHADOW_DB_ENABLED` | `false` | **Shipped in v2.0.0-alpha** — prerequisite for memory graph persistence; enables Shadow DB read cache (FTS5/CTE) when healthy |
+| Variable | Contract status | Role |
+|----------|-----------------|------|
+| `MATRYCA_MEMORY_GRAPH_ENABLED` | Not yet a public configuration contract | Future feature gate for memory graph reads and writes in `shadow.sqlite`; its default and rollout policy require a separately qualified v2.1+ design slice |
 
-When implemented, document in [`.env.example`](../../.env.example) under **Advanced / high impact** per [`07-env-example.mdc`](../../.cursor/rules/07-env-example.mdc).
+When implemented, document the complete contract in [`.env.example`](../../.env.example)
+under **Advanced / high impact** per
+[`07-env-example.mdc`](../../.cursor/rules/07-env-example.mdc). Current Shadow DB
+behavior and defaults remain owned by the
+[v2 operator contract](../knowledge/architecture/shadow-db.md).
 
 ---
 
 ## MCP / CLI surface (planned)
 
-| Today (v1.12) | v2 target |
-|---------------|-----------|
-| `search_graph(method=bm25\|semantic\|…)` | `bm25` prefers shadow FTS5 when `MATRYCA_SHADOW_DB_ENABLED=true` and health is `ready` (**shipped v2.0.0-alpha**); add `method=recall` in Phase 4 |
+| Existing surface | Planned memory extension |
+|------------------|--------------------------|
+| `search_graph(method=bm25\|semantic\|…)` | Add `method=recall` in the v2.1+ Phase 4 work |
 | `store_fact` | Episodic / procedural memory nodes (extends identity plane) |
 | — | `nacre_forget` / feedback analogues — TBD in Phase 4 issues |
 
-Contract changes ship with semver **v2.0.0-alpha.1** minimum; update [`llms.txt`](../../llms.txt) in the same PR.
+The target version and rollout policy belong to the separately qualified v2.1+
+implementation slice. Update [`llms.txt`](../../llms.txt) in the same PR only if
+that slice changes the external agent contract.
 
 ---
 
@@ -44,9 +53,9 @@ Contract changes ship with semver **v2.0.0-alpha.1** minimum; update [`llms.txt`
 
 See [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md):
 
-1. **Fase A** — decay + schema tables (`memory_nodes`, `memory_edges`, …)
-2. **Fase B** — `search_graph(method=recall)` + consolidation idle batch
-3. **Fase C** — MCP memory-native tools
+1. **Phase A** — decay + schema tables (`memory_nodes`, `memory_edges`, …)
+2. **Phase B** — `search_graph(method=recall)` + consolidation idle batch
+3. **Phase C** — MCP memory-native tools
 
 **Shipped scaffold:** `src/memory/decay.py` (decay formulas + tests).
 
