@@ -11,6 +11,11 @@ from typing import Final
 
 _BEGIN: Final = "#+BEGIN_QUERY"
 _END: Final = "#+END_QUERY"
+_BRACKET_PAIRS: Final = {"(": ")", "[": "]", "{": "}"}
+
+
+def _closing_bracket_matches(stack: list[str], closing: str) -> bool:
+    return bool(stack) and _BRACKET_PAIRS[stack.pop()] == closing
 
 
 def _balanced_brackets(inner: str) -> bool:
@@ -32,13 +37,8 @@ def _balanced_brackets(inner: str) -> bool:
             continue
         if ch in "([{":
             stack.append(ch)
-        elif ch in ")]}":
-            if not stack:
-                return False
-            open_ch = stack.pop()
-            pairs = {"(": ")", "[": "]", "{": "}"}
-            if pairs.get(open_ch) != ch:
-                return False
+        elif ch in ")]}" and not _closing_bracket_matches(stack, ch):
+            return False
     return not stack and not in_string
 
 
