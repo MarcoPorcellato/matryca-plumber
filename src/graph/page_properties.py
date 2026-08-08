@@ -125,6 +125,28 @@ def _content_start(stripped: list[str], fm_end: int) -> int:
     return idx
 
 
+def _merge_existing_frontmatter_property(
+    lines: list[str],
+    stripped: list[str],
+    norm_key: str,
+    existing_value: str,
+    value: str,
+) -> str | None:
+    fm_start, fm_end = _frontmatter_span(stripped)
+    line_idx = _find_frontmatter_key_line(stripped, fm_start, fm_end, norm_key)
+    if line_idx is None:
+        return None
+    merged = _merge_list_property_value(existing_value, value)
+    if merged is None:
+        return None
+    parsed = parse_logseq_property_line(stripped[line_idx])
+    if parsed is None:
+        return None
+    newline = "\n" if lines[line_idx].endswith(("\n", "\r\n", "\r")) else ""
+    lines[line_idx] = f"{parsed.key_raw}::{parsed.sep_after_colons}{merged}{newline}"
+    return "".join(lines)
+
+
 def inject_page_property(markdown_text: str, key: str, value: str) -> str:
     """Insert or merge ``key:: value`` as page-level frontmatter at the top of the file."""
     norm_key = normalize_logseq_property_key(key)
@@ -143,19 +165,16 @@ def inject_page_property(markdown_text: str, key: str, value: str) -> str:
     if norm_key in existing:
         if norm_key not in _MERGE_LIST_KEYS:
             return markdown_text
-        fm_start, fm_end = _frontmatter_span(stripped)
-        line_idx = _find_frontmatter_key_line(stripped, fm_start, fm_end, norm_key)
-        if line_idx is None:
+        merged_frontmatter = _merge_existing_frontmatter_property(
+            lines,
+            stripped,
+            norm_key,
+            existing[norm_key],
+            value,
+        )
+        if merged_frontmatter is None:
             return markdown_text
-        merged = _merge_list_property_value(existing[norm_key], value)
-        if merged is None:
-            return markdown_text
-        parsed = parse_logseq_property_line(stripped[line_idx])
-        if parsed is None:
-            return markdown_text
-        newline = "\n" if lines[line_idx].endswith(("\n", "\r\n", "\r")) else ""
-        lines[line_idx] = f"{parsed.key_raw}::{parsed.sep_after_colons}{merged}{newline}"
-        return "".join(lines)
+        return merged_frontmatter
 
     fm_start, fm_end = _frontmatter_span(stripped)
     prop_line = f"{key}:: {value}\n"
