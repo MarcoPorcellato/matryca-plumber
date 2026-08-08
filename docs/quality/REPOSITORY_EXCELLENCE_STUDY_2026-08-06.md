@@ -1763,6 +1763,10 @@ milestone, and 20 open pull requests. These are timestamped snapshots, not
 permanent repository facts. The complete disposition matrix, relationship
 decisions, and reversible mutation batches are recorded in
 [`ISSUE_CONTROL_PLANE_2026-08-08.md`](ISSUE_CONTROL_PLANE_2026-08-08.md).
+The subsequent
+[`CONTRIBUTOR_READY_CLOSURE_AUDIT_2026-08-08.md`](CONTRIBUTOR_READY_CLOSURE_AUDIT_2026-08-08.md)
+proves that eight contributor-ready refactors are already default-branch history and
+must be removed from any milestone-classification batch before remote mutation.
 
 Run a read-only duplicate/obsolescence audit, then classify every issue into:
 

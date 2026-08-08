@@ -154,6 +154,19 @@ Allowlist: #220–#223, #225–#232, and #234–#236. Assign the new quality mil
 Verify that exactly 15 issues changed and every other issue is byte-for-byte unchanged at
 the metadata fields in scope.
 
+#### EX-19C shipped-evidence correction
+
+A later exact-source revalidation found that #220, #221, #222, #225, #226, #228, #232,
+and #234 already have implementing commits on the default branch. They must not be
+classified into a new milestone merely because their GitHub state remained open. Their
+target-specific evidence, file-level caveats, and separate closure authorization gate are
+recorded in
+[`CONTRIBUTOR_READY_CLOSURE_AUDIT_2026-08-08.md`](CONTRIBUTOR_READY_CLOSURE_AUDIT_2026-08-08.md).
+
+Before executing EX-19C, remove any issue proven closure-ready by that accepted audit from
+the classification allowlist. Do not infer the disposition of #223, #227, #229–#231,
+#235, or #236 from this correction.
+
 ### EX-19D — Reconcile security and structural findings
 
 Allowlist: #204, #207–#209, #219, #240, #333, and #334. Add priority, milestone, and
