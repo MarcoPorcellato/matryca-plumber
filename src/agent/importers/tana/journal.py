@@ -55,6 +55,25 @@ def _format_python_strftime(pattern: str, day: date) -> str:
         return day.strftime(patched)
 
 
+def _consume_quoted_literal(pattern: str, start: int) -> tuple[str, int]:
+    length = len(pattern)
+    if start + 1 < length and pattern[start + 1] == "'":
+        return "'", start + 2
+
+    literal: list[str] = []
+    i = start + 1
+    while i < length:
+        if pattern[i] == "'":
+            if i + 1 < length and pattern[i + 1] == "'":
+                literal.append("'")
+                i += 2
+                continue
+            return "".join(literal), i + 1
+        literal.append(pattern[i])
+        i += 1
+    return "".join(literal), i
+
+
 def format_edn_date_pattern(pattern: str, day: date) -> str:
     """Translate a Logseq/Java ``journal/page-title-format`` pattern for ``day``.
 
@@ -69,23 +88,8 @@ def format_edn_date_pattern(pattern: str, day: date) -> str:
     while i < length:
         ch = pattern[i]
         if ch == "'":
-            if i + 1 < length and pattern[i + 1] == "'":
-                out.append("'")
-                i += 2
-                continue
-            i += 1
-            literal: list[str] = []
-            while i < length:
-                if pattern[i] == "'":
-                    if i + 1 < length and pattern[i + 1] == "'":
-                        literal.append("'")
-                        i += 2
-                        continue
-                    i += 1
-                    break
-                literal.append(pattern[i])
-                i += 1
-            out.append("".join(literal))
+            literal, i = _consume_quoted_literal(pattern, i)
+            out.append(literal)
             continue
 
         matched = False
