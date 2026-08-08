@@ -1119,8 +1119,8 @@ link and no longer repeats RC activation, quarantine, or storage details. The kn
 index, documentation operating model, and release process route readers to that same
 owner while preserving distinct release and evidence authority. Live source inspection
 confirmed the documented default-on flag, external-cache containment, Strict Read Only
-separation, and BM25/Markdown fallback behavior; GitNexus found the corresponding
-fallback and quarantine flows.
+separation, and BM25/Markdown fallback behavior; graph-based local static analysis found
+the corresponding fallback and quarantine flows.
 
 Validation passed with `make docs-check`, 27 focused documentation tests, and the full
 `make ci` gate: formatting, Ruff, strict mypy over 379 source files, safety/version/agent/
@@ -1187,6 +1187,68 @@ multi-threaded `fork()` deprecation probe. The changelog gate selected **no entr
 because this is documentation authority maintenance with no runtime, setting, command,
 or public contract change. Rollback remains one documentation-only revert; Gate B,
 release state, tags, and publication were not touched.
+
+##### EX-16-03 — Restore active-roadmap status ownership
+
+```yaml
+tranche_id: EX-16-03
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 82b339c65427d3cc8ebbcef51f87afe8daff6c8a
+objective: keep v2 roadmaps focused on sequencing and history without duplicating current operator or qualification state
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - docs/roadmaps/ROADMAP_V2_PREPARATION.md
+  - docs/roadmaps/ROADMAP_V2_SHADOW_DB.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no runtime, configuration, OpenSpec, prompt, release, Gate B, or historical evidence change
+  - no removal of stable alpha/beta facts, completed checklist history, or future sequencing
+  - no Matryca Knowledge projection update
+deterministic_preflight:
+  - make docs-check
+acceptance:
+  - current Shadow defaults link to the canonical operator contract
+  - current RC and stable qualification state links to the readiness record
+  - stable historical facts and future roadmap sequencing remain intact
+  - public documentation uses vendor-neutral local-analysis terminology
+stop_conditions:
+  - either canonical authority changes classification or role
+  - any required runtime, prompt-contract, release, or historical-evidence edit
+rollback: revert the documentation-only commit
+provenance:
+  evidence_commit: 82b339c65427d3cc8ebbcef51f87afe8daff6c8a
+  evidence_paths:
+    - docs/roadmaps/ROADMAP_V2_PREPARATION.md
+    - docs/roadmaps/ROADMAP_V2_SHADOW_DB.md
+    - docs/knowledge/architecture/shadow-db.md
+    - docs/quality/issue-bodies/v2-rc-stable-readiness.md
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: navigation | provenance
+residual_risks:
+  - OpenSpec and llms lifecycle language requires separately routed issue 396 review
+```
+
+This slice centralizes mutable current state without changing qualification evidence or
+claiming that a roadmap link itself proves release readiness.
+
+**EX-16-03 implementation receipt (2026-08-07):** the complete diff is the four-file
+allowlist above. An independent read-only review and primary source audit classified
+each roadmap occurrence before editing. Current defaults, cache behavior, and live RC
+status now route to their canonical owners; stable alpha/beta history, completed tasks,
+the #389 requalification decision, and future sequencing remain in the roadmaps.
+
+Validation passed with `make docs-check`, 27 focused documentation tests, and full
+`make ci`: formatting, Ruff, strict mypy over 379 source files, safety/version/agent/
+public-metrics checks, documentation and generated-prompt checks, and 1,658 tests with
+5 skipped at 83.45% coverage. The sole warning was the pre-existing macOS
+multi-threaded `fork()` deprecation probe. A deterministic scan found no remaining live
+`RUNNING` claims or named local-analysis products in the edited roadmap/dossier scope.
+The changelog gate selected **no entry** because this changes documentation ownership
+and navigation only, with no runtime, setting, command, or public product-contract
+change. Rollback remains one documentation-only revert; Gate B evidence, release state,
+tags, and publication were not touched.
 
 #### EX-17 — Make dual-layer documentation checks mandatory
 
