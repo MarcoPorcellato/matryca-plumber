@@ -1132,6 +1132,62 @@ configuration, an operator command, or a public product contract. Rollback remai
 documentation-only revert; Gate B evidence, release state, tags, and publication were
 not touched.
 
+##### EX-16-02 — Restore the system-architecture authority boundary
+
+```yaml
+tranche_id: EX-16-02
+repository: MarcoPorcellato/matryca-plumber
+base_commit: a15ed5f1c57180a92d05b18b5721d51e1dfd6da8
+objective: keep system architecture authoritative without duplicating mutable v2 operator or release claims
+authority: inspect | edit | commit | push | pr
+allowlist:
+  - docs/ARCHITECTURE.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+non_goals:
+  - no runtime, configuration, OpenSpec, prompt, roadmap, release, or historical evidence change
+  - no removal of internal Shadow design or historical alpha architecture
+  - no Matryca Knowledge projection update
+deterministic_preflight:
+  - make docs-check
+acceptance:
+  - architecture declares its internal-design role and links mutable operator and release status to their owners
+  - exact test-count drift is removed without changing the quality gate
+  - current source, historical implementation, and mutable release status remain distinguishable
+stop_conditions:
+  - any required runtime, prompt-contract, roadmap, or historical-evidence edit
+rollback: revert the documentation-only commit
+provenance:
+  evidence_commit: a15ed5f1c57180a92d05b18b5721d51e1dfd6da8
+  evidence_paths:
+    - docs/ARCHITECTURE.md
+    - docs/knowledge/architecture/shadow-db.md
+    - docs/RELEASE_PROCESS.md
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: navigation | provenance
+residual_risks:
+  - active roadmap and OpenSpec lifecycle language requires separately routed issue 396 review
+```
+
+This slice leaves internal architecture and clearly labelled historical release sections
+intact. It changes ownership and navigation, not product behavior or qualification.
+
+**EX-16-02 implementation receipt (2026-08-07):** the complete diff is the three-file
+allowlist above. The system architecture now owns internal design explicitly, links
+current Shadow settings and exact-artifact readiness to their maintained authorities,
+and no longer embeds mutable Gate state or an exact pytest count. The historical alpha
+description and RC internals remain available for engineering context.
+
+Validation passed with `make docs-check`, 27 focused documentation tests, and full
+`make ci`: formatting, Ruff, strict mypy over 379 source files, safety/version/agent/
+public-metrics checks, documentation and generated-prompt checks, and 1,658 tests with
+5 skipped at 83.47% coverage. The sole warning was the pre-existing macOS
+multi-threaded `fork()` deprecation probe. The changelog gate selected **no entry**
+because this is documentation authority maintenance with no runtime, setting, command,
+or public contract change. Rollback remains one documentation-only revert; Gate B,
+release state, tags, and publication were not touched.
+
 #### EX-17 — Make dual-layer documentation checks mandatory
 
 `docs-check` currently passes but is not part of `make ci`. Add it to the

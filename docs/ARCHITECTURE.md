@@ -1,10 +1,10 @@
 # Matryca Plumber — System Architecture
 
-**Version:** 2.0.0-rc.1 (Gate A qualified; external default-on Shadow cache with explicit opt-out and Strict Read Only compatibility; Gate B begins from the public RC artifact) · published historical beta 2.0.0-beta.1 (default-off, graph-local) · previous hardening baseline 2.0.0-alpha.5 (campaign #261 closed — CTE #289, state API #293, Axes 5–7)
+**Architecture baseline:** v2.0.0-rc.1 source. Current Shadow defaults and operator behavior are owned by the [v2 operator contract](knowledge/architecture/shadow-db.md); qualification and publication gates are owned by the [release process](RELEASE_PROCESS.md#v20-promotion-override).
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
-This document is the engineering contract for **Matryca Plumber**: an enterprise-grade, **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees; safety is enforced through **AST parity**, **optimistic concurrency control (OCC)**, **path sandboxing**, and operator-visible **Trust & Safety** tiers.
+This document owns **Matryca Plumber system architecture and internal design**. It does not own mutable operator defaults or release status. Matryca Plumber is an enterprise-grade, **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees; safety is enforced through **AST parity**, **optimistic concurrency control (OCC)**, **path sandboxing**, and operator-visible **Trust & Safety** tiers.
 
 For the maintainer timeline and crushed bottlenecks, see [`PROJECT_DIARY.md`](PROJECT_DIARY.md). For agent discipline at inference time, see [`SYSTEM_PROMPT.md`](../SYSTEM_PROMPT.md). For **Clean Architecture** boundaries on prompts (Tier-1 / L0 / Tier-2), see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For **repo-wide** Clean Code & Clean Architecture (Uncle Bob, SOLID, layer boundaries), see [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md).
 
@@ -64,7 +64,7 @@ flowchart TB
   Locks --> Vault
 ```
 
-**Quality bar:** **1117+** pytest targets passing (70% coverage gate on `src`), **Mypy strict** on `src` and `tests` with **zero `# type: ignore` in `src/`** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60)), Ruff lint/format clean via `make ci`; local iteration via `make test-fast` (`NUM_WORKERS` default `4`, no coverage, skips `tests/slow/`); slow perf tests via `make perf` (`pytest -m slow`). Maintainer gates: `make agents-check`, `make check-system-prompt`.
+**Quality bar:** the full pytest suite enforces at least 70% coverage on `src`; **Mypy strict** covers `src` and `tests` with **zero `# type: ignore` in `src/`** ([#60](https://github.com/MarcoPorcellato/matryca-plumber/issues/60)); Ruff lint/format runs through `make ci`. Local iteration uses `make test-fast` (`NUM_WORKERS` default `4`, no coverage, skips `tests/slow/`); slow performance tests use `make perf` (`pytest -m slow`). Maintainer gates include `make agents-check` and `make check-system-prompt`.
 
 **v1.8 focus:** Run indefinitely on a **16 GB CPU-only laptop** with **≤10k pages** — KV-cache-aligned prompts, bounded RAM, cooperative bootstrap I/O. See [Edge computing & performance (v1.8)](#edge-computing--performance-v18).
 
@@ -92,13 +92,13 @@ flowchart TB
 
 **v2.0.0-alpha focus:** **Shadow DB read path (opt-in)** — daemon-owned `shadow.sqlite` under `.matryca_semantic_cache/`; bootstrap/reconciliation ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)); `MATRYCA_SHADOW_DB_ENABLED=false` default; when enabled and healthy, `search_graph(bm25)` prefers FTS5 and `read_graph_data(subtree)` prefers recursive CTE via `ShadowGraphRepository` + `get_graph_read_port`; generational BM25 and `MarkdownGraphRepository` fallback when flag is off, health is not `ready`, or SQLite errors; Sovereign UI `/api/state.shadow_db` telemetry ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)); bounded duplicate `block_uuid` diagnostics ([#251](https://github.com/MarcoPorcellato/matryca-plumber/issues/251)). Spec: [`roadmaps/ROADMAP_V2_SHADOW_DB.md`](roadmaps/ROADMAP_V2_SHADOW_DB.md) · operator contract: [`llms.txt`](../llms.txt) §2.6.
 
-**v2.0.0 RC storage direction:** Shadow DB becomes a per-user **external derived cache**,
-isolated by a versioned digest of the canonical graph path. `MATRYCA_READ_ONLY=true`
-continues to forbid every graph-local mutation while permitting validated external
-Shadow SQLite/WAL/SHM/lock writes; Markdown remains authoritative and every non-ready
-state falls back to Markdown/BM25. `MATRYCA_CACHE_PATH` remains the explicit external
-root override. The beta graph-local database is rebuilt externally rather than moved,
-mutated, or deleted. Decision and implementation slices:
+**v2.0.0 RC Shadow implementation:** the current activation, Read Only, fallback, and
+cache-location contract is maintained in the
+[v2 operator contract](knowledge/architecture/shadow-db.md). Internally, Shadow uses a
+per-user **external derived cache**, isolated by a versioned digest of the canonical
+graph path. `RuntimeWritePolicy` requires the resolved cache root to remain outside the
+graph. The beta graph-local database is rebuilt externally rather than moved, mutated,
+or deleted. Decision and implementation slices:
 [`v2-external-shadow-cache-read-only.md`](quality/issue-bodies/v2-external-shadow-cache-read-only.md).
 Generic sync failures add a private content-free `shadow.sync-invalid` marker beside
 the external database and latch the generation invalid in-process. Either signal
@@ -112,13 +112,13 @@ would be unsafe while reconciliation can update it. Bootstrap and synchronizatio
 retain the separate schema-capable writer opener because the external derived cache
 remains daemon-owned and rebuildable.
 
-**v2.0.0-rc.1 contract (Slices 1–5 complete):** an unset
-`MATRYCA_SHADOW_DB_ENABLED` now enables Shadow; explicit false remains a zero-Shadow
-opt-out. The Sovereign UI persists independent Strict Read Only and Shadow controls,
-disables graph-mutating controls while Read Only is effective, and keeps Shadow health
-visible. An invalid external cache root reports the content-free `cache_unavailable`
-reason and routes reads to Markdown/BM25 instead of failing the state API. Exact-wheel
-qualification and Gate A are complete; stable promotion remains blocked on Gate B.
+**v2.0.0-rc.1 implementation scope:** the external-cache resolver, independent UI
+controls, bounded fallback reasons, and query-only read connections are implemented in
+the architecture described below. Consult the
+[v2 operator contract](knowledge/architecture/shadow-db.md) for current settings and
+the [fail-closed readiness record](quality/issue-bodies/v2-rc-stable-readiness.md) for
+exact-artifact qualification status; this architecture document does not own either
+mutable claim.
 
 **v1.13.1 focus:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** agent-write newline splice safety, resilient X-Ray state reload, SYNAPSE cyclic-embed truncation; **1.6.0** Clean Architecture graph APIs (`iter_attached_nodes`, `is_tracked_markdown_path`). Plumber `_headless_append_child` mirrors the **1.4.2** newline normalization.
 
