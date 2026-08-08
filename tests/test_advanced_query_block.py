@@ -23,6 +23,30 @@ def test_validate_rejects_unbalanced() -> None:
         validate_advanced_query_edn(inner)
 
 
+@pytest.mark.parametrize(
+    "inner",
+    [
+        "){:query []}",
+        "{:query [(]}",
+        '{:query ["unterminated]}',
+    ],
+)
+def test_validate_rejects_bracket_state_edge_cases(inner: str) -> None:
+    with pytest.raises(ValueError, match="bracket|unterminated"):
+        validate_advanced_query_edn(inner)
+
+
+@pytest.mark.parametrize(
+    "inner",
+    [
+        '{:query [:find ?a :where [?a :block/content "(]"]]}',
+        '{:query [:find ?a :where [?a :block/content "quote: \\"(]" ]]}',
+    ],
+)
+def test_validate_ignores_brackets_inside_strings(inner: str) -> None:
+    assert validate_advanced_query_edn(inner) == inner
+
+
 def test_validate_requires_query_key() -> None:
     with pytest.raises(ValueError, match=":query"):
         validate_advanced_query_edn('{:title "only"}')
