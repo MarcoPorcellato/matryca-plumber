@@ -953,6 +953,24 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/CONTRIBUTOR_READY_CLOSURE_AUDIT_2026-08-08.md",
+      "type": "Audit",
+      "title": "Contributor-ready shipped-evidence closure audit — 2026-08-08",
+      "description": "Exact-source and test evidence for eight already-shipped contributor-ready refactors and their separately authorized closure batch.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active closure-evidence ledger; not issue-mutation or release authorization."
+    },
+    {
       "path": "docs/quality/DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md",
       "type": "Audit",
       "title": "Dependency security reconciliation — 2026-08-08",
