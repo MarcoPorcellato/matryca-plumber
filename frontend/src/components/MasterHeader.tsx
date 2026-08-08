@@ -2,7 +2,12 @@ import { Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useSyncExternalStore, useState } from 'react'
 
-import type { ConnectionStatus, DaemonStateResponse, PlumberConfig } from '../types/daemon'
+import type {
+  ConnectionStatus,
+  DaemonStateResponse,
+  PlumberConfig,
+  PlumberConfigUpdate,
+} from '../types/daemon'
 import { isEngineActive } from '../types/daemon'
 import { useUpdateCheck } from '../hooks/useUpdateCheck'
 import { basenameFromPath } from '../utils/metrics'
@@ -24,7 +29,7 @@ interface MasterHeaderProps {
   engineError: string | null
   onStartEngine: () => Promise<void>
   onStopEngine: () => Promise<void>
-  onSaveConfig: (payload: PlumberConfig) => Promise<PlumberConfig | null>
+  onSaveConfig: (payload: PlumberConfigUpdate) => Promise<PlumberConfig | null>
   onConfigRefreshed?: (config: PlumberConfig) => void
 }
 

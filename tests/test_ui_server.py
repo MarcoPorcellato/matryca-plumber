@@ -36,6 +36,34 @@ def graph_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
+def _ui_config_update_payload(graph: Path, **overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "logseq_graph_path": str(graph),
+        "lm_studio_url": "http://localhost:1234/v1",
+        "lm_model": "qwen3-8b",
+        "low_priority_mode": True,
+        "thermal_delay_bootstrap": 2.5,
+        "thermal_delay_cognitive": 1.25,
+        "mapreduce_trigger_chars": 20_000,
+        "mapreduce_chunk_chars": 10_000,
+        "context_compression": False,
+        "compression_trigger": 90_000,
+        "compression_target": 25_000,
+        "semantic_routing": True,
+        "entity_consolidation": False,
+        "property_hygiene": True,
+        "marpa_framework": False,
+        "backpropagate_links": True,
+        "heal_dangling": False,
+        "enable_inline_semantic_corrections": True,
+        "auto_split": False,
+        "read_only": True,
+        "shadow_db_enabled": True,
+    }
+    payload.update(overrides)
+    return payload
+
+
 def test_get_state_returns_daemon_checkpoint(
     graph_root: Path,
     auth_headers: dict[str, str],
@@ -336,7 +364,9 @@ def test_get_config_returns_live_lint_settings(
     assert payload["logseq_graph_path"] == str(graph_root)
     assert payload["lm_studio_url"] == "http://localhost:9999/v1"
     assert payload["lm_model"] == "gemma-4-e4b-it"
-    assert payload["llm_api_key"] == "sk-test-cloud-key"
+    assert payload["llm_api_key_configured"] is True
+    assert "llm_api_key" not in payload
+    assert "sk-test-cloud-key" not in response.text
     assert payload["low_priority_mode"] is False
     assert payload["thermal_delay_bootstrap"] == 3.5
     assert payload["thermal_delay_cognitive"] == 1.5
@@ -368,30 +398,7 @@ def test_post_config_updates_dotenv(
     (graph / "pages").mkdir(parents=True)
     monkeypatch.setattr("src.cli.ui_server._REPO_ROOT", tmp_path)
 
-    body = {
-        "logseq_graph_path": str(graph),
-        "lm_studio_url": "http://localhost:1234/v1",
-        "lm_model": "qwen3-8b",
-        "llm_api_key": "sk-saved-from-ui",
-        "low_priority_mode": True,
-        "thermal_delay_bootstrap": 2.5,
-        "thermal_delay_cognitive": 1.25,
-        "mapreduce_trigger_chars": 20000,
-        "mapreduce_chunk_chars": 10000,
-        "context_compression": False,
-        "compression_trigger": 90000,
-        "compression_target": 25000,
-        "semantic_routing": True,
-        "entity_consolidation": False,
-        "property_hygiene": True,
-        "marpa_framework": False,
-        "backpropagate_links": True,
-        "heal_dangling": False,
-        "enable_inline_semantic_corrections": True,
-        "auto_split": False,
-        "read_only": True,
-        "shadow_db_enabled": True,
-    }
+    body = _ui_config_update_payload(graph, llm_api_key="sk-saved-from-ui")
 
     with TestClient(app) as client:
         response = client.post("/api/config", json=body, headers=auth_headers)
@@ -404,6 +411,9 @@ def test_post_config_updates_dotenv(
     assert payload["compression_trigger"] == 90_000
     assert payload["compression_target"] == 25_000
     assert payload["enable_inline_semantic_corrections"] is True
+    assert payload["llm_api_key_configured"] is True
+    assert "llm_api_key" not in payload
+    assert "sk-saved-from-ui" not in response.text
     written = env_path.read_text(encoding="utf-8")
     assert "LOGSEQ_GRAPH_PATH=" in written
     assert str(graph) in written
@@ -418,6 +428,56 @@ def test_post_config_updates_dotenv(
     assert "MATRYCA_SHADOW_DB_ENABLED=true" in written
 
 
+def test_post_config_preserves_api_key_when_omitted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    auth_headers: dict[str, str],
+) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text("LLM_API_KEY=existing-secret\n", encoding="utf-8")
+    graph = tmp_path / "graph"
+    (graph / "pages").mkdir(parents=True)
+    monkeypatch.setattr("src.cli.ui_server._REPO_ROOT", tmp_path)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/config",
+            json=_ui_config_update_payload(graph),
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["llm_api_key_configured"] is True
+    assert "llm_api_key" not in response.json()
+    assert "existing-secret" not in response.text
+    assert "LLM_API_KEY=existing-secret" in env_path.read_text(encoding="utf-8")
+
+
+def test_post_config_clears_api_key_only_on_explicit_null(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    auth_headers: dict[str, str],
+) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text("LLM_API_KEY=existing-secret\n", encoding="utf-8")
+    graph = tmp_path / "graph"
+    (graph / "pages").mkdir(parents=True)
+    monkeypatch.setattr("src.cli.ui_server._REPO_ROOT", tmp_path)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/config",
+            json=_ui_config_update_payload(graph, llm_api_key=None),
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["llm_api_key_configured"] is False
+    assert "llm_api_key" not in response.json()
+    assert "existing-secret" not in response.text
+    assert "LLM_API_KEY=" in env_path.read_text(encoding="utf-8").splitlines()
+
+
 def test_post_config_rejects_unsafe_lm_studio_url(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -429,34 +489,18 @@ def test_post_config_rejects_unsafe_lm_studio_url(
     (graph / "pages").mkdir(parents=True)
     monkeypatch.setattr("src.cli.ui_server._REPO_ROOT", tmp_path)
 
-    body = {
-        "logseq_graph_path": str(graph),
-        "lm_studio_url": "http://169.254.169.254/latest/meta-data/",
-        "lm_model": "qwen3-8b",
-        "llm_api_key": "dummy-key",
-        "low_priority_mode": True,
-        "thermal_delay_bootstrap": 2.5,
-        "thermal_delay_cognitive": 1.25,
-        "mapreduce_trigger_chars": 20000,
-        "mapreduce_chunk_chars": 10000,
-        "context_compression": False,
-        "compression_trigger": 90000,
-        "compression_target": 25000,
-        "semantic_routing": True,
-        "entity_consolidation": False,
-        "property_hygiene": True,
-        "marpa_framework": False,
-        "backpropagate_links": True,
-        "heal_dangling": False,
-        "enable_inline_semantic_corrections": True,
-        "auto_split": False,
-    }
+    body = _ui_config_update_payload(
+        graph,
+        lm_studio_url="http://169.254.169.254/latest/meta-data/",
+        llm_api_key="dummy-key",
+    )
 
     with TestClient(app) as client:
         response = client.post("/api/config", json=body, headers=auth_headers)
 
     assert response.status_code == 400
     assert "not allowed" in response.json()["detail"]
+    assert "dummy-key" not in response.text
     assert env_path.read_text(encoding="utf-8") == 'LOGSEQ_GRAPH_PATH="/old/path"\n'
 
 

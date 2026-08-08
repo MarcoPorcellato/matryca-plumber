@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { LmModelsResponse, PlumberConfig } from '../types/daemon'
+import type { LmModelsResponse, PlumberConfig, PlumberConfigUpdate } from '../types/daemon'
 import { MATRYCA_API_BASE, matrycaAuthenticatedFetch } from '../utils/matrycaApiAuth'
 import { emptyPlumberConfig } from '../utils/plumberConfigDefaults'
+import { buildPlumberConfigUpdate } from '../utils/plumberConfigSecrets'
 
 interface SettingsDrawerProps {
   open: boolean
   config: PlumberConfig | null
   onClose: () => void
-  onSave: (payload: PlumberConfig) => Promise<PlumberConfig | null>
+  onSave: (payload: PlumberConfigUpdate) => Promise<PlumberConfig | null>
 }
 
 interface FieldSpec {
@@ -74,13 +75,6 @@ const INFRA_FIELDS: FieldSpec[] = [
     label: 'LLM Model',
     description: 'Exact model id from your provider (Ollama requires the precise tag, e.g. llama3:8b).',
     type: 'lm-model',
-  },
-  {
-    key: 'llm_api_key',
-    label: 'API Token',
-    description:
-      'Bearer token sent as Authorization on cloud OpenAI-compatible endpoints. Required only for CLOUD; local LM Studio / Ollama may use dummy-key.',
-    type: 'password',
   },
   {
     key: 'thermal_delay_bootstrap',
@@ -489,6 +483,64 @@ function ConfigField({
   )
 }
 
+function ApiKeyField({
+  configured,
+  value,
+  clearPending,
+  onChange,
+  onClear,
+}: {
+  configured: boolean
+  value: string
+  clearPending: boolean
+  onChange: (value: string) => void
+  onClear: () => void
+}) {
+  const status = clearPending
+    ? 'Saved token will be cleared.'
+    : configured
+      ? 'A token is configured. Leave this field empty to keep it.'
+      : 'No explicit token is configured.'
+
+  return (
+    <div className="block space-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-theme-text">API Token</span>
+        <RiskBadge
+          label={configured && !clearPending ? 'Configured' : 'Not configured'}
+          className={
+            configured && !clearPending
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500'
+              : 'border-theme-border text-theme-muted'
+          }
+        />
+      </div>
+      <p className="text-[11px] leading-relaxed text-theme-muted">
+        Write-only bearer token for cloud OpenAI-compatible endpoints. Existing values are never read back into the browser.
+      </p>
+      <input
+        type="password"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={configured ? 'Enter a replacement token' : 'Enter a token'}
+        autoComplete="off"
+        className={INPUT_CLASS}
+      />
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] text-theme-muted">{status}</p>
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={!configured && !value}
+          className="shrink-0 rounded-lg border border-theme-border/60 px-2.5 py-1 text-[10px] font-medium text-theme-muted transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Clear saved token
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function TrustSectionCard({
   section,
   draft,
@@ -558,6 +610,8 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [apiKeyDraft, setApiKeyDraft] = useState('')
+  const [clearApiKey, setClearApiKey] = useState(false)
   const [invalidFields, setInvalidFields] = useState<Partial<Record<keyof PlumberConfig, string>>>({})
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     safe: true,
@@ -576,6 +630,8 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
     setSaved(false)
     setIsDirty(false)
     setSaveError(null)
+    setApiKeyDraft('')
+    setClearApiKey(false)
     setInvalidFields({})
     onClose()
   }
@@ -599,6 +655,25 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
         return next
       })
     }
+  }
+
+  const prepareSecretEdit = () => {
+    setDraft((prev) => (isDirty ? prev : (config ?? emptyPlumberConfig())))
+    setIsDirty(true)
+    setSaved(false)
+    setSaveError(null)
+  }
+
+  const updateApiKey = (value: string) => {
+    prepareSecretEdit()
+    setApiKeyDraft(value)
+    setClearApiKey(false)
+  }
+
+  const markApiKeyForClear = () => {
+    prepareSecretEdit()
+    setApiKeyDraft('')
+    setClearApiKey(true)
   }
 
   const validateDraft = (): boolean => {
@@ -625,22 +700,29 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
     setSaving(true)
     setSaveError(null)
     try {
-      const result = await onSave(effectiveDraft)
-      setSaving(false)
+      const apiKeyChange = clearApiKey
+        ? ({ kind: 'clear' } as const)
+        : apiKeyDraft
+          ? ({ kind: 'replace', value: apiKeyDraft } as const)
+          : ({ kind: 'preserve' } as const)
+      const result = await onSave(buildPlumberConfigUpdate(effectiveDraft, apiKeyChange))
       if (result) {
         setSaved(true)
         setIsDirty(false)
+        setClearApiKey(false)
         setSaveError(null)
         return
       }
       setSaveError('Could not save settings. Check the API connection and try again.')
     } catch (error) {
-      setSaving(false)
       const message =
         error instanceof Error && error.message.trim()
           ? error.message
           : 'Could not save settings. Check the API connection and try again.'
       setSaveError(message)
+    } finally {
+      setSaving(false)
+      setApiKeyDraft('')
     }
   }
 
@@ -751,6 +833,13 @@ export function SettingsDrawer({ open, config, onClose, onSave }: SettingsDrawer
                       />
                     ),
                   )}
+                  <ApiKeyField
+                    configured={effectiveDraft.llm_api_key_configured}
+                    value={apiKeyDraft}
+                    clearPending={clearApiKey}
+                    onChange={updateApiKey}
+                    onClear={markApiKeyForClear}
+                  />
                 </div>
               </div>
 

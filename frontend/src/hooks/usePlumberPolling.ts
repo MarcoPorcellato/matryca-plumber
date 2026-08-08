@@ -6,6 +6,7 @@ import type {
   DaemonStateResponse,
   GraphAnalytics,
   PlumberConfig,
+  PlumberConfigUpdate,
   PlumberPollSnapshot,
 } from '../types/daemon'
 import { normalizeDaemonState, normalizeGraphAnalytics } from '../types/daemon'
@@ -14,6 +15,7 @@ import {
   MATRYCA_GRAPH_ANALYTICS_TIMEOUT_MS,
   matrycaFetchJson,
 } from '../utils/matrycaApiAuth'
+import { sanitizePlumberConfigResponse } from '../utils/plumberConfigSecrets'
 
 /** Base interval between telemetry poll cycles (distributed requests within each cycle). */
 const POLL_CYCLE_MS = 5000
@@ -294,7 +296,9 @@ export function usePlumberPolling(cycleMs = POLL_CYCLE_MS): PlumberPollSnapshot 
 
   const refreshConfig = useCallback(async () => {
     try {
-      const payload = await matrycaFetchJson<PlumberConfig>(`${MATRYCA_API_BASE}/api/config`)
+      const payload = sanitizePlumberConfigResponse(
+        await matrycaFetchJson<PlumberConfig>(`${MATRYCA_API_BASE}/api/config`),
+      )
       if (mountedRef.current) {
         setConfig(payload)
         setConnectionError(null)
@@ -312,7 +316,7 @@ export function usePlumberPolling(cycleMs = POLL_CYCLE_MS): PlumberPollSnapshot 
 
   const applyConfig = useCallback((payload: PlumberConfig) => {
     if (mountedRef.current) {
-      setConfig(payload)
+      setConfig(sanitizePlumberConfigResponse(payload))
       setConnectionError(null)
     }
   }, [])
@@ -371,13 +375,15 @@ export function usePlumberPolling(cycleMs = POLL_CYCLE_MS): PlumberPollSnapshot 
     }
   }, [pollFrozenSnapshot, setTelemetryLive])
 
-  const saveConfig = useCallback(async (payload: PlumberConfig): Promise<PlumberConfig | null> => {
+  const saveConfig = useCallback(async (payload: PlumberConfigUpdate): Promise<PlumberConfig | null> => {
     try {
-      const updated = await matrycaFetchJson<PlumberConfig>(`${MATRYCA_API_BASE}/api/config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const updated = sanitizePlumberConfigResponse(
+        await matrycaFetchJson<PlumberConfig>(`${MATRYCA_API_BASE}/api/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }),
+      )
       if (mountedRef.current) {
         setConfig(updated)
       }
