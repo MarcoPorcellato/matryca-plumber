@@ -4,19 +4,23 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import subprocess
 import sys
+import unicodedata
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import redirect_stderr
 from dataclasses import dataclass
 from datetime import date, datetime
 from io import StringIO
-from pathlib import Path
-from typing import Any, NoReturn, cast
+from pathlib import Path, PurePosixPath
+from typing import Any, Literal, NoReturn, cast
 from urllib.parse import unquote, urlsplit
 
 import yaml
+from pydantic import BaseModel, ConfigDict
 
 ROOT = Path(__file__).resolve().parents[1]
 KNOWLEDGE_DIR = ROOT / "docs" / "knowledge"
@@ -48,6 +52,9 @@ MATRYCA_PROFILE_VERSION = "1.0"
 DOCS_VALIDATOR_VERSION = "1"
 FINDING_SCHEMA_VERSION = "1"
 OKF_VERSION = OKF_SPEC_VERSION
+REPORT_KIND = "matryca.docs.validation-report"
+SOURCE_PATH = "docs/knowledge"
+DEFAULT_SOURCE_REPOSITORY = "github.com/MarcoPorcellato/matryca-plumber"
 OKF_STATUSES: frozenset[str] = frozenset({"draft", "stable", "deprecated"})
 CLASSIFICATIONS: frozenset[str] = frozenset({"canonical", "active", "historical", "generated"})
 
@@ -111,14 +118,99 @@ class HeuristicDefaults:
     destination: str | None = None
 
 
+FindingLayer = Literal["official_okf", "matryca_quality"]
+FindingValue = str | int | bool | None
+
+
+@dataclass(frozen=True)
+class ValidationFinding:
+    layer: FindingLayer
+    code: str
+    path: str
+    pointer: str
+    parameters: tuple[tuple[str, FindingValue], ...]
+    message: str
+    machine_message: str
+
+
 @dataclass(frozen=True)
 class ValidationReport:
-    official_okf: tuple[str, ...]
-    matryca_quality: tuple[str, ...]
+    findings: tuple[ValidationFinding, ...]
+
+    @property
+    def official_okf_findings(self) -> tuple[ValidationFinding, ...]:
+        return tuple(finding for finding in self.findings if finding.layer == "official_okf")
+
+    @property
+    def matryca_quality_findings(self) -> tuple[ValidationFinding, ...]:
+        return tuple(finding for finding in self.findings if finding.layer == "matryca_quality")
+
+    @property
+    def official_okf(self) -> tuple[str, ...]:
+        return tuple(finding.message for finding in self.official_okf_findings)
+
+    @property
+    def matryca_quality(self) -> tuple[str, ...]:
+        return tuple(finding.message for finding in self.matryca_quality_findings)
 
     @property
     def has_findings(self) -> bool:
-        return bool(self.official_okf or self.matryca_quality)
+        return bool(self.findings)
+
+
+class _PolicyPayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    okf_spec_version: str
+    matryca_profile_version: str
+    validator_version: str
+
+
+class _SourcePayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    repository: str
+    commit: str | None
+    path: str
+    provenance_state: Literal["clean", "dirty", "unavailable"]
+
+
+class _LayerSummaryPayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: Literal["pass", "fail"]
+    finding_count: int
+
+
+class _SummaryPayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: Literal["pass", "fail"]
+    official_okf: _LayerSummaryPayload
+    matryca_quality: _LayerSummaryPayload
+
+
+class _FindingPayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    fingerprint: str
+    layer: FindingLayer
+    code: str
+    path: str
+    pointer: str
+    parameters: dict[str, FindingValue]
+    message: str
+
+
+class _MachineReportPayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal["matryca.docs.validation-report"]
+    finding_schema_version: str
+    policy: _PolicyPayload
+    source: _SourcePayload
+    summary: _SummaryPayload
+    findings: tuple[_FindingPayload, ...]
 
 
 def _fail(message: str) -> NoReturn:
@@ -132,6 +224,127 @@ def _repo_rel(path: Path) -> str:
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _normalize_text(value: str) -> str:
+    return unicodedata.normalize("NFC", value)
+
+
+def _validate_repo_relative_path(path: str) -> str:
+    normalized = _normalize_text(path.replace("\\", "/"))
+    candidate = PurePosixPath(normalized)
+    if candidate.is_absolute() or not normalized or ".." in candidate.parts:
+        msg = f"finding path must be repository-relative: {path!r}"
+        raise ValueError(msg)
+    return candidate.as_posix()
+
+
+def _finding_path(path: Path, fallback: str) -> str:
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return _validate_repo_relative_path(fallback)
+
+
+def _finding(
+    *,
+    layer: FindingLayer,
+    code: str,
+    path: str,
+    message: str,
+    machine_message: str | None = None,
+    pointer: str = "",
+    parameters: Mapping[str, FindingValue] | None = None,
+) -> ValidationFinding:
+    normalized_parameters: list[tuple[str, FindingValue]] = []
+    for key, value in (parameters or {}).items():
+        normalized_key = _normalize_text(str(key))
+        if isinstance(value, str):
+            digest = (
+                value
+                if normalized_key.endswith("_sha256") and re.fullmatch(r"[0-9a-f]{64}", value)
+                else _text_digest(value)
+            )
+            normalized_value: FindingValue = f"sha256:{digest}"
+        else:
+            normalized_value = value
+        normalized_parameters.append((normalized_key, normalized_value))
+    return ValidationFinding(
+        layer=layer,
+        code=_normalize_text(code),
+        path=_validate_repo_relative_path(path),
+        pointer=_normalize_text(pointer),
+        parameters=tuple(sorted(normalized_parameters)),
+        message=_normalize_text(message),
+        machine_message=_normalize_text(machine_message or f"validation failed: {code}"),
+    )
+
+
+def _append_error(
+    errors: list[str],
+    findings: list[ValidationFinding] | None,
+    *,
+    layer: FindingLayer,
+    code: str,
+    path: str,
+    message: str,
+    machine_message: str | None = None,
+    pointer: str = "",
+    parameters: Mapping[str, FindingValue] | None = None,
+) -> None:
+    errors.append(message)
+    if findings is not None:
+        findings.append(
+            _finding(
+                layer=layer,
+                code=code,
+                path=path,
+                pointer=pointer,
+                parameters=parameters,
+                message=message,
+                machine_message=machine_message,
+            )
+        )
+
+
+def _canonical_json(payload: Mapping[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def _text_digest(value: str) -> str:
+    return hashlib.sha256(_normalize_text(value).encode("utf-8")).hexdigest()
+
+
+def _policy_payload() -> _PolicyPayload:
+    return _PolicyPayload(
+        okf_spec_version=OKF_SPEC_VERSION,
+        matryca_profile_version=MATRYCA_PROFILE_VERSION,
+        validator_version=DOCS_VALIDATOR_VERSION,
+    )
+
+
+def _finding_fingerprint(finding: ValidationFinding, policy: _PolicyPayload) -> str:
+    identity = {
+        "finding_schema_version": FINDING_SCHEMA_VERSION,
+        "policy": policy.model_dump(mode="json"),
+        "layer": finding.layer,
+        "code": finding.code,
+        "path": finding.path,
+        "pointer": finding.pointer,
+        "parameters": dict(finding.parameters),
+    }
+    digest = hashlib.sha256(_canonical_json(identity).encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
+
+
+def _finding_sort_key(finding: ValidationFinding) -> tuple[int, str, str, str, str]:
+    return (
+        0 if finding.layer == "official_okf" else 1,
+        finding.path,
+        finding.code,
+        finding.pointer,
+        _canonical_json(dict(finding.parameters)),
+    )
 
 
 def parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
@@ -157,7 +370,7 @@ def split_frontmatter(path: Path) -> tuple[dict[str, Any] | None, str]:
         return None, text
     try:
         meta, body = parse_frontmatter(text)
-    except ValueError:
+    except (ValueError, yaml.YAMLError):
         return None, text
     return meta, body
 
@@ -341,15 +554,49 @@ def load_inventory() -> dict[str, Any]:
     return cast(dict[str, Any], parsed)
 
 
-def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
+def validate_inventory_schema(
+    data: Mapping[str, Any],
+    *,
+    findings: list[ValidationFinding] | None = None,
+) -> list[str]:
     errors: list[str] = []
+    inventory_path = "docs/knowledge/inventory.json"
+
+    def add(
+        code: str,
+        message: str,
+        *,
+        pointer: str = "",
+        parameters: Mapping[str, FindingValue] | None = None,
+    ) -> None:
+        _append_error(
+            errors,
+            findings,
+            layer="matryca_quality",
+            code=code,
+            path=inventory_path,
+            pointer=pointer,
+            parameters=parameters,
+            message=message,
+        )
+
     if data.get("schema_version") != INVENTORY_SCHEMA_VERSION:
-        errors.append(f"inventory.json schema_version must be {INVENTORY_SCHEMA_VERSION}")
+        add(
+            "inventory.schema_version.invalid",
+            f"inventory.json schema_version must be {INVENTORY_SCHEMA_VERSION}",
+            pointer="schema_version",
+            parameters={"expected": INVENTORY_SCHEMA_VERSION},
+        )
     if data.get("scope") != "repository-documentation":
-        errors.append("inventory.json scope must be 'repository-documentation'")
+        add(
+            "inventory.scope.invalid",
+            "inventory.json scope must be 'repository-documentation'",
+            pointer="scope",
+            parameters={"expected": "repository-documentation"},
+        )
     entries = data.get("entries")
     if not isinstance(entries, list):
-        errors.append("inventory.json entries must be a list")
+        add("inventory.entries.type", "inventory.json entries must be a list", pointer="entries")
         return errors
 
     seen_paths: set[str] = set()
@@ -357,14 +604,29 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
     for index, entry in enumerate(entries):
         prefix = f"entries[{index}]"
         if not isinstance(entry, dict):
-            errors.append(f"{prefix} must be an object")
+            add(
+                "inventory.entry.type",
+                f"{prefix} must be an object",
+                pointer=prefix,
+                parameters={"index": index},
+            )
             continue
         path = entry.get("path")
         if not isinstance(path, str) or not path:
-            errors.append(f"{prefix}.path must be a non-empty string")
+            add(
+                "inventory.entry.path.empty",
+                f"{prefix}.path must be a non-empty string",
+                pointer=f"{prefix}.path",
+                parameters={"index": index},
+            )
             continue
         if path in seen_paths:
-            errors.append(f"duplicate inventory path: {path}")
+            add(
+                "inventory.entry.path.duplicate",
+                f"duplicate inventory path: {path}",
+                pointer=f"{prefix}.path",
+                parameters={"path": path},
+            )
         seen_paths.add(path)
         for field in (
             "type",
@@ -375,40 +637,93 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
             "surface_class",
         ):
             if field not in entry:
-                errors.append(f"{prefix}.{field} is required")
+                add(
+                    "inventory.entry.field.missing",
+                    f"{prefix}.{field} is required",
+                    pointer=f"{prefix}.{field}",
+                    parameters={"field": field, "path": path},
+                )
         doc_type = entry.get("type")
         if isinstance(doc_type, str) and doc_type not in DOC_TYPES:
-            errors.append(f"{prefix}.type invalid: {doc_type}")
+            add(
+                "inventory.entry.type.invalid",
+                f"{prefix}.type invalid: {doc_type}",
+                pointer=f"{prefix}.type",
+                parameters={"path": path, "value": doc_type},
+            )
         classification = entry.get("classification")
         if isinstance(classification, str) and classification not in CLASSIFICATIONS:
-            errors.append(f"{prefix}.classification invalid: {classification}")
+            add(
+                "inventory.entry.classification.invalid",
+                f"{prefix}.classification invalid: {classification}",
+                pointer=f"{prefix}.classification",
+                parameters={"path": path, "value": classification},
+            )
         action = entry.get("action")
         if isinstance(action, str) and action not in ACTIONS:
-            errors.append(f"{prefix}.action invalid: {action}")
+            add(
+                "inventory.entry.action.invalid",
+                f"{prefix}.action invalid: {action}",
+                pointer=f"{prefix}.action",
+                parameters={"path": path, "value": action},
+            )
         surface_class = entry.get("surface_class")
         if isinstance(surface_class, str) and surface_class not in SURFACE_CLASSES:
-            errors.append(f"{prefix}.surface_class invalid: {surface_class}")
+            add(
+                "inventory.entry.surface_class.invalid",
+                f"{prefix}.surface_class invalid: {surface_class}",
+                pointer=f"{prefix}.surface_class",
+                parameters={"path": path, "value": surface_class},
+            )
         audience = entry.get("audience")
         if audience is not None and (
             not isinstance(audience, list)
             or not all(isinstance(item, str) and item in AUDIENCES for item in audience)
         ):
-            errors.append(f"{prefix}.audience must be a list of known audience values")
+            add(
+                "inventory.entry.audience.invalid",
+                f"{prefix}.audience must be a list of known audience values",
+                pointer=f"{prefix}.audience",
+                parameters={"path": path},
+            )
         destination = entry.get("destination")
         if destination is not None and not isinstance(destination, str):
-            errors.append(f"{prefix}.destination must be a string or null")
+            add(
+                "inventory.entry.destination.type",
+                f"{prefix}.destination must be a string or null",
+                pointer=f"{prefix}.destination",
+                parameters={"path": path},
+            )
         canonical_for = entry.get("canonical_for")
         if canonical_for is not None and not isinstance(canonical_for, str):
-            errors.append(f"{prefix}.canonical_for must be a string or null")
+            add(
+                "inventory.entry.canonical_for.type",
+                f"{prefix}.canonical_for must be a string or null",
+                pointer=f"{prefix}.canonical_for",
+                parameters={"path": path},
+            )
         if classification == "canonical" and not canonical_for:
-            errors.append(f"{prefix}.classification canonical requires canonical_for")
+            add(
+                "inventory.entry.canonical_for.required",
+                f"{prefix}.classification canonical requires canonical_for",
+                pointer=f"{prefix}.canonical_for",
+                parameters={"path": path},
+            )
         if canonical_for and classification != "canonical":
-            errors.append(f"{prefix}.canonical_for requires classification canonical")
+            add(
+                "inventory.entry.classification.canonical_required",
+                f"{prefix}.canonical_for requires classification canonical",
+                pointer=f"{prefix}.classification",
+                parameters={"path": path},
+            )
         if isinstance(canonical_for, str) and canonical_for:
             previous = canonical_roles.get(canonical_for)
             if previous is not None:
-                errors.append(
-                    f"duplicate inventory canonical_for {canonical_for!r} in {previous} and {path}"
+                add(
+                    "inventory.entry.canonical_for.duplicate",
+                    f"duplicate inventory canonical_for {canonical_for!r} in {previous} and {path}",
+                    pointer=f"{prefix}.canonical_for",
+                    parameters={"canonical_for": canonical_for, "path": path, "previous": previous},
                 )
             else:
                 canonical_roles[canonical_for] = path
@@ -417,7 +732,11 @@ def validate_inventory_schema(data: Mapping[str, Any]) -> list[str]:
         entry["path"] for entry in entries if isinstance(entry, dict) and "path" in entry
     ]
     if sorted_paths != sorted(sorted_paths):
-        errors.append("inventory.json entries must be sorted by path")
+        add(
+            "inventory.entries.unsorted",
+            "inventory.json entries must be sorted by path",
+            pointer="entries",
+        )
     return errors
 
 
@@ -471,6 +790,52 @@ def inventory_init(*, force: bool = False) -> None:
     print(f"inventory initialized: {len(entries)} entries")
 
 
+def _inventory_path_state(
+    data: Mapping[str, Any],
+) -> tuple[dict[str, dict[str, Any]], list[str], list[str], list[str]]:
+    existing_entries = data.get("entries", [])
+    if not isinstance(existing_entries, list):
+        return {}, [], [], []
+    by_path = {
+        entry["path"]: dict(entry)
+        for entry in existing_entries
+        if isinstance(entry, dict) and isinstance(entry.get("path"), str)
+    }
+    discovered = discover_inventory_paths()
+    discovered_set = set(discovered)
+    new_paths = [path for path in discovered if path not in by_path]
+    missing_paths = [
+        path for path in by_path if path not in discovered_set and not by_path[path].get("missing")
+    ]
+    return by_path, discovered, new_paths, missing_paths
+
+
+def _inventory_drift_finding(data: Mapping[str, Any]) -> ValidationFinding | None:
+    _, _, new_paths, missing_paths = _inventory_path_state(data)
+    if not new_paths and not missing_paths:
+        return None
+    details: list[str] = []
+    if new_paths:
+        details.append(f"new paths ({len(new_paths)}): {', '.join(new_paths[:5])}")
+    if missing_paths:
+        details.append(f"missing paths ({len(missing_paths)}): {', '.join(missing_paths[:5])}")
+    message = "inventory drift detected; run make docs-inventory-sync — " + "; ".join(details)
+    return _finding(
+        layer="matryca_quality",
+        code="inventory.paths.drift",
+        path="docs/knowledge/inventory.json",
+        pointer="entries",
+        parameters={
+            "missing_count": len(missing_paths),
+            "missing_sha256": _text_digest("\n".join(sorted(missing_paths))),
+            "new_count": len(new_paths),
+            "new_sha256": _text_digest("\n".join(sorted(new_paths))),
+        },
+        message=message,
+        machine_message="inventory path set differs from discovered documentation",
+    )
+
+
 def inventory_sync(*, check: bool = False) -> None:
     data = load_inventory()
     migrated = migrate_inventory_schema(data) if not check else False
@@ -478,31 +843,15 @@ def inventory_sync(*, check: bool = False) -> None:
     if not isinstance(existing_entries, list):
         _fail("inventory.json entries must be a list")
 
-    by_path: dict[str, dict[str, Any]] = {}
-    for entry in existing_entries:
-        if isinstance(entry, dict) and isinstance(entry.get("path"), str):
-            by_path[entry["path"]] = dict(entry)
-
-    discovered = discover_inventory_paths()
-    discovered_set = set(discovered)
-    new_paths = [path for path in discovered if path not in by_path]
-    missing_paths = [
-        path for path in by_path if path not in discovered_set and not by_path[path].get("missing")
-    ]
+    by_path, discovered, new_paths, missing_paths = _inventory_path_state(data)
 
     if check:
-        if new_paths or missing_paths:
-            details: list[str] = []
-            if new_paths:
-                details.append(f"new paths ({len(new_paths)}): {', '.join(new_paths[:5])}")
-            if missing_paths:
-                details.append(
-                    f"missing paths ({len(missing_paths)}): {', '.join(missing_paths[:5])}"
-                )
-            _fail("inventory drift detected; run make docs-inventory-sync — " + "; ".join(details))
+        if finding := _inventory_drift_finding(data):
+            _fail(finding.message)
         print("inventory sync OK (no drift)")
         return
 
+    discovered_set = set(discovered)
     for path in discovered:
         if path not in by_path:
             by_path[path] = build_default_entry(path)
@@ -585,14 +934,43 @@ def render_inventory_md(data: Mapping[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _inventory_md_finding(data: Mapping[str, Any]) -> ValidationFinding | None:
+    if not INVENTORY_MD.is_file():
+        return _finding(
+            layer="matryca_quality",
+            code="inventory.generated_view.missing",
+            path="docs/knowledge/inventory.md",
+            pointer="",
+            message=f"missing generated inventory view: {INVENTORY_MD.relative_to(ROOT)}",
+        )
+    rendered = render_inventory_md(data)
+    try:
+        current = _read_text(INVENTORY_MD)
+    except (OSError, UnicodeError):
+        return _finding(
+            layer="matryca_quality",
+            code="inventory.generated_view.read_failed",
+            path="docs/knowledge/inventory.md",
+            pointer="",
+            message="inventory.md could not be read",
+        )
+    if current != rendered:
+        return _finding(
+            layer="matryca_quality",
+            code="inventory.generated_view.drift",
+            path="docs/knowledge/inventory.md",
+            pointer="",
+            message="inventory.md drift; run make docs-inventory-md",
+        )
+    return None
+
+
 def inventory_md(*, check: bool = False) -> None:
     data = load_inventory()
     rendered = render_inventory_md(data)
     if check:
-        if not INVENTORY_MD.is_file():
-            _fail(f"missing generated inventory view: {INVENTORY_MD.relative_to(ROOT)}")
-        if _read_text(INVENTORY_MD) != rendered:
-            _fail("inventory.md drift; run make docs-inventory-md")
+        if finding := _inventory_md_finding(data):
+            _fail(finding.message)
         print("inventory.md OK")
         return
     INVENTORY_MD.write_text(rendered, encoding="utf-8")
@@ -645,20 +1023,72 @@ def _parse_timestamp_date(value: Any) -> date | None:
         return None
 
 
-def _validate_actor_event(value: Any, label: str, *, allow_many: bool) -> list[str]:
-    if allow_many and isinstance(value, list) and not value:
-        return [f"{label} must contain at least one verification event"]
-    events = value if allow_many and isinstance(value, list) else [value]
+def _validate_actor_event(
+    value: Any,
+    label: str,
+    *,
+    allow_many: bool,
+    report_path: str,
+    pointer: str,
+    findings: list[ValidationFinding] | None = None,
+) -> list[str]:
     errors: list[str] = []
+
+    def add(
+        code: str,
+        message: str,
+        *,
+        event_pointer: str,
+        index: int | None = None,
+    ) -> None:
+        parameters: dict[str, FindingValue] = {}
+        if index is not None:
+            parameters["index"] = index
+        _append_error(
+            errors,
+            findings,
+            layer="official_okf",
+            code=code,
+            path=report_path,
+            pointer=event_pointer,
+            parameters=parameters,
+            message=message,
+        )
+
+    if allow_many and isinstance(value, list) and not value:
+        add(
+            "trust.events.empty",
+            f"{label} must contain at least one verification event",
+            event_pointer=pointer,
+        )
+        return errors
+    events = value if allow_many and isinstance(value, list) else [value]
     for index, event in enumerate(events):
         event_label = f"{label}[{index}]" if len(events) > 1 else label
+        event_pointer = f"{pointer}[{index}]" if len(events) > 1 else pointer
         if not isinstance(event, dict):
-            errors.append(f"{event_label} must be a mapping")
+            add(
+                "trust.event.type",
+                f"{event_label} must be a mapping",
+                event_pointer=event_pointer,
+                index=index if len(events) > 1 else None,
+            )
             continue
         actor = event.get("by")
         if not isinstance(actor, str) or not actor:
-            errors.append(f"{event_label}.by must be a non-empty actor")
-        errors.extend(_validate_timestamp(event.get("at"), f"{event_label}.at"))
+            add(
+                "trust.event.actor.empty",
+                f"{event_label}.by must be a non-empty actor",
+                event_pointer=f"{event_pointer}.by",
+                index=index if len(events) > 1 else None,
+            )
+        for message in _validate_timestamp(event.get("at"), f"{event_label}.at"):
+            add(
+                "trust.event.timestamp.invalid",
+                message,
+                event_pointer=f"{event_pointer}.at",
+                index=index if len(events) > 1 else None,
+            )
     return errors
 
 
@@ -702,9 +1132,30 @@ def resolve_bundle_link(target: str) -> Path:
     return KNOWLEDGE_DIR / clean.lstrip("/")
 
 
-def validate_document_links(path: Path, text: str, label: str) -> list[str]:
+def validate_document_links(
+    path: Path,
+    text: str,
+    label: str,
+    *,
+    findings: list[ValidationFinding] | None = None,
+) -> list[str]:
     errors: list[str] = []
     root = ROOT.resolve()
+    report_path = _finding_path(path, label)
+
+    def add(code: str, message: str, machine_message: str, raw_target: str) -> None:
+        _append_error(
+            errors,
+            findings,
+            layer="matryca_quality",
+            code=code,
+            path=report_path,
+            pointer="markdown.links",
+            parameters={"target_sha256": _text_digest(raw_target)},
+            message=message,
+            machine_message=machine_message,
+        )
+
     for raw_target in _markdown_link_targets(text):
         target = raw_target.strip()
         if target.startswith("<") and target.endswith(">"):
@@ -722,16 +1173,40 @@ def validate_document_links(path: Path, text: str, label: str) -> list[str]:
         try:
             destination.relative_to(root)
         except ValueError:
-            errors.append(f"{label}: local link escapes repository: {raw_target}")
+            add(
+                "link.local.escape",
+                f"{label}: local link escapes repository: {raw_target}",
+                "local link escapes repository",
+                raw_target,
+            )
             continue
         if not destination.exists():
-            errors.append(f"{label}: broken local link {raw_target}")
+            add(
+                "link.local.missing",
+                f"{label}: broken local link {raw_target}",
+                "broken local link",
+                raw_target,
+            )
             continue
         anchor = unquote(parsed.fragment)
         if anchor and destination.is_file():
-            anchors = _heading_anchors(_read_text(destination))
+            try:
+                anchors = _heading_anchors(_read_text(destination))
+            except (OSError, UnicodeError):
+                add(
+                    "link.local.target_read_failed",
+                    f"{label}: local link target could not be read: {raw_target}",
+                    "local link target could not be read",
+                    raw_target,
+                )
+                continue
             if anchor not in anchors:
-                errors.append(f"{label}: broken local anchor {raw_target}")
+                add(
+                    "link.local.anchor_missing",
+                    f"{label}: broken local anchor {raw_target}",
+                    "broken local anchor",
+                    raw_target,
+                )
     return errors
 
 
@@ -757,57 +1232,181 @@ def validate_legacy_sources(
     meta: Mapping[str, Any],
     concept_path: Path,
     label: str,
+    *,
+    findings: list[ValidationFinding] | None = None,
 ) -> list[str]:
     errors: list[str] = []
+    report_path = _finding_path(concept_path, label)
+
+    def add(
+        code: str,
+        message: str,
+        *,
+        pointer: str = "legacy_sources",
+        source: str | None = None,
+        index: int | None = None,
+        machine_message: str | None = None,
+    ) -> None:
+        parameters: dict[str, FindingValue] = {}
+        if source is not None:
+            parameters["source_sha256"] = _text_digest(source)
+        if index is not None:
+            parameters["index"] = index
+        _append_error(
+            errors,
+            findings,
+            layer="matryca_quality",
+            code=code,
+            path=report_path,
+            pointer=pointer,
+            parameters=parameters,
+            message=message,
+            machine_message=machine_message,
+        )
+
     legacy_sources = meta.get("legacy_sources")
     if legacy_sources is None:
         return errors
     if not isinstance(legacy_sources, list):
-        errors.append(f"{label}: legacy_sources must be a list")
+        add("legacy_sources.type", f"{label}: legacy_sources must be a list")
         return errors
     for index, source in enumerate(legacy_sources):
         if not isinstance(source, str):
-            errors.append(f"{label}: legacy_sources[{index}] must be a string")
+            add(
+                "legacy_sources.entry.type",
+                f"{label}: legacy_sources[{index}] must be a string",
+                pointer=f"legacy_sources[{index}]",
+                index=index,
+            )
             continue
         try:
             resolved = resolve_legacy_source(source, concept_path)
         except ValueError as exc:
-            errors.append(f"{label}: {exc}")
+            add(
+                "legacy_sources.entry.unsafe",
+                f"{label}: {exc}",
+                pointer=f"legacy_sources[{index}]",
+                source=source,
+                index=index,
+                machine_message="legacy source is not repository-safe",
+            )
             continue
         if not resolved.is_file():
-            errors.append(f"{label}: missing legacy_sources target {source!r}")
+            add(
+                "legacy_sources.entry.missing",
+                f"{label}: missing legacy_sources target {source!r}",
+                pointer=f"legacy_sources[{index}]",
+                source=source,
+                index=index,
+                machine_message="missing legacy source target",
+            )
     return errors
 
 
-def validate_official_okf_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
+def validate_official_okf_frontmatter(
+    path: Path,
+    meta: Mapping[str, Any],
+    *,
+    findings: list[ValidationFinding] | None = None,
+) -> list[str]:
     errors: list[str] = []
     rel = path.relative_to(KNOWLEDGE_DIR).as_posix()
     label = rel
+    report_path = _finding_path(path, f"docs/knowledge/{rel}")
+
+    def add(
+        code: str,
+        message: str,
+        *,
+        pointer: str,
+        parameters: Mapping[str, FindingValue] | None = None,
+    ) -> None:
+        _append_error(
+            errors,
+            findings,
+            layer="official_okf",
+            code=code,
+            path=report_path,
+            pointer=pointer,
+            parameters=parameters,
+            message=message,
+        )
 
     doc_type = meta.get("type")
     if not isinstance(doc_type, str) or not doc_type.strip():
-        errors.append(f"{label}: type must be a non-empty string")
+        add(
+            "frontmatter.type.empty",
+            f"{label}: type must be a non-empty string",
+            pointer="frontmatter.type",
+        )
 
     status = meta.get("status")
     if status is not None and (not isinstance(status, str) or status not in OKF_STATUSES):
-        errors.append(f"{label}: invalid OKF status")
+        add(
+            "frontmatter.status.invalid",
+            f"{label}: invalid OKF status",
+            pointer="frontmatter.status",
+        )
 
     if "generated" in meta:
         errors.extend(
-            _validate_actor_event(meta.get("generated"), f"{label}.generated", allow_many=False)
+            _validate_actor_event(
+                meta.get("generated"),
+                f"{label}.generated",
+                allow_many=False,
+                report_path=report_path,
+                pointer="frontmatter.generated",
+                findings=findings,
+            )
         )
     if "verified" in meta:
         errors.extend(
-            _validate_actor_event(meta.get("verified"), f"{label}.verified", allow_many=True)
+            _validate_actor_event(
+                meta.get("verified"),
+                f"{label}.verified",
+                allow_many=True,
+                report_path=report_path,
+                pointer="frontmatter.verified",
+                findings=findings,
+            )
         )
     if "stale_after" in meta:
-        errors.extend(_validate_iso_date(meta.get("stale_after"), f"{label}.stale_after"))
+        for message in _validate_iso_date(meta.get("stale_after"), f"{label}.stale_after"):
+            add(
+                "frontmatter.stale_after.invalid",
+                message,
+                pointer="frontmatter.stale_after",
+            )
     return errors
 
 
-def validate_matryca_quality_frontmatter(path: Path, meta: Mapping[str, Any]) -> list[str]:
+def validate_matryca_quality_frontmatter(
+    path: Path,
+    meta: Mapping[str, Any],
+    *,
+    findings: list[ValidationFinding] | None = None,
+) -> list[str]:
     errors: list[str] = []
     label = path.relative_to(KNOWLEDGE_DIR).as_posix()
+    report_path = _finding_path(path, f"docs/knowledge/{label}")
+
+    def add(
+        code: str,
+        message: str,
+        *,
+        pointer: str,
+        parameters: Mapping[str, FindingValue] | None = None,
+    ) -> None:
+        _append_error(
+            errors,
+            findings,
+            layer="matryca_quality",
+            code=code,
+            path=report_path,
+            pointer=pointer,
+            parameters=parameters,
+            message=message,
+        )
 
     for field in (
         "title",
@@ -819,27 +1418,53 @@ def validate_matryca_quality_frontmatter(path: Path, meta: Mapping[str, Any]) ->
         "stale_after",
     ):
         if field not in meta:
-            errors.append(f"{label}: missing required field {field}")
+            add(
+                "frontmatter.field.missing",
+                f"{label}: missing required field {field}",
+                pointer=f"frontmatter.{field}",
+                parameters={"field": field},
+            )
 
     classification = meta.get("classification")
     if classification is not None and (
         not isinstance(classification, str) or classification not in CLASSIFICATIONS
     ):
-        errors.append(f"{label}: invalid Matryca classification")
+        add(
+            "frontmatter.classification.invalid",
+            f"{label}: invalid Matryca classification",
+            pointer="frontmatter.classification",
+        )
     canonical_for = meta.get("canonical_for")
     if classification == "canonical" and (not isinstance(canonical_for, str) or not canonical_for):
-        errors.append(f"{label}: canonical concepts require canonical_for")
+        add(
+            "frontmatter.canonical_for.required",
+            f"{label}: canonical concepts require canonical_for",
+            pointer="frontmatter.canonical_for",
+        )
     if classification == "generated" and "generated" not in meta:
-        errors.append(f"{label}: generated concepts require generated provenance")
+        add(
+            "frontmatter.generated.required",
+            f"{label}: generated concepts require generated provenance",
+            pointer="frontmatter.generated",
+        )
 
     audience = meta.get("audience")
     if audience is not None and (
         not isinstance(audience, list)
         or not all(isinstance(item, str) and item in AUDIENCES for item in audience)
     ):
-        errors.append(f"{label}: invalid audience")
+        add(
+            "frontmatter.audience.invalid",
+            f"{label}: invalid audience",
+            pointer="frontmatter.audience",
+        )
 
-    errors.extend(_validate_iso_date(meta.get("last_verified"), f"{label}.last_verified"))
+    for message in _validate_iso_date(meta.get("last_verified"), f"{label}.last_verified"):
+        add(
+            "frontmatter.last_verified.invalid",
+            message,
+            pointer="frontmatter.last_verified",
+        )
     last_verified = meta.get("last_verified")
     stale_after = meta.get("stale_after")
     last_verified_date = _parse_iso_date(last_verified)
@@ -849,7 +1474,11 @@ def validate_matryca_quality_frontmatter(path: Path, meta: Mapping[str, Any]) ->
         and stale_after_date is not None
         and stale_after_date <= last_verified_date
     ):
-        errors.append(f"{label}: stale_after must be after last_verified")
+        add(
+            "frontmatter.stale_after.order",
+            f"{label}: stale_after must be after last_verified",
+            pointer="frontmatter.stale_after",
+        )
 
     verified = meta.get("verified")
     events = verified if isinstance(verified, list) else [verified]
@@ -862,7 +1491,11 @@ def validate_matryca_quality_frontmatter(path: Path, meta: Mapping[str, Any]) ->
     if verified_dates and last_verified_date is not None:
         expected = max(verified_dates)
         if last_verified_date != expected:
-            errors.append(f"{label}: last_verified must match the latest verified event date")
+            add(
+                "frontmatter.last_verified.mismatch",
+                f"{label}: last_verified must match the latest verified event date",
+                pointer="frontmatter.last_verified",
+            )
     return errors
 
 
@@ -882,14 +1515,28 @@ def collect_knowledge_concepts() -> list[Path]:
     return concepts
 
 
-def _validation_report(
-    official_okf: list[str],
-    matryca_quality: list[str],
-) -> ValidationReport:
-    return ValidationReport(
-        official_okf=tuple(sorted(official_okf)),
-        matryca_quality=tuple(sorted(matryca_quality)),
-    )
+def _report_frontmatter(
+    path: Path,
+    report_path: str,
+    findings: list[ValidationFinding],
+) -> tuple[dict[str, Any] | None, str] | None:
+    try:
+        return split_frontmatter(path)
+    except (OSError, UnicodeError):
+        findings.append(
+            _finding(
+                layer="official_okf",
+                code="document.read.failed",
+                path=report_path,
+                pointer="",
+                message=f"{report_path}: document could not be read",
+            )
+        )
+        return None
+
+
+def _validation_report(findings: Sequence[ValidationFinding]) -> ValidationReport:
+    return ValidationReport(findings=tuple(sorted(findings, key=_finding_sort_key)))
 
 
 def _print_validation_report(report: ValidationReport) -> None:
@@ -906,26 +1553,158 @@ def _print_validation_report(report: ValidationReport) -> None:
     print(f"Validator v{DOCS_VALIDATOR_VERSION}; finding schema v{FINDING_SCHEMA_VERSION}")
 
 
-def _collect_check_failures(check: Callable[[], None]) -> list[str]:
+def _load_inventory_for_report() -> tuple[dict[str, Any] | None, ValidationFinding | None]:
     stderr = StringIO()
     try:
         with redirect_stderr(stderr):
-            check()
-    except SystemExit:
-        findings = [line for line in stderr.getvalue().splitlines() if line]
-        return findings or ["validation command failed without a diagnostic"]
-    return []
+            return load_inventory(), None
+    except (OSError, ValueError, SystemExit) as exc:
+        detail = next(
+            (line for line in stderr.getvalue().splitlines() if line),
+            str(exc) or "inventory load failed",
+        )
+        return None, _finding(
+            layer="matryca_quality",
+            code="inventory.load.failed",
+            path="docs/knowledge/inventory.json",
+            pointer="",
+            message=detail,
+            machine_message="inventory could not be loaded",
+        )
 
 
-def check_bundle() -> None:
-    official_okf: list[str] = []
-    matryca_quality: list[str] = []
+def _normalized_repository(remote: str) -> str | None:
+    candidate = remote.strip()
+    if not candidate:
+        return None
+    if "://" in candidate:
+        parsed = urlsplit(candidate)
+        host = parsed.hostname
+        path = parsed.path.strip("/")
+    elif match := re.fullmatch(r"(?:[^@]+@)?([^:]+):(.+)", candidate):
+        host, path = match.group(1), match.group(2).strip("/")
+    else:
+        return None
+    if not host or not path:
+        return None
+    if path.endswith(".git"):
+        path = path[:-4]
+    parts = path.split("/")
+    if len(parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9_.-]+", part) for part in parts):
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9.-]+", host):
+        return None
+    return f"{host.lower()}/{parts[0]}/{parts[1]}"
+
+
+def _git_output(*args: str) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def _source_payload() -> _SourcePayload:
+    commit = _git_output("rev-parse", "HEAD")
+    if commit is not None and not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", commit):
+        commit = None
+    status = _git_output("status", "--porcelain")
+    if commit is None or status is None:
+        provenance_state: Literal["clean", "dirty", "unavailable"] = "unavailable"
+    else:
+        provenance_state = "dirty" if status else "clean"
+    repository = _normalized_repository(_git_output("remote", "get-url", "origin") or "")
+    return _SourcePayload(
+        repository=repository or DEFAULT_SOURCE_REPOSITORY,
+        commit=commit,
+        path=SOURCE_PATH,
+        provenance_state=provenance_state,
+    )
+
+
+def _build_machine_report(
+    report: ValidationReport,
+    *,
+    source: _SourcePayload,
+    policy: _PolicyPayload | None = None,
+) -> _MachineReportPayload:
+    active_policy = policy or _policy_payload()
+    official_count = len(report.official_okf_findings)
+    matryca_count = len(report.matryca_quality_findings)
+    status: Literal["pass", "fail"] = "fail" if report.has_findings else "pass"
+    findings = tuple(
+        _FindingPayload(
+            fingerprint=_finding_fingerprint(finding, active_policy),
+            layer=finding.layer,
+            code=finding.code,
+            path=finding.path,
+            pointer=finding.pointer,
+            parameters=dict(finding.parameters),
+            message=finding.machine_message,
+        )
+        for finding in report.findings
+    )
+    return _MachineReportPayload(
+        kind="matryca.docs.validation-report",
+        finding_schema_version=FINDING_SCHEMA_VERSION,
+        policy=active_policy,
+        source=source,
+        summary=_SummaryPayload(
+            status=status,
+            official_okf=_LayerSummaryPayload(
+                status="fail" if official_count else "pass",
+                finding_count=official_count,
+            ),
+            matryca_quality=_LayerSummaryPayload(
+                status="fail" if matryca_count else "pass",
+                finding_count=matryca_count,
+            ),
+        ),
+        findings=findings,
+    )
+
+
+def _render_machine_report(payload: _MachineReportPayload) -> str:
+    return (
+        json.dumps(
+            payload.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    )
+
+
+def _check_bundle_report() -> ValidationReport:
+    findings: list[ValidationFinding] = []
 
     if not PROFILE_MD.is_file():
-        matryca_quality.append("missing docs/knowledge/profile.md")
+        findings.append(
+            _finding(
+                layer="matryca_quality",
+                code="profile.missing",
+                path="docs/knowledge/profile.md",
+                message="missing docs/knowledge/profile.md",
+            )
+        )
 
-    data = load_inventory()
-    matryca_quality.extend(validate_inventory_schema(data))
+    data, load_finding = _load_inventory_for_report()
+    if load_finding is not None:
+        findings.append(load_finding)
+    if data is None:
+        return _validation_report(findings)
+    validate_inventory_schema(data, findings=findings)
 
     entries = data.get("entries", [])
     canonical_for_values = {
@@ -938,58 +1717,167 @@ def check_bundle() -> None:
     }
     for concept_path in collect_knowledge_concepts():
         rel = concept_path.relative_to(KNOWLEDGE_DIR).as_posix()
-        meta, body = split_frontmatter(concept_path)
-        if meta is None:
-            official_okf.append(f"{rel}: concept documents require YAML frontmatter")
+        parsed = _report_frontmatter(
+            concept_path,
+            _finding_path(concept_path, f"docs/knowledge/{rel}"),
+            findings,
+        )
+        if parsed is None:
             continue
-        official_okf.extend(validate_official_okf_frontmatter(concept_path, meta))
-        matryca_quality.extend(validate_matryca_quality_frontmatter(concept_path, meta))
-        matryca_quality.extend(validate_legacy_sources(meta, concept_path, rel))
+        meta, body = parsed
+        if meta is None:
+            findings.append(
+                _finding(
+                    layer="official_okf",
+                    code="frontmatter.missing",
+                    path=_finding_path(concept_path, f"docs/knowledge/{rel}"),
+                    pointer="frontmatter",
+                    message=f"{rel}: concept documents require YAML frontmatter",
+                )
+            )
+            continue
+        validate_official_okf_frontmatter(concept_path, meta, findings=findings)
+        validate_matryca_quality_frontmatter(concept_path, meta, findings=findings)
+        validate_legacy_sources(meta, concept_path, rel, findings=findings)
 
         canonical_for = meta.get("canonical_for")
         if canonical_for is not None:
             if not isinstance(canonical_for, str):
-                matryca_quality.append(f"{rel}: canonical_for must be a string")
+                findings.append(
+                    _finding(
+                        layer="matryca_quality",
+                        code="canonical_for.type.invalid",
+                        path=_finding_path(concept_path, f"docs/knowledge/{rel}"),
+                        pointer="frontmatter.canonical_for",
+                        message=f"{rel}: canonical_for must be a string",
+                    )
+                )
             elif canonical_for in canonical_for_values:
-                matryca_quality.append(
-                    f"duplicate canonical_for {canonical_for!r} in "
-                    f"{canonical_for_values[canonical_for]} and {rel}"
+                findings.append(
+                    _finding(
+                        layer="matryca_quality",
+                        code="canonical_for.duplicate",
+                        path=_finding_path(concept_path, f"docs/knowledge/{rel}"),
+                        pointer="frontmatter.canonical_for",
+                        parameters={"canonical_for": canonical_for},
+                        message=(
+                            f"duplicate canonical_for {canonical_for!r} in "
+                            f"{canonical_for_values[canonical_for]} and {rel}"
+                        ),
+                    )
                 )
             else:
                 canonical_for_values[canonical_for] = rel
 
-        matryca_quality.extend(validate_document_links(concept_path, body, rel))
+        validate_document_links(concept_path, body, rel, findings=findings)
 
     for index_path in sorted(KNOWLEDGE_DIR.rglob("index.md")):
         rel = index_path.relative_to(KNOWLEDGE_DIR).as_posix()
-        meta, body = split_frontmatter(index_path)
+        parsed = _report_frontmatter(
+            index_path,
+            _finding_path(index_path, f"docs/knowledge/{rel}"),
+            findings,
+        )
+        if parsed is None:
+            continue
+        meta, body = parsed
         if index_path == KNOWLEDGE_DIR / "index.md":
             if meta != {"okf_version": OKF_VERSION}:
-                official_okf.append(
-                    f"{rel}: root index frontmatter must contain only okf_version: {OKF_VERSION!r}"
+                findings.append(
+                    _finding(
+                        layer="official_okf",
+                        code="index.root.frontmatter.invalid",
+                        path=_finding_path(index_path, f"docs/knowledge/{rel}"),
+                        pointer="frontmatter",
+                        parameters={"expected_okf_version": OKF_VERSION},
+                        message=(
+                            f"{rel}: root index frontmatter must contain only "
+                            f"okf_version: {OKF_VERSION!r}"
+                        ),
+                    )
                 )
         elif meta is not None:
-            official_okf.append(f"{rel}: nested OKF indexes must not have frontmatter")
-        matryca_quality.extend(validate_document_links(index_path, body, rel))
+            findings.append(
+                _finding(
+                    layer="official_okf",
+                    code="index.nested.frontmatter.present",
+                    path=_finding_path(index_path, f"docs/knowledge/{rel}"),
+                    pointer="frontmatter",
+                    message=f"{rel}: nested OKF indexes must not have frontmatter",
+                )
+            )
+        validate_document_links(index_path, body, rel, findings=findings)
 
     log_path = KNOWLEDGE_DIR / "log.md"
     if not log_path.is_file():
-        official_okf.append("missing docs/knowledge/log.md")
+        findings.append(
+            _finding(
+                layer="official_okf",
+                code="log.missing",
+                path="docs/knowledge/log.md",
+                message="missing docs/knowledge/log.md",
+            )
+        )
     else:
-        meta, body = split_frontmatter(log_path)
+        parsed = _report_frontmatter(log_path, "docs/knowledge/log.md", findings)
+        if parsed is None:
+            return _validation_report(findings)
+        meta, body = parsed
         if meta is not None:
-            official_okf.append("log.md: OKF log files must not have frontmatter")
+            findings.append(
+                _finding(
+                    layer="official_okf",
+                    code="log.frontmatter.present",
+                    path="docs/knowledge/log.md",
+                    pointer="frontmatter",
+                    message="log.md: OKF log files must not have frontmatter",
+                )
+            )
         date_headings = re.findall(r"^## (\d{4}-\d{2}-\d{2})$", body, re.MULTILINE)
         if not date_headings:
-            matryca_quality.append("log.md: expected at least one ISO date heading")
+            findings.append(
+                _finding(
+                    layer="matryca_quality",
+                    code="log.date_heading.missing",
+                    path="docs/knowledge/log.md",
+                    pointer="markdown.headings",
+                    message="log.md: expected at least one ISO date heading",
+                )
+            )
         elif date_headings != sorted(date_headings, reverse=True):
-            matryca_quality.append("log.md: date headings must be newest first")
-        matryca_quality.extend(validate_document_links(log_path, body, "log.md"))
+            findings.append(
+                _finding(
+                    layer="matryca_quality",
+                    code="log.date_heading.order",
+                    path="docs/knowledge/log.md",
+                    pointer="markdown.headings",
+                    message="log.md: date headings must be newest first",
+                )
+            )
+        validate_document_links(log_path, body, "log.md", findings=findings)
 
-    matryca_quality.extend(_collect_check_failures(lambda: inventory_sync(check=True)))
-    matryca_quality.extend(_collect_check_failures(lambda: inventory_md(check=True)))
+    if drift_finding := _inventory_drift_finding(data):
+        findings.append(drift_finding)
+    if generated_finding := _inventory_md_finding(data):
+        findings.append(generated_finding)
 
-    report = _validation_report(official_okf, matryca_quality)
+    return _validation_report(findings)
+
+
+def check_bundle(*, output_format: Literal["text", "json"] = "text") -> None:
+    report = _check_bundle_report()
+    if output_format == "json":
+        sys.stdout.write(
+            _render_machine_report(_build_machine_report(report, source=_source_payload()))
+        )
+        if report.has_findings:
+            raise SystemExit(1)
+        return
+
+    if not any(finding.code == "inventory.paths.drift" for finding in report.findings):
+        print("inventory sync OK (no drift)")
+    if not any(finding.code.startswith("inventory.generated_view.") for finding in report.findings):
+        print("inventory.md OK")
     _print_validation_report(report)
     if report.has_findings:
         for error in report.official_okf:
@@ -1050,7 +1938,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("inventory-sync", help="Reconcile inventory paths")
     subparsers.add_parser("inventory-md", help="Regenerate inventory.md")
-    subparsers.add_parser("check-bundle", help="Validate knowledge bundle")
+    check_parser = subparsers.add_parser("check-bundle", help="Validate knowledge bundle")
+    check_parser.add_argument("--format", choices=("text", "json"), default="text")
     subparsers.add_parser("audit-legacy", help="Report legacy inventory coverage")
 
     parser.set_defaults(command="check-bundle")
@@ -1066,7 +1955,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "inventory-init": lambda: inventory_init(force=args.force),
         "inventory-sync": inventory_sync,
         "inventory-md": inventory_md,
-        "check-bundle": check_bundle,
+        "check-bundle": lambda: check_bundle(output_format=args.format),
         "audit-legacy": audit_legacy,
     }
     dispatch[command]()

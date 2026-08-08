@@ -5,9 +5,9 @@ description: Producer rules for the maintained knowledge bundle, legacy inventor
 resource: docs/knowledge/
 tags: [okf, documentation, governance, provenance]
 generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-last_verified: 2026-08-06
-stale_after: 2027-02-02
+verified: { by: human:marco-porcellato, at: '2026-08-08T00:00:00Z' }
+last_verified: 2026-08-08
+stale_after: 2027-02-04
 status: stable
 classification: canonical
 canonical_for: documentation.profile
@@ -82,10 +82,29 @@ the Matryca layer owns repository-specific links, anchors, freshness, canonical
 roles, safe local paths, inventory drift, and generated-view integrity.
 
 The specification, profile, validator, and finding-schema versions advance
-independently. Text findings are sorted before emission so identical source bytes
-and policy versions produce stable output. Machine-readable findings and
-changed-policy invalidation remain separately reviewable follow-up work under
-[#402](https://github.com/MarcoPorcellato/matryca-plumber/issues/402).
+independently. Text findings are sorted before emission. `make docs-check` keeps
+the existing human-readable contract; automation may run
+`python scripts/docs_knowledge_check.py check-bundle --format json` to receive
+one JSON document and one final pass/fail exit status.
+
+The machine report has a stable `kind`, finding-schema version, independently
+versioned policy tuple, source provenance, per-layer and overall summaries, and
+sorted findings. Each finding contains a policy-bound SHA-256 fingerprint,
+layer, stable code, repository-relative path, structural pointer, bounded
+parameters, and sanitized message. Fingerprints exclude human wording, source
+commit, and timestamps; they change when identity fields or any policy version
+changes. Repository provenance records only a normalized repository identifier,
+the exact commit when available, the fixed bundle path, and a
+`clean`/`dirty`/`unavailable` state. It never emits credentials, absolute local
+paths, raw link targets, or raw legacy-source values.
+
+Identical findings, policy versions, and source provenance produce
+byte-identical JSON. Changed-byte and changed-policy invalidation, retained or
+signed report artifacts, and Matryca Knowledge projection ingestion remain
+separately reviewable follow-up work under
+[#402](https://github.com/MarcoPorcellato/matryca-plumber/issues/402). A passing
+report remains deterministic compatibility evidence, not official OKF
+certification.
 
 `last_verified` is intentionally dual-written during the transition to native OKF v0.2 trust parsing in Matryca Knowledge. It may be removed only after the registry validates `verified[].at` directly for freshness.
 

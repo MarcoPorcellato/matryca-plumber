@@ -97,8 +97,10 @@ The accepted model contains two independent result streams:
 
 This document does **not** claim official OKF v0.2 conformance. The current
 Matryca validator reports deterministic OKF v0.2 format compatibility separately
-from Matryca quality, while official certification, machine-readable findings,
-changed-policy invalidation, and any future nested parser remain unshipped.
+from Matryca quality and can emit schema-versioned machine-readable findings with
+normalized Git provenance. Official certification, changed-byte or changed-policy
+invalidation, retained report artifacts, projection ingestion, and any future nested
+parser remain unshipped.
 `status` therefore uses the official lifecycle vocabulary (`draft`, `stable`,
 `deprecated`), while plan acceptance and Matryca classification remain separate
 extension fields.
@@ -1509,6 +1511,69 @@ prompt verification, and 1,666 tests with 5 skipped at 83.48% coverage. The chan
 records the developer-facing validation contract. Runtime, Makefile/workflow topology,
 Gate B evidence, release state, tags, publication, and GitHub issue state were not
 touched.
+
+##### EX-17B — Emit deterministic machine-readable findings
+
+```yaml
+tranche_id: EX-17B
+issue: 402
+objective: Add deterministic JSON findings and normalized source provenance without changing the blocking text gate.
+base: ci/docs-dual-layer-reporting-402
+allowed_files:
+  - scripts/docs_knowledge_check.py
+  - tests/test_docs_knowledge_check.py
+  - docs/knowledge/profile.md
+  - docs/knowledge/log.md
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - CHANGELOG.md
+non_goals:
+  - no changed-byte or changed-policy invalidation engine
+  - no retained, signed, uploaded, or projected report artifact
+  - no official OKF certification claim
+  - no Makefile, workflow, runtime, Gate B, release, tag, or publication change
+acceptance:
+  - the default text output remains compatible and both layers share one blocking exit
+  - JSON mode emits exactly one document and one final zero or non-zero exit
+  - findings are deterministically sorted and have policy-bound stable fingerprints
+  - provenance contains a normalized repository, exact commit when available, repository-relative bundle path, and clean, dirty, or unavailable state
+  - machine output excludes credentials, absolute paths, raw local targets, and timestamps
+  - identical findings, policy versions, and provenance produce byte-identical output
+rollback: revert the six-file documentation-validator commit
+documentation_impact: update
+official_okf_conformance_impact: compatibility-evidence-only
+matryca_quality_impact: validation | provenance | automation
+residual_risks:
+  - a dirty provenance state identifies the checked-out commit but not uncommitted byte identity
+  - fingerprints deliberately bind policy identity rather than human message wording
+  - invalidation and projection consumers remain future reviewable slices under issue 402
+```
+
+This slice adds `check-bundle --format json` to the existing checker. The report
+contains a stable report kind, finding-schema version, independent policy versions,
+normalized source provenance, separate layer summaries, and bounded findings. Finding
+fingerprints cover schema and policy versions plus layer, code, repository-relative
+path, structural pointer, and normalized parameters; they intentionally exclude human
+wording, commit identity, and timestamps. The default text path and its single final
+blocking exit remain intact.
+
+**EX-17B implementation receipt (2026-08-08):** the six-file allowlist above is the
+complete diff. The first challenger pass rejected raw adversarial inventory values and
+malformed YAML escaping the JSON envelope; the second found unguarded linked-anchor and
+generated-view reads. The implementation now hashes every string-valued machine
+parameter, emits bounded code-derived messages, normalizes repository provenance, and
+converts malformed or unreadable report inputs into structured findings. A final
+challenger pass returned **GO** after direct text, JSON, privacy, and unreadable-input
+probes.
+
+Fifty-one focused documentation-validator tests passed, including exact text-output
+compatibility, byte stability, policy-bound fingerprints, normalized clean/dirty/
+unavailable provenance, adversarial path and credential redaction, malformed YAML, and
+unreadable linked-anchor and generated-view subprocess envelopes. Full exact-worktree
+`make ci` passed formatting, Ruff, strict mypy over 379 source files, sandbox/version/
+public-metrics checks, documentation and generated-prompt verification, and 1,682 tests
+with 5 skipped at 83.47% coverage. The changelog extends the existing issue #402 entry
+for the developer-facing JSON contract. Runtime, Makefile/workflow topology, Gate B
+evidence, release state, tags, publication, and GitHub issue state were not touched.
 
 #### EX-18 — Expand CI where it buys independent evidence
 

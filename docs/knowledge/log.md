@@ -1,5 +1,9 @@
 # Documentation update log
 
+## 2026-08-08
+
+- **Machine-readable validation:** Added deterministic, schema-versioned JSON findings with stable fingerprints, bounded messages, independent layer summaries, and normalized Git provenance while preserving the existing blocking text gate.
+
 ## 2026-08-07
 
 - **Dual-layer validation:** Separated OKF v0.2 format compatibility from Matryca quality reporting while retaining one deterministic blocking documentation gate.
