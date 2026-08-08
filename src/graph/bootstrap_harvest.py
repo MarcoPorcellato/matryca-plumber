@@ -184,6 +184,24 @@ def _catalog_entry_from_harvest(
     )
 
 
+def _read_catalog_source(graph_root: Path, page_path: Path) -> tuple[str, CatalogEntry | None]:
+    from .markdown_io import graph_read_mmap_enabled
+
+    if graph_read_mmap_enabled():
+        with mmap_graph_page(page_path, graph_root) as view:
+            extracted = extract_catalog_fields_from_mmap(view)
+            content = view.decode_utf8(errors="replace")
+    else:
+        content = read_graph_page_text(page_path, graph_root, errors="replace")
+        extracted = extract_catalog_fields_from_content(content)
+    return content, extracted
+
+
+def _raise_if_harvest_stopped(stop_event: threading.Event | None) -> None:
+    if stop_event is not None and stop_event.is_set():
+        raise BootstrapHarvestStopped
+
+
 def harvest_page_into_catalog(
     graph_root: Path,
     catalog: MasterCatalog,
@@ -210,26 +228,15 @@ def harvest_page_into_catalog(
 
     incoming = incoming_counts or {}
     orphan = incoming.get(title, 0) == 0
-    extracted: CatalogEntry | None = None
-    content = ""
     try:
-        from .markdown_io import graph_read_mmap_enabled
-
-        if graph_read_mmap_enabled():
-            with mmap_graph_page(page_path, graph_root) as view:
-                extracted = extract_catalog_fields_from_mmap(view)
-                content = view.decode_utf8(errors="replace")
-        else:
-            content = read_graph_page_text(page_path, graph_root, errors="replace")
-            extracted = extract_catalog_fields_from_content(content)
+        content, extracted = _read_catalog_source(graph_root, page_path)
     except OSError as exc:
         return f"error:{exc}", False, False
 
     if not content.strip():
         return "skipped_empty", False, False
 
-    if extracted is None:
-        extracted = extract_catalog_fields_from_content(content)
+    extracted = extracted if extracted is not None else extract_catalog_fields_from_content(content)
     if extracted is not None:
         extracted.last_mtime = mtime
         extracted.orphan = orphan
@@ -239,8 +246,7 @@ def harvest_page_into_catalog(
     if llm is None:
         return "pending_llm", False, False
 
-    if stop_event is not None and stop_event.is_set():
-        raise BootstrapHarvestStopped
+    _raise_if_harvest_stopped(stop_event)
 
     lint_config = config or load_harvest_runtime_config()
     domain = _infer_domain_from_content(title, content)
