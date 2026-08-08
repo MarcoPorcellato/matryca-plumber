@@ -256,7 +256,11 @@ That means, in order:
 3. **Sandbox read gate** — `make sandbox-read-check` (no new `Path.read_text()` bypasses in graph/agent/rag; daemon pid/lock reads need `# sandbox-read-ok`)
 4. **Pytest** — full suite via `make test-full` / `make test`; opt-in slow probes remain under `make perf`. Use **`make test-fast`** during iteration (`NUM_WORKERS` default `4`, no coverage).
 
-GitHub Actions on pushes and pull requests to **`main`** runs the blocking Python 3.12 **`make ci`** gate (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), including frontend lint, tests, and build. A separate non-blocking Python 3.13 job runs the full Python test suite without duplicating coverage or static-analysis work. It remains observational until its compatibility findings are fixed and the documented duration and flake promotion budget is satisfied. **Any failing blocking check prevents merge.**
+GitHub Actions runs the Python 3.12 **`make ci`** merge gate, dependency review, and focused macOS/Windows Shadow contracts on every pull request, including pull requests whose base is another branch in a review stack (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Pushes to `main` run the same gates. The separate non-blocking Python 3.13 job runs only on pushes and pull requests targeting `main`, without duplicating coverage or static-analysis work; it remains observational until its compatibility finding is fixed and the documented duration and flake promotion budget is satisfied. Every CI job has a hard timeout.
+
+The repository ruleset technically requires **Ironclad Gatekeeper** only when merging to the default branch. On stacked parent branches, GitHub reports the same checks but does not enforce that default-branch rule. Maintainer policy therefore treats any failed or missing gate as a merge blocker on every branch; expanding ruleset enforcement is a separate repository-setting decision.
+
+For a stacked pull request, CI validates the incremental head against its declared parent branch. After parent branches merge, retarget or update each child as required and revalidate it against the new base before merge. A green child does not substitute for final `main`-based validation, and historical pull requests need a new pull-request event before they can display checks added by a later workflow revision.
 
 Never commit secrets (no `.env`, tokens, or private graph paths in git).
 

@@ -39,6 +39,30 @@ def test_frontend_tests_remain_in_the_blocking_gate() -> None:
     assert ci_gate["run"] == "make ci"
 
 
+def test_stacked_pull_requests_run_the_established_blocking_gates() -> None:
+    workflow = _load_ci_workflow()
+    triggers = workflow["on"]
+
+    assert triggers["push"]["branches"] == ["main"]
+    assert triggers["pull_request"] == {}
+
+    jobs = workflow["jobs"]
+    gate = jobs["ironclad-gatekeeper"]
+    assert "if" not in gate
+    assert gate["timeout-minutes"] == "20"
+
+    dependency_review = jobs["dependency-review"]
+    assert dependency_review["if"] == "github.event_name == 'pull_request'"
+    assert dependency_review["timeout-minutes"] == "5"
+
+    shadow = jobs["shadow-cross-platform"]
+    assert "if" not in shadow
+    assert shadow["timeout-minutes"] == "15"
+
+    python_313 = jobs["python-313-evidence"]
+    assert python_313["if"] == "github.event_name == 'push' || github.base_ref == 'main'"
+
+
 def test_python_313_evidence_lane_is_bounded_and_non_blocking() -> None:
     workflow = _load_ci_workflow()
     job = workflow["jobs"]["python-313-evidence"]

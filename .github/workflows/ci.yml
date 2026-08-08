@@ -3,8 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  pull_request: {}
 
 permissions:
   contents: read
@@ -21,6 +20,7 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    timeout-minutes: 5
     steps:
       - name: Dependency review
         uses: actions/dependency-review-action@v5
@@ -28,6 +28,7 @@ jobs:
   ironclad-gatekeeper:
     name: Ironclad Gatekeeper
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -76,6 +77,7 @@ jobs:
   python-313-evidence:
     name: Python 3.13 evidence (non-blocking)
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.base_ref == 'main'
     continue-on-error: true
     timeout-minutes: 15
 
@@ -101,6 +103,7 @@ jobs:
   shadow-cross-platform:
     name: Shadow contract (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
