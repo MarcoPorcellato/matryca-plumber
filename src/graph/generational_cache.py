@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import threading
+import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -326,7 +327,11 @@ class Bm25Corpus:
     query_cache_hits: int = 0
     query_cache_misses: int = 0
     query_cache_invalidations: int = 0
+    query_cache_evictions: int = 0
     query_cache_result_rows: int = 0
+    uncached_scoring_samples: int = 0
+    uncached_scoring_total_ns: int = 0
+    uncached_scoring_max_ns: int = 0
     _query_lock: threading.Lock = field(
         default_factory=threading.Lock,
         repr=False,
@@ -349,6 +354,10 @@ class Bm25DiagnosticsSnapshot:
     query_cache_hits: int
     query_cache_misses: int
     query_cache_invalidations: int
+    query_cache_evictions: int
+    uncached_scoring_samples: int
+    uncached_scoring_total_ns: int
+    uncached_scoring_max_ns: int
     estimated_payload_bytes: int
 
     def to_dict(self) -> dict[str, int]:
@@ -365,6 +374,10 @@ class Bm25DiagnosticsSnapshot:
             "query_cache_hits": self.query_cache_hits,
             "query_cache_misses": self.query_cache_misses,
             "query_cache_invalidations": self.query_cache_invalidations,
+            "query_cache_evictions": self.query_cache_evictions,
+            "uncached_scoring_samples": self.uncached_scoring_samples,
+            "uncached_scoring_total_ns": self.uncached_scoring_total_ns,
+            "uncached_scoring_max_ns": self.uncached_scoring_max_ns,
             "estimated_payload_bytes": self.estimated_payload_bytes,
         }
 
@@ -398,7 +411,7 @@ def bm25_diagnostics_snapshot(corpus: Bm25Corpus) -> Bm25DiagnosticsSnapshot:
     """Capture existing BM25 counters and bounded structure under the query lock."""
     with corpus._query_lock:
         return Bm25DiagnosticsSnapshot(
-            schema_version=1,
+            schema_version=2,
             corpus_documents=corpus.n_docs,
             corpus_unique_terms=len(corpus.df),
             corpus_tokens=sum(corpus.doc_lens),
@@ -409,6 +422,10 @@ def bm25_diagnostics_snapshot(corpus: Bm25Corpus) -> Bm25DiagnosticsSnapshot:
             query_cache_hits=corpus.query_cache_hits,
             query_cache_misses=corpus.query_cache_misses,
             query_cache_invalidations=corpus.query_cache_invalidations,
+            query_cache_evictions=corpus.query_cache_evictions,
+            uncached_scoring_samples=corpus.uncached_scoring_samples,
+            uncached_scoring_total_ns=corpus.uncached_scoring_total_ns,
+            uncached_scoring_max_ns=corpus.uncached_scoring_max_ns,
             estimated_payload_bytes=_bm25_estimated_payload_bytes(corpus),
         )
 
@@ -424,6 +441,10 @@ def bm25_query_cache_stats(corpus: Bm25Corpus) -> dict[str, int]:
             "hits": corpus.query_cache_hits,
             "misses": corpus.query_cache_misses,
             "invalidations": corpus.query_cache_invalidations,
+            "evictions": corpus.query_cache_evictions,
+            "uncached_scoring_samples": corpus.uncached_scoring_samples,
+            "uncached_scoring_total_ns": corpus.uncached_scoring_total_ns,
+            "uncached_scoring_max_ns": corpus.uncached_scoring_max_ns,
         }
 
 
@@ -520,6 +541,7 @@ def score_bm25_query(
             corpus.query_cache_hits += 1
             return list(cached)
         corpus.query_cache_misses += 1
+        scoring_started_ns = time.perf_counter_ns()
 
         n_docs = corpus.n_docs
         avgdl = corpus.avgdl
@@ -546,6 +568,13 @@ def score_bm25_query(
 
         scores.sort(key=lambda item: (-item[1], item[0]))
         result = tuple(scores[:capped])
+        scoring_duration_ns = max(0, time.perf_counter_ns() - scoring_started_ns)
+        corpus.uncached_scoring_samples += 1
+        corpus.uncached_scoring_total_ns += scoring_duration_ns
+        corpus.uncached_scoring_max_ns = max(
+            corpus.uncached_scoring_max_ns,
+            scoring_duration_ns,
+        )
         corpus.query_cache[cache_key] = result
         corpus.query_cache_result_rows += len(result)
         corpus.query_cache.move_to_end(cache_key)
@@ -555,6 +584,7 @@ def score_bm25_query(
         ):
             _, evicted = corpus.query_cache.popitem(last=False)
             corpus.query_cache_result_rows -= len(evicted)
+            corpus.query_cache_evictions += 1
         return list(result)
 
 

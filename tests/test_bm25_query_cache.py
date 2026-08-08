@@ -6,6 +6,7 @@ import json
 import math
 import random
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -237,7 +238,7 @@ def test_bm25_diagnostics_snapshot_is_typed_content_free_and_deterministic() -> 
     second = bm25_diagnostics_snapshot(corpus)
 
     assert first == second
-    assert first.schema_version == 1
+    assert first.schema_version == 2
     assert first.corpus_documents == 32
     assert first.corpus_unique_terms == len(corpus.df)
     assert first.corpus_tokens == sum(corpus.doc_lens)
@@ -245,6 +246,10 @@ def test_bm25_diagnostics_snapshot_is_typed_content_free_and_deterministic() -> 
     assert first.query_cache_result_rows == 8
     assert first.query_cache_hits == first.query_cache_misses == 1
     assert first.query_cache_invalidations == 0
+    assert first.query_cache_evictions == 0
+    assert first.uncached_scoring_samples == 1
+    assert first.uncached_scoring_total_ns >= 0
+    assert first.uncached_scoring_max_ns == first.uncached_scoring_total_ns
     assert first.estimated_payload_bytes > 0
     payload = json.dumps(first.to_dict(), sort_keys=True)
     assert "pages/" not in payload
@@ -258,3 +263,40 @@ def test_bm25_diagnostics_payload_estimate_tracks_retained_structure() -> None:
 
     assert large.estimated_payload_bytes > small.estimated_payload_bytes
     assert large.corpus_documents > small.corpus_documents
+
+
+def test_bm25_diagnostics_measure_uncached_scoring_without_counting_hits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    corpus = _synthetic_corpus(document_count=32)
+    ticks = iter((10_000, 10_125))
+    monkeypatch.setattr(time, "perf_counter_ns", lambda: next(ticks))
+
+    expected = _score_reference(corpus, "shared topic1", limit=8)
+    assert score_bm25_query(corpus, "shared topic1", limit=8) == expected
+    assert score_bm25_query(corpus, "shared topic1", limit=8) == expected
+
+    snapshot = bm25_diagnostics_snapshot(corpus)
+    assert snapshot.uncached_scoring_samples == 1
+    assert snapshot.uncached_scoring_total_ns == 125
+    assert snapshot.uncached_scoring_max_ns == 125
+    assert snapshot.query_cache_hits == snapshot.query_cache_misses == 1
+
+
+def test_bm25_diagnostics_count_lru_evictions_deterministically(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    corpus = _synthetic_corpus(document_count=8)
+    monkeypatch.setattr(
+        "src.graph.generational_cache._DEFAULT_BM25_QUERY_CACHE_MAX_ENTRIES",
+        2,
+    )
+
+    score_bm25_query(corpus, "unique0", limit=1)
+    score_bm25_query(corpus, "unique1", limit=1)
+    score_bm25_query(corpus, "unique2", limit=1)
+
+    snapshot = bm25_diagnostics_snapshot(corpus)
+    assert snapshot.query_cache_entries == snapshot.query_cache_capacity == 2
+    assert snapshot.query_cache_evictions == 1
+    assert snapshot.uncached_scoring_samples == 3

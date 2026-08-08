@@ -229,16 +229,20 @@ serializes scoring with corpus mutation, so a query observes either the complete
 pre-patch generation or the complete post-patch generation, never a partially
 updated corpus. A corpus rebuilt after a filesystem-signature mismatch is a new
 object with an empty cache. The counters are intentionally content-free: entries,
-entry capacity, result rows, result-row capacity, hits, misses, and invalidations.
+entry capacity, result rows, result-row capacity, hits, misses, invalidations,
+evictions, and aggregate uncached-scoring timing.
 They support local diagnostics and synthetic benchmarks without recording
 queries, paths, or document text.
 
 `bm25_diagnostics_snapshot()` is the stable machine-readable boundary for these
-in-process measurements. Its versioned payload contains aggregate integer cardinality,
-capacity, row-pressure, hit/miss/invalidation, and deterministic retained-payload
-fields only. The payload estimate counts retained lexical structures and is not a claim
-about Python object overhead or process RSS. Capturing a snapshot uses the existing
-per-corpus query lock and does not alter scoring, invalidation, capacity, or publication.
+in-process measurements. Its schema-v2 payload contains aggregate integer cardinality,
+capacity, row-pressure, hit/miss/invalidation/eviction, uncached-scoring sample/total/max
+nanoseconds, and deterministic retained-payload fields only. Timing begins after a cache
+miss has been established and covers scoring plus result ordering; it excludes query
+tokenization, lock wait, cache publication, and cache-hit latency. The payload estimate
+counts retained lexical structures and is not a claim about Python object overhead or
+process RSS. Capturing a snapshot uses the existing per-corpus query lock and does not
+alter scoring, invalidation, capacity, or publication.
 
 This is not an FTS or semantic cache. Shadow FTS continues to execute against
 SQLite, whose own page/query machinery remains the only cache at that layer; the

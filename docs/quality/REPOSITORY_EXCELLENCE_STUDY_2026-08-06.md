@@ -755,6 +755,65 @@ files, graph sandbox, version and agent coherence, public-metrics policy, docume
 inventory, and generated prompt checks are all green. The only warning remains the
 pre-existing macOS multi-threaded `fork()` deprecation probe.
 
+**Tranche manifest (frozen 2026-08-07):**
+
+```yaml
+tranche_id: EX-11-02
+repository: MarcoPorcellato/matryca-plumber
+base_commit: 41d9283982d8c85436ba844abd4626f707492fa6
+objective: add bounded eviction and uncached-scoring timing to the BM25 snapshot
+authority: inspect | edit | commit | push | pr
+tracking_issue: 391
+allowlist:
+  - src/graph/generational_cache.py
+  - tests/test_bm25_query_cache.py
+  - docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md
+  - docs/knowledge/architecture/cache-friendly-retrieval.md
+  - CHANGELOG.md
+non_goals:
+  - change scoring results, query-cache keys, capacities, or eviction policy
+  - change invalidation, publication, or lock behavior
+  - measure tokenization, lock wait, cache-hit latency, process RSS, or percentiles
+  - expose graph paths, terms, queries, result rows, secrets, or graph content
+deterministic_preflight:
+  - uv run pytest --no-cov -q tests/test_bm25_query_cache.py
+  - make ci
+acceptance:
+  - schema v2 adds only bounded aggregate integer fields
+  - deterministic tests control the monotonic clock and exact eviction count
+  - cache hits do not increment uncached-scoring samples
+  - existing scoring results, capacity, invalidation, and locking remain unchanged
+stop_conditions:
+  - any need for cache-policy, result-order, public API, or lock-model changes
+rollback: revert the single stacked commit before merge
+provenance:
+  evidence_commit: 41d9283982d8c85436ba844abd4626f707492fa6
+  impact_evidence: exact-worktree caller inventory plus diff-level graph analysis
+documentation_impact: update
+official_okf_conformance_impact: none
+matryca_quality_impact: lifecycle | provenance
+residual_risks:
+  - aggregate max is not a percentile and resets with the process-lifetime corpus
+  - timing excludes tokenization, lock wait, cache publication, and cache hits by contract
+```
+
+**EX-11-02 implemented:** schema v2 adds cumulative eviction count plus uncached-scoring
+sample count, total nanoseconds, and maximum nanoseconds. Timing uses a monotonic clock
+after a miss is established and stops after score ordering, before cache publication and
+eviction. Fixed-clock tests prove exact aggregation and that a cache hit adds no timing
+sample; a two-entry cache fixture proves deterministic eviction accounting. The fields
+remain content-free and bounded-cardinality. Capacity, keying, scoring, invalidation,
+publication, and lock behavior are unchanged.
+
+Focused BM25 and generational-cache validation passes `43/43`. The complete macOS
+arm64 Python 3.12 gate passes with `1,652` tests, `5` skips, and `83.42%` coverage;
+format, Ruff, strict mypy over 377 source files, graph sandbox, version and agent
+coherence, public-metrics policy, documentation inventory, and generated prompt checks
+are all green. The only warning remains the pre-existing macOS multi-threaded `fork()`
+deprecation probe. A sandboxed first run denied the unrelated `ps` subprocess used by
+one daemon-lock test; that test and the complete gate both passed with normal host
+permissions.
+
 Expose content-free metrics for:
 
 - Shadow sync duration, writer-lock wait, generation, fallback reason, last successful incremental sync, parser timeout count, quarantine age and retry count;
