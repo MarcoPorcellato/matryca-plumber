@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -111,8 +112,14 @@ class RuntimeWritePolicy:
 
     @staticmethod
     def _resolve_canonical_path(path: str | Path, *, operation: str, reason: str) -> Path:
+        expanded = Path(path).expanduser()
         try:
-            return Path(path).expanduser().resolve(strict=False)
+            expanded.stat()
+        except OSError as exc:
+            if exc.errno == errno.ELOOP:
+                raise GraphReadOnlyError(operation, path=path, reason=reason) from exc
+        try:
+            return expanded.resolve(strict=False)
         except (OSError, RuntimeError) as exc:
             raise GraphReadOnlyError(operation, path=path, reason=reason) from exc
 

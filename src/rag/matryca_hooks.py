@@ -21,13 +21,16 @@ from ..agent.llm_context_payload import cap_llm_payload_chars
 from ..graph.page_path import page_title_to_filename
 from ..graph.path_sandbox import assert_path_within_graph
 
+_LogosParser: type[Any] | None
 try:
-    from logseq_matryca_parser import LogosParser as _LogosParser
+    import logseq_matryca_parser as _parser_module
 except ImportError as e:  # pragma: no cover - exercised when optional dep missing
     _LogosParser = None
     import logging
 
     logging.error(f"Failed to import logseq_matryca_parser: {e}")
+else:
+    _LogosParser = _parser_module.LogosParser
 
 
 def _require_logos_parser() -> type[Any]:
@@ -42,7 +45,7 @@ def _require_logos_parser() -> type[Any]:
             "Install the `logseq-matryca-parser` package to enable spatial page reads."
         )
         raise ImportError(msg)
-    return cast(type[Any], _LogosParser)
+    return _LogosParser
 
 
 def get_spatial_context(file_path: str) -> Any:

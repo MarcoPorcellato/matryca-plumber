@@ -7,7 +7,8 @@ from io import StringIO
 from pathlib import Path
 
 import pytest
-from logseq_matryca_parser.graph import LogseqGraph, StackMachineParser
+from logseq_matryca_parser import StackMachineParser
+from logseq_matryca_parser.graph import LogseqGraph
 from loguru import logger
 from src.graph.ast_cache import GraphAstCache, GraphAstParseError, clear_graph_ast_cache
 from src.graph.bounded_ast_graph import (

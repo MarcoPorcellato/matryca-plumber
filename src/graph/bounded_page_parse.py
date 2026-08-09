@@ -122,7 +122,7 @@ def _parse_request_message(msg: dict[str, Any]) -> dict[str, Any]:
         }
     try:
         if mode == "stack":
-            from logseq_matryca_parser.graph import StackMachineParser
+            from logseq_matryca_parser import StackMachineParser
 
             page = StackMachineParser(tab_size=tab_size).parse(
                 text,

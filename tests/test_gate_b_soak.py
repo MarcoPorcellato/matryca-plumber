@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import subprocess
@@ -144,6 +145,76 @@ def test_profile_probe_fails_closed_on_graph_mutation(tmp_path: Path) -> None:
             0,
             command_runner=command,
         )
+
+
+def test_default_on_cleanup_clears_quarantine_after_failure_before_rename(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    graph = _graph(tmp_path)
+    cache = tmp_path / "cache"
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    monkeypatch.setenv("MATRYCA_CACHE_PATH", str(cache))
+
+    import src.shadow.sync as sync_module
+    from src.graph.bounded_ast_graph import parse_graph_page_bounded as real_parse
+    from src.shadow.bootstrap import handle_shadow_watchdog_change, rebuild_shadow_from_graph
+    from src.shadow.connection import open_shadow_db
+    from src.shadow.health import ShadowHealthState, resolve_shadow_health
+    from src.shadow.quarantine import quarantined_file_paths
+
+    rebuild_shadow_from_graph(graph)
+    fixture = graph / "pages" / ".matryca_gate_b_fixture.md"
+    renamed = fixture.with_name(".matryca_gate_b_fixture_renamed.md")
+    fixture.write_text("- bounded timeout fixture\n", encoding="utf-8")
+
+    class _Failure:
+        error = "timeout"
+        content_hash = "deadbeef"
+        byte_count = 26
+        line_count = 1
+
+    def fail_fixture(path: Path, root: Path):  # type: ignore[no-untyped-def]
+        if path == fixture:
+            return type("Result", (), {"ok": False, "page": None, "failure": _Failure()})()
+        return real_parse(path, root)
+
+    monkeypatch.setattr(sync_module, "parse_graph_page_bounded", fail_fixture)
+    handle_shadow_watchdog_change(graph, fixture, "created")
+
+    with open_shadow_db(graph) as connection:
+        assert quarantined_file_paths(connection) == ["pages/.matryca_gate_b_fixture.md"]
+    assert resolve_shadow_health(graph) is ShadowHealthState.STALE
+
+    probe_tree = ast.parse(module._DEFAULT_ON_PROBE)
+    cleanup = next(
+        node
+        for node in ast.walk(probe_tree)
+        if isinstance(node, ast.Try)
+        and any(
+            isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Attribute)
+            and statement.value.func.attr == "unlink"
+            for statement in node.finalbody
+        )
+    )
+    cleanup_module = ast.fix_missing_locations(ast.Module(body=cleanup.finalbody, type_ignores=[]))
+    exec(
+        compile(cleanup_module, "<gate-b-default-on-cleanup>", "exec"),
+        {
+            "fixture": fixture,
+            "renamed": renamed,
+            "graph": graph,
+            "handle_shadow_watchdog_change": handle_shadow_watchdog_change,
+        },
+    )
+
+    with open_shadow_db(graph) as connection:
+        assert quarantined_file_paths(connection) == []
+    assert not fixture.exists()
+    assert not renamed.exists()
+    assert resolve_shadow_health(graph) is ShadowHealthState.READY
 
 
 def test_manifest_binding_is_stable_and_fail_closed(tmp_path: Path) -> None:

@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from logseq_matryca_parser.graph import LogseqGraph, StackMachineParser
+from logseq_matryca_parser import StackMachineParser
+from logseq_matryca_parser.graph import LogseqGraph
 from src.graph.bounded_ast_graph import (
     BoundedGraphPageResult,
     build_graph_from_bounded_pages,
@@ -135,8 +136,11 @@ def test_build_matches_external_complete_indexes(tmp_path: Path) -> None:
     expected = LogseqGraph.load_directory(tmp_path)
 
     assert sorted(bounded.pages) == sorted(expected.pages)
-    assert bounded.get_page("ALPHA") is not None
-    assert bounded.get_page("ALPHA").title == expected.get_page("ALPHA").title
+    bounded_alpha = bounded.get_page("ALPHA")
+    expected_alpha = expected.get_page("ALPHA")
+    assert bounded_alpha is not None
+    assert expected_alpha is not None
+    assert bounded_alpha.title == expected_alpha.title
     assert bounded.get_node_by_embed_ref("11111111-1111-1111-1111-111111111111") is not None
     assert [node.source_uuid for node in bounded.get_backlinks("beta")] == [
         node.source_uuid for node in expected.get_backlinks("beta")

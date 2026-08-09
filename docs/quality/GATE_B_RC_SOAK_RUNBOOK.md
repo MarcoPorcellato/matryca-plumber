@@ -1,8 +1,8 @@
 # Gate B public-RC soak runbook
 
 This runbook starts the two independent, fail-closed soak profiles required by
-the `v2.0.0` Gate B decision. Both profiles run against the installed public
-`matryca-plumber==2.0.0rc1` wheel, never a source checkout.
+the `v2.0.0` Gate B decision. Each campaign runs against one exact installed
+public candidate wheel, never a source checkout.
 
 ## Post-RC read-path requalification boundary
 
@@ -22,15 +22,20 @@ soak as exact-artifact history and require that focused failure/restart/full-reb
 matrix against the exact stable candidate; this configuration-excluded branch does
 not restart the historical multi-day RC timer by itself.
 
-## Recorded checkpoint snapshot (public candidate `2.0.0rc1`)
+## Final rc.1 disposition
 
-The recorded checkpoint for stable-promotion evidence is `RUNNING`
-(no terminal PASS/FAIL yet):
+The rc.1 profiles have different, non-transferable outcomes:
 
-- `checkpoint_recorded_at`: `2026-08-04T23:16:10Z`
-- `attempt_started_at`: `2026-08-04T23:06:09Z` (`2026-08-05 01:06:09`
-  Europe/Rome)
-- `status`: `RUNNING`
+- `read-only-external` reached terminal `PASS` after 412 cycles and
+  259,465.833 observed valid seconds.
+- `default-on` was stopped and archived while still non-terminal `RUNNING`
+  after a synthetic-fixture timeout exposed a cleanup defect. It completed 239
+  cycles and 149,454.297144625 valid seconds but never produced a result.
+- Neither outcome qualifies later bytes. Both profiles must start from zero
+  against the exact published rc.2 artifact.
+
+The complete evidence, diagnosis, and remediation contract are preserved in
+[Gate B rc.1 default-on failure and rc.2 remediation](GATE_B_RC1_DEFAULT_ON_FAILURE_2026-08-09.md).
 
 | Field | Value |
 | --- | --- |
@@ -45,7 +50,7 @@ The recorded checkpoint for stable-promotion evidence is `RUNNING`
 | interval_seconds | `600` |
 | page_parse_timeout_seconds | `15` |
 | exact installed-wheel/RECORD gate | `PASS` |
-| earliest uninterrupted completion estimate | 2026-08-08 01:06 (Europe/Rome) |
+| Final profile states | `default-on=RUNNING` (stopped), `read-only-external=PASS` |
 
 ### Recorded checkpoint history and recovery proof
 
@@ -95,6 +100,18 @@ directory, candidate environment, and service label. Paths are private operator
 inputs and must never be committed. The source copy is fingerprint-bound through
 a private one-line realpath file. Evidence stores only hashes, counters, bounded
 status categories, and timings.
+
+### Synthetic-fixture cleanup invariant
+
+The default-on probe owns both the original fixture path and its possible
+renamed path. Its `finally` cleanup must unlink both files and send idempotent
+Shadow deletion events for both paths. This is required even when create-time
+parsing fails before the rename: quarantine rows are part of Shadow health
+accounting and must not survive after the synthetic file has gone.
+
+Regression coverage must prove that failure before rename removes the original
+quarantine row and returns Shadow health to `READY`. Never repair qualification
+SQLite state manually; preserve the failed attempt and correct the harness.
 
 ## Required preparation
 

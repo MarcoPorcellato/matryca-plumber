@@ -18,7 +18,7 @@ from ..graph.markdown_blocks import atomic_write_bytes
 from ..graph.page_write_lock import page_rmw_lock
 
 
-class SessionAliasRegistry(_SessionAliasRegistry):  # type: ignore[misc]
+class SessionAliasRegistry(_SessionAliasRegistry):
     """Thin public-API extension of the upstream registry.
 
     Adds :meth:`register_alias` and :meth:`alias_items` so callers never need
@@ -32,7 +32,7 @@ class SessionAliasRegistry(_SessionAliasRegistry):  # type: ignore[misc]
 
     def alias_items(self) -> ItemsView[int, str]:
         """Return an items view of the alias → UUID mapping for persistence."""
-        return self._alias_to_uuid.items()  # type: ignore[no-any-return]
+        return self._alias_to_uuid.items()
 
 
 _ALIAS_TARGET_RE = re.compile(r"^\[\s*(\d+)\s*\]$")

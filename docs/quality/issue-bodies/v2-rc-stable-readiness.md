@@ -30,9 +30,10 @@ commit recorded below. This is not a stable release decision.
 
 ### Recorded exact-candidate Gate B context
 
-The exact `2.0.0rc1` publication is currently in a recorded Gate B checkpoint for
-stable readiness and was non-terminal at the recorded checkpoint (neither PASS
-nor FAIL).
+The exact `2.0.0rc1` publication reached a split Gate B outcome. The
+`read-only-external` profile is terminal `PASS`, while the `default-on` profile
+was stopped and archived as non-terminal `RUNNING` after a bounded timeout
+exposed a qualifier cleanup defect. Stable readiness remains blocked.
 
 - Candidate: `matryca-plumber==2.0.0rc1`
 - Public wheel SHA-256:
@@ -44,9 +45,14 @@ nor FAIL).
   `bfcae04483a5003df8e83fb52ece42c0c933d7c708c9e73d55733309736e7445`
 - Fresh attempt start: `2026-08-04T23:06:09Z`
 - Profiles: `default-on` and `read-only-external`
-- Recorded status (`2026-08-04T23:16:10Z`): `RUNNING` after one
-  controlled stop/reload, two completed cycles, and four PASS phase attempts per
-  profile.
+- Read Only terminal status (`2026-08-08T15:31:08Z`): `PASS` after 412
+  completed cycles, 824 recorded attempts, and 259,465.833 observed valid
+  seconds.
+- Default-on frozen status (`2026-08-09T08:46:18Z`): `RUNNING` after 239
+  completed cycles, 149,454.297144625 valid seconds, 478 passing phase attempts,
+  and 2,796 failed retries. The exact archive and root-cause disposition are
+  recorded in
+  [`GATE_B_RC1_DEFAULT_ON_FAILURE_2026-08-09.md`](../GATE_B_RC1_DEFAULT_ON_FAILURE_2026-08-09.md).
 - Exclusion rule: 108 historical attempts are excluded from qualification per profile
   because they were `probe_invalid` on both profiles and lacked required `elapsed_ms`.
 
@@ -141,8 +147,8 @@ child-process diagnostic is retained in the committed record.
 | Requirement | Evidence required | Status |
 |-------------|-------------------|--------|
 | RC observation | At least 7 days of RC availability and maintainer operation, with no unresolved P0/P1 regression | [ ] — under observation, not yet complete |
-| Default-on soak | At least 72 hours and preferably 7 days with the flag unset, plus an explicit opt-out control run | [ ] — active `RUNNING` checkpoint since `2026-08-04T23:06:09Z`; `2.0.0rc1` candidate running |
-| Read Only external-cache soak | Default-on Shadow reaches and retains `READY` with `MATRYCA_READ_ONLY=true`; all writes remain outside the graph and Markdown fingerprints remain unchanged | [ ] — active `RUNNING` checkpoint since `2026-08-04T23:06:09Z`; both required profiles running |
+| Default-on soak | At least 72 hours and preferably 7 days with the flag unset, plus an explicit opt-out control run | [ ] — rc.1 stopped non-terminal at 239 cycles and 149,454.297 valid seconds after a synthetic fixture timeout exposed a cleanup defect; a fresh exact rc.2 attempt is required |
+| Read Only external-cache soak | Default-on Shadow reaches and retains `READY` with `MATRYCA_READ_ONLY=true`; all writes remain outside the graph and Markdown fingerprints remain unchanged | [x] — exact rc.1 wheel reached terminal `PASS` after 412 cycles and 259,465.833 valid seconds with unchanged source Markdown and verified attempt-chain and artifact bindings; this evidence does not transfer to rc.2 |
 | Upgrade matrix | Stable `1.14.5`, alpha `2.0.0a5`, beta `2.0.0b1`, and RC upgrade paths pass from published artifacts | [ ] |
 | Cross-platform gate | Linux, macOS, and Windows CI or installed-runtime evidence passes for the supported Shadow read contract | [ ] |
 | Performance disposition | FTS and subtree measurements have explicit pass thresholds or a documented non-blocking disposition; fallback remains usable | [ ] |
@@ -158,14 +164,18 @@ child-process diagnostic is retained in the committed record.
 2. Complete the other Gate A rows on one frozen candidate commit, then build and
    verify the candidate artifacts.
 3. Publish `v2.0.0-rc.1` only after Gate A is fully checked.
-4. Run Gate B runbook (public `2.0.0rc1`) against the installed public RC, not a source checkout or beta
-   artifact.
-5. Publish stable `v2.0.0` only after Gate B is fully checked.
+4. Preserve the split rc.1 outcome without repairing its live SQLite state.
+5. Publish and bind the corrected `2.0.0rc2` artifact after the parser 1.7.1
+   integration and qualifier fix merge.
+6. Run fresh dual-profile Gate B attempts against the installed public rc.2
+   wheel, not a source checkout or prior artifact.
+7. Publish stable `v2.0.0` only after Gate B is fully checked.
 
-The active Gate B checkpoint remains non-terminal. A stable release claim is not
-made from `RUNNING`. A terminal PASS can close only the two Gate B soak rows after
-integrity and exact artifact-binding reviews; all other Gate B rows remain independently
-blocking for stable readiness.
+The rc.1 default-on checkpoint remains non-terminal and archived. A stable
+release claim is not made from `RUNNING`, and the rc.1 Read Only pass is
+supporting evidence only for rc.2. Both rc.2 profiles require fresh terminal
+`PASS` results after integrity and exact artifact-binding review; all other Gate
+B rows remain independently blocking for stable readiness.
 
 ### Non-negotiable runtime invariants
 
