@@ -28,6 +28,7 @@
 
 ### Security
 
+- **Cross-version cache-path loop rejection** — detect `ELOOP` before permissive canonicalization so self-referential cache symlinks fail closed consistently on supported Python runtimes instead of bypassing `cache_path_unresolvable` validation.
 - **Frontend build dependency advisory remediation** — lock transitive PostCSS `8.5.23`, Nano ID `3.3.17`, and brace-expansion `5.0.9` at their first fixed releases without changing frontend manifest ranges or application source.
 - **Runtime dependency advisory remediation** — require `GitPython>=3.1.57` and lock GitPython `3.1.58`, aiohttp `3.14.3`, and cryptography `50.0.0` to incorporate current upstream security fixes without changing application source or transport policy.
 - **Write-only UI API keys (#390)** — stop returning configured LLM credentials from `/api/config` or retaining legacy readback in React state; expose only configured status while preserving omitted keys and supporting write-only replacement or explicit clearing.
