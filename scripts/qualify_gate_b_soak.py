@@ -33,7 +33,7 @@ Profile = Literal["default-on", "read-only-external"]
 _PROFILE_FILE = "gate-b-profile.json"
 _PROFILE_SCHEMA_VERSION = 1
 _PROFILES: tuple[Profile, ...] = ("default-on", "read-only-external")
-_RC_PACKAGE = "2.0.0rc1"
+_RC_PACKAGE = "2.0.0rc2"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 _DEFAULT_ON_PROBE = r"""

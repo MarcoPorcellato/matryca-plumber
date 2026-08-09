@@ -6,7 +6,9 @@ public candidate wheel, never a source checkout.
 
 ## Post-RC read-path requalification boundary
 
-The public-RC soak records evidence only for the exact `2.0.0rc1` wheel. Issue
+Each public-RC campaign records evidence only for its exact installed wheel. The
+historical rc.1 results below apply only to `2.0.0rc1`; the current campaign must
+start from zero and bind both profiles to the exact public `2.0.0rc2` wheel. Issue
 [#389](https://github.com/MarcoPorcellato/matryca-plumber/issues/389) changes the FTS
 and subtree paths exercised by both profiles by adding requested-row freshness checks
 and explicit Markdown/BM25 fallback reasons. Do not rewrite or transfer the RC result
