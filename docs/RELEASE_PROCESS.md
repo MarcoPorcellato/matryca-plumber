@@ -23,11 +23,12 @@ health, and fallback are owned by the canonical
 release mechanics and maintainer authority gates. The fail-closed decision record is
 [`quality/issue-bodies/v2-rc-stable-readiness.md`](quality/issue-bodies/v2-rc-stable-readiness.md):
 
-- do not tag or publish `v2.0.0-rc.1` until every Gate A row is complete on the
-  exact candidate;
+- do not tag or publish a release candidate until its exact preparation commit
+  has passed the full release gate;
 - do not treat the exact `2.0.0b1` soak as proof of the later default-on,
   external-cache implementation;
-- after publishing RC, collect Gate B against that installed public artifact;
+- after publishing each RC, collect Gate B against that exact installed public
+  artifact; rc.1 evidence never transfers to rc.2;
 - do not tag or publish stable `v2.0.0` until every Gate B row is complete.
 
 Release preparation, tag creation, publication, and the final stable decision

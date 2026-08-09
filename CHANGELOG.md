@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.0.0-rc.2] - 2026-08-09
+
 ### Added
 
 - **Deterministic documentation validation (#402)** — report OKF v0.2 format compatibility separately from the stricter Matryca quality profile, preserve unknown concept types and extension fields, keep both layers under one blocking gate, and expose schema-versioned JSON findings with policy-bound fingerprints, bounded messages, and normalized Git provenance.

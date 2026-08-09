@@ -1,6 +1,6 @@
 # Matryca Plumber — System Architecture
 
-**Architecture baseline:** v2.0.0-rc.1 source. Current Shadow defaults and operator behavior are owned by the [v2 operator contract](knowledge/architecture/shadow-db.md); qualification and publication gates are owned by the [release process](RELEASE_PROCESS.md#v20-promotion-override).
+**Architecture baseline:** v2.0.0-rc.2 source. Current Shadow defaults and operator behavior are owned by the [v2 operator contract](knowledge/architecture/shadow-db.md); qualification and publication gates are owned by the [release process](RELEASE_PROCESS.md#v20-promotion-override).
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
