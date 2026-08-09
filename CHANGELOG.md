@@ -11,8 +11,13 @@
 - **OKF v0.2 documentation governance** — align the maintained knowledge bundle with the pinned portable format, separate Matryca classification from official lifecycle status, add provenance, freshness, canonical-role, link, anchor, and chronology gates, migrate the full documentation inventory to schema v2, make documentation integrity mandatory in `make check` and `make ci`, and document the repository-to-projection operating model.
 - **Gate B public-RC soak qualification** — add separate resumable `default-on` and `read-only-external` profiles bound to the installed `2.0.0rc1` wheel, explicit opt-out controls, full graph-manifest integrity, external-cache isolation, and a terminal-aware supervisor for restart-safe multi-day evidence collection.
 
+### Changed
+
+- **Parser runtime 1.7.1** — require `logseq-matryca-parser>=1.7.1,<2.0.0` to adopt arbitrary-depth immutable refresh fixes, deterministic title-collision diagnostics, typed public APIs, and vault-bound writer safeguards.
+
 ### Fixed
 
+- **Gate B fixture cleanup after bounded parse failures** — delete both the original and renamed synthetic default-on fixture paths after every probe attempt, clearing any pre-rename quarantine row so a single bounded parser timeout cannot poison resumable qualification with an endless `probe_flag_on_failed` loop.
 - **Query-only Shadow read connections (#413)** — separate health, state, FTS, and subtree queries from the schema-capable writer opener by requiring an existing SQLite database in `mode=ro` with `PRAGMA query_only=ON`; missing or unreadable caches continue through established stale/error and Markdown/BM25 fallback paths without creating cache directories, databases, or schema.
 - **Serialized dotenv updates with OCC (#387)** — serialize cooperating UI configuration writers across the complete read/merge/atomic-replace transaction; bind each source snapshot to device, inode, nanosecond mtime, size, and SHA-256; and return the typed `dotenv_conflict` HTTP 409 response when an external edit intervenes, while preserving comments, unknown keys, ordering, and failed-replace cleanup.
 - **Fail-closed Shadow sync failures (#386)** — invalidate cached reads after every generic incremental, delete, callback, or watchdog failure; persist the content-free `incremental_sync_failed` reason in both Shadow metadata and a private external-cache marker when available, retain an in-process latch when storage is unavailable, and clear all invalidation only after a successful full reconciliation.

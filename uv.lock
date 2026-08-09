@@ -1009,16 +1009,16 @@ wheels = [
 
 [[package]]
 name = "logseq-matryca-parser"
-version = "1.6.0"
+version = "1.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "rich" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/99/83e9ebdfa139b27db80f96daae5d757797864159343f754a42a43d7f8c0c/logseq_matryca_parser-1.6.0.tar.gz", hash = "sha256:6194ece93c6aa09492cc51f15eb6c7be032dd0444987bd4d25491f82515b2933", size = 800333, upload-time = "2026-07-02T06:24:50.308Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/0f/34989f1ede555f54c2789e67f014fc31131e7369593a6e07e894bfb1f2d4/logseq_matryca_parser-1.7.1.tar.gz", hash = "sha256:ba45f10b620a801308722a825da000a3519e3955e8e81ab36d05550a84858ec0", size = 870339, upload-time = "2026-08-08T04:52:31.606Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/98/31fc80d8e60ef1c50419dba6db985276fed25a8fa4fc50707ef2c47fa5a1/logseq_matryca_parser-1.6.0-py3-none-any.whl", hash = "sha256:228b98a5c7150793343dce05a1db0d4efa6365e128044c391afbace4570d3e0f", size = 76277, upload-time = "2026-07-02T06:24:48.849Z" },
+    { url = "https://files.pythonhosted.org/packages/23/a9/4372c18d76ec264d52bc6c5196c595fd993b2b751699316719b849a22244/logseq_matryca_parser-1.7.1-py3-none-any.whl", hash = "sha256:6c5f1d96857c27a99ac852d3a7766521ff89641f67cf27de22c160b6cb810901", size = 82351, upload-time = "2026-08-08T04:52:29.822Z" },
 ]
 
 [[package]]
@@ -1156,7 +1156,7 @@ requires-dist = [
     { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.4.0" },
     { name = "ijson", specifier = ">=3.5.0" },
     { name = "instructor", specifier = ">=1.7.0,<2.0.0" },
-    { name = "logseq-matryca-parser", specifier = ">=1.6.0,<2.0.0" },
+    { name = "logseq-matryca-parser", specifier = ">=1.7.1,<2.0.0" },
     { name = "loguru", specifier = ">=0.7.0,<1.0.0" },
     { name = "mcp", specifier = ">=1.28.1,<2.0.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0,<3.0.0" },

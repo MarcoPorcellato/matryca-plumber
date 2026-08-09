@@ -112,6 +112,7 @@ try:
 finally:
     fixture.unlink(missing_ok=True)
     renamed.unlink(missing_ok=True)
+    handle_shadow_watchdog_change(graph, fixture, "deleted")
     handle_shadow_watchdog_change(graph, renamed, "deleted")
 
 if cycle % 12 == 0:

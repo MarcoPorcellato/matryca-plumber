@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 from logseq_matryca_parser.graph import LogseqGraph
 from logseq_matryca_parser.logos_core import LogseqNode
@@ -137,7 +137,7 @@ class GraphAstCache:
         normalized = tag.lstrip("#").strip()
         if not normalized:
             return []
-        return cast(list[LogseqNode], self.get_graph().get_nodes_by_tag(normalized))
+        return self.get_graph().get_nodes_by_tag(normalized)
 
 
 _ast_write_bridge_registered = False

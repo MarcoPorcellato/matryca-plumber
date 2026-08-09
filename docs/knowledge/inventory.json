@@ -1010,6 +1010,24 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/GATE_B_RC1_DEFAULT_ON_FAILURE_2026-08-09.md",
+      "type": "Audit",
+      "title": "Gate B rc.1 default-on failure and rc.2 remediation",
+      "description": "This record preserves the fail-closed disposition of the",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",
       "type": "Audit",
       "title": "Gate B public-RC soak runbook",
