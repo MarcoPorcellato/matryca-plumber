@@ -968,7 +968,8 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Active closure-evidence ledger; not issue-mutation or release authorization."
+      "notes": "Active closure-evidence ledger; not issue-mutation or release authorization.",
+      "missing": false
     },
     {
       "path": "docs/quality/DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md",
@@ -986,7 +987,8 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Dependency-advisory evidence artifact; GitHub alert state remains authoritative after default-branch rescans."
+      "notes": "Dependency-advisory evidence artifact; GitHub alert state remains authoritative after default-branch rescans.",
+      "missing": false
     },
     {
       "path": "docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md",
@@ -1101,6 +1103,25 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md",
+      "type": "Audit",
+      "title": "Repository excellence milestone — 34-PR merge programme",
+      "description": "Verified historical record of the 34-PR repository excellence merge programme.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Timestamped completion evidence; not an operator contract or release authorization.",
+      "missing": false
     },
     {
       "path": "docs/quality/REPOSITORY_EXCELLENCE_STUDY_2026-08-06.md",
