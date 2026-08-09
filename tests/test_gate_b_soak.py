@@ -243,7 +243,7 @@ def test_public_rc_wheel_binding_records_exact_installed_identity(
 ) -> None:
     module = _module()
     output = tmp_path / "evidence"
-    wheel = tmp_path / "matryca_plumber-2.0.0rc1-py3-none-any.whl"
+    wheel = tmp_path / "matryca_plumber-2.0.0rc2-py3-none-any.whl"
     wheel.write_bytes(b"public rc wheel")
     expected_sha256 = module._sha256(wheel.read_bytes())
     provenance = "b" * 64
@@ -263,7 +263,7 @@ def test_public_rc_wheel_binding_records_exact_installed_identity(
         )
         == provenance
     )
-    assert observed == [(Path(sys.executable).absolute(), "2.0.0rc1")]
+    assert observed == [(Path(sys.executable).absolute(), "2.0.0rc2")]
     checkpoint = json.loads((output / "checkpoint.json").read_text(encoding="utf-8"))
     details = checkpoint["gates"]["wheel"]["details"]
     assert details["wheel_sha256"] == expected_sha256

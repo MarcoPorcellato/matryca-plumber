@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Gate B RC2 artifact binding** — bind fresh dual-profile qualification to the exact installed `2.0.0rc2` public wheel instead of rejecting it through the historical RC1 package identity.
+
 ## [2.0.0-rc.2] - 2026-08-09
 
 ### Added
