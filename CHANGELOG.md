@@ -18,6 +18,7 @@
 
 ### Fixed
 
+- **Read-only alias concurrency** — serialize concurrent external X-Ray alias-state writes until the in-process lock is available, preserving bounded lock failure for all other page writes.
 - **Gate B RC2 artifact binding** — bind fresh dual-profile qualification to the exact installed `2.0.0rc2` public wheel instead of rejecting it through the historical RC1 package identity.
 
 ## [2.0.0-rc.2] - 2026-08-09
