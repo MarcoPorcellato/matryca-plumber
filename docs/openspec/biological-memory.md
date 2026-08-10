@@ -38,6 +38,25 @@ This OpenSpec is a projection contract that keeps external expectations aligned 
 #### P1: hybrid retrieval, cache, and clustering
 
 - Retrieval composition is activated only after P0 acceptance.
+
+#### P0: governed coordination packet
+
+`P0EvidencePacket` is the content-free joining contract for one **retrieval-only**
+claim. It binds an exact source commit plus opaque references to the #186 canonical
+recall envelope, the #448 reproducible scorecard, and the #449 append-only archive
+event. Its canonical JSON and packet ID are byte-stable.
+
+All P0 persisted contract loaders use closed schemas: unknown fields fail closed
+instead of being retained as ungoverned content. The #448 adapter accepts only a
+retrieval-only scorecard scope and its exact manifest schema/version, dataset ID,
+and scorecard fingerprint; a scorecard is benchmark evidence, never runtime recall
+provenance or proof of end-to-end agent quality.
+
+The packet is deliberately a `proposed` value only. It performs no archive I/O,
+Shadow query, model call, remote export, canonical write, approval, or state
+transition. Accepted or rejected curation requires a later human-governed,
+canonical-write-adjacent slice; an external runtime cannot manufacture authority by
+attaching a label to a P0 packet. See [the evidence archive contract](evidence-archive.md).
 - Cache/fallback rules are deterministic.
 
 #### P2: proposal queue and curation

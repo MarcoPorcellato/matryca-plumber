@@ -11,6 +11,7 @@ from .decay import (
     days_between,
     half_life_days,
 )
+from .evidence_coordination import P0EvidencePacket
 from .recall import RecallBundle, recall_from_existing_retrieval
 
 __all__ = [
@@ -24,5 +25,6 @@ __all__ = [
     "half_life_days",
     "memory_graph_enabled",
     "RecallBundle",
+    "P0EvidencePacket",
     "recall_from_existing_retrieval",
 ]

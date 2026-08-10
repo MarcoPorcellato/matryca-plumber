@@ -3,6 +3,7 @@
 ### Added
 
 - **Evidence archive foundation** — add an immutable, privacy-safe, externally stored and idempotent P0 evidence-event archive for future governed memory candidates.
+- **Governed P0 evidence packet (#447)** — add a byte-stable, retrieval-only coordination contract that binds exact source revision, canonical recall, benchmark scorecard, and append-only archive references without storage, model, remote, or canonical-write side effects.
 
 ### Changed
 

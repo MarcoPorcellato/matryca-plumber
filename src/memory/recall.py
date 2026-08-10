@@ -6,6 +6,7 @@ import hashlib
 import json
 import sqlite3
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -113,6 +114,11 @@ def _digest(value: object) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def stable_recall_fingerprint(prefix: Mapping[str, Any]) -> str:
+    """Hash the exact reusable recall prefix used by the canonical envelope."""
+    return _digest(prefix)
+
+
 def _bundle(
     *,
     state: RecallState,
@@ -136,7 +142,7 @@ def _bundle(
         "results": [item.model_dump(mode="json") for item in results],
         "per_turn_expansion_budget": MAX_RECALL_RESULTS_PER_TURN,
     }
-    fingerprint = _digest(stable)
+    fingerprint = stable_recall_fingerprint(stable)
     return RecallBundle(
         schema_version=RECALL_SCHEMA_VERSION,
         state=state,
@@ -296,4 +302,5 @@ __all__ = [
     "RecallVolatileMetadata",
     "normalize_recall_query",
     "recall_from_existing_retrieval",
+    "stable_recall_fingerprint",
 ]
