@@ -6,6 +6,7 @@ import json
 import signal
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -88,14 +89,19 @@ def test_page_rmw_lock_can_wait_for_private_runtime_state(
         with page_rmw_lock(target, wait_for_thread_lock=True):
             acquired.set()
 
-    worker = threading.Thread(target=_wait_for_lock, daemon=True)
-    worker.start()
-    assert started.wait(timeout=1.0)
-    assert not acquired.wait(timeout=0.05)
-    lock.release()
-    assert acquired.wait(timeout=1.0)
-    worker.join(timeout=1.0)
-    assert not worker.is_alive()
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_wait_for_lock)
+        released = False
+        try:
+            assert started.wait(timeout=1.0)
+            assert not acquired.wait(timeout=0.05)
+            lock.release()
+            released = True
+        finally:
+            if not released:
+                lock.release()
+        assert acquired.wait(timeout=1.0)
+        future.result(timeout=1.0)
 
 
 def test_graceful_shutdown_waits_for_inflight_writes(
