@@ -98,6 +98,13 @@ When publicly exposed, document in `.env.example` under **Advanced / high impact
 - Letta Evals, Mem0 memory-benchmarks, and Graphiti are treated as design/reference harness material.
 - No best/SOTA/world-leading claim is made before reproducible evidence with provenance.
 - Every claim must include task set, corpus/version, seed/config, and decision label.
+- Local suite adapters read only already acquired bytes, bind a source SHA-256, preserve
+  upstream order, and retain public benchmark text only in bounded in-memory cases; they
+  do not download, call models, access the vault, or persist results. LongMemEval's
+  session-level answer references and optional answer-marked turns remain separate, and
+  `_abs` IDs are metadata rather than inferred retrieval outcomes. Unknown upstream input
+  fields are deliberately ignored for forward compatibility; emitted evaluation contracts
+  remain closed and frozen.
 
 ## P0 canonical recall
 
