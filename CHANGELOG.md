@@ -2,6 +2,8 @@
 
 ### Added
 
+- **Local LongMemEval-V2 input provenance adapter (#448)** — validate caller-supplied question, trajectory, and mapping JSONL with explicit license/revision provenance and immutable input-only digests; no downloads, inference, vault access, scoring, or result writes.
+
 - **Local LoCoMo retrieval adapter (#448)** — normalize an already acquired public LoCoMo dataset into deterministic session-turn and QA-evidence cases without downloads, image fetching, model calls, vault access, or result persistence.
 - **Local LongMemEval retrieval adapter (#448)** — normalize acquired cleaned/oracle JSON into digest-pinned, order-preserving in-memory cases with separate session and answer-marked-turn evidence, without downloads, model calls, vault access, or result persistence.
 - **Cross-system benchmark contracts (#448)** — add closed, content-free manifests and retained-artifact reports that pin public-suite revisions, models, budgets, runtime context, and comparable Matryca/external controls without collecting prompts, answers, vault content, or running remote services.
