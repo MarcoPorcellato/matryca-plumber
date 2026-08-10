@@ -18,6 +18,13 @@ from .decay import (
 )
 from .evidence_coordination import P0EvidencePacket
 from .locomo_adapter import LocomoDataset, LocomoRetrievalCase, load_locomo_retrieval_cases
+from .longmemeval_adapter import (
+    LongMemEvalDataset,
+    LongMemEvalRetrievalCase,
+    LongMemEvalSession,
+    LongMemEvalTurn,
+    load_longmemeval_retrieval_cases,
+)
 from .recall import RecallBundle, recall_from_existing_retrieval
 
 __all__ = [
@@ -26,6 +33,10 @@ __all__ = [
     "MemoryEdgeState",
     "LocomoDataset",
     "LocomoRetrievalCase",
+    "LongMemEvalDataset",
+    "LongMemEvalRetrievalCase",
+    "LongMemEvalSession",
+    "LongMemEvalTurn",
     "BenchmarkRunManifest",
     "BenchmarkRunReport",
     "calculate_decayed_weight",
@@ -38,5 +49,6 @@ __all__ = [
     "P0EvidencePacket",
     "recall_from_existing_retrieval",
     "load_locomo_retrieval_cases",
+    "load_longmemeval_retrieval_cases",
     "validate_comparative_cohort",
 ]
