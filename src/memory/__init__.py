@@ -1,5 +1,10 @@
 """Biological memory graph layer (Nacre-inspired, Epic #99)."""
 
+from .benchmark_protocol import (
+    BenchmarkRunManifest,
+    BenchmarkRunReport,
+    validate_comparative_cohort,
+)
 from .config import memory_graph_enabled
 from .decay import (
     DEFAULT_DECAY_RATE,
@@ -18,6 +23,8 @@ __all__ = [
     "DEFAULT_DECAY_RATE",
     "DEFAULT_REINFORCEMENT_BOOST",
     "MemoryEdgeState",
+    "BenchmarkRunManifest",
+    "BenchmarkRunReport",
     "calculate_decayed_weight",
     "calculate_stability",
     "compute_decayed_weight_from_dates",
@@ -27,4 +34,5 @@ __all__ = [
     "RecallBundle",
     "P0EvidencePacket",
     "recall_from_existing_retrieval",
+    "validate_comparative_cohort",
 ]
