@@ -123,3 +123,19 @@ and at least two distinct open external systems. It rejects mismatched dataset,
 model, judge, budget, or runtime context, and it keeps retrieval and end-to-end
 answer layers separate. The contract is evidence infrastructure, not a claim
 that a public suite or external system has already been executed.
+
+### LoCoMo local-data adapter
+
+`src.memory.locomo_adapter` accepts an already acquired LoCoMo JSON file and
+normalizes its documented ordered sessions, dialogue IDs, QA categories, and
+evidence IDs into deterministic retrieval cases. An empty upstream evidence
+list is represented as unavailable retrieval evidence, not an abstention label.
+The documented category-5 `adversarial_answer` is retained when the standard
+answer is absent. It does not download the
+dataset, resolve optional image URLs, call a model, read a vault, or persist
+outcomes. Missing or inconsistent required evidence fails closed.
+
+Its public conversation text is available only in memory to an evaluator. A
+later runner must retain outcomes, exclusions, and failures through the opaque
+artifact digests required by the cross-system evidence contract; loading LoCoMo
+alone is neither an executed benchmark nor a comparative claim.
