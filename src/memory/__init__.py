@@ -17,12 +17,15 @@ from .decay import (
     half_life_days,
 )
 from .evidence_coordination import P0EvidencePacket
+from .locomo_adapter import LocomoDataset, LocomoRetrievalCase, load_locomo_retrieval_cases
 from .recall import RecallBundle, recall_from_existing_retrieval
 
 __all__ = [
     "DEFAULT_DECAY_RATE",
     "DEFAULT_REINFORCEMENT_BOOST",
     "MemoryEdgeState",
+    "LocomoDataset",
+    "LocomoRetrievalCase",
     "BenchmarkRunManifest",
     "BenchmarkRunReport",
     "calculate_decayed_weight",
@@ -34,5 +37,6 @@ __all__ = [
     "RecallBundle",
     "P0EvidencePacket",
     "recall_from_existing_retrieval",
+    "load_locomo_retrieval_cases",
     "validate_comparative_cohort",
 ]
