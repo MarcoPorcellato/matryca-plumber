@@ -25,6 +25,15 @@ from .longmemeval_adapter import (
     LongMemEvalTurn,
     load_longmemeval_retrieval_cases,
 )
+from .longmemeval_v2_adapter import (
+    LongMemEvalV2InputEvidence,
+    LongMemEvalV2Provenance,
+    LongMemEvalV2Question,
+    LongMemEvalV2QuestionHaystack,
+    LongMemEvalV2Trajectory,
+    LongMemEvalV2Turn,
+    load_longmemeval_v2_input,
+)
 from .recall import RecallBundle, recall_from_existing_retrieval
 
 __all__ = [
@@ -37,6 +46,12 @@ __all__ = [
     "LongMemEvalRetrievalCase",
     "LongMemEvalSession",
     "LongMemEvalTurn",
+    "LongMemEvalV2InputEvidence",
+    "LongMemEvalV2Provenance",
+    "LongMemEvalV2Question",
+    "LongMemEvalV2QuestionHaystack",
+    "LongMemEvalV2Trajectory",
+    "LongMemEvalV2Turn",
     "BenchmarkRunManifest",
     "BenchmarkRunReport",
     "calculate_decayed_weight",
@@ -50,5 +65,6 @@ __all__ = [
     "recall_from_existing_retrieval",
     "load_locomo_retrieval_cases",
     "load_longmemeval_retrieval_cases",
+    "load_longmemeval_v2_input",
     "validate_comparative_cohort",
 ]

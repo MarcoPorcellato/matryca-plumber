@@ -57,6 +57,12 @@ Shadow query, model call, remote export, canonical write, approval, or state
 transition. Accepted or rejected curation requires a later human-governed,
 canonical-write-adjacent slice; an external runtime cannot manufacture authority by
 attaching a label to a P0 packet. See [the evidence archive contract](evidence-archive.md).
+
+The LongMemEval-V2 adapter is a caller-supplied local input boundary only. It accepts
+digest-pinned question, trajectory, and question-to-haystack JSONL plus an explicit
+dataset license identifier and exact Hugging Face revision, returning immutable
+input/provenance evidence rather than a benchmark score. It performs no download,
+screenshot or media resolution, model or vault access, result write, or remote call.
 - Cache/fallback rules are deterministic.
 
 #### P2: proposal queue and curation
