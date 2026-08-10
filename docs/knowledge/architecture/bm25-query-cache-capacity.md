@@ -91,15 +91,22 @@ uv run python scripts/bench_bm25_query_cache.py \
 
 Scorecard output includes:
 
-- `benchmark_schema_version: 2`
+- `benchmark_schema_version: 3`, with manifest schema v2
 - `manifest` identity and SHA-256 digest
 - retrieval-only Recall@K, MRR, nDCG, stale, contradiction, and abstention metrics
+- explicit `update_gold` / `superseded_gold` case classification; update accuracy is
+  measured only over `update_gold` cases, while stale metrics remain independent
+- abstention precision, recall, and confusion counts, with zero-denominator ratios
+  reported as `0.0`
 - deterministic 95% percentile-bootstrap confidence intervals for mean ranking metrics
 - the `no_retrieval` signal ablation, which makes the lexical BM25 contribution explicit
 - latency micro-profile and RSS/payload-context measurements, including a transparent
   byte-derived context-token estimate and zero external-model cost
 
 The profile is synthetic and deterministic: no external data or network runtime dependency is required.
+Cases are ordered by `(seed, query)` before output and fingerprinting. The fingerprint
+binds deterministic retrieval evidence only; it intentionally excludes timing and RSS
+measurements, which remain diagnostic rather than reproducibility claims.
 It intentionally does not report end-to-end answer quality: that belongs to the
 separate adapter layer, where answer model, judge, prompt, token budget, and
 failure policy can be pinned rather than conflated with retrieval quality.

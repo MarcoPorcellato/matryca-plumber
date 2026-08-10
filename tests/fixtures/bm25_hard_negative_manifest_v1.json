@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "dataset_id": "matryca-bm25-hard-negative-it-v1",
   "description": "Deterministic Italian hard-negative retrieval cases for BM25 scorecard benchmarking.",
   "top_k": 8,
@@ -152,126 +152,147 @@
   "cases": [
     {
       "seed": 20260802,
+      "gold_classification": "update_gold",
       "query": "cache bm25 invalidazione limit row",
       "relevant": ["cache_bm25"],
       "hard_negatives": ["indice_semantico", "vecchio_manifesto"]
     },
     {
       "seed": 20260803,
+      "gold_classification": "superseded_gold",
       "query": "banca dati grafi relazioni pagine",
       "relevant": ["banca_dati_grafi"],
       "hard_negatives": ["diario_lavoro", "agenda_sprint"]
     },
     {
       "seed": 20260804,
+      "gold_classification": "superseded_gold",
       "query": "pipeline riassunto entit\u00e0 titolo sommario",
       "relevant": ["pipeline_riassunto"],
       "hard_negatives": ["indice_semantico", "api_rest"]
     },
     {
       "seed": 20260805,
+      "gold_classification": "superseded_gold",
       "query": "onboarding team checklist",
       "relevant": ["onboarding_team"],
       "hard_negatives": ["agenda_sprint", "modello_llm"]
     },
     {
       "seed": 20260806,
+      "gold_classification": "superseded_gold",
       "query": "backup locale snapshot ripristino",
       "relevant": ["backup_locale", "backup_offline"],
       "hard_negatives": ["query_plausibile", "metrica_precisione"]
     },
     {
       "seed": 20260807,
+      "gold_classification": "update_gold",
       "query": "sicurezza oauth token privilegio autorizzazione",
       "relevant": ["sicurezza_oauth"],
       "hard_negatives": ["utente_privilegiato", "modello_llm"]
     },
     {
       "seed": 20260808,
+      "gold_classification": "superseded_gold",
       "query": "api rest payload codice errore",
       "relevant": ["api_rest"],
       "hard_negatives": ["cache_bm25", "monitoraggio_risorse"]
     },
     {
       "seed": 20260809,
+      "gold_classification": "superseded_gold",
       "query": "indice semantico vettori tag struttura",
       "relevant": ["indice_semantico"],
       "hard_negatives": ["pipeline_riassunto", "progetto_alfa"]
     },
     {
       "seed": 20260810,
+      "gold_classification": "superseded_gold",
       "query": "query plausibile precisione recall",
       "relevant": ["metriche_mrc", "metrica_precisione"],
       "hard_negatives": ["query_plausibile", "vecchio_manifesto"]
     },
     {
       "seed": 20260811,
+      "gold_classification": "superseded_gold",
       "query": "contratti energia tariffa",
       "relevant": ["contratti_energia"],
       "hard_negatives": ["backup_locale", "progetto_alfa"]
     },
     {
       "seed": 20260812,
+      "gold_classification": "superseded_gold",
       "query": "agenda sprint revisione criteri",
       "relevant": ["agenda_sprint"],
       "hard_negatives": ["onboarding_team", "cronologia_patch"]
     },
     {
       "seed": 20260813,
+      "gold_classification": "superseded_gold",
       "query": "metrica mrr ndcg top-k",
       "relevant": ["metriche_mrc"],
       "hard_negatives": ["metrica_precisione", "cache_bm25"]
     },
     {
       "seed": 20260814,
+      "gold_classification": "superseded_gold",
       "query": "cronologia patch hash firma",
       "relevant": ["cronologia_patch"],
       "hard_negatives": ["backup_offline", "monitoraggio_risorse"]
     },
     {
       "seed": 20260815,
+      "gold_classification": "superseded_gold",
       "query": "utente privilegiato verifica multifattore",
       "relevant": ["utente_privilegiato"],
       "hard_negatives": ["sicurezza_oauth", "modello_llm"]
     },
     {
       "seed": 20260816,
+      "gold_classification": "superseded_gold",
       "query": "orchestrazione k8s risorse workload",
       "relevant": ["orchestrazione_k8s"],
       "hard_negatives": ["backup_offline", "monitoraggio_risorse"]
     },
     {
       "seed": 20260817,
+      "gold_classification": "superseded_gold",
       "query": "modello llm sintesi controllo",
       "relevant": ["modello_llm"],
       "hard_negatives": ["progetto_alfa", "indice_semantico"]
     },
     {
       "seed": 20260818,
+      "gold_classification": "superseded_gold",
       "query": "backup offline checksum rete",
       "relevant": ["backup_offline"],
       "hard_negatives": ["backup_locale", "cronologia_patch"]
     },
     {
       "seed": 20260819,
+      "gold_classification": "superseded_gold",
       "query": "monitoraggio risorse memoria rss latenza",
       "relevant": ["monitoraggio_risorse"],
       "hard_negatives": ["progetto_alfa", "cache_bm25"]
     },
     {
       "seed": 20260820,
+      "gold_classification": "superseded_gold",
       "query": "vecchio manifesto regole obsolete",
       "relevant": ["vecchio_manifesto"],
       "hard_negatives": ["documento_riconosciuto", "progetto_alfa"]
     },
     {
       "seed": 20260821,
+      "gold_classification": "superseded_gold",
       "query": "documento riconosciuto regole operative",
       "relevant": ["documento_riconosciuto"],
       "hard_negatives": ["vecchio_manifesto", "cronologia_patch"]
     },
     {
       "seed": 20260822,
+      "gold_classification": "superseded_gold",
       "query": "ricerca vocale trascrive comandi",
       "relevant": [],
       "hard_negatives": ["ricerca_vocale", "api_rest"],
@@ -279,6 +300,7 @@
     },
     {
       "seed": 20260823,
+      "gold_classification": "superseded_gold",
       "query": "diario lavori personali",
       "relevant": [],
       "hard_negatives": ["diario_lavoro", "agenda_sprint"],
@@ -286,6 +308,7 @@
     },
     {
       "seed": 20260824,
+      "gold_classification": "superseded_gold",
       "query": "query senza riferimenti validi",
       "relevant": [],
       "hard_negatives": ["progetto_alfa", "cache_bm25"],
@@ -293,6 +316,7 @@
     },
     {
       "seed": 20260825,
+      "gold_classification": "superseded_gold",
       "query": "espressione sconosciuta assolutamente",
       "relevant": [],
       "hard_negatives": ["query_plausibile", "metrica_precisione"],
