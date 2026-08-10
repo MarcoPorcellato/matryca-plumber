@@ -231,6 +231,34 @@ def test_scorecard_manifest_validates_and_is_deterministic() -> None:
     assert first_digest == second_digest
 
 
+def test_committed_scorecard_result_retains_reproducible_retrieval_evidence() -> None:
+    manifest_path = Path("tests/fixtures/bm25_hard_negative_manifest_v1.json")
+    result_path = Path("benchmarks/results/bm25_query_cache_scorecard_macos_arm64_2026-08-10.json")
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    manifest, manifest_digest = benchmark._read_manifest(manifest_path)
+    rerun = benchmark._run_scorecard_benchmark(manifest, top_k=8)
+
+    assert payload["benchmark_schema_version"] == 3
+    assert payload["case_count"] == 24
+    assert payload["manifest_dataset_id"] == "matryca-bm25-hard-negative-it-v1"
+    assert payload["manifest"] == {
+        "digest": manifest_digest,
+        "path": "tests/fixtures/bm25_hard_negative_manifest_v1.json",
+        "schema_version": 2,
+    }
+    assert payload["environment"]["corpus_digest"] == manifest_digest
+    assert payload["environment"]["source_commit"] == "dcf45eb3764aa6857ce4310a7ec4b418ff4a5deb"
+    assert payload["evaluation_scope"] == {
+        "end_to_end_answer_evaluated": False,
+        "retrieval_only": True,
+    }
+    assert payload["scorecard_fingerprint"] == rerun["scorecard_fingerprint"]
+    assert payload["case_results"] == rerun["case_results"]
+    assert payload["metrics"] == rerun["metrics"]
+    assert payload["signal_ablations"] == rerun["signal_ablations"]
+    assert "/Users/" not in result_path.read_text(encoding="utf-8")
+
+
 def test_scorecard_main_writes_schema_and_environment_signature(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
