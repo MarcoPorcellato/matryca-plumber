@@ -99,6 +99,27 @@ prompt, answer, credential, or vault identifier; it neither runs systems nor wri
 artifacts. Raw public-suite material remains outside the receipt under the declared
 retention policy, and a receipt is evidence of comparability and retention only—not a
 quality score or a superiority claim.
+
+### #448 provenance decision
+
+Local acquisition and retention of one exact LongMemEval cleaned artifact is
+conditionally allowed: `xiaowu0162/longmemeval-cleaned`,
+`longmemeval_s_cleaned.json`, revision
+`98d7416c24c778c2fee6e6f3006e7a073259d48f`, SHA-256
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`, size
+`277383467` bytes. Retain the MIT notice and complete provenance. Do not
+redistribute, mirror, or publish raw content; local acquisition and retention do
+not grant redistribution rights for source-derived material. Official references:
+[LongMemEval repository](https://github.com/xiaowu0162/longmemeval),
+[Hugging Face data card](https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned),
+and the immutable dataset revision
+`98d7416c24c778c2fee6e6f3006e7a073259d48f`. Retention must use an isolated root;
+verify the digest after download; and fail closed on any mismatch. This is an
+evidence/provenance decision, not legal advice.
+
+Mem0 is a conditional local external-control candidate only with a frozen index,
+pinned local models, and Qdrant. Graphiti, Zep, and Letta are currently **NO-GO**.
+Real comparative claims remain prohibited until four complete matched reports exist.
 - Cache/fallback rules are deterministic.
 
 #### P2: proposal queue and curation
