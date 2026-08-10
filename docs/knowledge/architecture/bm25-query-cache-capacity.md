@@ -111,6 +111,24 @@ It intentionally does not report end-to-end answer quality: that belongs to the
 separate adapter layer, where answer model, judge, prompt, token budget, and
 failure policy can be pinned rather than conflated with retrieval quality.
 
+### Retained baseline result
+
+[`bm25_query_cache_scorecard_macos_arm64_2026-08-10.json`](../../../benchmarks/results/bm25_query_cache_scorecard_macos_arm64_2026-08-10.json)
+is the first retained execution of this profile. It binds the 24-case synthetic
+manifest digest `c1b7eef66bd60aa0caaea5a04bdfb3095d1ecd435a17db377b3e54d99e6cc1d7`
+to source commit `dcf45eb3764aa6857ce4310a7ec4b418ff4a5deb` on macOS arm64,
+Python 3.12.13. Its deterministic retrieval fingerprint is
+`072d0f912f3aa47e3dbd53f4a46b023e16ea56030d4de29111caefa080683502`.
+
+The run reports Recall@8 `0.8333`, MRR `0.7708`, and nDCG `0.7898`; each has a
+deterministic 1,000-sample percentile-bootstrap interval in the retained JSON.
+Its no-retrieval ablation scores zero on those ranking metrics. Latency and RSS
+are diagnostic measurements from this one process and machine, not portable
+performance claims. The committed regression test re-executes only the
+deterministic scoring path and requires matching case results, metrics,
+ablation, manifest digest, and fingerprint. It deliberately does not compare
+host-dependent timing or RSS.
+
 ## Cross-system evidence contract
 
 `src.memory.benchmark_protocol` provides a closed, provider-free contract for
