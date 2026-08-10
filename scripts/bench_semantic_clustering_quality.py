@@ -17,6 +17,8 @@ _SEEDS = (20260802, 20260803, 20260804, 20260805, 20260806)
 _TOPICS = 12
 _PAGES_PER_TOPIC = 24
 _MAX_CLUSTER_SIZE = 32
+_BOOTSTRAP_ITERATIONS = 2_048
+_BOOTSTRAP_SEED = 20260810
 
 
 def _opaque_title(seed: int, topic: int, page: int) -> str:
@@ -63,7 +65,41 @@ def _canonical(clusters: dict[str, list[str]]) -> tuple[tuple[str, ...], ...]:
     return tuple(sorted(tuple(sorted(members)) for members in clusters.values()))
 
 
-def _quality(clusters: dict[str, list[str]], labels: dict[str, int]) -> dict[str, float]:
+def _adjusted_rand_index(
+    clusters: dict[str, list[str]],
+    labels: dict[str, int],
+) -> float:
+    """Return the adjusted Rand index from predicted and reference partitions."""
+    predicted_by_title = {
+        title: cluster_id for cluster_id, members in clusters.items() for title in members
+    }
+    if set(predicted_by_title) != set(labels):
+        raise ValueError("predicted and reference partitions must cover the same titles")
+
+    contingency: Counter[tuple[int, str]] = Counter(
+        (label, predicted_by_title[title]) for title, label in labels.items()
+    )
+    reference_totals = Counter(labels.values())
+    predicted_totals = Counter(predicted_by_title.values())
+    pair_count = math.comb(len(labels), 2)
+    sum_contingency_pairs = sum(math.comb(count, 2) for count in contingency.values())
+    sum_reference_pairs = sum(math.comb(count, 2) for count in reference_totals.values())
+    sum_predicted_pairs = sum(math.comb(count, 2) for count in predicted_totals.values())
+    if pair_count == 0:
+        return 1.0
+
+    expected_index = sum_reference_pairs * sum_predicted_pairs / pair_count
+    maximum_index = (sum_reference_pairs + sum_predicted_pairs) / 2.0
+    denominator = maximum_index - expected_index
+    if denominator == 0.0:
+        return 1.0 if sum_contingency_pairs == maximum_index else 0.0
+    return (sum_contingency_pairs - expected_index) / denominator
+
+
+def _quality(
+    clusters: dict[str, list[str]],
+    labels: dict[str, int],
+) -> dict[str, float | int | bool]:
     predicted_pairs = 0
     true_positive_pairs = 0
     purity_hits = 0
@@ -72,15 +108,25 @@ def _quality(clusters: dict[str, list[str]], labels: dict[str, int]) -> dict[str
         purity_hits += max(counts.values(), default=0)
         predicted_pairs += math.comb(len(members), 2)
         true_positive_pairs += sum(math.comb(count, 2) for count in counts.values())
-    true_pairs = _TOPICS * math.comb(_PAGES_PER_TOPIC, 2)
+    true_pairs = sum(math.comb(count, 2) for count in Counter(labels.values()).values())
     precision = true_positive_pairs / predicted_pairs if predicted_pairs else 0.0
     recall = true_positive_pairs / true_pairs if true_pairs else 0.0
     f1 = 2.0 * precision * recall / (precision + recall) if precision + recall else 0.0
+    largest_cluster_fraction = (
+        max((len(members) for members in clusters.values()), default=0) / len(labels)
+        if labels
+        else 0.0
+    )
     return {
         "pair_f1": round(f1, 4),
         "pair_precision": round(precision, 4),
         "pair_recall": round(recall, 4),
         "purity": round(purity_hits / len(labels), 4),
+        "adjusted_rand_index": round(_adjusted_rand_index(clusters, labels), 4),
+        "predicted_cluster_count": len(clusters),
+        "expected_cluster_count": len(set(labels.values())),
+        "largest_cluster_fraction": round(largest_cluster_fraction, 4),
+        "collapse_detected": len(clusters) <= 1 and bool(labels),
     }
 
 
@@ -90,8 +136,26 @@ def _percentile(samples: list[float], percentile: float) -> float:
     return ordered[index]
 
 
+def _bootstrap_confidence_interval(
+    samples: list[float],
+    *,
+    rng: random.Random,
+    iterations: int = _BOOTSTRAP_ITERATIONS,
+) -> tuple[float, float]:
+    """Return a deterministic percentile bootstrap interval for a sample mean."""
+    if not samples:
+        raise ValueError("bootstrap confidence intervals require at least one sample")
+    if iterations < 1:
+        raise ValueError("bootstrap confidence intervals require a positive iteration count")
+    means = [statistics.mean(rng.choice(samples) for _ in samples) for _ in range(iterations)]
+    return (
+        round(_percentile(means, 0.025), 4),
+        round(_percentile(means, 0.975), 4),
+    )
+
+
 def _run_scenario(scenario: str) -> dict[str, Any]:
-    runs: list[dict[str, float]] = []
+    runs: list[dict[str, float | int | bool]] = []
     latencies: list[float] = []
     deterministic = True
     for seed in _SEEDS:
@@ -106,6 +170,28 @@ def _run_scenario(scenario: str) -> dict[str, Any]:
         replay = compute_semantic_clusters(reversed_catalog, max_cluster_size=_MAX_CLUSTER_SIZE)
         deterministic = deterministic and _canonical(clusters) == _canonical(replay)
 
+    aggregate_metrics = (
+        "pair_f1",
+        "pair_precision",
+        "pair_recall",
+        "purity",
+        "adjusted_rand_index",
+        "predicted_cluster_count",
+        "expected_cluster_count",
+        "largest_cluster_fraction",
+    )
+    bootstrap_rng = random.Random(_BOOTSTRAP_SEED)
+    bootstrap_confidence_intervals = {}
+    for metric in aggregate_metrics:
+        interval = _bootstrap_confidence_interval(
+            [float(run[metric]) for run in runs],
+            rng=bootstrap_rng,
+        )
+        bootstrap_confidence_intervals[metric] = {
+            "lower": interval[0],
+            "upper": interval[1],
+        }
+
     return {
         "deterministic_across_input_order": deterministic,
         "latency_p50_seconds": round(statistics.median(latencies), 6),
@@ -114,6 +200,18 @@ def _run_scenario(scenario: str) -> dict[str, Any]:
         "pair_precision_mean": round(statistics.mean(run["pair_precision"] for run in runs), 4),
         "pair_recall_mean": round(statistics.mean(run["pair_recall"] for run in runs), 4),
         "purity_mean": round(statistics.mean(run["purity"] for run in runs), 4),
+        "adjusted_rand_index_mean": round(
+            statistics.mean(float(run["adjusted_rand_index"]) for run in runs), 4
+        ),
+        "predicted_cluster_count_mean": round(
+            statistics.mean(float(run["predicted_cluster_count"]) for run in runs), 4
+        ),
+        "expected_cluster_count": int(runs[0]["expected_cluster_count"]),
+        "largest_cluster_fraction_mean": round(
+            statistics.mean(float(run["largest_cluster_fraction"]) for run in runs), 4
+        ),
+        "collapse_detected": any(bool(run["collapse_detected"]) for run in runs),
+        "bootstrap_confidence_intervals": bootstrap_confidence_intervals,
     }
 
 

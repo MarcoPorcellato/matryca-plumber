@@ -142,7 +142,13 @@ uv run python scripts/bench_semantic_clustering_quality.py
 
 The benchmark uses 288 opaque-titled synthetic notes, 12 labelled topics, five
 fixed random seeds, and no vault or model. It measures pairwise precision,
-recall, F1, purity, latency, and stability after reversing catalog input order.
+recall, F1, purity, adjusted Rand index (ARI), predicted and expected cluster
+counts, largest-cluster fraction, latency, and stability after reversing catalog
+input order. Quality aggregates also include deterministic percentile bootstrap
+intervals over the five fixed seed runs. `collapse_detected` is true only for
+total collapse (one predicted cluster for a non-empty catalogue); the
+largest-cluster fraction makes partial collapse visible without treating it as
+a binary failure.
 
 Observed on the development Mac:
 
