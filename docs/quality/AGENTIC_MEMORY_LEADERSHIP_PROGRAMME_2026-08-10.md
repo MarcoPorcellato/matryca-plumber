@@ -204,6 +204,28 @@ Receipts:
 - Design/reference materials are not accepted as implementation evidence by themselves.
 - No best/SOTA/world-leading claim may be added until independent evidence exists under this section.
 
+### #448 benchmark execution gate
+
+**Verified, retrieval-only synthetic evidence:** the Italian hard-negative scorecard
+has deterministic fixtures, retrieval metrics, signal ablations, bootstrap confidence
+intervals, and host diagnostics. It is valid regression evidence, not a cross-system
+or end-to-end quality claim.
+
+**Adapter and contract evidence only:** the LoCoMo, LongMemEval, LongMemEval-V2, and
+BEAM boundaries bind caller-supplied local inputs to closed provenance contracts. They
+do not download or execute a suite, run a model, access a vault, persist benchmark
+results, or establish production capability.
+
+**Missing before comparative claims:** independently retained, real runs for the
+Matryca no-memory baseline, the Matryca candidate configuration, and two distinct
+external open systems. Every run must share an immutable, license-cleared public
+dataset/repository pin and retain raw results, exclusions, failed runs, and confidence
+intervals. Retrieval and end-to-end answer outcomes must remain separately reported.
+
+**Decision:** GO is limited to synthetic regression and local adapter/contract work.
+Comparative, leadership, or end-to-end claims remain **NO-GO** until every requirement
+above is independently reproducible and the governed cohort receipt validates it.
+
 ### Pinned manifest requirements
 
 - Every benchmark claim must attach manifest identifiers and runtime context:
