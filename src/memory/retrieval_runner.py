@@ -186,9 +186,7 @@ def run_retrieval(
     return BenchmarkRunReport(manifest=manifest, status=status, artifacts=artifacts)
 
 
-def _validate_result_order(
-    candidates: Sequence[RetrievedCandidate], *, top_k: int
-) -> None:
+def _validate_result_order(candidates: Sequence[RetrievedCandidate], *, top_k: int) -> None:
     if len(candidates) > top_k:
         raise EvidenceContractError("retrieval_result_exceeds_top_k")
     ranks = tuple(candidate.rank for candidate in candidates)

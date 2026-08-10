@@ -197,7 +197,7 @@ def test_malformed_inputs_and_output_boundaries_fail_closed(tmp_path: Path) -> N
                     "system": manifest.system,
                     "retrieve": lambda _self, _item, *, top_k: (
                         RetrievedCandidate(candidate_id="x", rank=2),
-                    )
+                    ),
                 },
             )(),
         )
