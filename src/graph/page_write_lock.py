@@ -114,26 +114,38 @@ def probe_page_rmw_lock(page_path: str | Path) -> None:
 
 
 @contextmanager
-def page_rmw_lock(page_path: str | Path) -> Iterator[None]:
-    """Hold an exclusive lock for one file's full RMW lifecycle (thread- and process-safe)."""
+def page_rmw_lock(
+    page_path: str | Path,
+    *,
+    wait_for_thread_lock: bool = False,
+) -> Iterator[None]:
+    """Hold an exclusive lock for one file's full RMW lifecycle (thread- and process-safe).
+
+    ``wait_for_thread_lock`` is reserved for small private runtime state whose
+    concurrent writes must serialize instead of failing after the bounded
+    default retry window. The cross-process sidecar lock remains unchanged.
+    """
     guard_graph_mutation_from_env(page_path, operation="page_rmw_lock")
     key = normalize_page_lock_key(page_path)
     thread_lock = _lock_for_key(key)
-    delay = IO_RETRY_INITIAL_DELAY_S
-    for attempt in range(IO_RETRY_ATTEMPTS):
-        if thread_lock.acquire(blocking=False):
-            break
-        if attempt >= IO_RETRY_ATTEMPTS - 1:
-            logger.warning(
-                "In-process page lock still held after {} retries: {}",
-                IO_RETRY_ATTEMPTS - 1,
-                page_path,
-            )
-            raise PageLockUnavailableError(
-                f"Could not acquire in-process page lock for {page_path} after retries",
-            )
-        time.sleep(min(IO_RETRY_MAX_DELAY_S, delay))
-        delay = min(IO_RETRY_MAX_DELAY_S, delay * 2)
+    if wait_for_thread_lock:
+        thread_lock.acquire()
+    else:
+        delay = IO_RETRY_INITIAL_DELAY_S
+        for attempt in range(IO_RETRY_ATTEMPTS):
+            if thread_lock.acquire(blocking=False):
+                break
+            if attempt >= IO_RETRY_ATTEMPTS - 1:
+                logger.warning(
+                    "In-process page lock still held after {} retries: {}",
+                    IO_RETRY_ATTEMPTS - 1,
+                    page_path,
+                )
+                raise PageLockUnavailableError(
+                    f"Could not acquire in-process page lock for {page_path} after retries",
+                )
+            time.sleep(min(IO_RETRY_MAX_DELAY_S, delay))
+            delay = min(IO_RETRY_MAX_DELAY_S, delay * 2)
     try:
         with _cross_process_file_lock(page_path):
             yield
