@@ -31,7 +31,7 @@ Trimmed behavioral specs aligned with [MehmetGoekce/llm-wiki](https://github.com
 | [`../roadmaps/ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md) | v2 sequencing, contribution guidance, and milestone history. |
 | [`../roadmaps/ROADMAP_V2_SHADOW_DB.md`](../roadmaps/ROADMAP_V2_SHADOW_DB.md) | Shadow read-path sequencing and completed implementation history. |
 | [`../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md) | Nacre-inspired decay/recall/procedure memory |
-| [`biological-memory.md`](biological-memory.md) | Planned env vars, `search_graph(method=recall)`, Safe-Sync contract |
+| [`biological-memory.md`](biological-memory.md) | P0 gated canonical recall, later memory phases, and Safe-Sync contract |
 | [`evidence-archive.md`](evidence-archive.md) | P0 external append-only provenance archive and privacy/durability contract |
 | [`../v1.8-SOFTWARE-EDGE-PLAN.md`](../v1.8-SOFTWARE-EDGE-PLAN.md) | CPU sandbox, frozen KV prefix, adaptive LLM, mmap reads. |
 | [`../v1.8-OPTIMIZATION-PLAN.md`](../v1.8-OPTIMIZATION-PLAN.md) | v1.8 operator env vars, verification matrix, load testing. |

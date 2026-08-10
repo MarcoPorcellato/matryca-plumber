@@ -1,6 +1,8 @@
-# Biological memory layer — OpenSpec (projection contract, planned v2.1+)
+# Biological memory layer — OpenSpec (projection contract, v2.1+)
 
-**Status:** planned for v2.1+ — no memory read/write path is shipped in `main`; schema and scaffolds remain proposal-stage
+**Status:** P0 canonical recall is shipped behind a disabled-by-default feature gate. It is a
+read-only, provider-free projection over the existing Shadow FTS cache; no memory write,
+decay, consolidation, provider call, or autonomous behavior is shipped in this surface.
 
 **Historical architecture context:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
 
@@ -52,7 +54,7 @@ This OpenSpec is a projection contract that keeps external expectations aligned 
 
 | Variable | Contract status | Role |
 | --- | --- | --- |
-| `MATRYCA_MEMORY_GRAPH_ENABLED` | Not yet public contract | Future gate for derived projection operations only; it never authorizes canonical writes |
+| `MATRYCA_MEMORY_GRAPH_ENABLED` | P0 public gate, default `false` | Enables `search_graph(method="recall")` only; it never authorizes canonical writes |
 
 When publicly exposed, document in `.env.example` under **Advanced / high impact** with rollout and fallback policy.
 
@@ -67,7 +69,7 @@ When publicly exposed, document in `.env.example` under **Advanced / high impact
 
 | Existing surface | Planned extension |
 | --- | --- |
-| `search_graph(...)` | Add recall-focused method and scoring envelope after P0 acceptance |
+| `search_graph(method="recall")` | Canonical `RecallBundle`: deterministic block UUID/hash refs, generation-bound fingerprint, volatile telemetry outside the reusable prefix, and explicit unavailable states |
 | `store_fact` | Extend to support proposal and procedural pathways after P2/P3 acceptance |
 
 ## Evidence and benchmark policy
@@ -77,6 +79,26 @@ When publicly exposed, document in `.env.example` under **Advanced / high impact
 - Letta Evals, Mem0 memory-benchmarks, and Graphiti are treated as design/reference harness material.
 - No best/SOTA/world-leading claim is made before reproducible evidence with provenance.
 - Every claim must include task set, corpus/version, seed/config, and decision label.
+
+## P0 canonical recall
+
+`search_graph(method="recall")` accepts plain text or JSON
+`{"query":"...", "limit":15, "filters":{}}`. It is disabled unless
+`MATRYCA_MEMORY_GRAPH_ENABLED=true`. The result is a structured `RecallBundle` that binds
+the schema, Shadow generation, conservatively normalized query, method, filters, bounded
+per-turn limit, FTS index version, retrieval-instruction version, and ordered
+`(block_uuid, content_hash)` references. Scores and latency are telemetry only and never
+affect the reusable fingerprint.
+
+The P0 retrieval path is deliberately narrow: it reads a `READY` Shadow DB through
+`mode=ro` / `PRAGMA query_only`, validates every returned source page against canonical
+Markdown, and never initializes, rebuilds, writes, calls a model, or falls back to
+page-level BM25. Disabled, missing graph, invalid request, unsupported filter, unavailable
+Shadow cache, stale source, and unproven empty results all return explicit content-free
+states. Consumers compare `no_progress_signature` before retrying the same expansion.
+
+P0 is not hybrid retrieval: semantic, entity, and graph-signal composition belong to P1
+after the governed #447 evidence contracts and #448 scorecard baseline are accepted.
 
 ## Safe-Sync and mutation constraints
 

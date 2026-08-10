@@ -9,6 +9,10 @@
 - **Evidence-first agentic-memory programme** — sequence v2.1+ delivery through governed evidence, deterministic canonical recall, reproducible benchmarks, human-governed curation, and derived-only Shadow state before typed decay, procedural memory, or opt-in proactivity.
 - **BM25 scorecard benchmark schema** — add manifest-driven synthetic Italian hard-negative scorecard mode (`--manifest-path`) with deterministic Recall@K, MRR, nDCG, stale/contradiction, abstention, and manifest digest/environment signatures for reproducible ranking evidence without runtime behavior changes.
 
+### Added
+
+- **Gated canonical recall (#186)** — add the provider-free, graph-immutable `search_graph(method="recall")` P0 envelope with generation-bound UUID/hash references, deterministic reusable fingerprints, bounded per-turn retrieval, and explicit disabled/unavailable states; it uses only a fresh query-only Shadow FTS cache and never falls back, rebuilds, writes, or calls a model.
+
 ### Fixed
 
 - **Gate B RC2 artifact binding** — bind fresh dual-profile qualification to the exact installed `2.0.0rc2` public wheel instead of rejecting it through the historical RC1 package identity.

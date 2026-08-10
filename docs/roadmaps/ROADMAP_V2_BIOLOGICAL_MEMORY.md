@@ -3,7 +3,9 @@
 **Historical architecture context:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
 
 **Active delivery tracker:** [#178 — Coordinate v2.1 memory, Safe-Sync, and import programme](https://github.com/MarcoPorcellato/matryca-plumber/issues/178)
-**Status:** planned for v2.1+, scaffolded components exist in [`src/shadow/schema.py`](../../src/shadow/schema.py) and [`src/memory/decay.py`](../../src/memory/decay.py); no memory read/write path is shipped.
+**Status:** P0 ships only a disabled-by-default, provider-free canonical recall envelope over a
+fresh query-only Shadow FTS cache. No memory write, decay, consolidation, remote provider, or
+autonomous behavior is shipped; scaffolded later-phase components remain roadmap-only.
 
 **Canonical surface:** this roadmap in `docs/roadmaps`
 
