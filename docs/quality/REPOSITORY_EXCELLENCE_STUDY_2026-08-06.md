@@ -25,6 +25,8 @@ registry_projection: reviewed_only
 
 # Matryca Plumber repository excellence study
 
+**Related execution dossier:** [Agentic Memory Leadership Programme — August 10, 2026](AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md)
+
 **Date:** 2026-08-06
 
 **Baseline:** `origin/main@1e8805ec99c6471549ecf36e4a261a31013a0f6f`

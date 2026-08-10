@@ -896,6 +896,25 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md",
+      "type": "Roadmap",
+      "title": "Agentic Memory Leadership Programme — 2026-08-10",
+      "description": "Evidence-first agentic-memory strategy, benchmark policy, and GitHub control-plane execution record.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active strategy and control-plane dossier; future runtime implementation remains gated by linked issues.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md",
       "type": "Audit",
       "title": "Beta evidence reproducibility root-cause analysis — draft",
@@ -1025,7 +1044,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",

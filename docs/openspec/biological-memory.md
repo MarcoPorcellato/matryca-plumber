@@ -1,69 +1,92 @@
-# Biological memory layer — OpenSpec (planned v2.1+)
+# Biological memory layer — OpenSpec (projection contract, planned v2.1+)
 
-**Status:** planned for v2.1+ — algorithms partially scaffolded in [`src/memory/`](../../src/memory/); schema-only tables exist in [`src/shadow/schema.py`](../../src/shadow/schema.py), but no memory read/write path is shipped
+**Status:** planned for v2.1+ — no memory read/write path is shipped in `main`; schema and scaffolds remain proposal-stage
 
 **Historical architecture context:** [#20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
 
-**Active delivery tracker:** [#178 — Biological memory + Logseq DB Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/178)
+**Active delivery tracker:** [#178 — Coordinate v2.1 memory, Safe-Sync, and import programme](https://github.com/MarcoPorcellato/matryca-plumber/issues/178)
 
-**Maintainer roadmap:** [`docs/roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md)  
-**Preparation index:** [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md) § Phase 4
+**Roadmap source:** [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md)
 
-Nacre-inspired decay, recall, and consolidation **inside** Matryca's Logseq-native stack — not a replacement for outliner blocks or OCC writes.
+**Leadership dossier:** [`AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md`](../quality/AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md)
+**Preparation index:** [`ROADMAP_V2_PREPARATION.md`](../roadmaps/ROADMAP_V2_PREPARATION.md)
+
+Nacre-inspired memory behavior is treated as a design reference only.
+This OpenSpec is a projection contract that keeps external expectations aligned with the roadmap sequence.
 
 ---
 
-## Future feature gate
+## Canonical contract
+
+### Source authority and projections
+
+- **Logseq Markdown is canonical for semantic memory and approved decisions.**
+- **`Shadow DB` is derived and disposable/rebuildable**: indexes, embeddings, hashes, generations, activation/utility projections, bounded caches, and aggregates are allowed there, but it is never the sole semantic authority.
+- Writes to Markdown remain through approved mutation planes (OCC + official interfaces).
+- No public rollout claim is accepted without a matching roadmap issue sequence and evidence row.
+
+### Phase sequence
+
+#### P0: evidence and provenance gate
+
+- Governed evidence requirements apply first.
+- Canonical recall envelope and idempotence rules are the acceptance basis.
+- Reproducible benchmark baseline must be attached before downstream feature claims.
+
+#### P1: hybrid retrieval, cache, and clustering
+
+- Retrieval composition is activated only after P0 acceptance.
+- Cache/fallback rules are deterministic.
+
+#### P2: proposal queue and curation
+
+- Governance for proposal intake, triage, curation, and traceability.
+- Evidence-only acceptance and state transitions.
+
+#### P3: procedural memory, typed activation decay, opt-in proactivity
+
+- Typed activation decay belongs exclusively to P3.
+- Typed activation decay is constrained to utility/procedural projections and does not modify or delete source truth.
+
+## Feature-gate posture
 
 | Variable | Contract status | Role |
-|----------|-----------------|------|
-| `MATRYCA_MEMORY_GRAPH_ENABLED` | Not yet a public configuration contract | Future feature gate for memory graph reads and writes in `shadow.sqlite`; its default and rollout policy require a separately qualified v2.1+ design slice |
+| --- | --- | --- |
+| `MATRYCA_MEMORY_GRAPH_ENABLED` | Not yet public contract | Future gate for derived projection operations only; it never authorizes canonical writes |
 
-When implemented, document the complete contract in [`.env.example`](../../.env.example)
-under **Advanced / high impact** per
-[`07-env-example.mdc`](../../.cursor/rules/07-env-example.mdc). Current Shadow DB
-behavior and defaults remain owned by the
-[v2 operator contract](../knowledge/architecture/shadow-db.md).
+When publicly exposed, document in `.env.example` under **Advanced / high impact** with rollout and fallback policy.
 
----
+## Issue mapping by phase
 
-## MCP / CLI surface (planned)
+- **P0:** [#186](https://github.com/MarcoPorcellato/matryca-plumber/issues/186), [#447](https://github.com/MarcoPorcellato/matryca-plumber/issues/447), [#448](https://github.com/MarcoPorcellato/matryca-plumber/issues/448), [#449](https://github.com/MarcoPorcellato/matryca-plumber/issues/449)
+- **P1:** [#450](https://github.com/MarcoPorcellato/matryca-plumber/issues/450), [#451](https://github.com/MarcoPorcellato/matryca-plumber/issues/451)
+- **P2:** [#452](https://github.com/MarcoPorcellato/matryca-plumber/issues/452)
+- **P3:** [#99](https://github.com/MarcoPorcellato/matryca-plumber/issues/99), [#453](https://github.com/MarcoPorcellato/matryca-plumber/issues/453), [#454](https://github.com/MarcoPorcellato/matryca-plumber/issues/454)
 
-| Existing surface | Planned memory extension |
-|------------------|--------------------------|
-| `search_graph(method=bm25\|semantic\|…)` | Add `method=recall` in the v2.1+ Phase 4 work |
-| `store_fact` | Episodic / procedural memory nodes (extends identity plane) |
-| — | `nacre_forget` / feedback analogues — TBD in Phase 4 issues |
+## Projection surfaces
 
-The target version and rollout policy belong to the separately qualified v2.1+
-implementation slice. Update [`llms.txt`](../../llms.txt) in the same PR only if
-that slice changes the external agent contract.
+| Existing surface | Planned extension |
+| --- | --- |
+| `search_graph(...)` | Add recall-focused method and scoring envelope after P0 acceptance |
+| `store_fact` | Extend to support proposal and procedural pathways after P2/P3 acceptance |
 
----
+## Evidence and benchmark policy
 
-## Safe-Sync
+- Design references and benchmark evidence are separated.
+- This spec accepts LongMemEval, LongMemEval-V2, LoCoMo, BEAM, MemoryAgentBench, and STATE-Bench as benchmark suites for evidence-gated decisions.
+- Letta Evals, Mem0 memory-benchmarks, and Graphiti are treated as design/reference harness material.
+- No best/SOTA/world-leading claim is made before reproducible evidence with provenance.
+- Every claim must include task set, corpus/version, seed/config, and decision label.
 
-- Memory nodes and edges live in **daemon-owned `shadow.sqlite`** — not in Logseq's internal DB.
-- Graph content mutations remain **Markdown + OCC** for Logseq OG ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) partial).
-- Logseq DB vault writes: official CLI/API only — never native SQLite mutation.
+## Safe-Sync and mutation constraints
 
----
+- Memory work remains inside existing Safe-Sync boundaries.
+- `MATRYCA_MEMORY_GRAPH_ENABLED` gates derived projection operations and never authorizes canonical semantic writes.
+- No behavior bypasses daemon-owned paths or established safety gates.
 
-## Implementation phases
+## Future phase gates
 
-See [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](../roadmaps/ROADMAP_V2_BIOLOGICAL_MEMORY.md):
-
-1. **Phase A** — decay + schema tables (`memory_nodes`, `memory_edges`, …)
-2. **Phase B** — `search_graph(method=recall)` + consolidation idle batch
-3. **Phase C** — MCP memory-native tools
-
-**Shipped scaffold:** `src/memory/decay.py` (decay formulas + tests).
-
----
-
-## Verification (when wired)
-
-```bash
-uv run pytest tests/test_memory_decay.py tests/test_shadow_schema.py -q
-make check
-```
+- P0 must publish governed evidence packet and benchmark baseline before any P1/P2/P3 runtime claims.
+- P1 release requires deterministic retrieval/cache/clustering gates with repeatable manifests.
+- P2 release requires proposal queue and curation evidence under accepted governance.
+- P3 execution requires Safe-Sync-compatible procedural/decay constraints and opt-in proactivity controls.
