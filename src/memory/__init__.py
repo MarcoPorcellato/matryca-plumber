@@ -50,6 +50,17 @@ from .longmemeval_v2_adapter import (
 )
 from .public_suite_provenance import PublicSuiteInputProvenance
 from .recall import RecallBundle, recall_from_existing_retrieval
+from .retrieval_runner import (
+    ExclusionRecord,
+    FailureRecord,
+    ItemResult,
+    NoMemoryRetriever,
+    RetrievalCandidateSeam,
+    RetrievalInputEvidence,
+    RetrievalItem,
+    RetrievedCandidate,
+    run_retrieval,
+)
 
 __all__ = [
     "DEFAULT_DECAY_RATE",
@@ -88,6 +99,15 @@ __all__ = [
     "P0EvidencePacket",
     "PublicSuiteInputProvenance",
     "recall_from_existing_retrieval",
+    "ExclusionRecord",
+    "FailureRecord",
+    "ItemResult",
+    "NoMemoryRetriever",
+    "RetrievedCandidate",
+    "RetrievalCandidateSeam",
+    "RetrievalInputEvidence",
+    "RetrievalItem",
+    "run_retrieval",
     "load_locomo_retrieval_cases",
     "load_beam_input",
     "load_longmemeval_retrieval_cases",

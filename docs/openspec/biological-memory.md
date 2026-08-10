@@ -80,6 +80,16 @@ exact revision, CC-BY-SA-4.0 data license, chat identifier, and both raw-byte di
 It emits immutable input/provenance evidence only; it does not download data, resolve
 an answer, invoke a model, access a vault, score a run, or write results.
 
+The local retrieval execution bridge consumes these already-loaded evidence objects (or
+synthetic fixtures) only after a caller supplies a retrieval manifest and run root. It
+requires an explicit candidate seam or the no-memory empty-context baseline; it does not
+select BM25, Shadow, semantic, or recall retrieval. It writes four deterministic JSONL
+artifacts inside that supplied root, binds their SHA-256 digests into
+`BenchmarkRunReport`, and retains exclusions and terminal failures. Malformed evidence,
+digest mismatches, non-retrieval manifests, invalid result ordering, and output-boundary
+violations fail closed. This is an execution/evidence seam, not a production retrieval
+feature or a comparative quality claim.
+
 The comparative cohort receipt is likewise provider-free and content-free. It binds a
 validated four-system control cohort to one retained public-corpus digest and exact
 opaque-artifact attestations. It rejects missing, duplicate, mismatched, mixed-policy,
