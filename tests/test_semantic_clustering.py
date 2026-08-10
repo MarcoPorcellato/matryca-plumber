@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from types import TracebackType
 
 import pytest
+import scripts.bench_semantic_clustering_quality as clustering_benchmark
 from src.graph.master_catalog import clear_master_catalog_cache
 from src.graph.semantic_clustering import (
     LOUVAIN_MAX_ITERATIONS,
@@ -61,6 +63,124 @@ def test_compute_semantic_clusters_partitions_catalog() -> None:
     assert len(titles) == 120
     assert len(set(titles)) == 120
     assert all(5 <= len(page_titles) <= 35 for page_titles in clusters.values())
+
+
+def test_quality_scorecard_metrics_cover_perfect_and_collapsed_partitions() -> None:
+    labels = {"A": 0, "B": 0, "C": 1, "D": 1}
+
+    perfect = clustering_benchmark._quality(
+        {"cluster_1": ["A", "B"], "cluster_2": ["C", "D"]}, labels
+    )
+    collapsed = clustering_benchmark._quality({"cluster_1": list(labels)}, labels)
+
+    assert perfect["ari"] == 1.0
+    assert perfect["cluster_count"] == 2
+    assert perfect["collapse_rate"] == 0.0
+    assert collapsed["ari"] == 0.0
+    assert collapsed["cluster_count"] == 1
+    assert collapsed["collapse_rate"] == 1.0
+
+
+def test_quality_scorecard_metrics_are_stable_for_input_order_and_degenerate_cases() -> None:
+    labels = {"A": 0, "B": 0, "C": 1, "D": 1}
+    first = clustering_benchmark._quality(
+        {"cluster_1": ["A", "B"], "cluster_2": ["C", "D"]}, labels
+    )
+    reordered = clustering_benchmark._quality(
+        {"cluster_2": ["D", "C"], "cluster_1": ["B", "A"]},
+        dict(reversed(labels.items())),
+    )
+
+    assert first == reordered
+    assert clustering_benchmark._quality({"only": ["A"]}, {"A": 0}) == {
+        "ari": 1.0,
+        "cluster_count": 1,
+        "collapse_rate": 0.0,
+        "pair_f1": 0.0,
+        "pair_precision": 0.0,
+        "pair_recall": 0.0,
+        "purity": 1.0,
+    }
+    assert clustering_benchmark._quality({}, {})["ari"] == 1.0
+
+
+def test_quality_scorecard_metrics_cover_partial_and_crossed_partitions() -> None:
+    labels = {"A": 0, "B": 0, "C": 1, "D": 1}
+    partial = clustering_benchmark._quality(
+        {"cluster_1": ["A", "B", "C"], "cluster_2": ["D"]}, labels
+    )
+    crossed = clustering_benchmark._quality(
+        {"cluster_1": ["A", "C"], "cluster_2": ["B", "D"]}, labels
+    )
+
+    assert partial == {
+        "ari": 0.0,
+        "cluster_count": 2,
+        "collapse_rate": 0.5,
+        "pair_f1": 0.4,
+        "pair_precision": 0.3333,
+        "pair_recall": 0.5,
+        "purity": 0.75,
+    }
+    assert crossed["ari"] == -0.5
+    assert 0.0 <= partial["collapse_rate"] <= 1.0
+    assert 0.0 <= crossed["collapse_rate"] <= 1.0
+
+
+def test_scorecard_main_writes_schema_versioned_synthetic_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "nested" / "clustering.json"
+    monkeypatch.setattr(clustering_benchmark, "_source_commit", lambda: "a" * 40)
+    monkeypatch.setattr(clustering_benchmark, "_require_clean_source_tree", lambda: None)
+
+    assert clustering_benchmark.main(["--output", str(output)]) == 0
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["benchmark_schema_version"] == 2
+    assert payload["source_commit"] == "a" * 40
+    assert payload["fixture"] == {
+        "id": "semantic-clustering-balanced-opaque-v1",
+        "kind": "synthetic",
+        "provenance": "Generated in-memory by this benchmark from fixed opaque titles and labels.",
+        "evidence_boundary": "No vault, model, or remote content is used or represented.",
+    }
+    assert payload["seeds"] == [20260802, 20260803, 20260804, 20260805, 20260806]
+    assert set(payload["scenarios"]["summary_and_tags"]) >= {
+        "ari_mean",
+        "cluster_count_mean",
+        "collapse_rate_mean",
+    }
+
+
+def test_scorecard_source_commit_is_resolved_from_the_repository_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(command, 0, stdout="a" * 40)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert clustering_benchmark._source_commit() == "a" * 40
+    assert captured["cwd"] == Path(clustering_benchmark.__file__).resolve().parents[1]
+
+
+def test_scorecard_rejects_a_dirty_source_tree(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 0, stdout=" M script.py\n")
+
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        fake_run,
+    )
+
+    with pytest.raises(RuntimeError, match="dirty source tree"):
+        clustering_benchmark._require_clean_source_tree()
 
 
 def test_save_and_load_semantic_clusters(tmp_path: Path) -> None:

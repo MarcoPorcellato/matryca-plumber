@@ -138,11 +138,23 @@ Run:
 
 ```bash
 uv run python scripts/bench_semantic_clustering_quality.py
+uv run python scripts/bench_semantic_clustering_quality.py \
+  --output benchmarks/results/semantic_clustering_scorecard.json
 ```
 
 The benchmark uses 288 opaque-titled synthetic notes, 12 labelled topics, five
 fixed random seeds, and no vault or model. It measures pairwise precision,
-recall, F1, purity, latency, and stability after reversing catalog input order.
+recall, F1, purity, adjusted Rand index (ARI), predicted cluster count,
+fixture-specific collapse rate, latency, and stability after reversing catalog
+input order. The JSON output is schema-versioned and records the synthetic
+fixture provenance, fixed seeds, and exact source commit. Artifact generation
+fails closed from a dirty source tree so that the recorded commit always names
+the code that produced it.
+
+Collapse rate is the normalized excess share of the largest predicted cluster
+above the balanced fixture's nominal 24-item topic size: `0` is ideal balanced
+separation and `1` means every item collapsed into one cluster. It is a
+diagnostic for this fixture, not a cross-system or real-vault quality claim.
 
 Observed on the development Mac:
 

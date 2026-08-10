@@ -5,6 +5,7 @@
 - **Local LoCoMo retrieval adapter (#448)** — normalize an already acquired public LoCoMo dataset into deterministic session-turn and QA-evidence cases without downloads, image fetching, model calls, vault access, or result persistence.
 - **Local LongMemEval retrieval adapter (#448)** — normalize acquired cleaned/oracle JSON into digest-pinned, order-preserving in-memory cases with separate session and answer-marked-turn evidence, without downloads, model calls, vault access, or result persistence.
 - **Cross-system benchmark contracts (#448)** — add closed, content-free manifests and retained-artifact reports that pin public-suite revisions, models, budgets, runtime context, and comparable Matryca/external controls without collecting prompts, answers, vault content, or running remote services.
+- **Synthetic clustering scorecard metrics (#448)** — extend the existing no-vault, no-model benchmark with schema-versioned ARI, cluster count, and fixture-specific collapse rate output plus deterministic machine-readable artifacts.
 - **Evidence archive foundation** — add an immutable, privacy-safe, externally stored and idempotent P0 evidence-event archive for future governed memory candidates.
 - **Governed P0 evidence packet (#447)** — add a byte-stable, retrieval-only coordination contract that binds exact source revision, canonical recall, benchmark scorecard, and append-only archive references without storage, model, remote, or canonical-write side effects.
 
