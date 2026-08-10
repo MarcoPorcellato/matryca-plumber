@@ -11,6 +11,7 @@ from .decay import (
     days_between,
     half_life_days,
 )
+from .recall import RecallBundle, recall_from_existing_retrieval
 
 __all__ = [
     "DEFAULT_DECAY_RATE",
@@ -22,4 +23,6 @@ __all__ = [
     "days_between",
     "half_life_days",
     "memory_graph_enabled",
+    "RecallBundle",
+    "recall_from_existing_retrieval",
 ]

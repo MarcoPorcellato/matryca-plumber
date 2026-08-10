@@ -193,10 +193,15 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         **``method=resolve_entity``** — ``query`` = page title or ``alias::`` name. Resolves
         collisions, lists existing aliases, and reports whether a new entity page is safe to create.
 
-        PREREQUISITE: Check ``bootstrap_status`` and scan ``[[Matryca Master Index]]`` via
-        ``read_graph_data(page)`` first. If index unavailable, pause and present fallback options
-        (Local Daemon, Blind Search, Cloud Indexing) to the operator for authorization before
-        blind ``bm25`` discovery.
+        **``method=recall``** — gated, provider-free canonical block-reference envelope. ``query``
+        is text or JSON ``{"query":"...", "limit":15, "filters":{}}``. Disabled by default;
+        it returns an explicit structured state and never falls back to another search method.
+
+        PREREQUISITE for graph-search methods other than ``recall``: Check ``bootstrap_status``
+        and scan ``[[Matryca Master Index]]`` via ``read_graph_data(page)`` first. If index is
+        unavailable, pause and present fallback options (Local Daemon, Blind Search, Cloud
+        Indexing) to the operator for authorization before blind ``bm25`` discovery. Disabled
+        ``recall`` returns its explicit feature-gate state before graph setup.
         """
         if method == "bm25":
             await mcp_tool_info(

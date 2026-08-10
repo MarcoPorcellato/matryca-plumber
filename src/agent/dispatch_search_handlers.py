@@ -52,6 +52,17 @@ async def handle_search_bm25(graph_path: str, query: str) -> str:
     return await asyncio.to_thread(_run)
 
 
+async def handle_search_recall(graph_path: str, query: str) -> dict[str, Any]:
+    """Return the gated, provider-free canonical recall envelope (#186)."""
+
+    def _run() -> dict[str, Any]:
+        from ..memory.recall import recall_from_existing_retrieval
+
+        return recall_from_existing_retrieval(graph_path, query).model_dump(mode="json")
+
+    return await asyncio.to_thread(_run)
+
+
 async def handle_search_semantic(graph_path: str, query: str) -> str:
     sem_opts = parse_optional_json_query(query)
     sem_query = str(sem_opts.get("query", sem_opts.get("keyword", query))).strip()
@@ -202,6 +213,7 @@ async def handle_search_journal_tasks(graph_path: str, query: str) -> str | dict
 
 _SEARCH_HANDLERS: dict[SearchGraphMethod, SearchHandler] = {
     "bm25": handle_search_bm25,
+    "recall": handle_search_recall,
     "semantic": handle_search_semantic,
     "regex": handle_search_regex,
     "unlinked_mentions": handle_search_unlinked_mentions,
@@ -216,6 +228,10 @@ async def dispatch_search_target(
 ) -> str | dict[str, Any]:
     """Route ``search_graph`` by ``method``."""
     graph_path = graph_path_from_env()
+    if method == "recall":
+        # The handler checks the gate before resolving or reading a graph. In
+        # disabled mode this is an explicit contract response, never BM25 fallback.
+        return await handle_search_recall(graph_path, query)
     if not graph_path:
         if method == "journal_tasks":
             return {
@@ -235,6 +251,7 @@ async def dispatch_search_target(
 __all__ = [
     "dispatch_search_target",
     "handle_search_bm25",
+    "handle_search_recall",
     "handle_search_journal_tasks",
     "handle_search_regex",
     "handle_search_resolve_entity",

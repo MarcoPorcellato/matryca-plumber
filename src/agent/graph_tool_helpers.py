@@ -39,6 +39,7 @@ SearchGraphMethod = Literal[
     "unlinked_mentions",
     "journal_tasks",
     "resolve_entity",
+    "recall",
 ]
 MutateGraphAction = Literal[
     "write_outline", "edit_property", "append_journal", "inject_query", "generate_moc"
