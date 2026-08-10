@@ -1025,7 +1025,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",
@@ -2945,6 +2946,42 @@
       "supersedes": [],
       "notes": "Pilot distilled in docs/knowledge/architecture/shadow-db.md (experimental).",
       "missing": false
+    },
+    {
+      "path": "docs/spikes/LEARN_AGENT_MEMORY_ANALYSIS.md",
+      "type": "Archive",
+      "title": "Learn Agent Memory: ideas for Matryca Plumber",
+      "description": "---",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
+      "path": "docs/spikes/README.md",
+      "type": "Archive",
+      "title": "Research spikes",
+      "description": "Research spikes are non-runtime design memos based on external systems or",
+      "status": "current",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",

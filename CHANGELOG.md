@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Documentation
+
+- **Learn Agent Memory research spike** — added a vendor-neutral analysis of
+  scope contracts, evidence provenance, rebuildable retrieval views, context
+  assembly and evaluation governance, with a staged plan for Matryca Plumber
+  and Matryca Brain.
+
 ### Fixed
 
 - **Prerelease publication metadata** — release tags containing a SemVer prerelease suffix now create GitHub prereleases instead of stable releases while preserving the curated changelog notes and PyPI trusted-publishing flow.
