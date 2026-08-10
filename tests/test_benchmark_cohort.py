@@ -65,6 +65,7 @@ def _report(role: SystemRole, system_id: str) -> BenchmarkRunReport:
         manifest=BenchmarkRunManifest(
             cohort_id="locomo-retrieval-baseline-v1",
             dataset=_dataset(),
+            input_provenance_digest=_DIGEST_C,
             evaluation_layer="retrieval",
             system=SystemPin(
                 role=role,

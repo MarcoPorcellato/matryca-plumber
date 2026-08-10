@@ -9,7 +9,6 @@ opaque artifact boundary rather than serializing this adapter's values.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
@@ -19,6 +18,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from .evidence_models import EvidenceContractError
+from .public_suite_provenance import PublicSuiteInputProvenance, verify_public_suite_input
 
 _SESSION_KEY = re.compile(r"^session_(?P<index>[1-9][0-9]*)$")
 
@@ -53,10 +53,13 @@ class LocomoDataset(_ClosedModel):
     """A deterministic, locally loaded LoCoMo retrieval-evaluation dataset."""
 
     source_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provenance: PublicSuiteInputProvenance
     cases: tuple[LocomoRetrievalCase, ...] = Field(min_length=1)
 
 
-def load_locomo_retrieval_cases(path: Path) -> LocomoDataset:
+def load_locomo_retrieval_cases(
+    path: Path, *, provenance: PublicSuiteInputProvenance
+) -> LocomoDataset:
     """Load documented LoCoMo conversations and QA evidence from one local file.
 
     Unknown upstream fields, including optional image metadata, are deliberately
@@ -67,6 +70,7 @@ def load_locomo_retrieval_cases(path: Path) -> LocomoDataset:
         raw_bytes = path.read_bytes()
     except OSError as exc:
         raise EvidenceContractError("locomo_dataset_unreadable") from exc
+    source_digest = verify_public_suite_input(provenance, raw_bytes, expected_suite="locomo")
     try:
         raw: Any = json.loads(raw_bytes)
     except json.JSONDecodeError as exc:
@@ -117,7 +121,8 @@ def load_locomo_retrieval_cases(path: Path) -> LocomoDataset:
         if sample_index >= 10_000:
             raise EvidenceContractError("locomo_dataset_too_many_samples")
     return LocomoDataset(
-        source_digest=hashlib.sha256(raw_bytes).hexdigest(),
+        source_digest=source_digest,
+        provenance=provenance,
         cases=tuple(cases),
     )
 

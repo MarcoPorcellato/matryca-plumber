@@ -65,6 +65,7 @@ def _manifest(
             dataset_revision=_C,
             license_id="CC-BY-4.0",
         ),
+        input_provenance_digest=_DIGEST_E,
         evaluation_layer=layer,
         system=SystemPin(
             role=role,
@@ -212,6 +213,21 @@ def test_comparative_cohort_rejects_context_or_layer_mismatch() -> None:
         artifacts=reports[-1].artifacts,
     )
 
+    with pytest.raises(EvidenceContractError, match="comparative_cohort_context_mismatch"):
+        validate_comparative_cohort(tuple(reports))
+
+    reports[-1] = BenchmarkRunReport(
+        manifest=BenchmarkRunManifest.model_validate(
+            {
+                **reports[-1].manifest.model_dump(),
+                "budget": reports[0].manifest.budget.model_dump(),
+                "runtime": reports[0].manifest.runtime.model_dump(),
+                "input_provenance_digest": _DIGEST_D,
+            }
+        ),
+        status=reports[-1].status,
+        artifacts=reports[-1].artifacts,
+    )
     with pytest.raises(EvidenceContractError, match="comparative_cohort_context_mismatch"):
         validate_comparative_cohort(tuple(reports))
 

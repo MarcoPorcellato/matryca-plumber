@@ -64,6 +64,16 @@ dataset license identifier and exact Hugging Face revision, returning immutable
 input/provenance evidence rather than a benchmark score. It performs no download,
 screenshot or media resolution, model or vault access, result write, or remote call.
 
+The LoCoMo and LongMemEval local loaders use the same closed public-suite input
+provenance boundary. Before parsing a local file, a caller must supply a `DatasetPin`
+(suite, repository slug, exact revision, and license identifier) plus the expected
+SHA-256 of its raw bytes. A suite mismatch or byte mismatch fails closed. The verified
+input digest is retained in the returned immutable dataset and must be copied into
+each `BenchmarkRunManifest`; comparative cohorts reject a different input digest as
+non-comparable. This proves only local-input provenance. It neither establishes an
+upstream license nor executes a suite, downloads data, invokes a model, reads a vault,
+or writes results.
+
 The comparative cohort receipt is likewise provider-free and content-free. It binds a
 validated four-system control cohort to one retained public-corpus digest and exact
 opaque-artifact attestations. It rejects missing, duplicate, mismatched, mixed-policy,
