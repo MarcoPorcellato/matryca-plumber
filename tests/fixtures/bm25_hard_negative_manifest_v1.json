@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "dataset_id": "matryca-bm25-hard-negative-it-v1",
+  "description": "Deterministic Italian hard-negative retrieval cases for BM25 scorecard benchmarking.",
+  "top_k": 8,
+  "documents": [
+    {
+      "id": "progetto_alfa",
+      "title": "Progetto Alfa",
+      "content": "Il progetto Alfa introduce un sistema di cache distribuita con invalidazione deterministica e osservabilità locale.",
+      "stale": false
+    },
+    {
+      "id": "banca_dati_grafi",
+      "title": "Banca dati grafi",
+      "content": "La banca dati grafi registra relazioni, pagine, link e proprietà per supportare ricerche deterministiche in tempo limitato.",
+      "stale": false
+    },
+    {
+      "id": "pipeline_riassunto",
+      "title": "Pipeline riassunto",
+      "content": "La pipeline di riassunto estrae entit\u00e0 da titoli e sommari per costruire strutture di ricordo deterministiche.",
+      "stale": false
+    },
+    {
+      "id": "onboarding_team",
+      "title": "Onboarding Team",
+      "content": "L\u2019onboarding del team usa checklist ripetibili, check-in settimanali e revisioni condivise con propriet\u00e0 esplicite.",
+      "stale": false
+    },
+    {
+      "id": "backup_locale",
+      "title": "Backup locale",
+      "content": "Il backup locale conserva snapshot giornalieri e supporta ripristini rapidi senza dipendere da servizi esterni.",
+      "stale": false
+    },
+    {
+      "id": "sicurezza_oauth",
+      "title": "Sicurezza OAuth",
+      "content": "La sicurezza OAuth applica token a tempo limitato, ruoli, privilegi minimi e verifica della catena di autorizzazione.",
+      "stale": false
+    },
+    {
+      "id": "api_rest",
+      "title": "API REST",
+      "content": "Le API REST devono restituire payload stabili e codici di errore prevedibili durante i carichi elevati.",
+      "stale": false
+    },
+    {
+      "id": "cache_bm25",
+      "title": "Cache BM25",
+      "content": "La cache BM25 mantiene documenti tokenizzati, limite di righe, eviction policy e calcolo del ranking riusabile.",
+      "stale": false
+    },
+    {
+      "id": "indice_semantico",
+      "title": "Indice semantico",
+      "content": "L\u2019indice semantico usa vettori, tag strutturati e segnature di pagina per raggruppare contenuti simili.",
+      "stale": false
+    },
+    {
+      "id": "query_plausibile",
+      "title": "Query plausibile",
+      "content": "Una query plausibile evita assunzioni aggressive e misura precisione, recall e copertura con metriche trasparenti.",
+      "stale": true
+    },
+    {
+      "id": "contratti_energia",
+      "title": "Contratti energia",
+      "content": "I contratti energia gestiscono piani tariffari, monitoraggio consumo e rinnovi regolati da policy interne.",
+      "stale": false
+    },
+    {
+      "id": "diario_lavoro",
+      "title": "Diario di lavoro",
+      "content": "Il diario di lavoro registra stato giornaliero delle attività ma non deve essere usato come indice principale delle ricerche.",
+      "stale": false
+    },
+    {
+      "id": "agenda_sprint",
+      "title": "Agenda sprint",
+      "content": "L\u2019agenda sprint pianifica obiettivi, revisioni rapide e criteri di accettazione per ogni iterazione.",
+      "stale": false
+    },
+    {
+      "id": "metrica_precisione",
+      "title": "Metrica precisione",
+      "content": "La metrica precisione bilancia risultati top-k con qualità percettiva e controlli quantitativi.",
+      "stale": true
+    },
+    {
+      "id": "metriche_mrc",
+      "title": "Metriche MRC",
+      "content": "Le metriche MRC valutano recall, MRR e nDCG con ranking ordinato e riproducibilit\u00e0 completa.",
+      "stale": false
+    },
+    {
+      "id": "cronologia_patch",
+      "title": "Cronologia patch",
+      "content": "La cronologia patch mostra aggiornamenti recenti, hash, firme di esecuzione e segnature di controllo.",
+      "stale": true
+    },
+    {
+      "id": "utente_privilegiato",
+      "title": "Utente privilegiato",
+      "content": "L\u2019utente privilegiato richiede verifica multi-fattore, logging e ruoli espliciti con revoca rapida.",
+      "stale": false
+    },
+    {
+      "id": "orchestrazione_k8s",
+      "title": "Orchestrazione k8s",
+      "content": "L\u2019orchestrazione k8s scala workload, alloca risorse e conserva limiti di contesto per il runtime locale.",
+      "stale": false
+    },
+    {
+      "id": "modello_llm",
+      "title": "Modello LLM",
+      "content": "Il modello LLM genera testi, propone sintesi e richiede controlli prima dell\u2019aggiornamento delle proposte.",
+      "stale": false
+    },
+    {
+      "id": "backup_offline",
+      "title": "Backup offline",
+      "content": "Il backup offline protegge contenuti critici, verifica checksum e non invia dati a servizi di rete esterni.",
+      "stale": false
+    },
+    {
+      "id": "ricerca_vocale",
+      "title": "Ricerca vocale",
+      "content": "La ricerca vocale trascrive comandi in linguaggio naturale e normalizza termini in modo consistente tra sessioni.",
+      "stale": true
+    },
+    {
+      "id": "monitoraggio_risorse",
+      "title": "Monitoraggio risorse",
+      "content": "Il monitoraggio risorse controlla memoria, RSS, latenze e costo contesto per ogni fase di benchmark.",
+      "stale": false
+    },
+    {
+      "id": "vecchio_manifesto",
+      "title": "Vecchio manifesto",
+      "content": "Questo documento contiene regole superate e riferimenti obsoleti alla vecchia architettura di caching.",
+      "stale": true
+    },
+    {
+      "id": "documento_riconosciuto",
+      "title": "Documento riconosciuto",
+      "content": "Questo documento aggiornato contiene regole operative e firme di revisione per i test deterministici.",
+      "stale": false
+    }
+  ],
+  "cases": [
+    {
+      "seed": 20260802,
+      "query": "cache bm25 invalidazione limit row",
+      "relevant": ["cache_bm25"],
+      "hard_negatives": ["indice_semantico", "vecchio_manifesto"]
+    },
+    {
+      "seed": 20260803,
+      "query": "banca dati grafi relazioni pagine",
+      "relevant": ["banca_dati_grafi"],
+      "hard_negatives": ["diario_lavoro", "agenda_sprint"]
+    },
+    {
+      "seed": 20260804,
+      "query": "pipeline riassunto entit\u00e0 titolo sommario",
+      "relevant": ["pipeline_riassunto"],
+      "hard_negatives": ["indice_semantico", "api_rest"]
+    },
+    {
+      "seed": 20260805,
+      "query": "onboarding team checklist",
+      "relevant": ["onboarding_team"],
+      "hard_negatives": ["agenda_sprint", "modello_llm"]
+    },
+    {
+      "seed": 20260806,
+      "query": "backup locale snapshot ripristino",
+      "relevant": ["backup_locale", "backup_offline"],
+      "hard_negatives": ["query_plausibile", "metrica_precisione"]
+    },
+    {
+      "seed": 20260807,
+      "query": "sicurezza oauth token privilegio autorizzazione",
+      "relevant": ["sicurezza_oauth"],
+      "hard_negatives": ["utente_privilegiato", "modello_llm"]
+    },
+    {
+      "seed": 20260808,
+      "query": "api rest payload codice errore",
+      "relevant": ["api_rest"],
+      "hard_negatives": ["cache_bm25", "monitoraggio_risorse"]
+    },
+    {
+      "seed": 20260809,
+      "query": "indice semantico vettori tag struttura",
+      "relevant": ["indice_semantico"],
+      "hard_negatives": ["pipeline_riassunto", "progetto_alfa"]
+    },
+    {
+      "seed": 20260810,
+      "query": "query plausibile precisione recall",
+      "relevant": ["metriche_mrc", "metrica_precisione"],
+      "hard_negatives": ["query_plausibile", "vecchio_manifesto"]
+    },
+    {
+      "seed": 20260811,
+      "query": "contratti energia tariffa",
+      "relevant": ["contratti_energia"],
+      "hard_negatives": ["backup_locale", "progetto_alfa"]
+    },
+    {
+      "seed": 20260812,
+      "query": "agenda sprint revisione criteri",
+      "relevant": ["agenda_sprint"],
+      "hard_negatives": ["onboarding_team", "cronologia_patch"]
+    },
+    {
+      "seed": 20260813,
+      "query": "metrica mrr ndcg top-k",
+      "relevant": ["metriche_mrc"],
+      "hard_negatives": ["metrica_precisione", "cache_bm25"]
+    },
+    {
+      "seed": 20260814,
+      "query": "cronologia patch hash firma",
+      "relevant": ["cronologia_patch"],
+      "hard_negatives": ["backup_offline", "monitoraggio_risorse"]
+    },
+    {
+      "seed": 20260815,
+      "query": "utente privilegiato verifica multifattore",
+      "relevant": ["utente_privilegiato"],
+      "hard_negatives": ["sicurezza_oauth", "modello_llm"]
+    },
+    {
+      "seed": 20260816,
+      "query": "orchestrazione k8s risorse workload",
+      "relevant": ["orchestrazione_k8s"],
+      "hard_negatives": ["backup_offline", "monitoraggio_risorse"]
+    },
+    {
+      "seed": 20260817,
+      "query": "modello llm sintesi controllo",
+      "relevant": ["modello_llm"],
+      "hard_negatives": ["progetto_alfa", "indice_semantico"]
+    },
+    {
+      "seed": 20260818,
+      "query": "backup offline checksum rete",
+      "relevant": ["backup_offline"],
+      "hard_negatives": ["backup_locale", "cronologia_patch"]
+    },
+    {
+      "seed": 20260819,
+      "query": "monitoraggio risorse memoria rss latenza",
+      "relevant": ["monitoraggio_risorse"],
+      "hard_negatives": ["progetto_alfa", "cache_bm25"]
+    },
+    {
+      "seed": 20260820,
+      "query": "vecchio manifesto regole obsolete",
+      "relevant": ["vecchio_manifesto"],
+      "hard_negatives": ["documento_riconosciuto", "progetto_alfa"]
+    },
+    {
+      "seed": 20260821,
+      "query": "documento riconosciuto regole operative",
+      "relevant": ["documento_riconosciuto"],
+      "hard_negatives": ["vecchio_manifesto", "cronologia_patch"]
+    },
+    {
+      "seed": 20260822,
+      "query": "ricerca vocale trascrive comandi",
+      "relevant": [],
+      "hard_negatives": ["ricerca_vocale", "api_rest"],
+      "abstain_when_no_candidates": true
+    },
+    {
+      "seed": 20260823,
+      "query": "diario lavori personali",
+      "relevant": [],
+      "hard_negatives": ["diario_lavoro", "agenda_sprint"],
+      "abstain_when_no_candidates": true
+    },
+    {
+      "seed": 20260824,
+      "query": "query senza riferimenti validi",
+      "relevant": [],
+      "hard_negatives": ["progetto_alfa", "cache_bm25"],
+      "abstain_when_no_candidates": true
+    },
+    {
+      "seed": 20260825,
+      "query": "espressione sconosciuta assolutamente",
+      "relevant": [],
+      "hard_negatives": ["query_plausibile", "metrica_precisione"],
+      "abstain_when_no_candidates": true
+    }
+  ]
+}

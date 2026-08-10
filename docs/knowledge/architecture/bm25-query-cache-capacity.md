@@ -75,3 +75,31 @@ The 16,384-entry candidate adds no hit-rate benefit for the representative hot o
 ## Evidence boundary
 
 These are deterministic synthetic results, not live-vault qualification. RSS and process peak are measured in one sequential benchmark process, so allocator reuse and cumulative peak state make per-capacity memory deltas directional rather than isolated. The run covers one arm64 macOS machine and one fixed seed. A future capacity increase requires representative sanitized live-corpus traces, isolated-process memory measurements, and cross-platform confirmation without material p99 or correctness regression.
+
+## Scorecard baseline (manifest-driven hard-negative benchmark)
+
+The same benchmark harness now supports an additional scorecard profile for deterministic retrieval quality baselines.
+
+Run with:
+
+```bash
+uv run python scripts/bench_bm25_query_cache.py \
+  --manifest-path tests/fixtures/bm25_hard_negative_manifest_v1.json \
+  --top-k 8 \
+  --output benchmarks/results/bm25_query_cache_scorecard_macos_arm64_2026-08-10.json
+```
+
+Scorecard output includes:
+
+- `benchmark_schema_version: 2`
+- `manifest` identity and SHA-256 digest
+- retrieval-only Recall@K, MRR, nDCG, stale, contradiction, and abstention metrics
+- deterministic 95% percentile-bootstrap confidence intervals for mean ranking metrics
+- the `no_retrieval` signal ablation, which makes the lexical BM25 contribution explicit
+- latency micro-profile and RSS/payload-context measurements, including a transparent
+  byte-derived context-token estimate and zero external-model cost
+
+The profile is synthetic and deterministic: no external data or network runtime dependency is required.
+It intentionally does not report end-to-end answer quality: that belongs to the
+separate adapter layer, where answer model, judge, prompt, token budget, and
+failure policy can be pinned rather than conflated with retrieval quality.
