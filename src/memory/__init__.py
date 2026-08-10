@@ -1,5 +1,11 @@
 """Biological memory graph layer (Nacre-inspired, Epic #99)."""
 
+from .benchmark_cohort import (
+    ComparativeCohortReceipt,
+    CorpusRetentionAttestation,
+    RetainedArtifactAttestation,
+    assemble_comparative_cohort_receipt,
+)
 from .benchmark_protocol import (
     BenchmarkRunManifest,
     BenchmarkRunReport,
@@ -54,6 +60,10 @@ __all__ = [
     "LongMemEvalV2Turn",
     "BenchmarkRunManifest",
     "BenchmarkRunReport",
+    "ComparativeCohortReceipt",
+    "CorpusRetentionAttestation",
+    "RetainedArtifactAttestation",
+    "assemble_comparative_cohort_receipt",
     "calculate_decayed_weight",
     "calculate_stability",
     "compute_decayed_weight_from_dates",

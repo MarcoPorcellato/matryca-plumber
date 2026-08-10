@@ -63,6 +63,16 @@ digest-pinned question, trajectory, and question-to-haystack JSONL plus an expli
 dataset license identifier and exact Hugging Face revision, returning immutable
 input/provenance evidence rather than a benchmark score. It performs no download,
 screenshot or media resolution, model or vault access, result write, or remote call.
+
+The comparative cohort receipt is likewise provider-free and content-free. It binds a
+validated four-system control cohort to one retained public-corpus digest and exact
+opaque-artifact attestations. It rejects missing, duplicate, mismatched, mixed-policy,
+non-reproduced, or non-comparable evidence, and accepts exactly four baseline runs.
+The receipt records no retention path, corpus text,
+prompt, answer, credential, or vault identifier; it neither runs systems nor writes
+artifacts. Raw public-suite material remains outside the receipt under the declared
+retention policy, and a receipt is evidence of comparability and retention only—not a
+quality score or a superiority claim.
 - Cache/fallback rules are deterministic.
 
 #### P2: proposal queue and curation

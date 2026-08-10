@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Governed comparative cohort receipts (#448)** — assemble deterministic, privacy-safe evidence receipts only when an exact public corpus and every required opaque result artifact have matching retained attestations across the required Matryca and open-system controls; no benchmark execution, provider call, vault access, raw-content retention, or result write.
 - **Local LongMemEval-V2 input provenance adapter (#448)** — validate caller-supplied question, trajectory, and mapping JSONL with explicit license/revision provenance and immutable input-only digests; no downloads, inference, vault access, scoring, or result writes.
 
 - **Local LoCoMo retrieval adapter (#448)** — normalize an already acquired public LoCoMo dataset into deterministic session-turn and QA-evidence cases without downloads, image fetching, model calls, vault access, or result persistence.

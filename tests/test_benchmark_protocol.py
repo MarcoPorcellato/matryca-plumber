@@ -170,6 +170,27 @@ def test_comparative_cohort_requires_matryca_controls_and_two_open_systems() -> 
     ):
         validate_comparative_cohort(duplicated_external)
 
+    with pytest.raises(
+        EvidenceContractError, match="comparative_cohort_requires_exactly_four_runs"
+    ):
+        validate_comparative_cohort(reports[:-1])
+    with pytest.raises(
+        EvidenceContractError, match="comparative_cohort_requires_exactly_four_runs"
+    ):
+        validate_comparative_cohort((*reports, _report("external_open_system", "zep")))
+
+    non_reproduced = BenchmarkRunReport(
+        manifest=BenchmarkRunManifest.model_validate(
+            {**reports[-1].manifest.model_dump(), "evidence_class": "upstream_reported_not_rerun"}
+        ),
+        status="completed",
+        artifacts=reports[-1].artifacts,
+    )
+    with pytest.raises(
+        EvidenceContractError, match="comparative_cohort_requires_reproduced_evidence"
+    ):
+        validate_comparative_cohort((*reports[:-1], non_reproduced))
+
 
 def test_comparative_cohort_rejects_context_or_layer_mismatch() -> None:
     reports = list(
