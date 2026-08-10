@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import median
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import src.graph.generational_cache as generational_cache
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -45,9 +45,10 @@ _SEED = 20260802
 _CAPACITIES = (512, 2_048, 8_192, 16_384)
 _DEFAULT_CAPACITY = 8_192
 _RESULT_LIMITS = (1, 8, 32, 100)
-_MANIFEST_SCHEMA_VERSION = 1
-_SCORECARD_SCHEMA_VERSION = 2
+_MANIFEST_SCHEMA_VERSION = 2
+_SCORECARD_SCHEMA_VERSION = 3
 _DEFAULT_TOP_K = 8
+GoldClassification = Literal["update_gold", "superseded_gold"]
 
 
 class ManifestDocument(BaseModel):
@@ -65,6 +66,7 @@ class ManifestCase(BaseModel):
     relevant: list[str]
     hard_negatives: list[str] = Field(default_factory=list)
     abstain_when_no_candidates: bool = False
+    gold_classification: GoldClassification
 
     model_config = ConfigDict(extra="forbid")
 
@@ -125,7 +127,7 @@ def _read_manifest(path: Path) -> tuple[ManifestPayload, str]:
         raise ValueError(f"Manifest {manifest.dataset_id} has duplicated document ids")
 
     seen_seeds: set[int] = set()
-    for case in manifest.cases:
+    for case in sorted(manifest.cases, key=lambda item: (item.seed, item.query)):
         if case.seed in seen_seeds:
             raise ValueError(
                 f"Manifest {manifest.dataset_id} contains duplicate case seed {case.seed}"
@@ -221,6 +223,8 @@ def _rank_metrics(
     top_k: int,
     *,
     has_reference: bool,
+    update_expected: bool = False,
+    abstention_expected: bool = False,
 ) -> dict[str, float | int | bool]:
     top = retrieved_rels[:top_k]
     relevance = [1 if rel in relevant_rels else 0 for rel in top]
@@ -244,6 +248,9 @@ def _rank_metrics(
         "stale_hits": stale_hits,
         "contradiction_hits": contradiction_hits,
         "abstained": has_reference is False and len(top) == 0,
+        "update_expected": update_expected,
+        "update_predicted": bool(relevant_rels.intersection(top)),
+        "abstention_expected": abstention_expected,
     }
 
 
@@ -283,6 +290,33 @@ def _aggregate_rank_metrics(
     contradiction_hits = sum(int(metrics["contradiction_hits"]) for metrics in case_metrics)
     stale_queries = sum(1 for metrics in case_metrics if metrics["stale_hits"])
     contradiction_queries = sum(1 for metrics in case_metrics if metrics["contradiction_hits"])
+
+    def ratio(numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 6) if denominator else 0.0
+
+    def confusion(expected: Sequence[bool], predicted: Sequence[bool]) -> dict[str, int]:
+        return {
+            "true_positive": sum(
+                actual and guess for actual, guess in zip(expected, predicted, strict=True)
+            ),
+            "true_negative": sum(
+                not actual and not guess for actual, guess in zip(expected, predicted, strict=True)
+            ),
+            "false_positive": sum(
+                not actual and guess for actual, guess in zip(expected, predicted, strict=True)
+            ),
+            "false_negative": sum(
+                actual and not guess for actual, guess in zip(expected, predicted, strict=True)
+            ),
+        }
+
+    update_cases = [metrics for metrics in case_metrics if metrics["update_expected"]]
+    update_predictions = [bool(metrics["update_predicted"]) for metrics in update_cases]
+    update_confusion = confusion([True] * len(update_predictions), update_predictions)
+    abstention_confusion = confusion(
+        [bool(metrics["abstention_expected"]) for metrics in case_metrics],
+        [bool(metrics["abstained"]) for metrics in case_metrics],
+    )
     return {
         "recall_at_k": round(sum(recalls) / query_count, 4),
         "mrr": round(sum(mrrs) / query_count, 4),
@@ -308,6 +342,36 @@ def _aggregate_rank_metrics(
             "rate": round(abstention_passed / abstention_expected, 6)
             if abstention_expected
             else 0.0,
+            "precision": ratio(
+                abstention_confusion["true_positive"],
+                abstention_confusion["true_positive"] + abstention_confusion["false_positive"],
+            ),
+            "recall": ratio(
+                abstention_confusion["true_positive"],
+                abstention_confusion["true_positive"] + abstention_confusion["false_negative"],
+            ),
+            "confusion": abstention_confusion,
+        },
+        "update": {
+            "cases": len(update_cases),
+            "accuracy": ratio(
+                update_confusion["true_positive"] + update_confusion["true_negative"],
+                sum(update_confusion.values()),
+            ),
+            "confusion": update_confusion,
+            "by_class": {
+                "update_gold": {
+                    "cases": len(update_cases),
+                    "accuracy": ratio(
+                        update_confusion["true_positive"] + update_confusion["true_negative"],
+                        sum(update_confusion.values()),
+                    ),
+                    "confusion": update_confusion,
+                },
+                "superseded_gold": {
+                    "cases": len(case_metrics) - len(update_cases),
+                },
+            },
         },
     }
 
@@ -320,7 +384,8 @@ def _run_scorecard_benchmark(manifest: ManifestPayload, *, top_k: int) -> dict[s
     abstention_total = 0
     ranked_case_metrics: list[dict[str, float | int | bool]] = []
 
-    for case in manifest.cases:
+    sorted_cases = sorted(manifest.cases, key=lambda item: (item.seed, item.query))
+    for case in sorted_cases:
         relevant_rels = {_to_relation(doc_id) for doc_id in case.relevant}
         hard_negative_rels = {_to_relation(doc_id) for doc_id in case.hard_negatives}
         started = time.perf_counter_ns()
@@ -338,6 +403,8 @@ def _run_scorecard_benchmark(manifest: ManifestPayload, *, top_k: int) -> dict[s
             stale_rels=stale_rels,
             top_k=top_k,
             has_reference=bool(relevant_rels),
+            update_expected=case.gold_classification == "update_gold",
+            abstention_expected=case.abstain_when_no_candidates,
         )
         if not relevant_rels and case.abstain_when_no_candidates:
             abstention_total += 1
@@ -348,12 +415,13 @@ def _run_scorecard_benchmark(manifest: ManifestPayload, *, top_k: int) -> dict[s
             {
                 "seed": case.seed,
                 "query": case.query,
+                "gold_classification": case.gold_classification,
                 "retrieved_relations": retrieved[:top_k],
                 "metrics": metrics,
             }
         )
 
-    bootstrap_seed = sum(case.seed for case in manifest.cases)
+    bootstrap_seed = sum(case.seed for case in sorted_cases)
     metrics_summary = _aggregate_rank_metrics(
         ranked_case_metrics,
         top_k=top_k,
@@ -370,8 +438,10 @@ def _run_scorecard_benchmark(manifest: ManifestPayload, *, top_k: int) -> dict[s
                 stale_rels=stale_rels,
                 top_k=top_k,
                 has_reference=bool(case.relevant),
+                update_expected=case.gold_classification == "update_gold",
+                abstention_expected=case.abstain_when_no_candidates,
             )
-            for case in manifest.cases
+            for case in sorted_cases
         ],
         top_k=top_k,
         bootstrap_seed=bootstrap_seed + 100,
