@@ -8,8 +8,10 @@ import socket
 from pathlib import Path
 
 import pytest
+from src.memory.benchmark_protocol import DatasetPin
 from src.memory.evidence_models import EvidenceContractError
-from src.memory.locomo_adapter import load_locomo_retrieval_cases
+from src.memory.locomo_adapter import LocomoDataset, load_locomo_retrieval_cases
+from src.memory.public_suite_provenance import PublicSuiteInputProvenance
 
 
 def _dataset() -> list[object]:
@@ -56,12 +58,30 @@ def _write_dataset(tmp_path: Path, payload: object | None = None) -> Path:
     return path
 
 
+def _provenance(path: Path) -> PublicSuiteInputProvenance:
+    return PublicSuiteInputProvenance(
+        dataset=DatasetPin(
+            suite="locomo",
+            dataset_id="locomo-v1",
+            repository_slug="snap-research/locomo",
+            dataset_revision="a" * 40,
+            license_id="CC-BY-4.0",
+        ),
+        raw_input_digest=hashlib.sha256(path.read_bytes()).hexdigest(),
+        evidence_kind="local_input_provenance_only",
+    )
+
+
+def _load(path: Path) -> LocomoDataset:
+    return load_locomo_retrieval_cases(path, provenance=_provenance(path))
+
+
 def test_adapter_normalizes_sessions_evidence_and_abstention_deterministically(
     tmp_path: Path,
 ) -> None:
     path = _write_dataset(tmp_path)
 
-    dataset = load_locomo_retrieval_cases(path)
+    dataset = _load(path)
 
     assert dataset.source_digest == hashlib.sha256(path.read_bytes()).hexdigest()
     assert [case.case_id for case in dataset.cases] == ["locomo-sample-1:1", "locomo-sample-1:2"]
@@ -87,7 +107,7 @@ def test_adapter_never_opens_network_or_follows_optional_image_metadata(
     monkeypatch.setattr(socket, "create_connection", reject_network)
     monkeypatch.setattr(socket, "gethostbyname", reject_network)
 
-    assert len(load_locomo_retrieval_cases(path).cases) == 2
+    assert len(_load(path).cases) == 2
 
 
 @pytest.mark.parametrize(
@@ -125,4 +145,21 @@ def test_adapter_fails_closed_for_malformed_required_evidence(
     error: str,
 ) -> None:
     with pytest.raises(EvidenceContractError, match=error):
-        load_locomo_retrieval_cases(_write_dataset(tmp_path, payload))
+        _load(_write_dataset(tmp_path, payload))
+
+
+def test_adapter_rejects_wrong_suite_or_digest(tmp_path: Path) -> None:
+    path = _write_dataset(tmp_path)
+    provenance = _provenance(path)
+    with pytest.raises(EvidenceContractError, match="public_suite_input_digest_mismatch"):
+        load_locomo_retrieval_cases(
+            path,
+            provenance=provenance.model_copy(update={"raw_input_digest": "b" * 64}),
+        )
+    with pytest.raises(EvidenceContractError, match="public_suite_provenance_suite_mismatch"):
+        load_locomo_retrieval_cases(
+            path,
+            provenance=provenance.model_copy(
+                update={"dataset": provenance.dataset.model_copy(update={"suite": "longmemeval"})}
+            ),
+        )

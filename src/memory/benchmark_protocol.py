@@ -222,6 +222,7 @@ class BenchmarkRunManifest(_ClosedModel):
     schema_version: str = BENCHMARK_PROTOCOL_SCHEMA_VERSION
     cohort_id: str
     dataset: DatasetPin
+    input_provenance_digest: str
     evaluation_layer: EvaluationLayer
     system: SystemPin
     answer_model: ModelPin | None
@@ -235,6 +236,11 @@ class BenchmarkRunManifest(_ClosedModel):
         if self.schema_version != BENCHMARK_PROTOCOL_SCHEMA_VERSION:
             raise EvidenceContractError("unsupported_benchmark_protocol_schema")
         object.__setattr__(self, "cohort_id", _identifier(self.cohort_id, field="cohort_id"))
+        object.__setattr__(
+            self,
+            "input_provenance_digest",
+            _sha256(self.input_provenance_digest, field="input_provenance_digest"),
+        )
         if self.evaluation_layer == "retrieval":
             if self.answer_model is not None or self.judge_model is not None:
                 raise EvidenceContractError("retrieval_run_cannot_pin_answer_or_judge")
@@ -306,6 +312,7 @@ def validate_comparative_cohort(reports: tuple[BenchmarkRunReport, ...]) -> str:
     reference = manifests[0]
     comparison_key = (
         reference.dataset,
+        reference.input_provenance_digest,
         reference.answer_model,
         reference.judge_model,
         reference.budget,
@@ -314,6 +321,7 @@ def validate_comparative_cohort(reports: tuple[BenchmarkRunReport, ...]) -> str:
     if any(
         (
             manifest.dataset,
+            manifest.input_provenance_digest,
             manifest.answer_model,
             manifest.judge_model,
             manifest.budget,

@@ -40,6 +40,7 @@ from .longmemeval_v2_adapter import (
     LongMemEvalV2Turn,
     load_longmemeval_v2_input,
 )
+from .public_suite_provenance import PublicSuiteInputProvenance
 from .recall import RecallBundle, recall_from_existing_retrieval
 
 __all__ = [
@@ -72,6 +73,7 @@ __all__ = [
     "memory_graph_enabled",
     "RecallBundle",
     "P0EvidencePacket",
+    "PublicSuiteInputProvenance",
     "recall_from_existing_retrieval",
     "load_locomo_retrieval_cases",
     "load_longmemeval_retrieval_cases",

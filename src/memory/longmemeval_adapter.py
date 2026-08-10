@@ -6,7 +6,6 @@ the returned Pydantic models remain frozen and closed contracts.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -15,6 +14,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .evidence_models import EvidenceContractError
+from .public_suite_provenance import PublicSuiteInputProvenance, verify_public_suite_input
 
 _MAX_CASES = 10_000
 _MAX_SESSIONS = 10_000
@@ -65,15 +65,19 @@ class LongMemEvalDataset(_ClosedModel):
     """A locally loaded, digest-pinned LongMemEval dataset."""
 
     source_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provenance: PublicSuiteInputProvenance
     cases: tuple[LongMemEvalRetrievalCase, ...] = Field(min_length=1)
 
 
-def load_longmemeval_retrieval_cases(path: Path) -> LongMemEvalDataset:
+def load_longmemeval_retrieval_cases(
+    path: Path, *, provenance: PublicSuiteInputProvenance
+) -> LongMemEvalDataset:
     """Load one acquired cleaned/oracle LongMemEval JSON file without side effects."""
     try:
         raw_bytes = path.read_bytes()
     except OSError as exc:
         raise EvidenceContractError("longmemeval_dataset_unreadable") from exc
+    source_digest = verify_public_suite_input(provenance, raw_bytes, expected_suite="longmemeval")
     try:
         raw: Any = json.loads(raw_bytes, object_pairs_hook=_no_duplicate_json_keys)
     except (_DuplicateJsonKeyError, UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -98,7 +102,8 @@ def load_longmemeval_retrieval_cases(path: Path) -> LongMemEvalDataset:
         cases.append(case)
     try:
         return LongMemEvalDataset(
-            source_digest=hashlib.sha256(raw_bytes).hexdigest(),
+            source_digest=source_digest,
+            provenance=provenance,
             cases=tuple(cases),
         )
     except ValidationError as exc:
