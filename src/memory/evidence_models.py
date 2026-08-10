@@ -78,6 +78,7 @@ class EvidenceRef:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> EvidenceRef:
+        _require_exact_keys(value, {"source_kind", "source_id", "revision_digest"})
         return cls(
             source_kind=_required_string(value, "source_kind"),
             source_id=_required_string(value, "source_id"),
@@ -129,6 +130,10 @@ class MemoryCandidate:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> MemoryCandidate:
+        _require_exact_keys(
+            value,
+            {"candidate_id", "candidate_kind", "evidence_refs", "observed_at", "status"},
+        )
         raw_refs = value.get("evidence_refs")
         if not isinstance(raw_refs, list):
             raise EvidenceContractError("invalid_evidence_refs")
@@ -181,6 +186,7 @@ class EvidenceEvent:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> EvidenceEvent:
+        _require_exact_keys(value, {"candidate", "event_type", "recorded_at", "schema_version"})
         raw_candidate = value.get("candidate")
         if not isinstance(raw_candidate, Mapping):
             raise EvidenceContractError("invalid_candidate")
@@ -217,6 +223,12 @@ def _required_int(value: Mapping[str, Any], key: str) -> int:
     if isinstance(raw, bool) or not isinstance(raw, int):
         raise EvidenceContractError(f"invalid_{key}")
     return raw
+
+
+def _require_exact_keys(value: Mapping[str, Any], expected: set[str]) -> None:
+    """Reject unmodeled persisted fields before they can bypass privacy validation."""
+    if set(value) != expected:
+        raise EvidenceContractError("unexpected_fields")
 
 
 def _ref_sort_key(value: EvidenceRef) -> tuple[str, str, str]:

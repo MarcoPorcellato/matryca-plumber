@@ -67,3 +67,39 @@ def test_evidence_refs_must_be_canonical_and_unique() -> None:
             observed_at="2026-08-10T12:00:00Z",
             evidence_refs=(second, second),
         )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "source_kind": "benchmark",
+            "source_id": _DIGEST_B,
+            "revision_digest": _DIGEST_C,
+            "raw": "x",
+        },
+        {
+            "candidate_id": _DIGEST_A,
+            "candidate_kind": "semantic-claim",
+            "evidence_refs": [],
+            "observed_at": "2026-08-10T12:00:00Z",
+            "status": "proposed",
+            "raw": "x",
+        },
+        {
+            "candidate": _candidate().to_dict(),
+            "event_type": "candidate_observed",
+            "recorded_at": "2026-08-10T12:01:00Z",
+            "schema_version": 1,
+            "raw": "x",
+        },
+    ],
+)
+def test_replay_rejects_unmodeled_content_bearing_fields(payload: dict[str, object]) -> None:
+    with pytest.raises(EvidenceContractError, match="unexpected_fields"):
+        if "source_kind" in payload:
+            EvidenceRef.from_dict(payload)
+        elif "candidate_id" in payload:
+            MemoryCandidate.from_dict(payload)
+        else:
+            EvidenceEvent.from_dict(payload)

@@ -24,6 +24,11 @@ SHA-256 digests, UTC timestamps, and bounded classifications. Raw vault text,
 prompts, credentials, absolute paths, and reconstructed candidate prose are
 not accepted by this P0 contract.
 
+Its event identity may be referenced by the pure `P0EvidencePacket` coordination
+contract in [biological-memory.md](biological-memory.md). That reference never
+opens, replays, or writes this archive, and it does not turn a candidate into an
+accepted canonical memory.
+
 Events serialize as canonical JSON and derive an event ID from their canonical
 bytes. A replay of the same event is a no-op. A complete malformed record fails
 closed. A final unterminated JSON fragment is recoverable only when it has the

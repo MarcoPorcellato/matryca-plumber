@@ -28,7 +28,15 @@ autonomous behavior is shipped; scaffolded later-phase components remain roadmap
 
 ### P0 — evidence controls, canonical recall/provenance/idempotence, and benchmark baseline
 
-1. Define governed evidence and provenance rules for recall envelope behavior.
+1. Define governed evidence and provenance rules for recall envelope behavior,
+   including a byte-stable `P0EvidencePacket` that joins recall, scorecard, and
+   append-only archive references without adding a write path.
+
+P0 is closed only when the four independently reviewable deliverables agree:
+the external append-only archive (#449), retrieval-only scorecard baseline (#448),
+gated canonical recall envelope (#186), and proposed-only governed packet (#447).
+Their completion is a prerequisite for P1; it is not a benchmark claim about
+end-to-end agent quality or authority to curate canonical memory.
 2. Define canonical recall fingerprints, invalidation behavior, and idempotent processing boundaries.
 3. Define benchmark baseline and acceptance policy.
 4. Define replay/rollback/freshness boundaries before any P1 rollout.
