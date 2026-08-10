@@ -103,3 +103,23 @@ The profile is synthetic and deterministic: no external data or network runtime 
 It intentionally does not report end-to-end answer quality: that belongs to the
 separate adapter layer, where answer model, judge, prompt, token budget, and
 failure policy can be pinned rather than conflated with retrieval quality.
+
+## Cross-system evidence contract
+
+`src.memory.benchmark_protocol` provides a closed, provider-free contract for
+the later public-suite adapter layer. It validates metadata only: no benchmark
+suite is downloaded, no model is invoked, and no prompt, answer, vault content,
+credential, path, or raw result is retained in the contract.
+
+Each run pins its suite and dataset revision, harness and Matryca revisions,
+dependency lock digest, system revision/configuration digest, hardware/runtime,
+budget, cache state, retry/failure policy, and model/judge configuration where applicable. Four
+opaque artifact digests are mandatory: item results, exclusions, failed runs,
+and run metadata. This makes omissions visible without publishing content.
+
+The comparative validator accepts only completed, like-for-like cohorts with
+one Matryca no-semantic-memory control, one Matryca candidate-feature control,
+and at least two distinct open external systems. It rejects mismatched dataset,
+model, judge, budget, or runtime context, and it keeps retrieval and end-to-end
+answer layers separate. The contract is evidence infrastructure, not a claim
+that a public suite or external system has already been executed.
