@@ -292,9 +292,11 @@ def validate_comparative_cohort(reports: tuple[BenchmarkRunReport, ...]) -> str:
     The validator does not score systems.  It proves only that a resulting
     comparison has the required controls and compatible measurement context.
     """
-    if len(reports) < 4:
-        raise EvidenceContractError("comparative_cohort_requires_four_runs")
+    if len(reports) != 4:
+        raise EvidenceContractError("comparative_cohort_requires_exactly_four_runs")
     manifests = tuple(report.manifest for report in reports)
+    if any(manifest.evidence_class != "independently_reproduced" for manifest in manifests):
+        raise EvidenceContractError("comparative_cohort_requires_reproduced_evidence")
     if any(report.status != "completed" for report in reports):
         raise EvidenceContractError("comparative_cohort_requires_completed_runs")
     if len({manifest.cohort_id for manifest in manifests}) != 1:
