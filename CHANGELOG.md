@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Local BEAM input provenance adapter (#448)** — normalize caller-supplied BEAM chat and probing-question JSON into immutable, digest-bound input evidence with an exact public dataset pin; no downloads, inference, vault access, scoring, or result writes.
 - **Public-suite local-input provenance (#448)** — require LoCoMo and LongMemEval callers to bind exact repository/revision/license metadata and a raw-input SHA-256 before parsing; persist that digest in immutable datasets and comparative manifests so mismatched public inputs fail closed without downloading data or executing systems.
 - **Retained synthetic retrieval scorecard evidence (#448)** — commit the first manifest-bound, retrieval-only Italian hard-negative result with its deterministic fingerprint, bootstrap intervals, signal ablation, source revision, and a regression check that separates reproducible retrieval evidence from host-dependent latency and RSS diagnostics.
 - **Governed comparative cohort receipts (#448)** — assemble deterministic, privacy-safe evidence receipts only when an exact public corpus and every required opaque result artifact have matching retained attestations across the required Matryca and open-system controls; no benchmark execution, provider call, vault access, raw-content retention, or result write.

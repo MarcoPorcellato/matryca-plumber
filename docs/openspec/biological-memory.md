@@ -74,6 +74,12 @@ non-comparable. This proves only local-input provenance. It neither establishes 
 upstream license nor executes a suite, downloads data, invokes a model, reads a vault,
 or writes results.
 
+The BEAM adapter applies the same local-only policy to one caller-supplied `chat.json`
+and its colocated `probing_questions.json`. The caller binds the official repository,
+exact revision, CC-BY-SA-4.0 data license, chat identifier, and both raw-byte digests.
+It emits immutable input/provenance evidence only; it does not download data, resolve
+an answer, invoke a model, access a vault, score a run, or write results.
+
 The comparative cohort receipt is likewise provider-free and content-free. It binds a
 validated four-system control cohort to one retained public-corpus digest and exact
 opaque-artifact attestations. It rejects missing, duplicate, mismatched, mixed-policy,
@@ -129,7 +135,7 @@ When publicly exposed, document in `.env.example` under **Advanced / high impact
   do not download, call models, access the vault, or persist results. LongMemEval's
   session-level answer references and optional answer-marked turns remain separate, and
   `_abs` IDs are metadata rather than inferred retrieval outcomes. Unknown upstream input
-  fields are deliberately ignored for forward compatibility; emitted evaluation contracts
+fields are deliberately ignored for forward compatibility; emitted evaluation contracts
   remain closed and frozen.
 
 ## P0 canonical recall

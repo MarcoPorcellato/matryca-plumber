@@ -1,5 +1,13 @@
 """Biological memory graph layer (Nacre-inspired, Epic #99)."""
 
+from .beam_adapter import (
+    BeamConversation,
+    BeamInputEvidence,
+    BeamProvenance,
+    BeamQuestion,
+    BeamTurn,
+    load_beam_input,
+)
 from .benchmark_cohort import (
     ComparativeCohortReceipt,
     CorpusRetentionAttestation,
@@ -61,6 +69,11 @@ __all__ = [
     "LongMemEvalV2Turn",
     "BenchmarkRunManifest",
     "BenchmarkRunReport",
+    "BeamConversation",
+    "BeamInputEvidence",
+    "BeamProvenance",
+    "BeamQuestion",
+    "BeamTurn",
     "ComparativeCohortReceipt",
     "CorpusRetentionAttestation",
     "RetainedArtifactAttestation",
@@ -76,6 +89,7 @@ __all__ = [
     "PublicSuiteInputProvenance",
     "recall_from_existing_retrieval",
     "load_locomo_retrieval_cases",
+    "load_beam_input",
     "load_longmemeval_retrieval_cases",
     "load_longmemeval_v2_input",
     "validate_comparative_cohort",
