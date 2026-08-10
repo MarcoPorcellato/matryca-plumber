@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Changed
+
+- **Evidence-first agentic-memory programme** — sequence v2.1+ delivery through governed evidence, deterministic canonical recall, reproducible benchmarks, human-governed curation, and derived-only Shadow state before typed decay, procedural memory, or opt-in proactivity.
+
 ### Fixed
 
 - **Gate B RC2 artifact binding** — bind fresh dual-profile qualification to the exact installed `2.0.0rc2` public wheel instead of rejecting it through the historical RC1 package identity.

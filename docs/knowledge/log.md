@@ -1,5 +1,10 @@
 # Documentation update log
 
+## 2026-08-10
+
+- **Agentic-memory governance:** Replaced decay-first planning with governed evidence, deterministic recall, reproducible benchmarks, proposal-first curation, and late opt-in proactivity while preserving Markdown authority and derived Shadow semantics.
+- **Execution trace:** Added the [Agentic Memory Leadership Programme](../quality/AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md) with delegated audit receipts, GitHub control-plane changes, claim policy, correction rounds, and completion gates.
+
 ## 2026-08-08
 
 - **Machine-readable validation:** Added deterministic, schema-versioned JSON findings with stable fingerprints, bounded messages, independent layer summaries, and normalized Git provenance while preserving the existing blocking text gate.
