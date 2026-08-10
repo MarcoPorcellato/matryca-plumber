@@ -668,6 +668,24 @@
       "classification": "active"
     },
     {
+      "path": "docs/openspec/evidence-archive.md",
+      "type": "Specification",
+      "title": "Governed evidence archive",
+      "description": "The P0 evidence archive records immutable, privacy-safe provenance for a",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/openspec/identity-config.md",
       "type": "Specification",
       "title": "In-graph identity (Telos & AI Constraints)",

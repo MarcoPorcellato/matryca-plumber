@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **Evidence archive foundation** — add an immutable, privacy-safe, externally stored and idempotent P0 evidence-event archive for future governed memory candidates.
+
 ### Changed
 
 - **Evidence-first agentic-memory programme** — sequence v2.1+ delivery through governed evidence, deterministic canonical recall, reproducible benchmarks, human-governed curation, and derived-only Shadow state before typed decay, procedural memory, or opt-in proactivity.
