@@ -1,5 +1,9 @@
 # Documentation update log
 
+## 2026-08-11
+
+- **Graph-outcome evaluation:** Accepted a P0.5 plan for resettable Logseq graph environments, stale-memory and concurrent-human scenarios, final-world-state grading, safety vetoes, paired reliability evidence, release integration, and public Commit CI Preflight receipt gates for reducing duplicated GitHub Actions workload; publicly acknowledged @hardness1020's contribution to the programme correction.
+
 ## 2026-08-10
 
 - **Agentic-memory governance:** Replaced decay-first planning with governed evidence, deterministic recall, reproducible benchmarks, proposal-first curation, and late opt-in proactivity while preserving Markdown authority and derived Shadow semantics.
