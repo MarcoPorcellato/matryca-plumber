@@ -138,7 +138,7 @@ def run_retrieval(
             exclusions.append(ExclusionRecord(item_id=item.item_id, reason=item.excluded_reason))
             continue
         try:
-            candidates = tuple(retriever.retrieve(item, top_k=manifest.budget.top_k))
+            candidates = retriever.retrieve(item, top_k=manifest.budget.top_k)
         except TimeoutError:
             failures.append(FailureRecord(item_id=item.item_id, classification="timeout"))
             continue
@@ -187,6 +187,10 @@ def run_retrieval(
 
 
 def _validate_result_order(candidates: Sequence[RetrievedCandidate], *, top_k: int) -> None:
+    if isinstance(candidates, (str, bytes, bytearray)) or not isinstance(candidates, Sequence):
+        raise EvidenceContractError("retrieval_result_not_sequence")
+    if any(not isinstance(candidate, RetrievedCandidate) for candidate in candidates):
+        raise EvidenceContractError("invalid_retrieval_candidate")
     if len(candidates) > top_k:
         raise EvidenceContractError("retrieval_result_exceeds_top_k")
     ranks = tuple(candidate.rank for candidate in candidates)
