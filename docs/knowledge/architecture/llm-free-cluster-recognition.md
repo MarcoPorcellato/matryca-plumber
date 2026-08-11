@@ -138,6 +138,8 @@ Run:
 
 ```bash
 uv run python scripts/bench_semantic_clustering_quality.py
+uv run python scripts/bench_semantic_clustering_quality.py \
+  --output benchmarks/results/semantic_clustering_scorecard.json
 ```
 
 The benchmark uses 288 opaque-titled synthetic notes, 12 labelled topics, five
@@ -148,7 +150,13 @@ input order. Quality aggregates also include deterministic percentile bootstrap
 intervals over the five fixed seed runs. `collapse_detected` is true only for
 total collapse (one predicted cluster for a non-empty catalogue); the
 largest-cluster fraction makes partial collapse visible without treating it as
-a binary failure.
+a binary failure. The schema-versioned artifact also records the source commit
+only when `--output` is used; stdout retains the historical compact JSON shape.
+Retained artifacts refuse output from a dirty source tree. `collapse_rate` is the normalized
+excess share of the largest predicted cluster above the balanced fixture's
+nominal 24-item topic size: `0` is balanced separation and `1` is total
+collapse. It is a fixture diagnostic, not a comparative or real-vault quality
+claim.
 
 Observed on the development Mac:
 
