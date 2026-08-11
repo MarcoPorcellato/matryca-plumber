@@ -2,6 +2,7 @@
 
 ### Added
 
+- **Provider-free graph-outcome contracts (#483)** — add frozen, closed, byte-stable task, environment, episode, event, rubric, veto, report, and content-free receipt schemas for resettable Logseq outcome evaluation; malformed provenance, duplicate identifiers, impossible event chains, unbounded budgets, incompatible write policies, and incomplete evidence fail closed without filesystem, vault, Shadow, model, provider, or network side effects.
 - **Local BEAM input provenance adapter (#448)** — normalize caller-supplied BEAM chat and probing-question JSON into immutable, digest-bound input evidence with an exact public dataset pin; no downloads, inference, vault access, scoring, or result writes.
 - **Public-suite local-input provenance (#448)** — require LoCoMo and LongMemEval callers to bind exact repository/revision/license metadata and a raw-input SHA-256 before parsing; persist that digest in immutable datasets and comparative manifests so mismatched public inputs fail closed without downloading data or executing systems.
 - **Retained synthetic retrieval scorecard evidence (#448)** — commit the first manifest-bound, retrieval-only Italian hard-negative result with its deterministic fingerprint, bootstrap intervals, signal ablation, source revision, and a regression check that separates reproducible retrieval evidence from host-dependent latency and RSS diagnostics.
