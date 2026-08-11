@@ -683,7 +683,8 @@
       "destination": "docs/knowledge/specifications/",
       "action": "migrate",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/openspec/identity-config.md",
@@ -912,6 +913,25 @@
       "notes": "",
       "missing": false,
       "classification": "active"
+    },
+    {
+      "path": "docs/quality/AGENTIC_MEMORY_GRAPH_OUTCOME_EVALUATION_PLAN_2026-08-11.md",
+      "type": "Roadmap",
+      "title": "Agentic Memory Graph-Outcome Evaluation Plan — 2026-08-11",
+      "description": "Resettable graph-world evaluation strategy, final-state safety rubric, CI-efficiency integration, implementation slices, and release gates for evidence-backed agentic memory.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active successor strategy for the retrieval-to-outcome evidence bridge, including public Commit CI Preflight receipt gates; implementation remains gated by a new child issue and linked phase dependencies.",
+      "missing": false
     },
     {
       "path": "docs/quality/AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md",

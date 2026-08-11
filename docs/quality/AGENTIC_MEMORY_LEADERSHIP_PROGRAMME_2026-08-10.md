@@ -25,6 +25,14 @@ registry_projection: reviewed_only
 
 # Agentic Memory Leadership Programme — 2026-08-10
 
+> **Successor plan (2026-08-11):** Contributor feedback in
+> [Discussion #455](https://github.com/MarcoPorcellato/matryca-plumber/discussions/455)
+> identified the need for resettable, final-world-state evaluation beyond the
+> retrieval-heavy P0 foundation. The accepted
+> [Agentic Memory Graph-Outcome Evaluation Plan](AGENTIC_MEMORY_GRAPH_OUTCOME_EVALUATION_PLAN_2026-08-11.md)
+> preserves this dossier as historical evidence and adds a P0.5 bridge before
+> write-adjacent, procedural, or proactive memory capabilities.
+
 **Canonical scope:** `MarcoPorcellato/matryca-plumber` documentation execution plane
 **Source branch:** `main`
 **Baseline commit:** `013267d168a66947fb581a95ed20b98194b29edb`
