@@ -215,6 +215,37 @@ def test_malformed_inputs_and_output_boundaries_fail_closed(tmp_path: Path) -> N
     assert outside.read_bytes() == b"untouched"
 
 
+@pytest.mark.parametrize(
+    ("result", "error"),
+    (
+        (None, "retrieval_result_not_sequence"),
+        ((object(),), "invalid_retrieval_candidate"),
+    ),
+)
+def test_malformed_candidate_seam_output_fails_closed(
+    tmp_path: Path, result: object, error: str
+) -> None:
+    manifest = _manifest()
+    retriever = type(
+        "MalformedRetriever",
+        (),
+        {
+            "system": manifest.system,
+            "retrieve": lambda _self, _item, *, top_k: result,
+        },
+    )()
+
+    with pytest.raises(EvidenceContractError, match=f"^{error}$"):
+        run_retrieval(
+            manifest,
+            _evidence().model_copy(update={"items": (_evidence().items[0],)}),
+            run_root=tmp_path,
+            retriever=retriever,
+        )
+
+    assert not tuple(tmp_path.iterdir())
+
+
 def test_non_retrieval_manifest_is_rejected() -> None:
     with pytest.raises(ValueError, match="end_to_end_run_requires_answer_and_judge"):
         BenchmarkRunManifest.model_validate(
