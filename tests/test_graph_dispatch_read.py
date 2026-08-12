@@ -12,6 +12,7 @@ from src.agent.dispatch_read_handlers import (
 )
 from src.agent.graph_dispatch import dispatch_read
 from src.config import MatrycaWikiConfig
+from src.shadow.connection import shadow_db_path
 
 
 @pytest.mark.asyncio
@@ -46,3 +47,22 @@ async def test_dispatch_read_subtree_via_port(
 async def test_handle_read_subtree_empty_query_message() -> None:
     body = await handle_read_subtree(MatrycaWikiConfig(), "/tmp/graph", "  ")
     assert "target_type=subtree" in body
+
+
+@pytest.mark.asyncio
+async def test_dispatch_read_shadow_status_is_content_free_and_does_not_create_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "pages").mkdir()
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "false")
+
+    body = await dispatch_read_target(MatrycaWikiConfig(), "shadow_status", "ignored")
+
+    payload = json.loads(body)
+    assert payload["state"] == "disabled"
+    assert payload["read_profile"]["profile"] == "shadow-read-profile"
+    assert payload["read_profile"]["graph_id"] is None
+    assert str(tmp_path) not in body
+    assert not shadow_db_path(tmp_path).exists()

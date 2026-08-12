@@ -136,6 +136,10 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         (``bootstrap_complete``, progress, ``soft_gate_active``). Call before the Master Index
         Soft Gate.
 
+        **``target_type=shadow_status``** — ``query`` ignored. Content-free, versioned
+        read-cache status and compatibility profile. This performs no initialization, mutation,
+        schema migration, or content read.
+
         **``target_type=dashboard``** — ``query`` ignored. Matryca dashboard Markdown:
         page counts, ``id::`` tally, block-ref health under ``pages/``.
 
