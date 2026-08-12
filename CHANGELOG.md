@@ -2,6 +2,11 @@
 
 ### Added
 
+- **Frozen Shadow read-profile fixtures** — publish a content-free v1 admission
+  corpus with healthy, malformed, future-version, unhealthy, and foreign-binding
+  packets for deterministic compatibility checks; no cache operation or new read
+  capability is introduced.
+
 - **Content-free Shadow status read target** — add `read_graph_data(target_type="shadow_status")` as a versioned, query-only status surface with no cache initialization, schema migration, mutation, or content read.
 
 - **Versioned Shadow read profile** — expose an additive, content-free `shadow_db.read_profile` with a closed profile version, installed producer version, hashed graph binding, committed generation, readiness, schema compatibility, and bounded capabilities so external read-side consumers can fail closed without filesystem or metadata-table access.
