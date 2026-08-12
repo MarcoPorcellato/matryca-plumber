@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from pydantic import ValidationError
@@ -21,7 +22,10 @@ FORBIDDEN_KEYS = {"path", "content", "rows", "query", "sql", "secret"}
 
 
 def _load(name: str) -> dict[str, object]:
-    return json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
+    payload = json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"fixture {name} must be a JSON object")
+    return cast(dict[str, object], payload)
 
 
 def test_fixture_corpus_is_complete_and_content_free() -> None:
