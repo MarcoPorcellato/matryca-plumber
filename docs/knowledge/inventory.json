@@ -3247,6 +3247,27 @@
       "classification": "active"
     },
     {
+      "path": "docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md",
+      "type": "Roadmap",
+      "title": "Tine and Logseq ecosystem integration strategy",
+      "description": "Evidence-backed strategy for safe Tine interoperability and a Matryca-maintained dual-mode Logseq companion with a minimum-effort, maximum-impact delivery sequence.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "integrations",
+      "destination": "docs/knowledge/roadmaps/active/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
