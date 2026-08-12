@@ -2,6 +2,8 @@
 
 ### Added
 
+- **Versioned Shadow read profile** — expose an additive, content-free `shadow_db.read_profile` with a closed profile version, installed producer version, hashed graph binding, committed generation, readiness, schema compatibility, and bounded capabilities so external read-side consumers can fail closed without filesystem or metadata-table access.
+
 - **Provider-free graph-outcome contracts (#483)** — add frozen, closed, byte-stable task, environment, episode, event, rubric, veto, report, and content-free receipt schemas for resettable Logseq outcome evaluation; malformed provenance, duplicate identifiers, impossible event chains, unbounded budgets, incompatible write policies, and incomplete evidence fail closed without filesystem, vault, Shadow, model, provider, or network side effects.
 - **Local BEAM input provenance adapter (#448)** — normalize caller-supplied BEAM chat and probing-question JSON into immutable, digest-bound input evidence with an exact public dataset pin; no downloads, inference, vault access, scoring, or result writes.
 - **Public-suite local-input provenance (#448)** — require LoCoMo and LongMemEval callers to bind exact repository/revision/license metadata and a raw-input SHA-256 before parsing; persist that digest in immutable datasets and comparative manifests so mismatched public inputs fail closed without downloading data or executing systems.
