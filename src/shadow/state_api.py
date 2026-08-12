@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from contextlib import suppress
+from functools import lru_cache
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Literal
 
@@ -11,10 +14,12 @@ from pydantic import BaseModel
 
 from ..graph.path_sandbox import PathTraversalSecurityError, resolved_graph_root
 from ..utils.console_sanitize import sanitize_for_console
+from .cache_location import ShadowCacheLocationError, resolve_shadow_cache_location
 from .config import shadow_db_enabled
 from .connection import open_shadow_db_query_only, shadow_db_path
 from .health import shadow_meta_matches_page_rows
 from .meta import (
+    META_GENERATION,
     META_INDEXED_PAGE_COUNT,
     META_LAST_FULL_SYNC_AT,
     META_LAST_FULL_SYNC_COMPLETED,
@@ -28,6 +33,9 @@ from .schema import SHADOW_SCHEMA_VERSION
 from .sync_failure import SHADOW_SYNC_FAILURE_REASON, is_shadow_sync_failed
 
 ShadowDbStateValue = Literal["disabled", "bootstrapping", "ready", "stale", "error"]
+ShadowReadProfileVersion = Literal[1]
+ShadowReadProfileCapability = Literal["state"]
+_PACKAGE_NAME = "matryca-plumber"
 
 # Content-free classification of why the read cache is not serving accelerated reads.
 # These codes never carry page titles, paths, or vault content.
@@ -75,6 +83,21 @@ class ShadowDbStateResponse(BaseModel):
     last_sync_error: str | None = None
     not_ready_reason: ShadowDbNotReadyReason | None = None
     quarantined_page_count: int = 0
+    read_profile: ShadowReadProfileResponse | None = None
+
+
+class ShadowReadProfileResponse(BaseModel):
+    """Versioned, content-free producer profile for safe read-side consumers."""
+
+    profile: Literal["shadow-read-profile"] = "shadow-read-profile"
+    version: ShadowReadProfileVersion = 1
+    producer_version: str
+    graph_id: str | None = None
+    generation: int | None = None
+    state: ShadowDbStateValue
+    ready: bool
+    schema_compatible: bool | None = None
+    capabilities: tuple[ShadowReadProfileCapability, ...] = ("state",)
 
 
 def _not_ready_reason_from_meta(
@@ -97,7 +120,47 @@ def _not_ready_reason_from_meta(
 
 
 def _disabled_snapshot() -> ShadowDbStateResponse:
-    return ShadowDbStateResponse()
+    return _with_read_profile(ShadowDbStateResponse())
+
+
+@lru_cache(maxsize=1)
+def _producer_version() -> str:
+    """Return installed package metadata without making version discovery a runtime dependency."""
+    try:
+        return version(_PACKAGE_NAME)
+    except PackageNotFoundError:
+        return "unknown"
+
+
+def _with_read_profile(
+    snapshot: ShadowDbStateResponse,
+    *,
+    graph_root: Path | None = None,
+    meta: dict[str, str | None] | None = None,
+) -> ShadowDbStateResponse:
+    """Attach a bounded read profile without opening, creating, or mutating a cache."""
+    graph_id: str | None = None
+    if graph_root is not None:
+        with suppress(OSError, RuntimeError, PathTraversalSecurityError, ShadowCacheLocationError):
+            graph_id = resolve_shadow_cache_location(graph_root).graph_id
+
+    schema_raw = (meta or {}).get(META_SCHEMA_VERSION)
+    schema_compatible = (
+        None if schema_raw is None else schema_raw.strip() == str(SHADOW_SCHEMA_VERSION)
+    )
+    generation = _parse_non_negative_int((meta or {}).get(META_GENERATION))
+    return snapshot.model_copy(
+        update={
+            "read_profile": ShadowReadProfileResponse(
+                producer_version=_producer_version(),
+                graph_id=graph_id,
+                generation=generation,
+                state=snapshot.state,
+                ready=snapshot.state == "ready",
+                schema_compatible=schema_compatible,
+            )
+        }
+    )
 
 
 def _bounded_error_message(raw: str | None) -> str | None:
@@ -162,6 +225,7 @@ def _read_meta_readonly(graph_root: Path) -> tuple[dict[str, str | None], int, i
     try:
         meta = {
             META_SCHEMA_VERSION: get_meta(connection, META_SCHEMA_VERSION),
+            META_GENERATION: get_meta(connection, META_GENERATION),
             META_LAST_SYNC_ERROR: get_meta(connection, META_LAST_SYNC_ERROR),
             META_LAST_FULL_SYNC_AT: get_meta(connection, META_LAST_FULL_SYNC_AT),
             META_LAST_FULL_SYNC_COMPLETED: get_meta(connection, META_LAST_FULL_SYNC_COMPLETED),
@@ -222,66 +286,89 @@ def resolve_shadow_db_state_for_api(graph_root: Path | str) -> ShadowDbStateResp
 
     root = resolved_graph_root(graph_root)
     if is_shadow_bootstrapping(root):
-        return ShadowDbStateResponse(
-            enabled=True,
-            state="bootstrapping",
-            not_ready_reason="bootstrap_in_progress",
+        return _with_read_profile(
+            ShadowDbStateResponse(
+                enabled=True,
+                state="bootstrapping",
+                not_ready_reason="bootstrap_in_progress",
+            ),
+            graph_root=root,
         )
     if is_shadow_sync_failed(root):
-        return ShadowDbStateResponse(
-            enabled=True,
-            state="error",
-            last_sync_error=SHADOW_SYNC_FAILURE_REASON,
-            not_ready_reason="sync_error",
+        return _with_read_profile(
+            ShadowDbStateResponse(
+                enabled=True,
+                state="error",
+                last_sync_error=SHADOW_SYNC_FAILURE_REASON,
+                not_ready_reason="sync_error",
+            ),
+            graph_root=root,
         )
 
     try:
         db_path = shadow_db_path(root)
     except (OSError, RuntimeError, PathTraversalSecurityError):
-        return ShadowDbStateResponse(
-            enabled=True,
-            state="error",
-            last_sync_error="External Shadow cache unavailable",
-            not_ready_reason="cache_unavailable",
+        return _with_read_profile(
+            ShadowDbStateResponse(
+                enabled=True,
+                state="error",
+                last_sync_error="External Shadow cache unavailable",
+                not_ready_reason="cache_unavailable",
+            ),
+            graph_root=root,
         )
     if not db_path.is_file():
-        return ShadowDbStateResponse(
-            enabled=True,
-            state="stale",
-            not_ready_reason="not_bootstrapped",
+        return _with_read_profile(
+            ShadowDbStateResponse(
+                enabled=True,
+                state="stale",
+                not_ready_reason="not_bootstrapped",
+            ),
+            graph_root=root,
         )
 
     try:
         meta, page_count, quarantined = _read_meta_readonly(root)
     except sqlite3.Error as exc:
-        return ShadowDbStateResponse(
-            enabled=True,
-            state="error",
-            last_sync_error=_bounded_error_message(str(exc)),
-            not_ready_reason="database_unreadable",
+        return _with_read_profile(
+            ShadowDbStateResponse(
+                enabled=True,
+                state="error",
+                last_sync_error=_bounded_error_message(str(exc)),
+                not_ready_reason="database_unreadable",
+            ),
+            graph_root=root,
         )
 
     schema_raw = (meta.get(META_SCHEMA_VERSION) or "").strip()
     if schema_raw != str(SHADOW_SCHEMA_VERSION):
-        return _snapshot_from_meta(
-            state="error",
+        return _with_read_profile(
+            _snapshot_from_meta(
+                state="error",
+                meta=meta,
+                last_sync_error="Shadow schema version mismatch",
+                not_ready_reason="schema_version_mismatch",
+                quarantined_page_count=quarantined,
+            ),
+            graph_root=root,
             meta=meta,
-            last_sync_error="Shadow schema version mismatch",
-            not_ready_reason="schema_version_mismatch",
-            quarantined_page_count=quarantined,
         )
 
     state = _state_from_meta(meta, actual_page_count=page_count, quarantined_page_count=quarantined)
     sync_error = (meta.get(META_LAST_SYNC_ERROR) or "").strip()
     error = _bounded_error_message(sync_error) if state == "error" else None
-    return _snapshot_from_meta(
-        state=state,
-        meta=meta,
-        last_sync_error=error,
-        not_ready_reason=_not_ready_reason_from_meta(
-            meta, actual_page_count=page_count, quarantined_page_count=quarantined
+    return _with_read_profile(
+        _snapshot_from_meta(
+            state=state,
+            meta=meta,
+            last_sync_error=error,
+            not_ready_reason=_not_ready_reason_from_meta(
+                meta, actual_page_count=page_count, quarantined_page_count=quarantined
+            ),
+            quarantined_page_count=quarantined,
         ),
-        quarantined_page_count=quarantined,
+        graph_root=root,
+        meta=meta,
     )
 
 
@@ -289,5 +376,8 @@ __all__ = [
     "ShadowDbNotReadyReason",
     "ShadowDbStateResponse",
     "ShadowDbStateValue",
+    "ShadowReadProfileCapability",
+    "ShadowReadProfileResponse",
+    "ShadowReadProfileVersion",
     "resolve_shadow_db_state_for_api",
 ]

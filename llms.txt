@@ -228,6 +228,7 @@ Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not
 |---------|---------|-------------|
 | `MATRYCA_READ_ONLY` | `false` | Blocks every Matryca write, lock, temp file, or support artifact inside the Logseq graph; reads remain available |
 | `MATRYCA_SHADOW_DB_ENABLED` | `true` | Maintains the external cache; `search_graph(bm25)` prefers FTS5 and `read_graph_data(subtree)` prefers recursive CTE only while `READY`; **always falls back** to generational BM25 / parser+AST when disabled or non-ready |
+| `MATRYCA_MEMORY_GRAPH_ENABLED` | `false` | Enables the P0 `search_graph(recall)` envelope only. It is provider-free and graph-immutable: disabled, stale, empty-unproven, unavailable, or unsupported-filter requests return an explicit structured state and never fall back, rebuild, write, or call a model. |
 | `MATRYCA_SHADOW_QUARANTINE_ENABLED` | `true` | Park over-budget pages instead of failing the whole rebuild (beta.1); `false` restores strict mode |
 | `MATRYCA_SHADOW_WRITER_LOCK_TIMEOUT_S` | `10` | Cross-process advisory flock wait for incremental sync/delete (alpha.1) |
 | `MATRYCA_SHADOW_REBUILD_LOCK_TIMEOUT_S` | `120` | Cross-process advisory flock wait for full rebuild (alpha.1) |

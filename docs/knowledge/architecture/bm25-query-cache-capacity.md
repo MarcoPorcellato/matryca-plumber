@@ -75,3 +75,92 @@ The 16,384-entry candidate adds no hit-rate benefit for the representative hot o
 ## Evidence boundary
 
 These are deterministic synthetic results, not live-vault qualification. RSS and process peak are measured in one sequential benchmark process, so allocator reuse and cumulative peak state make per-capacity memory deltas directional rather than isolated. The run covers one arm64 macOS machine and one fixed seed. A future capacity increase requires representative sanitized live-corpus traces, isolated-process memory measurements, and cross-platform confirmation without material p99 or correctness regression.
+
+## Scorecard baseline (manifest-driven hard-negative benchmark)
+
+The same benchmark harness now supports an additional scorecard profile for deterministic retrieval quality baselines.
+
+Run with:
+
+```bash
+uv run python scripts/bench_bm25_query_cache.py \
+  --manifest-path tests/fixtures/bm25_hard_negative_manifest_v1.json \
+  --top-k 8 \
+  --output benchmarks/results/bm25_query_cache_scorecard_macos_arm64_2026-08-10.json
+```
+
+Scorecard output includes:
+
+- `benchmark_schema_version: 3`, with manifest schema v2
+- `manifest` identity and SHA-256 digest
+- retrieval-only Recall@K, MRR, nDCG, stale, contradiction, and abstention metrics
+- explicit `update_gold` / `superseded_gold` case classification; update accuracy is
+  measured only over `update_gold` cases, while stale metrics remain independent
+- abstention precision, recall, and confusion counts, with zero-denominator ratios
+  reported as `0.0`
+- deterministic 95% percentile-bootstrap confidence intervals for mean ranking metrics
+- the `no_retrieval` signal ablation, which makes the lexical BM25 contribution explicit
+- latency micro-profile and RSS/payload-context measurements, including a transparent
+  byte-derived context-token estimate and zero external-model cost
+
+The profile is synthetic and deterministic: no external data or network runtime dependency is required.
+Cases are ordered by `(seed, query)` before output and fingerprinting. The fingerprint
+binds deterministic retrieval evidence only; it intentionally excludes timing and RSS
+measurements, which remain diagnostic rather than reproducibility claims.
+It intentionally does not report end-to-end answer quality: that belongs to the
+separate adapter layer, where answer model, judge, prompt, token budget, and
+failure policy can be pinned rather than conflated with retrieval quality.
+
+### Retained baseline result
+
+[`bm25_query_cache_scorecard_macos_arm64_2026-08-10.json`](../../../benchmarks/results/bm25_query_cache_scorecard_macos_arm64_2026-08-10.json)
+is the first retained execution of this profile. It binds the 24-case synthetic
+manifest digest `c1b7eef66bd60aa0caaea5a04bdfb3095d1ecd435a17db377b3e54d99e6cc1d7`
+to source commit `dcf45eb3764aa6857ce4310a7ec4b418ff4a5deb` on macOS arm64,
+Python 3.12.13. Its deterministic retrieval fingerprint is
+`072d0f912f3aa47e3dbd53f4a46b023e16ea56030d4de29111caefa080683502`.
+
+The run reports Recall@8 `0.8333`, MRR `0.7708`, and nDCG `0.7898`; each has a
+deterministic 1,000-sample percentile-bootstrap interval in the retained JSON.
+Its no-retrieval ablation scores zero on those ranking metrics. Latency and RSS
+are diagnostic measurements from this one process and machine, not portable
+performance claims. The committed regression test re-executes only the
+deterministic scoring path and requires matching case results, metrics,
+ablation, manifest digest, and fingerprint. It deliberately does not compare
+host-dependent timing or RSS.
+
+## Cross-system evidence contract
+
+`src.memory.benchmark_protocol` provides a closed, provider-free contract for
+the later public-suite adapter layer. It validates metadata only: no benchmark
+suite is downloaded, no model is invoked, and no prompt, answer, vault content,
+credential, path, or raw result is retained in the contract.
+
+Each run pins its suite and dataset revision, harness and Matryca revisions,
+dependency lock digest, system revision/configuration digest, hardware/runtime,
+budget, cache state, retry/failure policy, and model/judge configuration where applicable. Four
+opaque artifact digests are mandatory: item results, exclusions, failed runs,
+and run metadata. This makes omissions visible without publishing content.
+
+The comparative validator accepts only completed, like-for-like cohorts with
+one Matryca no-semantic-memory control, one Matryca candidate-feature control,
+and at least two distinct open external systems. It rejects mismatched dataset,
+model, judge, budget, or runtime context, and it keeps retrieval and end-to-end
+answer layers separate. The contract is evidence infrastructure, not a claim
+that a public suite or external system has already been executed.
+
+### LoCoMo local-data adapter
+
+`src.memory.locomo_adapter` accepts an already acquired LoCoMo JSON file and
+normalizes its documented ordered sessions, dialogue IDs, QA categories, and
+evidence IDs into deterministic retrieval cases. An empty upstream evidence
+list is represented as unavailable retrieval evidence, not an abstention label.
+The documented category-5 `adversarial_answer` is retained when the standard
+answer is absent. It does not download the
+dataset, resolve optional image URLs, call a model, read a vault, or persist
+outcomes. Missing or inconsistent required evidence fails closed.
+
+Its public conversation text is available only in memory to an evaluator. A
+later runner must retain outcomes, exclusions, and failures through the opaque
+artifact digests required by the cross-system evidence contract; loading LoCoMo
+alone is neither an executed benchmark nor a comparative claim.

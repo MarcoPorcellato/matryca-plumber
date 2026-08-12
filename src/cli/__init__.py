@@ -44,6 +44,7 @@ from ..graph.safety.write_policy import (
     is_graph_read_only,
 )
 from ..graph.service_manager import manage_matryca_service
+from ..memory.config import memory_graph_enabled
 from ..utils.runtime_bootstrap import try_prepare_matryca_runtime_from_env
 from ..utils.secret_redaction import redact_secrets_in_text
 from .ui_server import run_ui_server
@@ -57,6 +58,7 @@ READ_TARGETS: tuple[ReadGraphTarget, ...] = (
     "dashboard",
     "xray_page",
     "bootstrap_status",
+    "shadow_status",
 )
 SEARCH_METHODS: tuple[SearchGraphMethod, ...] = (
     "bm25",
@@ -65,6 +67,7 @@ SEARCH_METHODS: tuple[SearchGraphMethod, ...] = (
     "unlinked_mentions",
     "journal_tasks",
     "resolve_entity",
+    "recall",
 )
 MUTATE_ACTIONS: tuple[MutateGraphAction, ...] = (
     "write_outline",
@@ -463,11 +466,12 @@ async def run_cli(args: argparse.Namespace) -> int:
 def _cli_eager_graph(args: argparse.Namespace) -> bool:
     """Return whether this CLI invocation should warm the in-memory AST index.
 
-    ``search bm25`` scores raw Markdown / Shadow FTS and must not pay for
-    ``GraphAstCache.bootstrap`` (A-CLI-01 / #297). Other graph commands keep
-    eager load so first-read latency stays predictable.
+    ``search bm25`` and gated ``search recall`` use read-only lexical Shadow
+    paths and must not pay for ``GraphAstCache.bootstrap`` (A-CLI-01 / #297).
+    Keeping recall lazy also lets its disabled gate respond before graph setup.
+    Other graph commands keep eager load so first-read latency stays predictable.
     """
-    return not (args.command == "search" and getattr(args, "method", None) == "bm25")
+    return not (args.command == "search" and getattr(args, "method", None) in {"bm25", "recall"})
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -476,12 +480,15 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     ui_only = args.command == "plumber" and args.plumber_action in {"status", "ui"}
     skip_eager_bootstrap = args.command == "plumber" and args.plumber_action == "start"
+    disabled_recall = (
+        args.command == "search" and args.method == "recall" and not memory_graph_enabled()
+    )
     try:
         _reject_read_only_cli_mutation(args)
     except GraphReadOnlyError as exc:
         _emit_error(f"{exc.code}: {exc}")
         raise SystemExit(1) from exc
-    if not ui_only and not skip_eager_bootstrap:
+    if not ui_only and not skip_eager_bootstrap and not disabled_recall:
         try_prepare_matryca_runtime_from_env(eager_graph=_cli_eager_graph(args))
     if ui_only:
         try:

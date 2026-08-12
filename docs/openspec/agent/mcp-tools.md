@@ -5,7 +5,7 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 | Tool | Discriminator | Purpose |
 |------|---------------|---------|
 | `read_graph_data` | `target_type` | Read pages, L1 memory, **bootstrap_status**, block excerpts, **subtree** (heading-filtered), structural hops, dashboard, X-Ray aliases |
-| `search_graph` | `method` | BM25, regex, unlinked mentions, journal tasks, entity resolution (`resolve_entity`) |
+| `search_graph` | `method` | BM25, regex, unlinked mentions, journal tasks, entity resolution, gated canonical recall (`recall`) |
 | `mutate_graph` | `action` | Write outlines, edit properties, append journal, inject queries |
 | `refactor_blocks` | `action` | Split wall bullets, reparent siblings, generate flashcards |
 | `run_linter` | `linter_name` | Tag unification preview, block-ref integrity, wiki schema scan |
@@ -13,7 +13,9 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 | `ingest_document` | _(none — `source_name`, `raw_text`)_ | Atomic external markdown ingestion → ingest page + `LOG` + `GLOSSARY` |
 | `import_tana` | _(none — `export_path`, `dry_run`)_ | Tana workspace JSON export → `Tana/` pages + journals; **dry-run default** |
 
-**Requires:** `LOGSEQ_GRAPH_PATH` for every operation except `read_graph_data` with `target_type="memory"`.
+**Requires:** `LOGSEQ_GRAPH_PATH` for every operation except `read_graph_data` with
+`target_type="memory"` and disabled `search_graph(method="recall")`, which returns its
+explicit feature-gate state before graph setup.
 
 `read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
 
@@ -24,3 +26,12 @@ Markdown/generational BM25 fallback and appends one content-free `Shadow fallbac
 code: `page_untracked`, `source_missing`, `source_changed`, or
 `empty_result_unproven`. Treat the fallback output as authoritative; do not retry the
 cache path.
+
+`search_graph(method="recall")` is an opt-in P0 canonical envelope, not a BM25 alias.
+Set `MATRYCA_MEMORY_GRAPH_ENABLED=true`, then pass text or
+`{"query":"...", "limit":15, "filters":{}}`. It returns a provider-free,
+content-free `RecallBundle` with ordered block UUID/hash references, a generation-bound
+fingerprint, and a no-progress signature. It uses only a READY query-only Shadow FTS cache.
+When disabled, unavailable, stale, empty-unproven, or given unsupported filters, it returns
+an explicit structured state and never falls back, rebuilds Shadow, reads via a model, or
+writes the graph.

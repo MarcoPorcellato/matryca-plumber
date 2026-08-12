@@ -6,6 +6,7 @@ import json
 import signal
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -68,6 +69,39 @@ def test_page_rmw_lock_raises_after_retry_exhaustion(
         pass
 
     lock.release()
+
+
+def test_page_rmw_lock_can_wait_for_private_runtime_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_page_write_locks()
+    target = tmp_path / "private-state.json"
+    lock = threading.Lock()
+    lock.acquire()
+    started = threading.Event()
+    acquired = threading.Event()
+
+    monkeypatch.setattr("src.graph.page_write_lock._lock_for_key", lambda _key: lock)
+
+    def _wait_for_lock() -> None:
+        started.set()
+        with page_rmw_lock(target, wait_for_thread_lock=True):
+            acquired.set()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_wait_for_lock)
+        released = False
+        try:
+            assert started.wait(timeout=1.0)
+            assert not acquired.wait(timeout=0.05)
+            lock.release()
+            released = True
+        finally:
+            if not released:
+                lock.release()
+        assert acquired.wait(timeout=1.0)
+        future.result(timeout=1.0)
 
 
 def test_graceful_shutdown_waits_for_inflight_writes(

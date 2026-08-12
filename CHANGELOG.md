@@ -1,7 +1,44 @@
 ## [Unreleased]
 
+### Added
+
+- **Frozen Shadow read-profile fixtures** — publish a content-free v1 admission
+  corpus with healthy, malformed, future-version, unhealthy, and foreign-binding
+  packets for deterministic compatibility checks; no cache operation or new read
+  capability is introduced.
+
+- **Content-free Shadow status read target** — add `read_graph_data(target_type="shadow_status")` as a versioned, query-only status surface with no cache initialization, schema migration, mutation, or content read.
+
+- **Versioned Shadow read profile** — expose an additive, content-free `shadow_db.read_profile` with a closed profile version, installed producer version, hashed graph binding, committed generation, readiness, schema compatibility, and bounded capabilities so external read-side consumers can fail closed without filesystem or metadata-table access.
+
+- **Provider-free graph-outcome contracts (#483)** — add frozen, closed, byte-stable task, environment, episode, event, rubric, veto, report, and content-free receipt schemas for resettable Logseq outcome evaluation; malformed provenance, duplicate identifiers, impossible event chains, unbounded budgets, incompatible write policies, and incomplete evidence fail closed without filesystem, vault, Shadow, model, provider, or network side effects.
+- **Local BEAM input provenance adapter (#448)** — normalize caller-supplied BEAM chat and probing-question JSON into immutable, digest-bound input evidence with an exact public dataset pin; no downloads, inference, vault access, scoring, or result writes.
+- **Public-suite local-input provenance (#448)** — require LoCoMo and LongMemEval callers to bind exact repository/revision/license metadata and a raw-input SHA-256 before parsing; persist that digest in immutable datasets and comparative manifests so mismatched public inputs fail closed without downloading data or executing systems.
+- **Retained synthetic retrieval scorecard evidence (#448)** — commit the first manifest-bound, retrieval-only Italian hard-negative result with its deterministic fingerprint, bootstrap intervals, signal ablation, source revision, and a regression check that separates reproducible retrieval evidence from host-dependent latency and RSS diagnostics.
+- **Governed comparative cohort receipts (#448)** — assemble deterministic, privacy-safe evidence receipts only when an exact public corpus and every required opaque result artifact have matching retained attestations across the required Matryca and open-system controls; no benchmark execution, provider call, vault access, raw-content retention, or result write.
+- **Local LongMemEval-V2 input provenance adapter (#448)** — validate caller-supplied question, trajectory, and mapping JSONL with explicit license/revision provenance and immutable input-only digests; no downloads, inference, vault access, scoring, or result writes.
+
+- **Local LoCoMo retrieval adapter (#448)** — normalize an already acquired public LoCoMo dataset into deterministic session-turn and QA-evidence cases without downloads, image fetching, model calls, vault access, or result persistence.
+- **Local LongMemEval retrieval adapter (#448)** — normalize acquired cleaned/oracle JSON into digest-pinned, order-preserving in-memory cases with separate session and answer-marked-turn evidence, without downloads, model calls, vault access, or result persistence.
+- **Cross-system benchmark contracts (#448)** — add closed, content-free manifests and retained-artifact reports that pin public-suite revisions, models, budgets, runtime context, and comparable Matryca/external controls without collecting prompts, answers, vault content, or running remote services.
+- **Semantic clustering scorecard completeness (#448)** — extend the deterministic five-seed benchmark with mathematically correct ARI, predicted/expected cluster counts, explicit collapse detection and largest-cluster fraction, plus reproducible bootstrap intervals for aggregate metrics.
+- **Versioned clustering scorecard artifacts (#448)** — add deterministic collapse-rate diagnostics and source-commit/fixture metadata to retained `--output` artifacts while preserving compact historical stdout and refusing overwrite or dirty-tree artifacts.
+- **Local retrieval execution bridge (#448)** — replay caller-supplied or synthetic input evidence through an explicitly configured provider-neutral seam, rejecting malformed result sequences before artifact creation and retaining deterministic item, exclusion, failure, and digest-bound artifacts without downloads, inference, vault access, or network calls.
+- **Evidence archive foundation** — add an immutable, privacy-safe, externally stored and idempotent P0 evidence-event archive for future governed memory candidates.
+- **Governed P0 evidence packet (#447)** — add a byte-stable, retrieval-only coordination contract that binds exact source revision, canonical recall, benchmark scorecard, and append-only archive references without storage, model, remote, or canonical-write side effects.
+
+### Changed
+
+- **Evidence-first agentic-memory programme** — sequence v2.1+ delivery through governed evidence, deterministic canonical recall, reproducible benchmarks, human-governed curation, and derived-only Shadow state before typed decay, procedural memory, or opt-in proactivity.
+- **BM25 scorecard benchmark schema** — evolve the manifest-driven synthetic Italian hard-negative scorecard mode (`--manifest-path`) to schema v3 with explicit update/superseded labels, update-only accuracy, abstention precision/recall/confusion, deterministic ordered evidence fingerprints, and manifest digest/environment signatures; no runtime behavior changes.
+
+### Added
+
+- **Gated canonical recall (#186)** — add the provider-free, graph-immutable `search_graph(method="recall")` P0 envelope with generation-bound UUID/hash references, deterministic reusable fingerprints, bounded per-turn retrieval, and explicit disabled/unavailable states; it uses only a fresh query-only Shadow FTS cache and never falls back, rebuilds, writes, or calls a model.
+
 ### Fixed
 
+- **Read-only alias concurrency** — serialize concurrent external X-Ray alias-state writes until the in-process lock is available, preserving bounded lock failure for all other page writes.
 - **Gate B RC2 artifact binding** — bind fresh dual-profile qualification to the exact installed `2.0.0rc2` public wheel instead of rejecting it through the historical RC1 package identity.
 
 ## [2.0.0-rc.2] - 2026-08-09

@@ -109,7 +109,9 @@ def test_get_state_returns_daemon_checkpoint(
     assert payload["ai_links_injected"] == 0
     assert payload["ai_blocks_healed"] == 0
     assert "graph_analytics" not in payload
-    assert payload["shadow_db"] == {
+    shadow_db = payload["shadow_db"]
+    read_profile = shadow_db.pop("read_profile")
+    assert shadow_db == {
         "enabled": False,
         "state": "disabled",
         "last_full_sync_at": None,
@@ -120,6 +122,16 @@ def test_get_state_returns_daemon_checkpoint(
         "not_ready_reason": None,
         "quarantined_page_count": 0,
     }
+    assert read_profile is not None
+    assert read_profile["profile"] == "shadow-read-profile"
+    assert read_profile["version"] == 1
+    assert read_profile["producer_version"]
+    assert read_profile["graph_id"] is None
+    assert read_profile["generation"] is None
+    assert read_profile["state"] == "disabled"
+    assert read_profile["ready"] is False
+    assert read_profile["schema_compatible"] is None
+    assert read_profile["capabilities"] == ["state"]
 
 
 def test_get_graph_analytics_returns_topology(

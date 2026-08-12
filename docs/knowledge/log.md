@@ -1,5 +1,14 @@
 # Documentation update log
 
+## 2026-08-11
+
+- **Graph-outcome evaluation:** Accepted a P0.5 plan for resettable Logseq graph environments, stale-memory and concurrent-human scenarios, final-world-state grading, safety vetoes, paired reliability evidence, release integration, and public Commit CI Preflight receipt gates for reducing duplicated GitHub Actions workload; publicly acknowledged @hardness1020's contribution to the programme correction.
+
+## 2026-08-10
+
+- **Agentic-memory governance:** Replaced decay-first planning with governed evidence, deterministic recall, reproducible benchmarks, proposal-first curation, and late opt-in proactivity while preserving Markdown authority and derived Shadow semantics.
+- **Execution trace:** Added the [Agentic Memory Leadership Programme](../quality/AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md) with delegated audit receipts, GitHub control-plane changes, claim policy, correction rounds, and completion gates.
+
 ## 2026-08-08
 
 - **Machine-readable validation:** Added deterministic, schema-versioned JSON findings with stable fingerprints, bounded messages, independent layer summaries, and normalized Git provenance while preserving the existing blocking text gate.
