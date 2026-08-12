@@ -896,6 +896,24 @@
       "classification": "active"
     },
     {
+      "path": "docs/openspec/shadow-read-profile.md",
+      "type": "Specification",
+      "title": "Shadow read profile — OpenSpec",
+      "description": "`ShadowDbStateResponse.read_profile` is a versioned, content-free companion to the",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/openspec/tana-import.md",
       "type": "Specification",
       "title": "Tana workspace JSON import (enterprise migration)",
