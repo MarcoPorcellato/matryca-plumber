@@ -31,6 +31,7 @@ ReadGraphTarget = Literal[
     "dashboard",
     "xray_page",
     "bootstrap_status",
+    "shadow_status",
 ]
 SearchGraphMethod = Literal[
     "bm25",
