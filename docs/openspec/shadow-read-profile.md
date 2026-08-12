@@ -38,3 +38,11 @@ content-free `shadow_db` reason and may omit binding/generation information.
 
 The profile is diagnostic and admission data only. It does not replace established
 health routing or Markdown/BM25 fallback.
+
+## Frozen fixture corpus
+
+`tests/fixtures/shadow_read_profile/` contains the content-free v1 packet corpus.
+`healthy_v1.json` is a valid profile snapshot. The malformed, future-version,
+unhealthy, and foreign-binding packets are explicit negative admission cases for
+compatibility verification; they do not describe normal producer states. The corpus
+contains no filesystem path, graph content, identifiers, query, SQL, or secret.
