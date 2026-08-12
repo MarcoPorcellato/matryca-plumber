@@ -326,6 +326,24 @@
       "classification": "active"
     },
     {
+      "path": "docs/README.md",
+      "type": "Archive",
+      "title": "Matryca Plumber documentation orientation",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/RELEASE_PROCESS.md",
       "type": "Archive",
       "title": "Release process",
@@ -345,6 +363,42 @@
       "classification": "active"
     },
     {
+      "path": "docs/decisions/index.md",
+      "type": "Archive",
+      "title": "Matryca Plumber decisions",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
+      "path": "docs/index.md",
+      "type": "Archive",
+      "title": "Matryca Plumber documentation",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/integrations/hermes-agent.md",
       "type": "Guide",
       "title": "Hermes Agent integration — compatibility report",
@@ -362,6 +416,24 @@
       "notes": "",
       "missing": false,
       "classification": "active"
+    },
+    {
+      "path": "docs/log.md",
+      "type": "Archive",
+      "title": "Matryca Plumber documentation log",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/openspec/README.md",
@@ -911,7 +983,8 @@
       "destination": "docs/knowledge/specifications/",
       "action": "migrate",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/openspec/tana-import.md",
@@ -2337,6 +2410,24 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/reference/index.md",
+      "type": "Archive",
+      "title": "Matryca Plumber reference index",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/releases/v1.10.0-GITHUB.md",
