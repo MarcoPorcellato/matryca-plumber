@@ -668,6 +668,25 @@
       "classification": "active"
     },
     {
+      "path": "docs/openspec/evidence-archive.md",
+      "type": "Specification",
+      "title": "Governed evidence archive",
+      "description": "The P0 evidence archive records immutable, privacy-safe provenance for a",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/openspec/identity-config.md",
       "type": "Specification",
       "title": "In-graph identity (Telos & AI Constraints)",
@@ -877,6 +896,24 @@
       "classification": "active"
     },
     {
+      "path": "docs/openspec/shadow-read-profile.md",
+      "type": "Specification",
+      "title": "Shadow read profile — OpenSpec",
+      "description": "`ShadowDbStateResponse.read_profile` is a versioned, content-free companion to the",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/openspec/tana-import.md",
       "type": "Specification",
       "title": "Tana workspace JSON import (enterprise migration)",
@@ -894,6 +931,44 @@
       "notes": "",
       "missing": false,
       "classification": "active"
+    },
+    {
+      "path": "docs/quality/AGENTIC_MEMORY_GRAPH_OUTCOME_EVALUATION_PLAN_2026-08-11.md",
+      "type": "Roadmap",
+      "title": "Agentic Memory Graph-Outcome Evaluation Plan — 2026-08-11",
+      "description": "Resettable graph-world evaluation strategy, final-state safety rubric, CI-efficiency integration, implementation slices, and release gates for evidence-backed agentic memory.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active successor strategy for the retrieval-to-outcome evidence bridge, including public Commit CI Preflight receipt gates; implementation remains gated by a new child issue and linked phase dependencies.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md",
+      "type": "Roadmap",
+      "title": "Agentic Memory Leadership Programme — 2026-08-10",
+      "description": "Evidence-first agentic-memory strategy, benchmark policy, and GitHub control-plane execution record.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active strategy and control-plane dossier; future runtime implementation remains gated by linked issues.",
+      "missing": false
     },
     {
       "path": "docs/quality/BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md",
@@ -1025,7 +1100,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",

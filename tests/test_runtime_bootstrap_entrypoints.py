@@ -200,10 +200,30 @@ def test_cli_eager_graph_route_matrix() -> None:
     from src.cli import _cli_eager_graph
 
     assert _cli_eager_graph(Namespace(command="search", method="bm25")) is False
+    assert _cli_eager_graph(Namespace(command="search", method="recall")) is False
     assert _cli_eager_graph(Namespace(command="search", method="regex")) is True
     assert _cli_eager_graph(Namespace(command="search", method="semantic")) is True
     assert _cli_eager_graph(Namespace(command="read", method=None)) is True
     assert _cli_eager_graph(Namespace(command="lint", method=None)) is True
+
+
+def test_disabled_cli_recall_skips_runtime_prepare(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.cli import main as cli_main
+
+    monkeypatch.setenv("MATRYCA_MEMORY_GRAPH_ENABLED", "false")
+    monkeypatch.delenv("LOGSEQ_GRAPH_PATH", raising=False)
+    monkeypatch.setattr(
+        "src.cli.try_prepare_matryca_runtime_from_env",
+        lambda **_kwargs: pytest.fail("disabled recall must not prepare a graph runtime"),
+    )
+
+    async def _run_cli(_args: object) -> int:
+        return 0
+
+    monkeypatch.setattr("src.cli.run_cli", _run_cli)
+    with pytest.raises(SystemExit) as exc:
+        cli_main(["search", "recall", "alpha"])
+    assert exc.value.code == 0
 
 
 @pytest.mark.asyncio

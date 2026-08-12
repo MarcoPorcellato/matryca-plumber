@@ -140,7 +140,7 @@ def save_alias_registry(graph_root: str | Path, registry: SessionAliasRegistry) 
             atomic_write_bytes(path, data, graph_root=root)
     else:
         _ensure_private_parent(path)
-        with page_rmw_lock(path):
+        with page_rmw_lock(path, wait_for_thread_lock=True):
             _atomic_write_private_state(path, data)
     return path
 

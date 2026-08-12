@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Awaitable, Callable
 
 from loguru import logger
@@ -12,6 +13,7 @@ from ..graph.bootstrap_status import format_bootstrap_status_markdown
 from ..graph.dashboard import build_dashboard_markdown
 from ..graph.link_tag_hop import format_hop_report_markdown
 from ..rag.matryca_hooks import get_page_spatial_context
+from ..shadow.state_api import resolve_shadow_db_state_for_api
 from .graph_tool_helpers import (
     ReadGraphTarget,
     bounded_int_from_options,
@@ -193,6 +195,17 @@ async def handle_read_bootstrap_status(
     return cap_llm_payload_chars(status_md)
 
 
+async def handle_read_shadow_status(
+    _wiki_config: MatrycaWikiConfig,
+    graph_path: str,
+    _query: str,
+) -> str:
+    """Return the versioned, content-free Shadow read profile without cache initialization."""
+    snapshot = await asyncio.to_thread(resolve_shadow_db_state_for_api, graph_path)
+    logger.bind(state=snapshot.state).info("read_graph_data(shadow_status) completed")
+    return json.dumps(snapshot.model_dump(mode="json"), separators=(",", ":"), sort_keys=True)
+
+
 async def handle_read_dashboard(
     wiki_config: MatrycaWikiConfig,
     graph_path: str,
@@ -215,6 +228,7 @@ _READ_HANDLERS: dict[ReadGraphTarget, ReadHandler] = {
     "subtree": handle_read_subtree,
     "structural_hops": handle_read_structural_hops,
     "bootstrap_status": handle_read_bootstrap_status,
+    "shadow_status": handle_read_shadow_status,
     "dashboard": handle_read_dashboard,
 }
 
@@ -244,6 +258,7 @@ __all__ = [
     "handle_read_dashboard",
     "handle_read_memory",
     "handle_read_page",
+    "handle_read_shadow_status",
     "handle_read_structural_hops",
     "handle_read_subtree",
     "handle_read_xray_page",

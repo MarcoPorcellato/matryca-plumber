@@ -94,6 +94,18 @@ are `page_untracked`, `source_missing`, `source_changed`, and
 `empty_result_unproven`.
 
 ```json
+{ "method": "recall", "query": "redis cache invalidation" }
+```
+
+P0 canonical recall is disabled by default. Set `MATRYCA_MEMORY_GRAPH_ENABLED=true` to
+receive a structured, provider-free envelope with ordered block UUID/content-hash references,
+the Shadow generation, a deterministic fingerprint, and a no-progress signature. It accepts
+`{"query":"...", "limit":15, "filters":{}}`; the limit is bounded to 50 per call.
+It uses a READY query-only Shadow FTS cache and validates every returned source page. It never
+falls back to BM25/semantic, rebuilds Shadow, calls a model, or writes the graph: disabled,
+unavailable, stale, empty-unproven, and unsupported-filter cases are explicit states.
+
+```json
 { "method": "regex", "query": "TODO|LATER" }
 ```
 

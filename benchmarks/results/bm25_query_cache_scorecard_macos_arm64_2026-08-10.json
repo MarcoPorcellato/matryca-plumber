@@ -1,0 +1,696 @@
+{
+  "benchmark_schema_version": 3,
+  "case_count": 24,
+  "case_results": [
+    {
+      "gold_classification": "update_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 0.5,
+        "ndcg": 0.6309,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": true,
+        "update_predicted": true
+      },
+      "query": "cache bm25 invalidazione limit row",
+      "retrieved_relations": [
+        "pages/progetto_alfa.md",
+        "pages/cache_bm25.md"
+      ],
+      "seed": 20260802
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "banca dati grafi relazioni pagine",
+      "retrieved_relations": [
+        "pages/banca_dati_grafi.md",
+        "pages/backup_offline.md"
+      ],
+      "seed": 20260803
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "pipeline riassunto entit\u00e0 titolo sommario",
+      "retrieved_relations": [
+        "pages/pipeline_riassunto.md"
+      ],
+      "seed": 20260804
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "onboarding team checklist",
+      "retrieved_relations": [
+        "pages/onboarding_team.md"
+      ],
+      "seed": 20260805
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "backup locale snapshot ripristino",
+      "retrieved_relations": [
+        "pages/backup_locale.md",
+        "pages/backup_offline.md",
+        "pages/progetto_alfa.md",
+        "pages/orchestrazione_k8s.md"
+      ],
+      "seed": 20260806
+    },
+    {
+      "gold_classification": "update_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": true,
+        "update_predicted": true
+      },
+      "query": "sicurezza oauth token privilegio autorizzazione",
+      "retrieved_relations": [
+        "pages/sicurezza_oauth.md"
+      ],
+      "seed": 20260807
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "api rest payload codice errore",
+      "retrieved_relations": [
+        "pages/api_rest.md"
+      ],
+      "seed": 20260808
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "indice semantico vettori tag struttura",
+      "retrieved_relations": [
+        "pages/indice_semantico.md",
+        "pages/diario_lavoro.md"
+      ],
+      "seed": 20260809
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 0.5,
+        "ndcg": 0.6934,
+        "recall_at_k": 1.0,
+        "stale_hits": 2,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "query plausibile precisione recall",
+      "retrieved_relations": [
+        "pages/query_plausibile.md",
+        "pages/metrica_precisione.md",
+        "pages/metriche_mrc.md"
+      ],
+      "seed": 20260810
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "contratti energia tariffa",
+      "retrieved_relations": [
+        "pages/contratti_energia.md"
+      ],
+      "seed": 20260811
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "agenda sprint revisione criteri",
+      "retrieved_relations": [
+        "pages/agenda_sprint.md",
+        "pages/documento_riconosciuto.md"
+      ],
+      "seed": 20260812
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 0.5,
+        "ndcg": 0.6309,
+        "recall_at_k": 1.0,
+        "stale_hits": 1,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "metrica mrr ndcg top-k",
+      "retrieved_relations": [
+        "pages/metrica_precisione.md",
+        "pages/metriche_mrc.md"
+      ],
+      "seed": 20260813
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 1,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "cronologia patch hash firma",
+      "retrieved_relations": [
+        "pages/cronologia_patch.md"
+      ],
+      "seed": 20260814
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "utente privilegiato verifica multifattore",
+      "retrieved_relations": [
+        "pages/utente_privilegiato.md",
+        "pages/backup_offline.md",
+        "pages/sicurezza_oauth.md"
+      ],
+      "seed": 20260815
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "orchestrazione k8s risorse workload",
+      "retrieved_relations": [
+        "pages/orchestrazione_k8s.md",
+        "pages/monitoraggio_risorse.md"
+      ],
+      "seed": 20260816
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 1,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "modello llm sintesi controllo",
+      "retrieved_relations": [
+        "pages/modello_llm.md",
+        "pages/cronologia_patch.md"
+      ],
+      "seed": 20260817
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "backup offline checksum rete",
+      "retrieved_relations": [
+        "pages/backup_offline.md",
+        "pages/backup_locale.md"
+      ],
+      "seed": 20260818
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 0,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "monitoraggio risorse memoria rss latenza",
+      "retrieved_relations": [
+        "pages/monitoraggio_risorse.md",
+        "pages/contratti_energia.md",
+        "pages/orchestrazione_k8s.md"
+      ],
+      "seed": 20260819
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 1,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "vecchio manifesto regole obsolete",
+      "retrieved_relations": [
+        "pages/vecchio_manifesto.md",
+        "pages/documento_riconosciuto.md"
+      ],
+      "seed": 20260820
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": false,
+        "contradiction_hits": 1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall_at_k": 1.0,
+        "stale_hits": 1,
+        "update_expected": false,
+        "update_predicted": true
+      },
+      "query": "documento riconosciuto regole operative",
+      "retrieved_relations": [
+        "pages/documento_riconosciuto.md",
+        "pages/vecchio_manifesto.md"
+      ],
+      "seed": 20260821
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": true,
+        "contradiction_hits": 1,
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall_at_k": 0.0,
+        "stale_hits": 1,
+        "update_expected": false,
+        "update_predicted": false
+      },
+      "query": "ricerca vocale trascrive comandi",
+      "retrieved_relations": [
+        "pages/ricerca_vocale.md"
+      ],
+      "seed": 20260822
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": true,
+        "contradiction_hits": 1,
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall_at_k": 0.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": false
+      },
+      "query": "diario lavori personali",
+      "retrieved_relations": [
+        "pages/diario_lavoro.md"
+      ],
+      "seed": 20260823
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": false,
+        "abstention_expected": true,
+        "contradiction_hits": 0,
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall_at_k": 0.0,
+        "stale_hits": 2,
+        "update_expected": false,
+        "update_predicted": false
+      },
+      "query": "query senza riferimenti validi",
+      "retrieved_relations": [
+        "pages/vecchio_manifesto.md",
+        "pages/backup_locale.md",
+        "pages/query_plausibile.md"
+      ],
+      "seed": 20260824
+    },
+    {
+      "gold_classification": "superseded_gold",
+      "metrics": {
+        "abstained": true,
+        "abstention_expected": true,
+        "contradiction_hits": 0,
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall_at_k": 0.0,
+        "stale_hits": 0,
+        "update_expected": false,
+        "update_predicted": false
+      },
+      "query": "espressione sconosciuta assolutamente",
+      "retrieved_relations": [],
+      "seed": 20260825
+    }
+  ],
+  "config": {
+    "capacities": [
+      512,
+      2048,
+      8192,
+      16384
+    ],
+    "documents": 128,
+    "multi_corpora": 4,
+    "repetitions": 3,
+    "requests": 20000,
+    "seed": 20260802,
+    "warmup": 512
+  },
+  "environment": {
+    "corpus_digest": "c1b7eef66bd60aa0caaea5a04bdfb3095d1ecd435a17db377b3e54d99e6cc1d7",
+    "machine": "arm64",
+    "manifest_schema_version": 2,
+    "os": "macOS-15.7.3-arm64-arm-64bit",
+    "python": "3.12.13",
+    "source_commit": "dcf45eb3764aa6857ce4310a7ec4b418ff4a5deb"
+  },
+  "evaluation_scope": {
+    "end_to_end_answer_evaluated": false,
+    "retrieval_only": true
+  },
+  "manifest": {
+    "digest": "c1b7eef66bd60aa0caaea5a04bdfb3095d1ecd435a17db377b3e54d99e6cc1d7",
+    "path": "tests/fixtures/bm25_hard_negative_manifest_v1.json",
+    "schema_version": 2
+  },
+  "manifest_dataset_id": "matryca-bm25-hard-negative-it-v1",
+  "manifest_schema_version": 2,
+  "measurements": {
+    "cache": {
+      "capacity": 8192,
+      "entries": 24,
+      "evictions": 0,
+      "hits": 0,
+      "invalidations": 0,
+      "misses": 24,
+      "result_row_capacity": 65536,
+      "result_rows": 44,
+      "uncached_scoring_max_ns": 16917,
+      "uncached_scoring_samples": 24,
+      "uncached_scoring_total_ns": 175874
+    },
+    "cache_hit_ratio": 0.0,
+    "context_estimate_tokens": 3072,
+    "context_token_estimator": "ceil(payload_estimate_bytes / 4)",
+    "estimated_model_cost_usd": 0.0,
+    "external_model_calls": 0,
+    "latency_us": {
+      "median": 10.167,
+      "p50": 10.167,
+      "p95": 19.109,
+      "p99": 26.764
+    },
+    "model_cost_applicability": "not_applicable",
+    "payload_estimate_bytes": 12288,
+    "peak_rss_bytes": 38780928,
+    "query_cache_row_budget": 65536,
+    "requests": 24,
+    "rss_end_bytes": 38780928,
+    "top_k": 8
+  },
+  "metrics": {
+    "abstention": {
+      "confusion": {
+        "false_negative": 3,
+        "false_positive": 0,
+        "true_negative": 20,
+        "true_positive": 1
+      },
+      "enabled_cases": 4,
+      "passed_cases": 1,
+      "precision": 1.0,
+      "rate": 0.25,
+      "recall": 0.25
+    },
+    "confidence_intervals": {
+      "mrr": {
+        "confidence_level": 0.95,
+        "high": 0.9167,
+        "low": 0.6042,
+        "samples": 1000
+      },
+      "ndcg": {
+        "confidence_level": 0.95,
+        "high": 0.9302,
+        "low": 0.6359,
+        "samples": 1000
+      },
+      "recall_at_k": {
+        "confidence_level": 0.95,
+        "high": 0.9583,
+        "low": 0.6667,
+        "samples": 1000
+      }
+    },
+    "contradiction": {
+      "hits": 9,
+      "query_rate": 0.375,
+      "rate_per_query_position": 0.046875
+    },
+    "mrr": 0.7708,
+    "ndcg": 0.7898,
+    "recall_at_k": 0.8333,
+    "stale": {
+      "hits": 10,
+      "query_rate": 0.333333,
+      "rate_per_query_position": 0.052083
+    },
+    "update": {
+      "accuracy": 1.0,
+      "by_class": {
+        "superseded_gold": {
+          "cases": 22
+        },
+        "update_gold": {
+          "accuracy": 1.0,
+          "cases": 2,
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 2
+          }
+        }
+      },
+      "cases": 2,
+      "confusion": {
+        "false_negative": 0,
+        "false_positive": 0,
+        "true_negative": 0,
+        "true_positive": 2
+      }
+    }
+  },
+  "scorecard_fingerprint": "072d0f912f3aa47e3dbd53f4a46b023e16ea56030d4de29111caefa080683502",
+  "signal_ablations": {
+    "no_retrieval": {
+      "abstention": {
+        "confusion": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "true_negative": 20,
+          "true_positive": 4
+        },
+        "enabled_cases": 4,
+        "passed_cases": 4,
+        "precision": 1.0,
+        "rate": 1.0,
+        "recall": 1.0
+      },
+      "confidence_intervals": {
+        "mrr": {
+          "confidence_level": 0.95,
+          "high": 0.0,
+          "low": 0.0,
+          "samples": 1000
+        },
+        "ndcg": {
+          "confidence_level": 0.95,
+          "high": 0.0,
+          "low": 0.0,
+          "samples": 1000
+        },
+        "recall_at_k": {
+          "confidence_level": 0.95,
+          "high": 0.0,
+          "low": 0.0,
+          "samples": 1000
+        }
+      },
+      "contradiction": {
+        "hits": 0,
+        "query_rate": 0.0,
+        "rate_per_query_position": 0.0
+      },
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "recall_at_k": 0.0,
+      "stale": {
+        "hits": 0,
+        "query_rate": 0.0,
+        "rate_per_query_position": 0.0
+      },
+      "update": {
+        "accuracy": 0.0,
+        "by_class": {
+          "superseded_gold": {
+            "cases": 22
+          },
+          "update_gold": {
+            "accuracy": 0.0,
+            "cases": 2,
+            "confusion": {
+              "false_negative": 2,
+              "false_positive": 0,
+              "true_negative": 0,
+              "true_positive": 0
+            }
+          }
+        },
+        "cases": 2,
+        "confusion": {
+          "false_negative": 2,
+          "false_positive": 0,
+          "true_negative": 0,
+          "true_positive": 0
+        }
+      }
+    }
+  }
+}
