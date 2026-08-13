@@ -1,5 +1,9 @@
 # Documentation update log
 
+## 2026-08-13
+
+- **RC2 qualification evidence:** Recorded the terminal dual-profile Gate B result for the exact public `2.0.0rc2` wheel, including frozen artifact and runner bindings, 72-hour valid-time proof, attempt-chain integrity, Read Only external-cache isolation, and explicit remaining stable-release gates.
+
 ## 2026-08-11
 
 - **Graph-outcome evaluation:** Accepted a P0.5 plan for resettable Logseq graph environments, stale-memory and concurrent-human scenarios, final-world-state grading, safety vetoes, paired reliability evidence, release integration, and public Commit CI Preflight receipt gates for reducing duplicated GitHub Actions workload; publicly acknowledged @hardness1020's contribution to the programme correction.

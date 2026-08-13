@@ -4,6 +4,19 @@ This runbook starts the two independent, fail-closed soak profiles required by
 the `v2.0.0` Gate B decision. Each campaign runs against one exact installed
 public candidate wheel, never a source checkout.
 
+## RC2 terminal result
+
+The fresh dual-profile RC2 campaign is complete. The exact public
+`2.0.0rc2` wheel reached terminal `PASS` in both profiles after 417 cycles and
+834 passing attempts per profile: 259,548.995 valid seconds for default-on and
+259,421.167 valid seconds for Strict Read Only with an external Shadow cache.
+The frozen artifact, runner, installed `RECORD`, attempt chains, source/working
+fingerprints, and empty standard-error logs were verified. See the complete
+[RC2 terminal qualification evidence](GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md).
+
+This result closes only the two RC2 soak rows. It does not transfer to a future
+stable artifact or complete the other v2.0.0 promotion gates.
+
 ## Post-RC read-path requalification boundary
 
 Each public-RC campaign records evidence only for its exact installed wheel. The
