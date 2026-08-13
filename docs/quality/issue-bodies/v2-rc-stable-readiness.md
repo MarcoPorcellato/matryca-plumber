@@ -147,8 +147,8 @@ child-process diagnostic is retained in the committed record.
 | Requirement | Evidence required | Status |
 |-------------|-------------------|--------|
 | RC observation | At least 7 days of RC availability and maintainer operation, with no unresolved P0/P1 regression | [ ] — under observation, not yet complete |
-| Default-on soak | At least 72 hours and preferably 7 days with the flag unset, plus an explicit opt-out control run | [ ] — rc.1 stopped non-terminal at 239 cycles and 149,454.297 valid seconds after a synthetic fixture timeout exposed a cleanup defect; a fresh exact rc.2 attempt is required |
-| Read Only external-cache soak | Default-on Shadow reaches and retains `READY` with `MATRYCA_READ_ONLY=true`; all writes remain outside the graph and Markdown fingerprints remain unchanged | [x] — exact rc.1 wheel reached terminal `PASS` after 412 cycles and 259,465.833 valid seconds with unchanged source Markdown and verified attempt-chain and artifact bindings; this evidence does not transfer to rc.2 |
+| Default-on soak | At least 72 hours and preferably 7 days with the flag unset, plus an explicit opt-out control run | [x] — exact public `2.0.0rc2` wheel terminal `PASS` on 2026-08-13 after 417 cycles, 834 passing attempts, and 259,548.995 valid seconds; source/working Markdown fingerprints matched and the artifact, installed RECORD, runner, and attempt chain were verified. See [`GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md`](../GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md). |
+| Read Only external-cache soak | Default-on Shadow reaches and retains `READY` with `MATRYCA_READ_ONLY=true`; all writes remain outside the graph and Markdown fingerprints remain unchanged | [x] — exact public `2.0.0rc2` wheel terminal `PASS` on 2026-08-13 after 417 cycles, 834 passing attempts, and 259,421.167 valid seconds; source/working Markdown fingerprints matched and the artifact, installed RECORD, runner, and attempt chain were verified. See [`GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md`](../GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md). |
 | Upgrade matrix | Stable `1.14.5`, alpha `2.0.0a5`, beta `2.0.0b1`, and RC upgrade paths pass from published artifacts | [ ] |
 | Cross-platform gate | Linux, macOS, and Windows CI or installed-runtime evidence passes for the supported Shadow read contract | [ ] |
 | Performance disposition | FTS and subtree measurements have explicit pass thresholds or a documented non-blocking disposition; fallback remains usable | [ ] |
@@ -171,11 +171,11 @@ child-process diagnostic is retained in the committed record.
    wheel, not a source checkout or prior artifact.
 7. Publish stable `v2.0.0` only after Gate B is fully checked.
 
-The rc.1 default-on checkpoint remains non-terminal and archived. A stable
-release claim is not made from `RUNNING`, and the rc.1 Read Only pass is
-supporting evidence only for rc.2. Both rc.2 profiles require fresh terminal
-`PASS` results after integrity and exact artifact-binding review; all other Gate
-B rows remain independently blocking for stable readiness.
+The rc.1 default-on checkpoint remains non-terminal and archived. Both fresh
+rc.2 profiles reached terminal `PASS` after integrity and exact artifact-binding
+review; the complete receipt is
+[`GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md`](../GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md).
+All other Gate B rows remain independently blocking for stable readiness.
 
 ### Non-negotiable runtime invariants
 

@@ -341,7 +341,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/RELEASE_PROCESS.md",
@@ -378,7 +379,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/index.md",
@@ -396,7 +398,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/integrations/hermes-agent.md",
@@ -433,7 +436,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/openspec/README.md",
@@ -1175,6 +1179,24 @@
       "supersedes": [],
       "notes": "",
       "missing": false
+    },
+    {
+      "path": "docs/quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md",
+      "type": "Audit",
+      "title": "Gate B RC2 terminal qualification evidence — 2026-08-13",
+      "description": "This record captures the terminal dual-profile Gate B qualification of the",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",
@@ -2427,7 +2449,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v1.10.0-GITHUB.md",
