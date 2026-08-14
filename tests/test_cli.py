@@ -51,6 +51,10 @@ def test_parser_global_json_flag() -> None:
             ["read", "page", "My Project"],
             {"command": "read", "target_type": "page", "query": "My Project"},
         ),
+        (
+            ["read", "journal_day", "2026-08-13"],
+            {"command": "read", "target_type": "journal_day", "query": "2026-08-13"},
+        ),
         (["read", "memory"], {"command": "read", "target_type": "memory", "query": ""}),
         (
             ["read", "xray_page", "Alias Demo"],
@@ -112,6 +116,26 @@ async def test_run_cli_read_memory_without_l1(
     out = capsys.readouterr().out
     assert code == 0
     assert "No L1 memory loaded" in out
+
+
+@pytest.mark.asyncio
+async def test_run_cli_read_journal_day(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    journal = tmp_path / "journals" / "2026_08_13.md"
+    journal.parent.mkdir()
+    journal.write_text("- TODO qualify\n", encoding="utf-8")
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+
+    args = Namespace(command="read", target_type="journal_day", query="2026-08-13")
+    code = await run_cli(args)
+    out = capsys.readouterr().out
+
+    assert code == 0
+    assert '"status":"ok"' in out
+    assert "TODO qualify" in out
 
 
 @pytest.mark.asyncio

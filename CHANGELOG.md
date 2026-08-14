@@ -2,6 +2,8 @@
 
 ### Added
 
+- **Exact read-only journal-day MCP/CLI target** — add `read_graph_data(target_type="journal_day")` for one ISO-dated canonical journal with a bounded provenance/trust envelope, strict sandbox and regular-file checks, stateless digest-bound pagination, and no Shadow dependency or graph mutation.
+
 - **Frozen Shadow read-profile fixtures** — publish a content-free v1 admission
   corpus with healthy, malformed, future-version, unhealthy, and foreign-binding
   packets for deterministic compatibility checks; no cache operation or new read
