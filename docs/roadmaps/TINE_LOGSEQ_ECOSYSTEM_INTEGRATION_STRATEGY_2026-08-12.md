@@ -18,8 +18,8 @@ source_commit: 4f82e12e737335f54fabfb7979b1b83026148663
 
 # Tine and Logseq ecosystem integration strategy
 
-**Date:** 2026-08-12  
-**Decision status:** proposed, evidence-backed roadmap; no compatibility or release claim  
+**Date:** 2026-08-12
+**Decision status:** proposed, evidence-backed roadmap; no compatibility or release claim
 **Scope:** Tine collaboration, Logseq OG companion, Logseq DB integration, and the smallest Matryca Plumber changes with the highest expected impact
 
 ## Executive decision
