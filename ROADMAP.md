@@ -6,13 +6,14 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-09** — `v2.0.0rc1` is the historical first public RC.
-Its Read Only external-cache Gate B profile reached terminal `PASS`; its
+*Status as of **2026-08-14** — `v2.0.0rc1` is the historical first public RC:
+its Read Only external-cache Gate B profile reached terminal `PASS`, while its
 default-on profile was frozen non-terminal after exposing a qualifier cleanup
-defect. `v2.0.0rc2` is the next exact candidate, carrying parser 1.7.1 and the
-corrected qualifier. Stable promotion remains blocked until fresh rc.2 Gate B
-evidence reaches terminal `PASS`; implementation progress does not imply release
-qualification. Issue numbers link to GitHub.*
+defect. The exact public `v2.0.0rc2` candidate has since completed its fresh
+dual-profile Gate B soaks and upgrade matrix. The canonical
+[`v2.0.0 stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md)
+owns the remaining blockers; stable promotion is not complete before
+`2026-08-16T16:45:18Z`. Issue numbers link to GitHub.*
 
 ---
 
@@ -49,8 +50,9 @@ restart-resilient 72-hour soak. The sanitized
 [`terminal evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
 records 415 completed cycles, 259,225.349 observed seconds, source Markdown
 unchanged during the source-to-working-copy check, and a terminal `PASS`; this closes only
-Gate A's exact-beta real-vault row. The currently active `2.0.0rc1` Gate B run
-remains `RUNNING` and is tracked as an independent stable-preparation checkpoint.
+Gate A's exact-beta real-vault row. The historical RC1 split outcome is preserved
+in the [stable-readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md)
+and must not be read as the current RC2 Gate B state.
 
 The published `2.0.0rc1` candidate line has merged Strict Read Only enforcement,
 external per-user Shadow cache routing, default-on Shadow with explicit opt-out,
@@ -61,14 +63,11 @@ graph-local, while the next candidate is default-on and external.
 
 Promotion therefore remains deliberately sequential:
 
-1. complete every remaining Gate A row on the exact candidate, including
-   upgrade/rollback, defect disposition, default-on/read-only installed-wheel
-   proof, operator-contract synchronization, and release build/platform checks;
-2. publish `v2.0.0-rc.1` so prerelease users can exercise the complete external
-   Shadow path;
-3. complete Gate B on that published RC, including at least seven days of
-   observation and the default-on/read-only soaks;
-4. publish stable `v2.0.0` only after every Gate B row passes.
+1. preserve the frozen RC2 artifact as the stable-promotion source;
+2. complete every remaining canonical Gate B row, including the RC observation
+   window, supported-platform evidence, performance disposition, stable
+   documentation, and exact-stable-artifact proof;
+3. publish stable `v2.0.0` only after every Gate B row passes.
 
 ---
 
