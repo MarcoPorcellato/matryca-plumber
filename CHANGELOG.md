@@ -29,6 +29,7 @@
 
 ### Changed
 
+- **Human-governed adaptive retrieval programme** — replace the historical global node-weight/RLHF proposal with a cross-repository, evidence-gated plan and separate execution ledger for direct-human revision-bound declarations, durable segmented interaction storage, logical Shadow replay, acquisition/holdout-separated bounded reranking, conditional stop outcomes, a default-off experimental preview gate, parallel Matryca Knowledge federation, and staged correction of the public Gist; no adaptive runtime behavior is enabled by this documentation change.
 - **Evidence-first agentic-memory programme** — sequence v2.1+ delivery through governed evidence, deterministic canonical recall, reproducible benchmarks, human-governed curation, and derived-only Shadow state before typed decay, procedural memory, or opt-in proactivity.
 - **BM25 scorecard benchmark schema** — evolve the manifest-driven synthetic Italian hard-negative scorecard mode (`--manifest-path`) to schema v3 with explicit update/superseded labels, update-only accuracy, abstention precision/recall/confusion, deterministic ordered evidence fingerprints, and manifest digest/environment signatures; no runtime behavior changes.
 

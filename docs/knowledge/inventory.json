@@ -1196,7 +1196,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",
@@ -1235,6 +1236,63 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/quality/HUMAN_GOVERNED_ADAPTIVE_RETRIEVAL_EXECUTION_STATUS_2026-08-16.md",
+      "type": "Audit",
+      "title": "Human-Governed Adaptive Retrieval Execution Status — 2026-08-16",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/HUMAN_GOVERNED_ADAPTIVE_RETRIEVAL_PERSISTENT_GOAL_2026-08-16.md",
+      "type": "Runbook",
+      "title": "Human-Governed Adaptive Retrieval Persistent Goal",
+      "description": "Compact restart-safe execution goal bound to the canonical human-governed adaptive retrieval programme.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active restart and orchestration handoff; all scope and authority remain in the linked canonical programme.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/HUMAN_GOVERNED_ADAPTIVE_RETRIEVAL_PROGRAMME_2026-08-16.md",
+      "type": "Roadmap",
+      "title": "Human-Governed Adaptive Retrieval Programme — 2026-08-16",
+      "description": "Cross-repository architecture, evidence, privacy, identity, federation, Gist, and delivery plan for bounded human-governed adaptive retrieval.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active proposed execution contract extending the completed P0 memory foundation and P0.5 graph-outcome programme; no adaptive runtime behavior is shipped by this document.",
+      "missing": false
     },
     {
       "path": "docs/quality/ISSUE_CONTROL_PLANE_2026-08-08.md",
