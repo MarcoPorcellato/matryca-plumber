@@ -2493,6 +2493,24 @@
       "missing": false
     },
     {
+      "path": "docs/reference/resource-safe-semantic-code-intelligence.md",
+      "type": "Reference",
+      "title": "Resource-safe semantic code intelligence",
+      "description": "Maintainer policy for bounded, evidence-calibrated use of language-server-backed code intelligence.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/releases/v1.10.0-GITHUB.md",
       "type": "Release Note",
       "title": "GitHub Release — v1.10.0 (copy-paste)",
