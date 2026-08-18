@@ -10,12 +10,12 @@ defaults and operator behavior are owned by the
 qualification status is owned by the
 [fail-closed readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
-**Current release status (2026-08-18):** the public `v2.0.0-rc.2` artifact has
-completed the dual-profile Gate B qualification, the four-baseline upgrade matrix,
-and the minimum seven-day RC observation window. Stable `v2.0.0` still requires
-the exact stable-candidate CI, final artifact proof, and publication workflow.
-See the [terminal Gate B evidence](../quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md)
-and [current readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
+**Current release status (2026-08-18):** stable `v2.0.0` is published after the
+public `v2.0.0-rc.2` artifact completed the dual-profile Gate B qualification, the
+four-baseline upgrade matrix, and the minimum seven-day RC observation window.
+See the [stable release record](../releases/v2.0.0-GITHUB.md),
+[terminal Gate B evidence](../quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md),
+and [final readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
 Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) for fast hierarchical reads (FTS5 + recursive CTEs), a **`GraphRepository`** port for coexistent Markdown and Logseq DB backends, and **Safe-Sync** write rules. **Logseq Markdown on disk remains the system of record** — shadow is a read cache, not a replacement vault.
 
@@ -137,13 +137,13 @@ see `llms.txt` §2.5–§2.6.
 | **v2.0.0-beta.1** | First public Shadow read-path beta | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **published** 2026-07-30 |
 | **v2.0.0-rc.1** | Historical split Gate B outcome; preserved for failure analysis | Superseded by the corrected RC2 candidate; see the [RC1 failure record](../quality/GATE_B_RC1_DEFAULT_ON_FAILURE_2026-08-09.md) |
 | **v2.0.0-rc.2** | Qualified public prerelease for the Shadow read contract | See the [terminal Gate B evidence](../quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md) and [current RC/stable readiness](../quality/issue-bodies/v2-rc-stable-readiness.md) |
-| **v2.0.0-stable** | RC observation complete; deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
+| **v2.0.0-stable** | Published 2026-08-18; external Shadow is default-on, Strict Read Only remains compatible, and BM25 remains the fail-closed fallback | [`v2.0.0-GITHUB.md`](../releases/v2.0.0-GITHUB.md) · [`llms.txt`](../../llms.txt) · [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) |
 
-**Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary. Re-qualification against the released source remains required before default-on.
+**Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary; the required re-qualification against the released source was completed through RC2 and stable v2.0.0.
 
 **RC/stable decision record:** [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md), tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). `v2.0.0` is scoped to the stable Shadow read path. Phase 4 biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and independent DX tracks move to `v2.1.0` or later.
 
-**Implemented RC storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md). Current runtime behavior is maintained in the [v2 operator contract](../knowledge/architecture/shadow-db.md); current promotion blockers are maintained in the [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
+**Implemented storage direction:** [`v2-external-shadow-cache-read-only.md`](../quality/issue-bodies/v2-external-shadow-cache-read-only.md). Current runtime behavior is maintained in the [v2 operator contract](../knowledge/architecture/shadow-db.md); post-release work is tracked independently from the completed stable readiness record.
 
 **Exact-beta re-qualification:** the public `2.0.0b1` wheel passed its fresh
 installed-wheel gate and completed its restart-resilient 72-hour soak with a

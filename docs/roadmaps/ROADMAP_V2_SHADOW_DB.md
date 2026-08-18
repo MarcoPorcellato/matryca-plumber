@@ -75,8 +75,9 @@ sync-failure invalidation slice.
   [v2.0.0 RC and stable readiness](../quality/issue-bodies/v2-rc-stable-readiness.md)
 
 The checked source-tree gate is recorded in
-[`READ_ONLY_IMMUTABILITY_E2E.md`](../quality/READ_ONLY_IMMUTABILITY_E2E.md). It does
-not replace the unchecked installed-wheel qualification row.
+[`READ_ONLY_IMMUTABILITY_E2E.md`](../quality/READ_ONLY_IMMUTABILITY_E2E.md). The
+installed-wheel qualification and final stable artifact proof are recorded in the
+[v2.0.0 readiness decision](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
 ### Rollout (Epic #20)
 
@@ -86,7 +87,7 @@ not replace the unchecked installed-wheel qualification row.
 | v2.0.0-alpha.5 | Seven-axis hardening campaign close | **published** |
 | v2.0.0-beta.1 | First public Shadow read-path beta; opt-in flag remains default-off | **published** |
 | v2.0.0-rc.1 | See the [current runtime and operator contract](../knowledge/architecture/shadow-db.md) | See [current RC and stable qualification status](../quality/issue-bodies/v2-rc-stable-readiness.md) |
-| v2.0.0-stable | Deprecate pure in-memory BM25 as default discovery path after RC observation | planned |
+| v2.0.0-stable | External Shadow default-on; Strict Read Only compatible; BM25 retained as fail-closed fallback | **published 2026-08-18** |
 
 ### Explicit read freshness after the RC
 
@@ -97,11 +98,10 @@ nanosecond mtime, and size against current Markdown. Untracked, missing, changed
 unproven-empty reads fail over with a closed content-free reason; the check is bounded
 to the requested page or returned result rows and never scans the full graph.
 
-This is a post-`2.0.0rc1` read-path correction. The public-RC soak remains valid only
-as evidence for those exact published bytes. Because both Gate B profiles exercise
-FTS and subtree routing, an exact stable candidate containing #389 must repeat the
-focused watcher-disabled edit/delete/rename matrix and both candidate-bound Gate B
-profiles before `v2.0.0` promotion.
+This was a post-`2.0.0rc1` read-path correction. The public-RC soak remains valid only
+as evidence for those exact published bytes; the corrected behavior was requalified
+on the public RC2 artifact and carried into the stable `v2.0.0` release. The stable
+artifact proof is recorded in the [release record](../releases/v2.0.0-GITHUB.md).
 
 The beta excludes Phase 4 biological memory and Logseq DB Safe-Sync. Its completed gates and accepted evidence boundary are recorded in [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md).
 The RC and stable exit criteria are fail-closed in [`docs/quality/issue-bodies/v2-rc-stable-readiness.md`](../quality/issue-bodies/v2-rc-stable-readiness.md) and tracked by [#343](https://github.com/MarcoPorcellato/matryca-plumber/issues/343). Biological memory, Logseq DB Safe-Sync, Tana merge, and independent DX tracks are deferred to `v2.1.0` or later.
@@ -110,7 +110,7 @@ and completed the required 72-hour real-vault qualification with a terminal
 `PASS` on 2026-08-03. See the sanitized
 [`terminal evidence record`](../quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md);
 it closes only the exact-beta real-vault readiness row and does not qualify the RC.
-Current RC status is maintained in the
+The completed stable status is maintained in the
 [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
 ---

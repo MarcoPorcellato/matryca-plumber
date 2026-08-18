@@ -6,15 +6,13 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-18** — `v2.0.0rc1` is the historical first public RC:
-its Read Only external-cache Gate B profile reached terminal `PASS`, while its
-default-on profile was frozen non-terminal after exposing a qualifier cleanup
-defect. The exact public `v2.0.0rc2` candidate has since completed its fresh
-dual-profile Gate B soaks and upgrade matrix. The canonical
-[`v2.0.0 stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md)
-owns the remaining blockers; the seven-day RC observation cutoff passed on
-`2026-08-16T16:45:18Z`. Stable promotion still requires the final exact stable
-candidate CI, artifact proof, and publication workflow. Issue numbers link to GitHub.*
+*Status as of **2026-08-18** — stable `v2.0.0` is published. The historical RC1
+split outcome is preserved for failure analysis; the corrected public RC2 candidate
+completed its fresh dual-profile Gate B soaks, upgrade matrix, and seven-day
+observation window. The exact stable candidate then passed CI, artifact proof, and
+the publication workflow. See the [`v2.0.0 release record`](docs/releases/v2.0.0-GITHUB.md)
+and canonical [`stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
+Issue numbers link to GitHub.*
 
 ---
 
@@ -63,13 +61,13 @@ and the bounded 8,192-entry BM25 result cache (#354–#366). These source change
 do not inherit the beta.1 soak result: the published beta is opt-in and
 graph-local, while the next candidate is default-on and external.
 
-Promotion therefore remains deliberately sequential:
+The completed promotion sequence was deliberately sequential:
 
 1. freeze the exact stable candidate source commit and complete its synchronized
    version, changelog, operator-surface, and lockfile checks;
 2. obtain terminal full CI, supported-platform, clean-build, installed-wheel,
    and artifact-digest evidence for that exact stable commit;
-3. publish stable `v2.0.0` only after every Gate B row and final proof pass.
+3. publish stable `v2.0.0` only after every Gate B row and final proof pass — **completed 2026-08-18**.
 
 ---
 

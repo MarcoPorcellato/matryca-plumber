@@ -7,6 +7,11 @@ published `matryca-plumber==2.0.0rc2` artifact. It is evidence for that exact
 installed public wheel only. It does not qualify a later source commit, a new
 wheel, or the stable `2.0.0` artifact by implication.
 
+> **Later publication status — 2026-08-18:** this historical RC2 evidence was
+> consumed as one input to the stable readiness decision, not silently rebound to
+> the stable wheel. The independently verified stable artifact and publication
+> proof are recorded in [`v2.0.0-GITHUB.md`](../releases/v2.0.0-GITHUB.md).
+
 The campaign exercised the default-on Shadow profile and the Strict Read Only
 profile with an external derived-cache root. Logseq Markdown remained the
 system of record throughout.
