@@ -1,5 +1,9 @@
 # Documentation update log
 
+## 2026-08-18
+
+- **Stable-readiness preparation:** recorded the completed RC2 observation window, four-baseline upgrade matrix, current cross-platform CI baseline, and non-blocking performance disposition; stable-candidate proof remains a separate exact-head gate.
+
 ## 2026-08-14
 
 - **Stable-readiness state:** Reconciled RC2 terminal soak and persistent upgrade/rollback evidence, corrected the roadmap's historical RC1 framing, and recorded the RC observation cutoff while retaining the remaining stable-promotion blockers.
