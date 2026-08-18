@@ -1237,6 +1237,25 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/GITHUB_REPOSITORY_RECONCILIATION_2026-08-18.md",
+      "type": "Audit",
+      "title": "GitHub and repository reconciliation — 2026-08-18",
+      "description": "Exact-head reconciliation of Matryca Plumber code, maintained documentation, GitHub planning metadata, and open delivery state.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Current reconciliation receipt; not a release authorization or live GitHub source of truth."
+    },
+    {
       "path": "docs/quality/ISSUE_CONTROL_PLANE_2026-08-08.md",
       "type": "Audit",
       "title": "Issue and milestone control plane — 2026-08-08",
