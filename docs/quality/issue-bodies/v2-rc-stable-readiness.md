@@ -1,5 +1,11 @@
 # v2.0.0 RC and stable readiness — decision record
 
+> **Final status — 2026-08-18:** `v2.0.0` is published as the stable Shadow
+> read-path release. The signed tag points to `main@987446b8337f7abd308a9efe4abb834ce1acdc1b`;
+> the [GitHub Release](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0),
+> [PyPI package](https://pypi.org/project/matryca-plumber/2.0.0/), and exact artifact
+> digests are recorded in [`docs/releases/v2.0.0-GITHUB.md`](../../releases/v2.0.0-GITHUB.md).
+
 ## Problem Description
 
 `v2.0.0-beta.1` published the opt-in Shadow DB read path while preserving
@@ -21,12 +27,14 @@ default-on release candidate requires both re-qualification of the exact public
 `matryca-plumber==2.0.0b1` predecessor and qualification of the exact new
 candidate. Evidence from one artifact never transfers silently to the other.
 
-As of 2026-08-05, the published `2.0.0rc1` candidate line contains the Strict Read Only
+Historical RC1 context: as of 2026-08-05, the published `2.0.0rc1` candidate line contains the Strict Read Only
 policy and guarded runtime, external per-user Shadow routing, default-on Shadow
 with explicit opt-out, read-only observer daemon, deterministic graph
 immutability gate, bounded 8,192-entry BM25 result cache, and Linux/macOS/Windows
 Shadow contract CI merged through #376. Gate A is qualified on the exact merged
-commit recorded below. This is not a stable release decision.
+commit recorded below. This RC1 checkpoint is historical evidence only; it is
+superseded by the corrected RC2 qualification and the stable publication recorded
+below.
 
 ### Recorded exact-candidate Gate B context
 
@@ -153,9 +161,9 @@ child-process diagnostic is retained in the committed record.
 | Cross-platform gate | Linux, macOS, and Windows CI or installed-runtime evidence passes for the supported Shadow read contract | [x] — PR #513 candidate `2150e290` reached terminal success for Ironclad Gatekeeper, macOS Shadow-contract, Windows Shadow-contract, and Python 3.13 evidence; CodeQL and dependency review also passed, with only the expected lockfile auto-fixer skip. |
 | Performance disposition | FTS and subtree measurements have explicit pass thresholds or a documented non-blocking disposition; fallback remains usable | [x] — deterministic capacity, large-corpus, and retrieval-scorecard evidence meets the parity and bounded-resource thresholds in [`V2_STABLE_PERFORMANCE_DISPOSITION_2026-08-18.md`](../V2_STABLE_PERFORMANCE_DISPOSITION_2026-08-18.md); host-dependent latency and RSS remain diagnostic, not release claims. |
 | Stable documentation | In-memory BM25 is deprecated as the default discovery path but remains a supported fallback; no beta/RC wording survives on stable surfaces | [x] — the candidate synchronizes the stable version across `llms.txt`, `.well-known/llms.txt`, the Shadow operator contract, OpenSpec onboarding, generated `SYSTEM_PROMPT.md`, roadmap surfaces, and the release changelog; checks pass and historical RC references remain explicitly labelled. |
-| Final release proof | Full CI, code audit, clean build, release-note extraction, installed-wheel smoke, and artifact digest verification pass on the exact stable commit | [ ] — explicitly pending on the frozen-RC2-derived exact stable candidate |
+| Final release proof | Full CI, code audit, clean build, release-note extraction, installed-wheel smoke, and artifact digest verification pass on the exact stable commit | [x] — PR #515 and the tag-bound release workflow passed on `main@987446b8337f7abd308a9efe4abb834ce1acdc1b`; GitHub Release and PyPI expose matching wheel/sdist digests. See [`v2.0.0-GITHUB.md`](../../releases/v2.0.0-GITHUB.md). |
 
-`v2.0.0` may be published only when every Gate B row is complete.
+Every Gate B row is complete and `v2.0.0` was published from the exact stable commit.
 
 ### Promotion sequence
 
@@ -169,13 +177,14 @@ child-process diagnostic is retained in the committed record.
    integration and qualifier fix merge.
 6. Run fresh dual-profile Gate B attempts against the installed public rc.2
    wheel, not a source checkout or prior artifact.
-7. Publish stable `v2.0.0` only after Gate B is fully checked.
+7. Publish stable `v2.0.0` only after Gate B is fully checked. **Completed 2026-08-18.**
 
 The rc.1 default-on checkpoint remains non-terminal and archived. Both fresh
 rc.2 profiles reached terminal `PASS` after integrity and exact artifact-binding
 review; the complete receipt is
 [`GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md`](../GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md).
-All other Gate B rows remain independently blocking for stable readiness.
+The stable publication completed the final Gate B row. Post-release work is tracked
+separately and cannot retroactively change the exact artifact qualification above.
 
 ### Non-negotiable runtime invariants
 
@@ -229,4 +238,6 @@ best-effort behavior.
 
 **Parent epic:** [#20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)
 
-_The RC and stable release decisions remain separate maintainer authority gates._
+_The RC evidence remains immutable historical evidence; stable `v2.0.0` is the completed
+maintainer promotion decision. Future runtime capabilities require new, independently
+qualified release gates._

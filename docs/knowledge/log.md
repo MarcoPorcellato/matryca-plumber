@@ -2,6 +2,11 @@
 
 ## 2026-08-18
 
+- **Stable v2.0.0 publication:** recorded the signed tag, exact stable commit,
+  matching GitHub Release/PyPI artifact digests, completed Gate B and publication
+  proof, README release guidance, and the public release record. Historical RC1/RC2
+  evidence remains immutable and explicitly bound to its original artifacts.
+
 - **Stable-readiness preparation:** recorded the completed RC2 observation window, four-baseline upgrade matrix, current cross-platform CI baseline, and non-blocking performance disposition; stable-candidate proof remains a separate exact-head gate.
 
 ## 2026-08-14

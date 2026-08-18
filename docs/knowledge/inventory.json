@@ -1482,7 +1482,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",
@@ -2984,6 +2985,42 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/releases/v2.0.0-BLOG_ARTICLE_DRAFT.md",
+      "type": "Release Note",
+      "title": "Blog article draft — After the Agentic Memory Dilemma",
+      "description": "**Intended site:** [marcoporcellato.it](https://www.marcoporcellato.it/)",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
+      "path": "docs/releases/v2.0.0-GITHUB.md",
+      "type": "Release Note",
+      "title": "GitHub Release — v2.0.0 Stable",
+      "description": "**Tag:** [`v2.0.0`](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0)",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/releases/v2.0.0-alpha-GITHUB.md",
