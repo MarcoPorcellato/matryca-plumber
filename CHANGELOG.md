@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-18
+
+**v2.0.0** — stable Shadow read path with a default-on external derived cache,
+Strict Read Only graph protection, Markdown authority, and fail-closed
+Markdown/BM25 fallback. Biological memory, Logseq DB Safe-Sync writes, and
+proactive adaptive runtime remain outside this release's enabled behavior.
+
 ### Added
 
 - **Frozen Shadow read-profile fixtures** — publish a content-free v1 admission
