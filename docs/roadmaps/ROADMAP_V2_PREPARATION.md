@@ -10,20 +10,13 @@ defaults and operator behavior are owned by the
 qualification status is owned by the
 [fail-closed readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
-**Current release status (2026-08-18):** the public `v2.0.0-rc.2` artifact has
-completed the dual-profile Gate B qualification, the four-baseline upgrade matrix,
-and the minimum seven-day RC observation window. Stable `v2.0.0` still requires
-the exact stable-candidate CI, final artifact proof, and publication workflow.
-See the [terminal Gate B evidence](../quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md)
-and [current readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
-
 Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) for fast hierarchical reads (FTS5 + recursive CTEs), a **`GraphRepository`** port for coexistent Markdown and Logseq DB backends, and **Safe-Sync** write rules. **Logseq Markdown on disk remains the system of record** — shadow is a read cache, not a replacement vault.
 
 **Start here if you are new:** this document → Epic #20 → phase tracking issues → slice PRs.
 
 ---
 
-## Historical delivery snapshot (2026-08-05)
+## Delivery snapshot (2026-08-05)
 
 For live release qualification state, use the
 [RC and stable readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
@@ -135,8 +128,7 @@ see `llms.txt` §2.5–§2.6.
 |-------|-----------------|-------------------|
 | **v2.0.0-alpha.5** | Seven-axis hardening baseline | Pin `@2.0.0-alpha.5`; shadow remains opt-in | **published** 2026-07-19 |
 | **v2.0.0-beta.1** | First public Shadow read-path beta | Default-off flag, Markdown system of record, fallback mandatory; Phase 4 excluded | **published** 2026-07-30 |
-| **v2.0.0-rc.1** | Historical split Gate B outcome; preserved for failure analysis | Superseded by the corrected RC2 candidate; see the [RC1 failure record](../quality/GATE_B_RC1_DEFAULT_ON_FAILURE_2026-08-09.md) |
-| **v2.0.0-rc.2** | Qualified public prerelease for the Shadow read contract | See the [terminal Gate B evidence](../quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md) and [current RC/stable readiness](../quality/issue-bodies/v2-rc-stable-readiness.md) |
+| **v2.0.0-rc.1** | See the [current runtime and operator contract](../knowledge/architecture/shadow-db.md) | See [current RC and stable qualification status](../quality/issue-bodies/v2-rc-stable-readiness.md) |
 | **v2.0.0-stable** | RC observation complete; deprecation notice for in-memory BM25 default | `llms.txt` + `SYSTEM_PROMPT.md` migration per [`llm-os-instructions.md`](../openspec/llm-os-instructions.md) § v2.0 trigger |
 
 **Beta decision record:** [`docs/quality/issue-bodies/v2-beta-readiness.md`](../quality/issue-bodies/v2-beta-readiness.md). Bounded-parse containment, the sanitized soak, installed-wheel upgrade/recovery, full CI, and final code audit all passed with the recorded evidence boundary. Re-qualification against the released source remains required before default-on.

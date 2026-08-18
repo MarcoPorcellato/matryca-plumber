@@ -1196,8 +1196,7 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": "",
-      "missing": false
+      "notes": ""
     },
     {
       "path": "docs/quality/GATE_B_RC_SOAK_RUNBOOK.md",
@@ -1254,8 +1253,7 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Current reconciliation receipt; not a release authorization or live GitHub source of truth.",
-      "missing": false
+      "notes": "Current reconciliation receipt; not a release authorization or live GitHub source of truth."
     },
     {
       "path": "docs/quality/ISSUE_CONTROL_PLANE_2026-08-08.md",
@@ -1465,24 +1463,6 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
-    },
-    {
-      "path": "docs/quality/V2_STABLE_PERFORMANCE_DISPOSITION_2026-08-18.md",
-      "type": "Audit",
-      "title": "v2.0.0 stable performance disposition — 2026-08-18",
-      "description": "The v2.0.0 Shadow read path is performance-qualified for stable promotion under",
-      "classification": "historical",
-      "audience": [
-        "maintainer",
-        "contributor"
-      ],
-      "surface_class": "concept-candidate",
-      "canonical_for": null,
-      "owner": "quality",
-      "destination": "docs/knowledge/quality/",
-      "action": "archive",
-      "supersedes": [],
-      "notes": ""
     },
     {
       "path": "docs/quality/issue-bodies/130-lock-backoff-downgrades-processed.md",

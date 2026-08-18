@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "matryca-plumber"
-version = "2.0.0"
+version = "2.0.0rc2"
 description = "Enterprise-grade, local-first autonomous background AI daemon and headless mutation plane for Logseq OG."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,7 +23,7 @@ keywords = [
     "markdown",
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
