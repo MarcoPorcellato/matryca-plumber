@@ -84,13 +84,18 @@ the qualification result.
 
 ### Current public planning boundary
 
-The public adaptive-retrieval execution structure exists on GitHub:
+The public adaptive-retrieval execution structure was created on GitHub:
 
 - parent epic [#505](https://github.com/MarcoPorcellato/matryca-plumber/issues/505);
 - child issues [#506](https://github.com/MarcoPorcellato/matryca-plumber/issues/506)
   through [#511](https://github.com/MarcoPorcellato/matryca-plumber/issues/511);
 - public project [Human-Governed Adaptive Retrieval](https://github.com/users/MarcoPorcellato/projects/6);
 - milestones A1 through B0 and the `adaptive-retrieval` label.
+
+The project and custom fields were created in the preceding metadata batch.
+A fresh GraphQL readback of per-item field values was unavailable during this
+audit because the account quota was exhausted, so those values are not
+requalified here.
 
 The programme-design PR [#501](https://github.com/MarcoPorcellato/matryca-plumber/pull/501)
 is still draft. Therefore #505–#511 are public planning and coordination
