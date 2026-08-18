@@ -1,13 +1,5 @@
 # Documentation update log
 
-## 2026-08-18
-
-- **Stable-readiness preparation:** recorded the completed RC2 observation window, four-baseline upgrade matrix, current cross-platform CI baseline, and non-blocking performance disposition; stable-candidate proof remains a separate exact-head gate.
-
-## 2026-08-14
-
-- **Stable-readiness state:** Reconciled RC2 terminal soak and persistent upgrade/rollback evidence, corrected the roadmap's historical RC1 framing, and recorded the RC observation cutoff while retaining the remaining stable-promotion blockers.
-
 ## 2026-08-13
 
 - **RC2 qualification evidence:** Recorded the terminal dual-profile Gate B result for the exact public `2.0.0rc2` wheel, including frozen artifact and runner bindings, 72-hour valid-time proof, attempt-chain integrity, Read Only external-cache isolation, and explicit remaining stable-release gates.
