@@ -1321,6 +1321,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/GRAPH_OUTCOME_SYNTHETIC_HARNESS.md",
+      "type": "Audit",
+      "title": "Synthetic graph-outcome harness runner",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/ISSUE_CONTROL_PLANE_2026-08-08.md",
       "type": "Audit",
       "title": "Issue and milestone control plane — 2026-08-08",
