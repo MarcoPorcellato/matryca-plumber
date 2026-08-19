@@ -2,6 +2,11 @@
 
 ### Added
 
+- **Synthetic graph-outcome harness** — add a provider-free, temporary-root
+  evaluation seam that produces closed, content-free episode receipts for
+  strict-read-only success, unauthorized-tool refusal, stale-write veto, and
+  reset isolation. It does not execute a real agent, vault, Shadow database,
+  benchmark, or concurrent-writer workflow.
 - **Interoperability TCK admission runner** — validate the closed, content-free
   fixture catalogue and emit a deterministic receipt with fixture attestations,
   declared outcomes, and explicit non-goals; it performs no graph operation and
