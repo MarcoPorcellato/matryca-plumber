@@ -75,6 +75,26 @@ The current Tine qualification is not completed. In particular, concurrent mutat
 
 Consumers must validate closed schemas and required fields, preserve source semantics, enforce graph binding, bound result size and execution time, keep derived state isolated, and retain receipts with the exact source anchor. Consumers must distinguish verified evidence, proposals, historical evidence, partial results, and external gates. They must surface a no-serve/no-write decision rather than silently falling back to an unsafe interpretation.
 
+### Consumer-path matrix
+
+The following paths are usable starting points, not conformance claims. Each
+consumer still needs an operational receipt for its exact source, version,
+inputs, and declared capability.
+
+| Consumer path | Safe starting point | Required hold | Does not establish |
+| --- | --- | --- | --- |
+| Parser consumer | Preserve Logseq Markdown, block, property, namespace, ordering, and `id::` semantics through the parser boundary. | Reject a source or schema binding that is absent, stale, foreign, or unsupported. | Byte-perfect round-trip or compatibility with another parser. |
+| CLI consumer | Use the published versioned distribution and the [agent onboarding guide](agent-onboarding.md), then request bounded structured reads. | Do not treat a local checkout, a successful command, or an implicit fallback as interoperability evidence. | External-provider qualification or concurrent-write support. |
+| MCP consumer | Enable the optional stdio surface only in a trusted host and follow its documented tool and Read Only boundary. | No ambient write authority; reject unsupported capability levels and retain the operation receipt. | Transport, authentication, marketplace, or host-implementation compatibility. |
+| External-cache consumer | Read the [content-free Shadow read profile](shadow-read-profile.md) and maintain only a separately identifiable derived cache. | Refuse to serve or repair when freshness, graph binding, health, or profile compatibility is unproven. | A healthy cache, a graph mutation, or source authority transfer. |
+| Matryca Knowledge consumer | Consume committed source documents only as the [reviewed read-only projection](../knowledge/documentation-evolution.md#matryca-knowledge-projection-boundary) describes. | Do not ingest uncommitted content or write projection content back as a second canonical source. | Runtime graph compatibility, benchmark evidence, or release qualification. |
+
+For the local fixture-admission boundary only, run
+`python scripts/run_interop_tck.py`. Its result is a
+`deterministic-fixture-attestation`, not an operational receipt. The TCK runner
+must not be presented as a parser, CLI, MCP, external-cache, or third-party
+conformance result.
+
 ## 7. Exact non-goals
 
 This contract does not:

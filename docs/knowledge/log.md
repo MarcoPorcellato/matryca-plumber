@@ -2,6 +2,10 @@
 
 ## 2026-08-19
 
+- **Interoperability consumer paths:** added an evidence-bounded matrix for
+  parser, CLI, MCP, external-cache, and Matryca Knowledge consumers. Each path
+  now states its safe starting point, required hold, and non-claims.
+
 - **Contributor architecture guidance:** corrected the active contributor
   philosophy and Phase 4 guidance to distinguish the v2 external, disposable
   SQLite Shadow cache from an authoritative database or remote memory store.
