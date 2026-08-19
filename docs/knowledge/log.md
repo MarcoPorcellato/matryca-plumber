@@ -1,5 +1,13 @@
 # Documentation update log
 
+## 2026-08-19
+
+- **Repository governance and AAIF readiness:** established the canonical
+  cross-cutting programme and its evidence-bound execution ledger; retained
+  existing specialist and historical dossiers in their original roles, corrected
+  the current security-support line, and linked the programme from maintained
+  documentation entry points.
+
 ## 2026-08-18
 
 - **Stable v2.0.0 publication:** recorded the signed tag, exact stable commit,

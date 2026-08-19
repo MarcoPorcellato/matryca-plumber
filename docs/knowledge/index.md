@@ -8,6 +8,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Matryca Plumber knowledge profile](profile.md) — OKF v0.2 compatibility and stricter Matryca producer rules.
 - [Repository documentation inventory](inventory.md) — Generated view of every root and `docs/` Markdown surface.
 - [Documentation update log](log.md) — Material documentation-system changes, newest first.
+- [Repository governance and AAIF readiness programme](../quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_PROGRAMME_2026-08-19.md) — Current cross-cutting sequence for governance, evidence, interoperability, and external-readiness work.
 
 ## Maintained architecture
 
