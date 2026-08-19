@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Added
+
+- **Interoperability TCK admission runner** — validate the closed, content-free
+  fixture catalogue and emit a deterministic receipt with fixture attestations,
+  declared outcomes, and explicit non-goals; it performs no graph operation and
+  makes no external-provider or concurrent-writer qualification claim.
+
 ## [2.0.0] - 2026-08-18
 
 **v2.0.0** — stable Shadow read path with a default-on external derived cache,

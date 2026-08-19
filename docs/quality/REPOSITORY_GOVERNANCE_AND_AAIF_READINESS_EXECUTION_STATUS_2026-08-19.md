@@ -44,7 +44,7 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | M0 — isolated delivery and baseline | `complete` | isolated branch from exact anchor; programme, ledger, bounded audits, and first documentation tranche are validated | keep the worktree clean and update exact anchors before each new milestone |
 | M1 — documentation authority and freshness | `in_progress` | current contracts, generated inventory, link and documentation gates | complete successor-role review and publish the evidence index/release gate map as reviewed repository metadata |
 | M2 — governance and contributor scale | `pending` | governance model, real ownership, contribution path | establish policy and GitHub metadata proposal |
-| M3 — interoperability and TCK | `in_progress` | versioned contract, corpus, deterministic result schema | implement and qualify the bounded local runner; keep external-provider and concurrent-writer claims unqualified |
+| M3 — interoperability and TCK | `in_progress` | versioned contract, corpus, deterministic result schema | extend the local admission runner only through evidence-bound negative cases; keep external-provider and concurrent-writer claims unqualified |
 | M4 — outcome evaluation | `pending` | reproducible graph-outcome evidence | continue the existing specialist programme through its gates |
 | M5 — CI, release, and recovery | `pending` | resource-admission and recovery receipts | reconcile current workflows and runbooks |
 | M6 — targeted hardening | `pending` | focused issue/PR gates and acceptance evidence | convert verified gaps into narrow slices |
@@ -62,6 +62,7 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | 2026-08-19 | CI, release, and recovery audit | CI and release automation exist; gate-map, public release manifest, recovery proof, and resource-admission contract are incomplete | `verified` |
 | 2026-08-19 | Documentation foundation | Added the programme, execution ledger, governance model, support triage rules, PR evidence prompts, public evidence index, release gate map, and maintained navigation; documentation gates pass on the delivery branch | `verified` |
 | 2026-08-19 | Interoperability foundation | Added the read-first interoperability contract and content-free fixture catalog; external-provider, concurrent-writer, and semantic qualification remain explicitly unsupported pending separate evidence | `verified` |
+| 2026-08-19 | Interoperability TCK admission | Executed the local content-free manifest admission runner against manifest SHA-256 `efe348c41e5ed165ca8d96aff42d6a3a8267204fe85102f7cb0228d0f59ef3da`; receipt SHA-256 `534806bf18acaa6a2cb22a47aa8a9d1bee80fffd3f5fce3852eb2d5cb8b61b5e`; no graph operation, external-provider, concurrent-writer, or semantic qualification was performed | `verified` |
 
 ## External gates and boundaries
 
