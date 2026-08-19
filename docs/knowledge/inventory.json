@@ -759,8 +759,7 @@
       "destination": "docs/knowledge/specifications/",
       "action": "migrate",
       "supersedes": [],
-      "notes": "",
-      "missing": false
+      "notes": ""
     },
     {
       "path": "docs/openspec/identity-config.md",
@@ -818,7 +817,8 @@
       "destination": "docs/knowledge/specifications/",
       "action": "migrate",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/openspec/l1-l2-routing.md",
@@ -1356,6 +1356,27 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
+      "type": "Guide",
+      "title": "Public release and soak evidence policy",
+      "description": "Retention, redaction, review, and claim-boundary rules for public release and operational qualification evidence.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "quality.public-release-and-soak-evidence-policy",
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Policy boundary only; it does not certify a release, CI run, soak, or external review.",
+      "missing": false,
+      "classification": "canonical"
     },
     {
       "path": "docs/quality/READ_ONLY_IMMUTABILITY_E2E.md",

@@ -2,6 +2,11 @@
 
 ## 2026-08-19
 
+- **Public release and soak evidence:** added the canonical retention, redaction,
+  review, correction, and exact-artifact boundary policy for source checks, CI,
+  package artifacts, soak campaigns, release publication, and post-release
+  observations.
+
 - **Resource admission:** added the local resource-admission coordinator runbook
   with the macOS `macos-v4` thresholds, fail-closed interruption policy,
   ticket/workspace-lock rules, schema boundaries, and explicit non-qualification

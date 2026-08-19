@@ -46,7 +46,7 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | M2 — governance and contributor scale | `pending` | governance model, real ownership, contribution path | establish policy and GitHub metadata proposal |
 | M3 — interoperability and TCK | `in_progress` | versioned contract, corpus, deterministic result schema | extend the local admission runner only through evidence-bound negative cases; keep external-provider and concurrent-writer claims unqualified |
 | M4 — outcome evaluation | `in_progress` | reproducible graph-outcome evidence | extend the synthetic reset/containment harness only through evidence-bound scenarios; do not infer agent, release, or platform qualification |
-| M5 — CI, release, and recovery | `in_progress` | resource-admission and recovery receipts | validate the local admission runbook and reconcile remaining recovery evidence |
+| M5 — CI, release, and recovery | `in_progress` | resource-admission and recovery receipts | obtain a fresh `admit` decision, then validate the local admission runbook and reconcile remaining recovery evidence; the current full-suite attempt is a non-pass and is not credited |
 | M6 — targeted hardening | `pending` | focused issue/PR gates and acceptance evidence | convert verified gaps into narrow slices |
 | M7 — AAIF submission package | `pending` | public package, gap register, explicit submit decision | assemble only after M1–M6 evidence is current |
 
@@ -61,10 +61,12 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | 2026-08-19 | Interoperability and outcome audit | Reusable contracts and receipts exist; no unified interoperability contract, TCK, or completed resettable graph-outcome harness exists | `verified` |
 | 2026-08-19 | CI, release, and recovery audit | CI and release automation exist; gate-map, public release manifest, recovery proof, and resource-admission contract are incomplete | `verified` |
 | 2026-08-19 | Resource-admission runbook | Added the macOS `macos-v4` local resource-admission contract, fail-closed interruption/recovery rules, schema boundaries, and explicit non-qualification limits; no CI, release, artifact, identity, or platform qualification was performed | `verified` |
+| 2026-08-19 | Public release and soak evidence policy | Added retention, redaction, review, correction, and exact-artifact boundary rules for public source-check, CI, package, soak, release, and post-release evidence | `verified` |
 | 2026-08-19 | Documentation foundation | Added the programme, execution ledger, governance model, support triage rules, PR evidence prompts, public evidence index, release gate map, and maintained navigation; documentation gates pass on the delivery branch | `verified` |
 | 2026-08-19 | Interoperability foundation | Added the read-first interoperability contract and content-free fixture catalog; external-provider, concurrent-writer, and semantic qualification remain explicitly unsupported pending separate evidence | `verified` |
 | 2026-08-19 | Interoperability TCK admission | Executed the local deterministic fixture-attestation runner against manifest SHA-256 `efe348c41e5ed165ca8d96aff42d6a3a8267204fe85102f7cb0228d0f59ef3da`; corrected receipt SHA-256 `76b0956f6347d93d95b0f3d90085c22ea673de45969f59d954b9ab70ef79eb38`; duplicate catalogue identifiers reject and declared outcomes remain unevaluated; no graph operation, external-provider, concurrent-writer, or semantic qualification was performed | `verified` |
 | 2026-08-19 | Synthetic outcome-harness foundation | Added a provider-free temporary-root harness with strict-read-only, unauthorized-tool, stale-write-veto, and reset-isolation scenarios; focused harness-plus-protocol tests passed. This is infrastructure evidence only: it does not run an agent, real vault, Shadow database, benchmark, external provider, concurrent-writer workflow, or release gate | `verified` |
+| 2026-08-19 | Guarded full-suite attempt | A `macos-v4`-guarded native full-suite attempt reached terminal `failed` without a watchdog pressure trip. The failure has not been reproduced because the coordinator currently reports `unknown`; no full-suite pass or recovery qualification is credited | `partial` |
 
 ## External gates and boundaries
 
