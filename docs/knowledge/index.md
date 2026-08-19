@@ -33,6 +33,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Release qualification gate map](../quality/RELEASE_QUALIFICATION_GATE_MAP.md) — Independent local, CI, package, operational, security, and publication gates.
 - [Public release and soak evidence policy](../quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md) — Retention, redaction, review, and artifact-bound claim rules for public qualification evidence.
 - [Local resource-admission coordinator runbook](../quality/CI_RESOURCE_ADMISSION_RUNBOOK.md) — macOS `macos-v4` admission, interruption, recovery, and evidence boundaries.
+- [Legacy milestone reconciliation](../quality/LEGACY_MILESTONE_RECONCILIATION_2026-08-19.md) — Read-only current-source disposition plan for the remaining pre-v2 audit issues.
 - [Release records](../releases/) — Version-specific public release documentation.
 
 ## Maintenance

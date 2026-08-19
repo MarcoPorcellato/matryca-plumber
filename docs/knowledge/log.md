@@ -2,6 +2,10 @@
 
 ## 2026-08-19
 
+- **Legacy milestone reconciliation:** recorded the live read-only state and
+  current-source disposition plan for the seven remaining pre-v2 audit issues;
+  no issue or milestone was changed without fresh authenticated revalidation.
+
 - **Interoperability consumer paths:** added an evidence-bounded matrix for
   parser, CLI, MCP, external-cache, and Matryca Knowledge consumers. Each path
   now states its safe starting point, required hold, and non-claims.

@@ -759,7 +759,8 @@
       "destination": "docs/knowledge/specifications/",
       "action": "migrate",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/openspec/identity-config.md",
@@ -1356,6 +1357,27 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/quality/LEGACY_MILESTONE_RECONCILIATION_2026-08-19.md",
+      "type": "Audit",
+      "title": "Legacy milestone reconciliation",
+      "description": "Current-source disposition plan for the remaining open issues in the pre-v2 performance and technical-debt milestones.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Read-only disposition proposal; refresh authenticated GitHub state before applying any remote change.",
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
