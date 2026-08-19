@@ -15,6 +15,7 @@ from src.memory.graph_outcome_harness import (
     DefaultHarnessRun,
     EpisodeRun,
     ResetIsolationProof,
+    run_corrupt_state_reset_proof,
     run_default_scenarios,
     run_policy_transition_reset_proof,
 )
@@ -68,6 +69,7 @@ def build_report(source_revision: str) -> dict[str, object]:
 
     default_run: DefaultHarnessRun = run_default_scenarios()
     policy_transition = run_policy_transition_reset_proof()
+    corrupt_state_reset = run_corrupt_state_reset_proof()
     episodes = [_episode_summary(run) for run in default_run.episodes]
     checks = {
         "default_scenario_order": [episode["scenario"] for episode in episodes]
@@ -75,6 +77,7 @@ def build_report(source_revision: str) -> dict[str, object]:
             "strict-read-only-success",
             "unauthorized-tool-request",
             "stale-unverified-mutation",
+            "corrupt-derived-state",
         ],
         "strict_read_only_completed": episodes[0]["status"] == "completed"
         and episodes[0]["validation"] == "passed",
@@ -82,10 +85,15 @@ def build_report(source_revision: str) -> dict[str, object]:
         and episodes[1]["validation"] == "rejected",
         "stale_mutation_vetoed": episodes[2]["status"] == "vetoed"
         and episodes[2]["validation"] == "passed",
+        "corrupt_derived_state_no_serve": episodes[3]["status"] == "abstained"
+        and episodes[3]["validation"] == "passed"
+        and not episodes[3]["executed_tool_ids"],
         "default_reset_isolation": default_run.reset_isolation.no_content_leak
         and default_run.reset_isolation.cleanup_verified,
         "policy_transition_reset_isolation": policy_transition.no_content_leak
         and policy_transition.cleanup_verified,
+        "corrupt_state_reset_isolation": corrupt_state_reset.no_content_leak
+        and corrupt_state_reset.cleanup_verified,
     }
     return {
         "schema_version": _REPORT_SCHEMA_VERSION,
@@ -98,6 +106,7 @@ def build_report(source_revision: str) -> dict[str, object]:
         "episodes": episodes,
         "default_reset_isolation": _reset_summary(default_run.reset_isolation),
         "policy_transition_reset_isolation": _reset_summary(policy_transition),
+        "corrupt_state_reset_isolation": _reset_summary(corrupt_state_reset),
         "non_goals": [
             "agent qualification",
             "real vault execution",

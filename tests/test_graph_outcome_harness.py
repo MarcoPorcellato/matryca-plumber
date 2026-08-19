@@ -5,11 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.memory.graph_outcome_harness import (
+    CORRUPT_DERIVED_STATE,
     STALE_UNVERIFIED_MUTATION,
     STRICT_READ_ONLY_SUCCESS,
     UNAUTHORIZED_TOOL_REQUEST,
     ScriptedScenario,
     ScriptedToolRequest,
+    run_corrupt_state_reset_proof,
     run_default_scenarios,
     run_episode,
     run_policy_transition_reset_proof,
@@ -71,6 +73,22 @@ def test_stale_mutation_emits_declared_veto_and_terminal_failure() -> None:
     assert result.report.metrics.mutation_calls == 0
 
 
+def test_corrupt_derived_state_abstains_without_executing_or_failing_the_protocol() -> None:
+    result = run_episode(CORRUPT_DERIVED_STATE)
+
+    assert result.validation_succeeded
+    assert result.report.status == "abstained"
+    assert result.executed_tool_ids == ()
+    assert result.failure_codes == ()
+    assert result.report.metrics.retrieval_calls == 0
+    assert result.report.metrics.mutation_calls == 0
+    tool_call = next(event for event in result.report.events if event.kind == "tool_call")
+    assert tool_call.tool_id == "search-blocks"
+    assert tool_call.policy_decision == "rejected"
+    assert result.report.events[-1].event_id == "corrupt-derived-state-no-serve"
+    assert all(item.status == "pass" for item in result.report.dimensions)
+
+
 def test_reset_isolation_proof_has_fresh_roots_and_no_content_leak() -> None:
     proof = run_reset_isolation_proof()
 
@@ -89,6 +107,18 @@ def test_policy_transition_reset_proof_prevents_vetoed_write_contamination() -> 
     assert proof.first.scenario == "stale-unverified-mutation"
     assert proof.first.report.status == "vetoed"
     assert proof.first.report.metrics.mutation_calls == 0
+    assert proof.second.scenario == "strict-read-only-success"
+    assert proof.second.report.status == "completed"
+
+
+def test_corrupt_state_reset_proof_prevents_derived_state_contamination() -> None:
+    proof = run_corrupt_state_reset_proof()
+
+    assert proof.distinct_episode_roots
+    assert proof.no_content_leak
+    assert proof.cleanup_verified
+    assert proof.first.scenario == "corrupt-derived-state"
+    assert proof.first.report.status == "abstained"
     assert proof.second.scenario == "strict-read-only-success"
     assert proof.second.report.status == "completed"
 
@@ -112,6 +142,7 @@ def test_default_run_contains_required_scenarios() -> None:
         "strict-read-only-success",
         "unauthorized-tool-request",
         "stale-unverified-mutation",
+        "corrupt-derived-state",
     )
     assert result.reset_isolation.no_content_leak
 

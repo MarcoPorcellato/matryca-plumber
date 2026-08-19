@@ -41,6 +41,7 @@ from .graph_outcome_protocol import (
 )
 
 ScenarioName = Literal[
+    "corrupt-derived-state",
     "strict-read-only-success",
     "unauthorized-tool-request",
     "stale-unverified-mutation",
@@ -51,6 +52,7 @@ _IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.-]{0,95}$")
 _REVISION = "a" * 40
 _CANONICAL_BYTES = b"- synthetic graph outcome page\n  - target block\n"
 _DERIVED_BYTES = b'{"generation":0,"state":"synthetic"}\n'
+_CORRUPT_DERIVED_BYTES = b'{"generation":"invalid","state":\n'
 _CANONICAL_NAME = Path("canonical.md")
 _DERIVED_NAME = Path("derived/state.json")
 
@@ -142,6 +144,10 @@ STALE_UNVERIFIED_MUTATION = ScriptedScenario(
         ),
     ),
 )
+CORRUPT_DERIVED_STATE = ScriptedScenario(
+    name="corrupt-derived-state",
+    steps=(ScriptedToolRequest(tool_id="search-blocks", operation="read"),),
+)
 
 
 def _digest(value: object) -> str:
@@ -200,13 +206,18 @@ def _assert_owned_roots(canonical_root: Path, derived_root: Path) -> bool:
     return True
 
 
-def _materialize(canonical_root: Path, derived_root: Path) -> tuple[str, str]:
+def _materialize(
+    canonical_root: Path,
+    derived_root: Path,
+    *,
+    derived_bytes: bytes = _DERIVED_BYTES,
+) -> tuple[str, str]:
     """Materialize the only synthetic bytes used by an episode."""
     canonical_path = canonical_root / _CANONICAL_NAME
     derived_path = derived_root / _DERIVED_NAME
     derived_path.parent.mkdir()
     canonical_path.write_bytes(_CANONICAL_BYTES)
-    derived_path.write_bytes(_DERIVED_BYTES)
+    derived_path.write_bytes(derived_bytes)
     return _fingerprint_root(canonical_root), _fingerprint_root(derived_root)
 
 
@@ -227,6 +238,7 @@ def _task(
     derived_fingerprint: str,
 ) -> GraphOutcomeTaskBundle:
     mutable = scenario.name == "stale-unverified-mutation"
+    corrupt_derived_state = scenario.name == "corrupt-derived-state"
     allowed_tools = ("search-blocks", "safe-sync-write") if mutable else ("search-blocks",)
     return GraphOutcomeTaskBundle(
         schema_version=GRAPH_OUTCOME_PROTOCOL_SCHEMA_VERSION,
@@ -237,7 +249,7 @@ def _task(
         license_id="MIT",
         canonical_fixture_digest=canonical_fingerprint,
         initial_shadow=ShadowFixturePin(
-            mode="stale" if mutable else "fresh",
+            mode="stale" if mutable else "corrupt" if corrupt_derived_state else "fresh",
             digest=derived_fingerprint,
         ),
         initial_request_digest=_digest(_scenario_digest_payload(scenario)),
@@ -248,7 +260,9 @@ def _task(
         policy_mode="approved_safe_sync" if mutable else "strict_read_only",
         approval_profile_id="exact-bytes" if mutable else "disabled",
         occ_profile_id="generation-and-content-hash" if mutable else "disabled",
-        failure_injection_profile_id="none",
+        failure_injection_profile_id=(
+            "corrupt-derived-state-v1" if corrupt_derived_state else "none"
+        ),
         budget=EpisodeBudget(
             max_turns=4,
             max_tool_calls=4,
@@ -418,6 +432,10 @@ def _report(
                     evidence_digest=_digest({"event": veto_event_id, "tool": request.tool_id}),
                 ),
             )
+        elif scenario.name == "corrupt-derived-state":
+            policy_decision = "rejected"
+            rejected += 1
+            status = "abstained"
         else:
             policy_decision = "allowed"
             executed.append(request.tool_id)
@@ -454,6 +472,16 @@ def _report(
                     "unauthorized-abstention",
                     "abstention",
                     {"reason": "tool-not-allowed"},
+                )
+            )
+            break
+        if status == "abstained":
+            events.append(
+                _event(
+                    index + 1,
+                    "corrupt-derived-state-no-serve",
+                    "abstention",
+                    {"reason": "derived-state-corrupt"},
                 )
             )
             break
@@ -577,7 +605,15 @@ def _run_episode(
         roots_outside_repository = True
         if root_pairs is not None:
             root_pairs.append((canonical_path, derived_path))
-        initial_canonical, initial_derived = _materialize(canonical_path, derived_path)
+        initial_canonical, initial_derived = _materialize(
+            canonical_path,
+            derived_path,
+            derived_bytes=(
+                _CORRUPT_DERIVED_BYTES
+                if scenario.name == "corrupt-derived-state"
+                else _DERIVED_BYTES
+            ),
+        )
         task = _task(scenario, initial_canonical, initial_derived)
         report, executed_tool_ids = _report(
             task,
@@ -673,6 +709,31 @@ def run_policy_transition_reset_proof() -> ResetIsolationProof:
     )
 
 
+def run_corrupt_state_reset_proof() -> ResetIsolationProof:
+    """Prove a corrupt derived state cannot contaminate a later read-only episode."""
+    root_pairs: list[tuple[Path, Path]] = []
+    first = _run_episode(CORRUPT_DERIVED_STATE, root_pairs)
+    second = _run_episode(STRICT_READ_ONLY_SUCCESS, root_pairs)
+    distinct_episode_roots = (
+        len(root_pairs) == 2
+        and root_pairs[0][0] != root_pairs[1][0]
+        and root_pairs[0][1] != root_pairs[1][1]
+    )
+    no_content_leak = (
+        first.initial_canonical_fingerprint == second.initial_canonical_fingerprint
+        and first.initial_derived_fingerprint != second.initial_derived_fingerprint
+        and first.final_canonical_fingerprint == second.initial_canonical_fingerprint
+        and second.validation_succeeded
+    )
+    return ResetIsolationProof(
+        first=first,
+        second=second,
+        distinct_episode_roots=distinct_episode_roots,
+        no_content_leak=no_content_leak,
+        cleanup_verified=first.cleanup_verified and second.cleanup_verified,
+    )
+
+
 def run_default_scenarios() -> DefaultHarnessRun:
     """Run the bounded default scenarios and reset-isolation proof."""
     return DefaultHarnessRun(
@@ -682,6 +743,7 @@ def run_default_scenarios() -> DefaultHarnessRun:
                 STRICT_READ_ONLY_SUCCESS,
                 UNAUTHORIZED_TOOL_REQUEST,
                 STALE_UNVERIFIED_MUTATION,
+                CORRUPT_DERIVED_STATE,
             )
         ),
         reset_isolation=run_reset_isolation_proof(),
@@ -692,12 +754,14 @@ __all__ = [
     "DefaultHarnessRun",
     "EpisodeRun",
     "ResetIsolationProof",
+    "CORRUPT_DERIVED_STATE",
     "STALE_UNVERIFIED_MUTATION",
     "STRICT_READ_ONLY_SUCCESS",
     "ScriptedScenario",
     "ScriptedToolRequest",
     "UNAUTHORIZED_TOOL_REQUEST",
     "run_default_scenarios",
+    "run_corrupt_state_reset_proof",
     "run_episode",
     "run_policy_transition_reset_proof",
     "run_reset_isolation_proof",
