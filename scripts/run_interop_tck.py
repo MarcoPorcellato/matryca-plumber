@@ -8,7 +8,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path, PurePosixPath
-from typing import Final
+from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -18,6 +18,21 @@ MAX_MANIFEST_BYTES: Final[int] = 1_048_576
 MAX_CATALOG_ENTRIES: Final[int] = 256
 MAX_STRING_LENGTH: Final[int] = 512
 ALLOWED_FIXTURE_ROOT: Final[PurePosixPath] = PurePosixPath("tests/fixtures")
+CapabilityLevel = Literal[
+    "read",
+    "safe-derived-cache",
+    "closed-writer",
+    "concurrent-writer-not-supported",
+]
+DeclaredExpectedResult = Literal[
+    "pass",
+    "partial",
+    "unsupported",
+    "rejected",
+    "no-serve",
+    "fixture-available",
+    "error",
+]
 
 
 class CatalogEntry(BaseModel):
@@ -28,8 +43,8 @@ class CatalogEntry(BaseModel):
     id: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
     fixture_path: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
     category: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
-    capability_level: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
-    expected_result: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
+    capability_level: CapabilityLevel
+    expected_result: DeclaredExpectedResult
     source_authority: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
     notes: str | None = Field(default=None, max_length=MAX_STRING_LENGTH)
 
@@ -39,7 +54,7 @@ class CompatibilityManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    schema_version: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
+    schema_version: Literal["matryca-interop-tck.v1"]
     status: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
     catalog: list[CatalogEntry] = Field(max_length=MAX_CATALOG_ENTRIES)
 
@@ -101,7 +116,7 @@ def build_receipt(manifest_path: Path, *, repository_root: Path = ROOT) -> dict[
                 "fixture_sha256": _sha256(fixture),
                 "category": entry.category,
                 "capability_level": entry.capability_level,
-                "result": entry.expected_result,
+                "declared_expected_result": entry.expected_result,
             }
         )
     return {

@@ -12,12 +12,18 @@ from scripts.run_interop_tck import DEFAULT_MANIFEST, TckError, run_tck
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _manifest(tmp_path: Path, fixture_path: str) -> Path:
+def _manifest(
+    tmp_path: Path,
+    fixture_path: str,
+    *,
+    schema_version: str = "matryca-interop-tck.v1",
+    expected_result: str = "fixture-available",
+) -> Path:
     path = tmp_path / "manifest.json"
     path.write_text(
         json.dumps(
             {
-                "schema_version": "test-v1",
+                "schema_version": schema_version,
                 "status": "proposed",
                 "catalog": [
                     {
@@ -25,7 +31,7 @@ def _manifest(tmp_path: Path, fixture_path: str) -> Path:
                         "fixture_path": fixture_path,
                         "category": "test",
                         "capability_level": "read",
-                        "expected_result": "fixture-available",
+                        "expected_result": expected_result,
                         "source_authority": "test",
                     }
                 ],
@@ -40,7 +46,7 @@ def test_happy_manifest_contains_only_manifest_results_and_fixture_attestations(
     receipt = json.loads(run_tck(DEFAULT_MANIFEST))
 
     assert len(receipt["entries"]) == 7
-    assert {entry["result"] for entry in receipt["entries"]} == {
+    assert {entry["declared_expected_result"] for entry in receipt["entries"]} == {
         "pass",
         "rejected",
         "no-serve",
@@ -49,6 +55,28 @@ def test_happy_manifest_contains_only_manifest_results_and_fixture_attestations(
     }
     assert all("content" not in entry for entry in receipt["entries"])
     assert receipt["non_goals"]
+
+
+def test_unsupported_schema_version_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(
+        tmp_path,
+        "tests/fixtures/tana/minimal_direct.json",
+        schema_version="test-v1",
+    )
+
+    with pytest.raises(TckError, match="validation failed"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_invalid_declared_result_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(
+        tmp_path,
+        "tests/fixtures/tana/minimal_direct.json",
+        expected_result="executed-pass",
+    )
+
+    with pytest.raises(TckError, match="validation failed"):
+        run_tck(manifest, repository_root=ROOT)
 
 
 def test_traversal_fixture_is_rejected(tmp_path: Path) -> None:
