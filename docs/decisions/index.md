@@ -1,11 +1,3 @@
----
-type: Decision Index
-title: Matryca Plumber decision index
-description: Navigation for durable documentation and product decision records.
-status: active
-last_verified: 2026-08-12
----
-
 # Matryca Plumber decisions
 
 - [Documentation evolution and operating model](../knowledge/documentation-evolution.md)

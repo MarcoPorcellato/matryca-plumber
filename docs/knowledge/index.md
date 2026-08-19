@@ -1,7 +1,3 @@
----
-okf_version: "0.2"
----
-
 # Matryca Plumber knowledge bundle
 
 This index provides progressive disclosure across maintained concepts and the classified legacy corpus. Matryca Plumber remains the authoritative editing origin; external projections are read-only, Git-provenanced consumer views.

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2.0 — Shadow DB read path (checklist)
 
 **Detailed index:** [`ROADMAP_V2_PREPARATION.md`](ROADMAP_V2_PREPARATION.md) — visitor SSOT for all five v2 phases  

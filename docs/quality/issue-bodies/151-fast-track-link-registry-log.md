@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 In `run_cycle`, fast-track skippable files call `register_page_links_from_path` when link verification is enabled (`src/agent/maintenance_daemon.py`, ~L2962–2964). The call is wrapped in `contextlib.suppress(OSError)`.

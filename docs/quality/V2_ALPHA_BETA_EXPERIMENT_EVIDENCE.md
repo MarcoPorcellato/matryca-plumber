@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # V2 alpha/beta experiment evidence ledger
 
 ## Purpose and decision boundary

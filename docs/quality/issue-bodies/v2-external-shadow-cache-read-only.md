@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2 RC: external Shadow cache compatible with strict Logseq read-only mode
 
 ## Decision

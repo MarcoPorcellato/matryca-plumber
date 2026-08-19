@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2.0.0 stable performance disposition — 2026-08-18
 
 ## Decision

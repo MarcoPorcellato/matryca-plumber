@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Beta evidence reproducibility root-cause analysis — draft
 
 **Status:** investigation draft, 2026-07-23. This is a sanitized quality artifact, not a release note, a beta decision, or a claim that the current candidate is releasable. The release decision remains [`issue-bodies/v2-beta-readiness.md`](issue-bodies/v2-beta-readiness.md); the historical experiment record remains [`V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md`](V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md).

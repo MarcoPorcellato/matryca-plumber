@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Agent-centric DX & visual auditing (v1.9 — GitHub #16)
 
 **Milestone:** v1.9.0 — Structural Graph Hygiene  

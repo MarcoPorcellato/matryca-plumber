@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Lint (Matryca Plumber on-disk)
 
 **Roadmap:** [`ROADMAP_LLM_WIKI.md`](../../ROADMAP_LLM_WIKI.md)

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Phase 5 & 6 — Graph Gardener + Synthesis Engine
 
 Actionable checklist for overnight implementation. **Constraints:** pure Markdown on disk, FastMCP tools, Logseq OG (no external DB). Reference repos inform behavior only (not vendored).

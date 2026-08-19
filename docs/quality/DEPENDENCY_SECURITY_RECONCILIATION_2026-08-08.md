@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Dependency security reconciliation — 2026-08-08
 
 ## Purpose and evidence boundary

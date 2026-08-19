@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # L1 / L2 routing (Matryca Plumber)
 
 **Roadmap:** [`ROADMAP_LLM_WIKI.md`](../../ROADMAP_LLM_WIKI.md)  

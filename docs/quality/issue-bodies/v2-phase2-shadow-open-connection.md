@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 [`src/shadow/schema.py`](../../../src/shadow/schema.py) defines DDL and `apply_shadow_schema()` but no production helper opens `shadow.sqlite` under the graph root with correct pragmas and path sandboxing.

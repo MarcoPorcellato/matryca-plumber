@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # What Matryca Plumber Gains from v2.0 and the Shadow DB
 
 _Working note — 2026-07-25, written while the 24h+ soak (r8) was running before the beta release._

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## MCP surface (eight tools)
 
 Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, and **`import_tana`**. Mega-tools select behavior via a **literal discriminator** (`target_type`, `method`, `action`, `linter_name`).

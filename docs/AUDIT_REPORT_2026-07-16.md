@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Deep Code Audit — matryca-plumber
 
 **Date:** 2026-07-16 · **Tooling:** local code audit, ruff static analysis, targeted manual review, TRIZ methodology.

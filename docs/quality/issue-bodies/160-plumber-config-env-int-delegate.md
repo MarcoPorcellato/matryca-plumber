@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/agent/plumber_config.py` defines a private `_env_int` helper that duplicates `src/utils/env_parse.env_int` (warning on invalid values shipped in [#152](https://github.com/MarcoPorcellato/matryca-plumber/issues/152)).

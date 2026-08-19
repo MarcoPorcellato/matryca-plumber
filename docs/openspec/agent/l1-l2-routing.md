@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## L1 vs L2 vs in-graph identity
 
 - **L1 (session-critical):** deploy rules, pointers to secrets (never secrets themselves). Load first via `read_graph_data` / `target_type="memory"`. Sources: `MATRYCA_L1_PATH`, `memory_path` in `matryca-wiki.yml`, or `<parent-of-vault>/matryca-l1/*.md` (sibling of the graph root by default — see `docs/openspec/runtime-bootstrap.md`). `README.md` in that folder is documentation only and is not loaded into context.

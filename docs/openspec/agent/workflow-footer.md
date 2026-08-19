@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Workflow: Search → Scan → Update
 
 Mirror llm-wiki-style ingest. See `docs/ARCHITECTURE.md` for bridge vs on-disk boundaries.

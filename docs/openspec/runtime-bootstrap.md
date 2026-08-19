@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Runtime bootstrap (startup provisioning)
 
 **Roadmap:** [`ROADMAP_LLM_WIKI.md`](../../ROADMAP_LLM_WIKI.md) (L1/L2, `matryca-wiki.yml`)

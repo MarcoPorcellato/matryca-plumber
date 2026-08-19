@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Repomix Architectural Audit — Triage (2026-06)
 
 Second external audit (Repomix-based). Cross-reference with [Expert Audit triage](EXPERT_AUDIT_TRIAGE_2026-06.md), v1.9.x audit JSON, and GitHub #46–#64 / #114–#117 dev audit.

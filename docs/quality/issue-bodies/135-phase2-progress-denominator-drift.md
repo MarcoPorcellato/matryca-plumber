@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 [#70](https://github.com/MarcoPorcellato/matryca-plumber/issues/70) fixed Phase 2 progress **denominator including journals**. A separate UX gap remains:

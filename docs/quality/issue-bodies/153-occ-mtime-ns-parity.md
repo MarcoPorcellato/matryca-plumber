@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Page-level OCC in `src/graph/markdown_blocks.py` snapshots and compares `st_mtime` as a `float` (`read_file_mtime`, `file_mtime_drifted`).

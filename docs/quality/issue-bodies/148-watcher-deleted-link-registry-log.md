@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `_on_watchdog_change` in `src/agent/maintenance_daemon.py` (~L2117–2119) calls `register_page_links_from_path` when the file watcher reports a **deleted** `.md` page and link verification is enabled. Failures are swallowed via `contextlib.suppress(OSError)`.

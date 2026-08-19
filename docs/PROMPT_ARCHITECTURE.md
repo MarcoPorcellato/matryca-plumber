@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Prompt architecture — Clean Architecture & Clean Code
 
 **Version:** documents **v1.12.0** (plan v3 — shipped)  

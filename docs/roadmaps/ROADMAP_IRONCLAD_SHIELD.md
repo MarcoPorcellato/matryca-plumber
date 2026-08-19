@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Phase 8 — Ironclad Shield (checklist)
 
 Actionable checklist for global fence scanning, transactional writes, and generational caching.

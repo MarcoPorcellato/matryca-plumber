@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Shadow DB: per-page quarantine for over-budget page parses
 
 ## Problem Description

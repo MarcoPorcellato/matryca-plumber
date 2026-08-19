@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 After Tier F slices migrate clamped env reads to `env_parse`, the **clamp-after-parse** pattern (e.g. `max(1, min(200, env_int(...)))`) should be documented by tests so contributors do not reintroduce silent inline parsing in `src/graph/`.

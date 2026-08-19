@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `IdentityConfigStore.reload_if_stale` (`src/daemon/config_layer.py`) treats **config file mtime** as the freshness signal, then loads Telos/Constraints via `_load_from_graph()` → `get_graph_ast_cache(graph_root).get_graph()`.

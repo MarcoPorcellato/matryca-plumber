@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2.0.0-beta.1 readiness — decision record
 
 ## Problem Description

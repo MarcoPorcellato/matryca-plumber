@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Operators need visibility into shadow sync health without a `matryca doctor` command (`llms.txt` §2.3).
