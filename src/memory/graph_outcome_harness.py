@@ -646,6 +646,33 @@ def run_reset_isolation_proof() -> ResetIsolationProof:
     )
 
 
+def run_policy_transition_reset_proof() -> ResetIsolationProof:
+    """Prove that a vetoed stale write cannot contaminate a later read-only episode."""
+    root_pairs: list[tuple[Path, Path]] = []
+    first = _run_episode(STALE_UNVERIFIED_MUTATION, root_pairs)
+    second = _run_episode(STRICT_READ_ONLY_SUCCESS, root_pairs)
+    distinct_episode_roots = (
+        len(root_pairs) == 2
+        and root_pairs[0][0] != root_pairs[1][0]
+        and root_pairs[0][1] != root_pairs[1][1]
+    )
+    no_content_leak = (
+        first.initial_canonical_fingerprint == second.initial_canonical_fingerprint
+        and first.initial_derived_fingerprint == second.initial_derived_fingerprint
+        and first.final_canonical_fingerprint == second.initial_canonical_fingerprint
+        and first.final_derived_fingerprint == second.initial_derived_fingerprint
+        and first.validation_succeeded
+        and second.validation_succeeded
+    )
+    return ResetIsolationProof(
+        first=first,
+        second=second,
+        distinct_episode_roots=distinct_episode_roots,
+        no_content_leak=no_content_leak,
+        cleanup_verified=first.cleanup_verified and second.cleanup_verified,
+    )
+
+
 def run_default_scenarios() -> DefaultHarnessRun:
     """Run the bounded default scenarios and reset-isolation proof."""
     return DefaultHarnessRun(
@@ -672,5 +699,6 @@ __all__ = [
     "UNAUTHORIZED_TOOL_REQUEST",
     "run_default_scenarios",
     "run_episode",
+    "run_policy_transition_reset_proof",
     "run_reset_isolation_proof",
 ]

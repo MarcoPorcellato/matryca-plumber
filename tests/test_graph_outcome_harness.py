@@ -12,6 +12,7 @@ from src.memory.graph_outcome_harness import (
     ScriptedToolRequest,
     run_default_scenarios,
     run_episode,
+    run_policy_transition_reset_proof,
     run_reset_isolation_proof,
 )
 
@@ -77,6 +78,19 @@ def test_reset_isolation_proof_has_fresh_roots_and_no_content_leak() -> None:
     assert proof.no_content_leak
     assert proof.cleanup_verified
     assert proof.first.receipt_bytes == proof.second.receipt_bytes
+
+
+def test_policy_transition_reset_proof_prevents_vetoed_write_contamination() -> None:
+    proof = run_policy_transition_reset_proof()
+
+    assert proof.distinct_episode_roots
+    assert proof.no_content_leak
+    assert proof.cleanup_verified
+    assert proof.first.scenario == "stale-unverified-mutation"
+    assert proof.first.report.status == "vetoed"
+    assert proof.first.report.metrics.mutation_calls == 0
+    assert proof.second.scenario == "strict-read-only-success"
+    assert proof.second.report.status == "completed"
 
 
 def test_receipt_has_no_paths_or_synthetic_content() -> None:
