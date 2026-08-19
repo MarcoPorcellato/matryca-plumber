@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 v2.0 Shadow DB sync and read routing depend on a modular daemon duty cycle and a thin `graph_dispatch` router. Large monoliths ([#58](https://github.com/MarcoPorcellato/matryca-plumber/issues/58), [#59](https://github.com/MarcoPorcellato/matryca-plumber/issues/59)) increase merge risk for shadow hooks.

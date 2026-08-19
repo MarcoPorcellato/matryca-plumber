@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Biological memory requires a unified recall entry point for agents — beyond separate bm25/semantic/hops calls.

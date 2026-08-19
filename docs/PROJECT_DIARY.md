@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Project diary — technical lifecycle log
 
 This document records **architecture decisions**, **phase milestones**, and **real-world defects crushed** during the evolution of **Matryca Plumber** (`matryca-plumber` on PyPI; historical published beta **v2.0.0-beta.1**; Gate-A-qualified release candidate **v2.0.0-rc.1**).

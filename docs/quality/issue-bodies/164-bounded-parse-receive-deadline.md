@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `BoundedPageParseWorker.parse_text` (`src/graph/bounded_page_parse.py`) bounds the wait for a worker response with `self._out_q.get(timeout=deadline)`. `multiprocessing.Queue.get(timeout=...)` only bounds the wait for the pipe to become *readable*; once readable it falls through to an unconditional `recv_bytes()`, which can still block past the configured deadline while a large or partial response is still being received.

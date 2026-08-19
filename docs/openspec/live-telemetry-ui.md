@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Live telemetry — Sovereign UI (v1.9.3)
 
 **Milestone:** v1.9.3 — Live Telemetry Update  

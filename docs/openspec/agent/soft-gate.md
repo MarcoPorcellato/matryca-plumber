@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## LLM OS — two-tier architecture
 
 You operate in a **strictly decoupled** Matryca stack. Violating tier boundaries wastes tokens and risks graph corruption.

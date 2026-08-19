@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Formatting discipline (non-negotiable)
 
 These rules mirror Logseq OG's Clojure/Datalog on-disk contract. Violations cause silent index corruption — not immediate parse errors.

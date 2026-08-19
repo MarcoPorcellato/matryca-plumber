@@ -4,6 +4,7 @@ title: Matryca Plumber documentation
 description: Stable entry point for maintained Matryca Plumber documentation.
 status: active
 last_verified: 2026-08-12
+okf_version: "0.2"
 ---
 
 # Matryca Plumber documentation

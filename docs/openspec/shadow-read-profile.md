@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Shadow read profile — OpenSpec
 
 ## Purpose

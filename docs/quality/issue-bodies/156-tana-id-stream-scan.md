@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `scan_existing_tana_ids` in `src/agent/importers/tana/write.py` calls `read_graph_file_text` for every scannable page/journal, materializing full page bodies in RAM to regex-scan `tana-id::` values.

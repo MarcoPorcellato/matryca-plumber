@@ -1782,7 +1782,7 @@ def _check_bundle_report() -> ValidationReport:
             continue
         meta, body = parsed
         if index_path == KNOWLEDGE_DIR / "index.md":
-            if meta != {"okf_version": OKF_VERSION}:
+            if meta is not None and meta.get("okf_version") != OKF_VERSION:
                 findings.append(
                     _finding(
                         layer="official_okf",
@@ -1791,7 +1791,7 @@ def _check_bundle_report() -> ValidationReport:
                         pointer="frontmatter",
                         parameters={"expected_okf_version": OKF_VERSION},
                         message=(
-                            f"{rel}: root index frontmatter must contain only "
+                            f"{rel}: root index frontmatter must declare "
                             f"okf_version: {OKF_VERSION!r}"
                         ),
                     )

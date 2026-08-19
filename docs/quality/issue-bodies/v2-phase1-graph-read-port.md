@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Phase 1 requires a stable read contract before shadow adapters plug in. No `GraphReadPort` exists today.

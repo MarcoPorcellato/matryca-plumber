@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/agent/importers/tana/load.py` `load_tana_nodes_by_id` streams parse via `ijson` but immediately materializes `{node.id: node for node in iter_tana_nodes(export_path)}` — O(nodes) RAM. For large enterprise exports (50k+ nodes), this can consume hundreds of MB before conversion begins; `convert_tana_graph` then builds additional structures.

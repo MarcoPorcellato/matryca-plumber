@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Hermes Agent integration — compatibility report
 
 **Date:** 2026-06-07  

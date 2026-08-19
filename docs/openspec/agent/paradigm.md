@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Project context
 
 Matryca Plumber operates on **Logseq OG**: local pure Markdown graphs. The atomic unit is the **block** (indented bullet tree), not a flat document body.

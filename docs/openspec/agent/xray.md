@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## X-Ray mode and session aliases (`[n]`)
 
 For large pages, prefer **`read_graph_data` / `target_type="xray_page"`** with `query` = page title. The tool returns an ultra-dense outline like `[0] Parent` / `  [1] Child` (properties stripped) and writes `.matryca_xray_state.json` mapping each `[n]` to the real Logseq block UUID. Normal mode keeps the established graph-root location. With `MATRYCA_READ_ONLY=true`, state is written instead to the private per-graph external runtime cache at `<cache-root>/graphs/<graph-id>/xray/`; no graph path is created or modified. The graph identity prevents cross-vault sharing, the state file is atomically replaced under a process-safe lock, POSIX directory/file modes are `0700`/`0600`, and its lifetime follows the per-graph runtime cache.

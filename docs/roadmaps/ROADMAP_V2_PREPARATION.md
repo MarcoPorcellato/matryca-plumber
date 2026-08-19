@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2.0 Preparation — Visitor & Maintainer Guide
 
 **North star:** [Epic #20 — v2.0.0 Shadow DB & Safe-Sync](https://github.com/MarcoPorcellato/matryca-plumber/issues/20)  

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Roadmap: mldoc-aligned graph tools (Phase 7)
 
 Pure-Python structural rules inspired by the official Logseq Markdown/Org compiler (`logseq/mldoc`): no Rust/Clojure runtime, no external binary parser.

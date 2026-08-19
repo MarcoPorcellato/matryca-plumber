@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `_finalize_link_and_journey_pass` in `src/agent/maintenance_daemon.py` (~L2884–2891) wraps `upsert_journey_log(...)` in `contextlib.suppress(OSError)` when journey logging is enabled and the cycle has journal activity.

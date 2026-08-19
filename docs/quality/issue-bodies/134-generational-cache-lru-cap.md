@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/graph/generational_cache.py` keeps module-level `_alias_cache` and `_bm25_cache` dicts keyed by resolved graph root string. Per-graph mtime invalidation works, but there is **no cap** on the number of concurrent vault caches.

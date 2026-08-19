@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 In `src/agent/maintenance_daemon.py`, `_process_llm_cycle_file` sets `status="processed"` after a successful cognitive lint write (L2715–2718), then calls `run_dual_embedding_after_semantic_write`. If that post-write step raises `PageLockUnavailableError`, the handler calls `_record_page_lock_backoff`, which **always** assigns `status="lock_backoff"` — ignoring the prior `processed` record.

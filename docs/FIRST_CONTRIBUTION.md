@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # First contribution
 
 One-page path from fork to a green PR. Full rules live in [`CONTRIBUTING.md`](../CONTRIBUTING.md).

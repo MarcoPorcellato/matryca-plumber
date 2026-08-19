@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Matryca Plumber — Agent System Prompt
 
 ## Identity

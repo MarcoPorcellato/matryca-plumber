@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Roadmap: LLM-Wiki patterns → Matryca Plumber (FastMCP / Logseq OG)
 
 Actionable checklist derived from [MehmetGoekce/llm-wiki](https://github.com/MehmetGoekce/llm-wiki) (L1/L2 architecture, openspec ingest/lint, schema templates, dashboard hub) adapted to **this** repo: **FastMCP**, **uv**, **loguru**, **Pydantic**, **async/await**, external **`logseq-matryca-parser`**, **no SQLite**. Prefer MCP tools + on-disk graph reads over Claude Code slash commands.

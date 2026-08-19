@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `load_daemon_state` in `src/agent/maintenance_daemon.py` (~L793–795) mirrors checkpoint recovery: when the primary `.matryca_daemon_state.json` is unreadable, it loads from `.bak` and attempts `shutil.copy2(bak_path, path)` inside `contextlib.suppress(OSError)`.

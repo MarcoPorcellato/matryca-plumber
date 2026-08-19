@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Gate B RC2 terminal qualification evidence — 2026-08-13
 
 ## Purpose and decision boundary

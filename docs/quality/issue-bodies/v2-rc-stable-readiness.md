@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2.0.0 RC and stable readiness — decision record
 
 > **Final status — 2026-08-18:** `v2.0.0` is published as the stable Shadow

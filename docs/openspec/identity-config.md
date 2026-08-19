@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # In-graph identity (Telos & AI Constraints)
 
 **Roadmap:** Master architecture RFC — Phase 1 (persona layer)  

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # LLM performance & edge computing (v1.8+)
 
 **Roadmap:** [`../v1.8-OPTIMIZATION-PLAN.md`](../v1.8-OPTIMIZATION-PLAN.md)  

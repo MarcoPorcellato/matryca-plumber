@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Clean Architecture Audit — Triage (2026-06)
 
 Third external audit (simulated Staff Engineer review against hexagonal / ports-and-adapters patterns). Cross-reference with [Expert Audit triage](EXPERT_AUDIT_TRIAGE_2026-06.md), [Repomix triage](REPOmix_AUDIT_TRIAGE_2026-06.md), and GitHub [#132](https://github.com/MarcoPorcellato/matryca-plumber/issues/132)–[#142](https://github.com/MarcoPorcellato/matryca-plumber/issues/142).

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Biological memory (Nacre-inspired) and Logseq DB Safe-Sync writes are the long-tail v2 deliverables after shadow read path stabilizes.

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Branding and naming (Matryca Plumber)
 
 Use this guide in README, UI copy, operator docs, and release notes.

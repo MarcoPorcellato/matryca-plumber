@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Shadow FTS5 table `blocks_fts` is created by schema but no query API exists for agent search paths.

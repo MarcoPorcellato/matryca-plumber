@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Strict Read Only end-to-end immutability gate
 
 **Status:** `PASS` for the deterministic source-tree qualification merged in

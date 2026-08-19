@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Governed evidence archive
 
 ## Scope

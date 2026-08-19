@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Gate B rc.1 default-on failure and rc.2 remediation
 
 ## Purpose

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `get_cached_bm25_corpus` and `cached_build_alias_index` in `src/graph/generational_cache.py` build the corpus/index, then capture `_signature(...)` **after** the build (`sig_after`), and store `(sig_after, artifact)`.

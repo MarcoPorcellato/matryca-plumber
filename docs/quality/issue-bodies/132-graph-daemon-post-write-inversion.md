@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 The graph layer (domain I/O) directly imports orchestration modules:

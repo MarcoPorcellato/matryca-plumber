@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Gate B public-RC soak runbook
 
 This runbook starts the two independent, fail-closed soak profiles required by

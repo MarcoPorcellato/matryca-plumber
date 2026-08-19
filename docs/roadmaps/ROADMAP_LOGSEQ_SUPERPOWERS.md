@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Phase 4: Logseq Native Superpowers
 
 Actionable roadmap to evolve the MCP agent into a **proactive knowledge manager** using Logseq-native syntax only: **Advanced Queries**, **journal/task conventions**, and **`alias::` resolution**. All work stays in the **pure local Markdown / outliner** paradigm: **no new databases**, **no new Markdown parsers** beyond the existing **`logseq-matryca-parser`** integration; graph logic uses **string scanning**, **regex / line-based helpers**, **FastMCP** tools, and existing bridges (`LogseqClient`, surgical property editing).

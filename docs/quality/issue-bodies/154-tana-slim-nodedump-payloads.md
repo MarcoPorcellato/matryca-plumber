@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Tana import streams JSON via `ijson` (no `json.load()` DOM). Production orchestration uses `TanaWorkspaceGraph.from_export` — a **single streaming pass** through `StreamingGraphBuilder`.

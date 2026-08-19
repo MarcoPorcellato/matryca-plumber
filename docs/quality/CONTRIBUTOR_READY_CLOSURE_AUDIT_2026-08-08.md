@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Contributor-ready shipped-evidence closure audit — 2026-08-08
 
 ## Purpose and authority

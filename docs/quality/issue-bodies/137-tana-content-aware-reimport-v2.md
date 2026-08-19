@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Tana import v1 idempotency skips subtrees when `tana-id::` already exists in the vault (`src/agent/importers/tana/write.py` `_filter_outline_subtree`). This is **documented intentional** behavior per [`docs/openspec/tana-import.md`](../../openspec/tana-import.md).
