@@ -77,6 +77,12 @@ Tickets use operating-system-released advisory locks. Only a ticket that meets
 the coordinator's explicit stale-ticket criteria may be reclaimed. A timeout,
 reboot, or missing process record alone does not authorize arbitrary deletion.
 
+An `active: true` status is a bounded snapshot that the platform-wide admission
+slot was busy when sampled. It does not identify a process, command, repository,
+user, or path, and it is not durable proof that a named process remains alive.
+When the state is ambiguous, preserve the status record and hold the next heavy
+run rather than deleting coordinator state or assuming the slot is free.
+
 Workspace locks have no automatic stale deletion. If a workspace lock appears
 stale, stop, preserve its state, and use the documented recovery or maintainer
 decision path. Do not remove it merely to make a subsequent run start.
