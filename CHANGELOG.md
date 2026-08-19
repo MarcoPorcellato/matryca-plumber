@@ -8,9 +8,10 @@
   reset isolation. It does not execute a real agent, vault, Shadow database,
   benchmark, or concurrent-writer workflow.
 - **Interoperability TCK admission runner** — validate the closed, content-free
-  fixture catalogue and emit a deterministic receipt with fixture attestations,
-  declared outcomes, and explicit non-goals; it performs no graph operation and
-  makes no external-provider or concurrent-writer qualification claim.
+  fixture catalogue, reject duplicate entry identifiers, and emit a bounded
+  deterministic fixture-attestation receipt with source authority, declared
+  outcomes, and explicit non-goals; it performs no graph operation and makes no
+  external-provider or concurrent-writer qualification claim.
 
 ## [2.0.0] - 2026-08-18
 
