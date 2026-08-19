@@ -801,6 +801,26 @@
       "classification": "active"
     },
     {
+      "path": "docs/openspec/interoperability-contract.md",
+      "type": "Specification",
+      "title": "Matryca interoperability contract",
+      "description": "Read-first capability levels, source authority, negative cases, and provenance requirements for future external interoperability qualification.",
+      "classification": "canonical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": "integration.interoperability-contract",
+      "owner": "integrations",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/openspec/l1-l2-routing.md",
       "type": "Specification",
       "title": "L1 / L2 routing (Matryca Plumber)",

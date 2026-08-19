@@ -25,6 +25,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Getting started](../FIRST_CONTRIBUTION.md) — First-contribution path and repository setup.
 - [Contributor guide](../../CONTRIBUTING.md) — Development standards and verification gates.
 - [OpenSpec index](../openspec/README.md) — Normative feature and agent contracts.
+- [Interoperability contract](../openspec/interoperability-contract.md) — Read-first capability levels, source authority, and boundaries for future external qualification.
 - [Roadmaps](../roadmaps/) — Active and historical delivery plans.
 - [Governance](../../GOVERNANCE.md) — Maintainer authority, contribution decisions, security escalation, and current limits.
 - [Quality evidence](../quality/) — Audits, qualification evidence, and issue-source records.

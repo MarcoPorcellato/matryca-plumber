@@ -2,6 +2,11 @@
 
 ## 2026-08-19
 
+- **Interoperability contract:** added a read-first, vendor-neutral proposal and
+  content-free fixture catalog. It records capability boundaries and negative
+  cases without claiming external-provider, concurrent-writer, or semantic
+  interoperability qualification.
+
 - **Repository governance and AAIF readiness:** established the canonical
   cross-cutting programme and its evidence-bound execution ledger; retained
   existing specialist and historical dossiers in their original roles, corrected

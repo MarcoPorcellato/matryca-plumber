@@ -44,7 +44,7 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | M0 — isolated delivery and baseline | `complete` | isolated branch from exact anchor; programme, ledger, bounded audits, and first documentation tranche are validated | keep the worktree clean and update exact anchors before each new milestone |
 | M1 — documentation authority and freshness | `in_progress` | current contracts, generated inventory, link and documentation gates | complete successor-role review and publish the evidence index/release gate map as reviewed repository metadata |
 | M2 — governance and contributor scale | `pending` | governance model, real ownership, contribution path | establish policy and GitHub metadata proposal |
-| M3 — interoperability and TCK | `pending` | versioned contract, corpus, deterministic result schema | reconcile existing Logseq, MCP, Tine, and projection surfaces |
+| M3 — interoperability and TCK | `in_progress` | versioned contract, corpus, deterministic result schema | implement and qualify the bounded local runner; keep external-provider and concurrent-writer claims unqualified |
 | M4 — outcome evaluation | `pending` | reproducible graph-outcome evidence | continue the existing specialist programme through its gates |
 | M5 — CI, release, and recovery | `pending` | resource-admission and recovery receipts | reconcile current workflows and runbooks |
 | M6 — targeted hardening | `pending` | focused issue/PR gates and acceptance evidence | convert verified gaps into narrow slices |
@@ -61,6 +61,7 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | 2026-08-19 | Interoperability and outcome audit | Reusable contracts and receipts exist; no unified interoperability contract, TCK, or completed resettable graph-outcome harness exists | `verified` |
 | 2026-08-19 | CI, release, and recovery audit | CI and release automation exist; gate-map, public release manifest, recovery proof, and resource-admission contract are incomplete | `verified` |
 | 2026-08-19 | Documentation foundation | Added the programme, execution ledger, governance model, support triage rules, PR evidence prompts, public evidence index, release gate map, and maintained navigation; documentation gates pass on the delivery branch | `verified` |
+| 2026-08-19 | Interoperability foundation | Added the read-first interoperability contract and content-free fixture catalog; external-provider, concurrent-writer, and semantic qualification remain explicitly unsupported pending separate evidence | `verified` |
 
 ## External gates and boundaries
 

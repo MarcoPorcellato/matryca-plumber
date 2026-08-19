@@ -3,7 +3,7 @@ type: Specification
 title: Matryca interoperability contract
 description: A vendor-neutral, read-first contract for exchanging Logseq-compatible Markdown, blocks, properties, namespaces, and derived results.
 status: draft
-classification: active
+classification: canonical
 audience: [maintainer, contributor, operator, agent]
 owner: integrations
 authority: proposal
