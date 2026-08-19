@@ -11,13 +11,18 @@ from pathlib import Path, PurePosixPath
 from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from src.shadow.state_api import ShadowDbStateResponse
 
 ROOT: Final[Path] = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST: Final[Path] = ROOT / "tests/compatibility/manifest.json"
 MAX_MANIFEST_BYTES: Final[int] = 1_048_576
 MAX_CATALOG_ENTRIES: Final[int] = 256
 MAX_STRING_LENGTH: Final[int] = 512
+MAX_PROFILE_FIXTURE_BYTES: Final[int] = 1_048_576
 ALLOWED_FIXTURE_ROOT: Final[PurePosixPath] = PurePosixPath("tests/fixtures")
+PROFILE_VALIDATION_CATEGORIES: Final[frozenset[str]] = frozenset(
+    {"read-profile", "negative-admission"}
+)
 CapabilityLevel = Literal[
     "read",
     "safe-derived-cache",
@@ -46,6 +51,7 @@ class CatalogEntry(BaseModel):
     capability_level: CapabilityLevel
     expected_result: DeclaredExpectedResult
     source_authority: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
+    expected_graph_id: str | None = Field(default=None, min_length=1, max_length=MAX_STRING_LENGTH)
     notes: str | None = Field(default=None, max_length=MAX_STRING_LENGTH)
 
 
@@ -54,7 +60,7 @@ class CompatibilityManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    schema_version: Literal["matryca-interop-tck.v1"]
+    schema_version: Literal["matryca-interop-tck.v1", "matryca-interop-tck.v2"]
     status: str = Field(min_length=1, max_length=MAX_STRING_LENGTH)
     catalog: list[CatalogEntry] = Field(max_length=MAX_CATALOG_ENTRIES)
 
@@ -105,6 +111,50 @@ def _load_manifest(manifest_path: Path) -> tuple[CompatibilityManifest, bytes]:
     return manifest, raw
 
 
+def _validate_shadow_profile_fixture(entry: CatalogEntry, fixture: Path) -> dict[str, str]:
+    """Evaluate one bounded, synthetic Shadow profile admission case.
+
+    This validates only the content-free producer response schema and a manifest
+    supplied synthetic graph binding. It does not open a graph or a Shadow cache.
+    """
+    if entry.expected_graph_id is None:
+        raise TckError(f"{entry.id}: v2 profile validation requires expected_graph_id")
+
+    raw = fixture.read_bytes()
+    if len(raw) > MAX_PROFILE_FIXTURE_BYTES:
+        raise TckError(f"{entry.id}: profile fixture exceeds the bounded size limit")
+    try:
+        snapshot = ShadowDbStateResponse.model_validate_json(raw)
+    except ValidationError:
+        actual_result = "rejected"
+        reason = "profile-schema-rejected"
+    else:
+        profile = snapshot.read_profile
+        if profile is None or profile.graph_id != entry.expected_graph_id:
+            actual_result = "rejected"
+            reason = "graph-binding-rejected"
+        elif profile.state != snapshot.state:
+            actual_result = "rejected"
+            reason = "state-mismatch-rejected"
+        elif (
+            not profile.ready
+            or profile.schema_compatible is not True
+            or "state" not in profile.capabilities
+        ):
+            actual_result = "no-serve"
+            reason = "profile-not-servable"
+        else:
+            actual_result = "pass"
+            reason = "profile-admitted"
+
+    if actual_result != entry.expected_result:
+        raise TckError(
+            f"{entry.id}: declared expected_result {entry.expected_result!r} "
+            f"does not match evaluated result {actual_result!r}"
+        )
+    return {"status": "validated", "actual_result": actual_result, "reason": reason}
+
+
 def build_receipt(manifest_path: Path, *, repository_root: Path = ROOT) -> dict[str, object]:
     """Build a deterministic receipt without reading fixture data into memory."""
     manifest, raw_manifest = _load_manifest(manifest_path)
@@ -113,22 +163,42 @@ def build_receipt(manifest_path: Path, *, repository_root: Path = ROOT) -> dict[
         relative, fixture = _repository_relative_fixture(entry, repository_root)
         if not fixture.is_file():
             raise TckError(f"{entry.id}: fixture is missing or is not a file")
-        entries.append(
-            {
-                "id": entry.id,
-                "fixture_path": relative,
-                "fixture_size_bytes": fixture.stat().st_size,
-                "fixture_sha256": _sha256(fixture),
-                "category": entry.category,
-                "capability_level": entry.capability_level,
-                "source_authority": entry.source_authority,
-                "declared_expected_result": entry.expected_result,
+        receipt_entry: dict[str, object] = {
+            "id": entry.id,
+            "fixture_path": relative,
+            "fixture_size_bytes": fixture.stat().st_size,
+            "fixture_sha256": _sha256(fixture),
+            "category": entry.category,
+            "capability_level": entry.capability_level,
+            "source_authority": entry.source_authority,
+            "declared_expected_result": entry.expected_result,
+        }
+        if (
+            manifest.schema_version == "matryca-interop-tck.v2"
+            and entry.category in PROFILE_VALIDATION_CATEGORIES
+        ):
+            receipt_entry["fixture_validation"] = _validate_shadow_profile_fixture(entry, fixture)
+        else:
+            receipt_entry["fixture_validation"] = {
+                "status": "not-applicable",
+                "reason": (
+                    "schema-v1-byte-attestation"
+                    if manifest.schema_version == "matryca-interop-tck.v1"
+                    else "non-profile-fixture"
+                ),
             }
-        )
+        entries.append(receipt_entry)
+    is_v2_profile_validation = manifest.schema_version == "matryca-interop-tck.v2"
     return {
-        "runner": "matryca-interop-tck-admission-v1",
+        "runner": "matryca-interop-tck-admission-v2"
+        if is_v2_profile_validation
+        else "matryca-interop-tck-admission-v1",
         "receipt_kind": "deterministic-fixture-attestation",
-        "scope": "manifest-and-fixture-bytes",
+        "scope": (
+            "manifest-fixture-bytes-and-declared-shadow-profile-admission"
+            if is_v2_profile_validation
+            else "manifest-and-fixture-bytes"
+        ),
         "manifest_schema_version": manifest.schema_version,
         "manifest_sha256": hashlib.sha256(raw_manifest).hexdigest(),
         "status": manifest.status,

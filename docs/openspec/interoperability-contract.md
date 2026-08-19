@@ -55,15 +55,19 @@ read, derive, or write operation. It must identify, at minimum:
 Receipts must be deterministic for identical source bytes, inputs, policy versions, and provider outputs. They must not expose credentials, absolute paths, private configuration, raw SQL, or unbounded graph content. A receipt is evidence of the stated operation only; it is not proof of a stronger capability.
 
 The repository's `scripts/run_interop_tck.py` emits a different, deliberately limited
-receipt kind: `deterministic-fixture-attestation`, with scope
-`manifest-and-fixture-bytes`. This receipt binds the manifest bytes, fixture bytes,
-declared outcomes, source authority, and its explicit non-goals. It does not assert
-provider or consumer versions, source revision or generation, a verification time,
-or that any read, derive, or write operation was executed. `declared_expected_result`
-is preserved as a manifest declaration and is not independently evaluated by this
-runner. A deterministic fixture-attestation receipt is limited evidence; it does not
-substitute for an operational provenance receipt or for interoperability conformance
-qualification.
+receipt kind: `deterministic-fixture-attestation`. A v1 manifest has scope
+`manifest-and-fixture-bytes`: it binds manifest bytes, fixture bytes, declared
+outcomes, source authority, and explicit non-goals only. A v2 manifest adds the
+bounded scope `manifest-fixture-bytes-and-declared-shadow-profile-admission` for its
+declared Shadow profile fixtures. It independently evaluates their closed producer
+response schema, synthetic graph binding, readiness, schema compatibility, and
+`state` capability against the declared result. That evaluation opens neither a graph
+nor a cache and executes no provider, parser, CLI, MCP, derived-cache, or writer
+operation. Fixtures outside that declared v2 profile category remain byte-attested
+only. Neither receipt asserts provider or consumer versions, source revision or
+generation, a verification time, or a read, derive, or write operation. A
+deterministic fixture-attestation receipt is limited evidence; it does not substitute
+for an operational provenance receipt or interoperability conformance qualification.
 
 ## 5. Unsupported and negative cases
 
@@ -91,9 +95,10 @@ inputs, and declared capability.
 
 For the local fixture-admission boundary only, run
 `python scripts/run_interop_tck.py`. Its result is a
-`deterministic-fixture-attestation`, not an operational receipt. The TCK runner
-must not be presented as a parser, CLI, MCP, external-cache, or third-party
-conformance result.
+`deterministic-fixture-attestation`, not an operational receipt. The v2
+Shadow-profile result is a fixture-schema and synthetic-binding admission check, not
+a cache or graph probe. The TCK runner must not be presented as a parser, CLI, MCP,
+external-cache, or third-party conformance result.
 
 ## 7. Exact non-goals
 

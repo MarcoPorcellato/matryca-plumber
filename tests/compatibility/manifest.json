@@ -1,5 +1,5 @@
 {
-  "schema_version": "matryca-interop-tck.v1",
+  "schema_version": "matryca-interop-tck.v2",
   "status": "proposed",
   "catalog": [
     {
@@ -9,6 +9,7 @@
       "capability_level": "read",
       "expected_result": "pass",
       "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
       "notes": "Content-free ready profile with schema compatibility and state capability."
     },
     {
@@ -18,6 +19,7 @@
       "capability_level": "read",
       "expected_result": "rejected",
       "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
       "notes": "Malformed profile must not validate or authorize serving."
     },
     {
@@ -27,6 +29,7 @@
       "capability_level": "read",
       "expected_result": "rejected",
       "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
       "notes": "Future profile version is unsupported; no compatibility result is claimed."
     },
     {
@@ -36,6 +39,7 @@
       "capability_level": "read",
       "expected_result": "no-serve",
       "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
       "notes": "A stale, not-ready snapshot remains an explicit admission failure."
     },
     {
@@ -45,6 +49,7 @@
       "capability_level": "read",
       "expected_result": "rejected",
       "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
       "notes": "Foreign graph binding must not be accepted as the requested graph."
     },
     {

@@ -53,10 +53,58 @@ def test_happy_manifest_contains_only_manifest_results_and_fixture_attestations(
         "unsupported",
     }
     assert receipt["receipt_kind"] == "deterministic-fixture-attestation"
-    assert receipt["scope"] == "manifest-and-fixture-bytes"
+    assert receipt["runner"] == "matryca-interop-tck-admission-v2"
+    assert receipt["scope"] == "manifest-fixture-bytes-and-declared-shadow-profile-admission"
     assert all(entry["source_authority"] for entry in receipt["entries"])
     assert all("content" not in entry for entry in receipt["entries"])
     assert receipt["non_goals"]
+
+
+def test_v2_profile_fixtures_are_independently_evaluated() -> None:
+    receipt = json.loads(run_tck(DEFAULT_MANIFEST))
+    results = {
+        entry["id"]: entry["fixture_validation"]
+        for entry in receipt["entries"]
+        if entry["category"] in {"read-profile", "negative-admission"}
+    }
+
+    assert results == {
+        "shadow-read-healthy-v1": {
+            "status": "validated",
+            "actual_result": "pass",
+            "reason": "profile-admitted",
+        },
+        "shadow-read-malformed": {
+            "status": "validated",
+            "actual_result": "rejected",
+            "reason": "profile-schema-rejected",
+        },
+        "shadow-read-future-profile": {
+            "status": "validated",
+            "actual_result": "rejected",
+            "reason": "profile-schema-rejected",
+        },
+        "shadow-read-unhealthy": {
+            "status": "validated",
+            "actual_result": "no-serve",
+            "reason": "profile-not-servable",
+        },
+        "shadow-read-foreign-binding": {
+            "status": "validated",
+            "actual_result": "rejected",
+            "reason": "graph-binding-rejected",
+        },
+    }
+
+
+def test_v2_profile_fixture_rejects_a_manifest_outcome_mismatch(tmp_path: Path) -> None:
+    payload = json.loads(DEFAULT_MANIFEST.read_text(encoding="utf-8"))
+    payload["catalog"][4]["expected_result"] = "pass"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TckError, match="does not match evaluated result"):
+        run_tck(manifest, repository_root=ROOT)
 
 
 def test_unsupported_schema_version_is_rejected(tmp_path: Path) -> None:
@@ -109,6 +157,18 @@ def test_receipt_is_deterministic(tmp_path: Path) -> None:
     manifest = _manifest(tmp_path, "tests/fixtures/tana/minimal_direct.json")
 
     assert run_tck(manifest, repository_root=ROOT) == run_tck(manifest, repository_root=ROOT)
+
+
+def test_v1_manifest_remains_a_byte_attestation(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/tana/minimal_direct.json")
+    receipt = json.loads(run_tck(manifest, repository_root=ROOT))
+
+    assert receipt["runner"] == "matryca-interop-tck-admission-v1"
+    assert receipt["scope"] == "manifest-and-fixture-bytes"
+    assert receipt["entries"][0]["fixture_validation"] == {
+        "status": "not-applicable",
+        "reason": "schema-v1-byte-attestation",
+    }
 
 
 def test_output_does_not_overwrite_existing_file(tmp_path: Path) -> None:
