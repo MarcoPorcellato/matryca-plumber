@@ -1790,7 +1790,10 @@ def _check_bundle_report() -> ValidationReport:
                         path=_finding_path(index_path, f"docs/knowledge/{rel}"),
                         pointer="frontmatter",
                         parameters={"expected_okf_version": OKF_VERSION},
-                        message=f"{rel}: root index frontmatter must declare okf_version: {OKF_VERSION!r}",
+                        message=(
+                            f"{rel}: root index frontmatter must declare "
+                            f"okf_version: {OKF_VERSION!r}"
+                        ),
                     )
                 )
         elif meta is not None:

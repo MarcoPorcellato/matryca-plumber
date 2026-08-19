@@ -103,8 +103,7 @@ def assemble_document(*, version: str | None = None) -> str:
         parts.append(f"<!-- package-version: v{version} -->")
     parts.append("")
     parts.extend(
-        strip_frontmatter(fragment.read_text(encoding="utf-8")).strip()
-        for fragment in paths
+        strip_frontmatter(fragment.read_text(encoding="utf-8")).strip() for fragment in paths
     )
     return "\n\n".join(parts).rstrip() + "\n"
 

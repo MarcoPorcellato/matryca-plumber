@@ -83,9 +83,7 @@ def check_agent_onboarding_version(version: str) -> None:
     if lines and lines[0].strip() == "---":
         try:
             end = next(
-                index
-                for index, line in enumerate(lines[1:], start=1)
-                if line.strip() == "---"
+                index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"
             )
         except StopIteration:
             end = -1
