@@ -34,12 +34,16 @@ and review of the applicable limitations.
 ## Resource admission and interruption boundary
 
 Expensive benchmark, soak, and recovery work requires an explicit resource
-admission decision before starting. `Unknown` or denied capacity is a hold,
-not a pass. Use bounded parallelism, serialized memory-heavy work, durable
-checkpoints, and an attempt chain that records source/artifact identity and
-interruption reason. Setup, preflight, downtime, and an interrupted attempt do
-not count as qualified runtime. Resume only from a validated checkpoint; never
-delete or rewrite prior evidence to make an attempt appear continuous.
+admission decision before starting. Follow the [local resource-admission
+coordinator runbook](CI_RESOURCE_ADMISSION_RUNBOOK.md). `Unknown` or denied
+capacity is a hold, not a pass. Use bounded parallelism, serialized
+memory-heavy work, durable checkpoints, and an attempt chain that records
+source/artifact identity and interruption reason. Setup, preflight, downtime,
+and an interrupted attempt do not count as qualified runtime. Resume only from
+a validated checkpoint; never delete or rewrite prior evidence to make an
+attempt appear continuous. The coordinator is operational support only; it is
+not Matryca release, artifact, CI, identity, external, or platform
+qualification.
 
 ## Decision vocabulary
 

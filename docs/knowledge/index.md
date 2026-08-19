@@ -31,6 +31,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Quality evidence](../quality/) — Audits, qualification evidence, and issue-source records.
 - [Public quality evidence index](../quality/EVIDENCE_INDEX.md) — Bounded public claims with owning sources, limitations, and review dates.
 - [Release qualification gate map](../quality/RELEASE_QUALIFICATION_GATE_MAP.md) — Independent local, CI, package, operational, security, and publication gates.
+- [Local resource-admission coordinator runbook](../quality/CI_RESOURCE_ADMISSION_RUNBOOK.md) — macOS `macos-v4` admission, interruption, recovery, and evidence boundaries.
 - [Release records](../releases/) — Version-specific public release documentation.
 
 ## Maintenance

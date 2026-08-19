@@ -1087,6 +1087,27 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/CI_RESOURCE_ADMISSION_RUNBOOK.md",
+      "type": "Guide",
+      "title": "Local resource-admission coordinator runbook",
+      "description": "Evidence-bound admission, interruption, ticket, workspace-lock, and journal handling for expensive local qualification work.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Operational support only; does not qualify Matryca release, artifact, CI, identity, external, or platform claims.",
+      "missing": false,
+      "classification": "active"
+    },
+    {
       "path": "docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md",
       "type": "Audit",
       "title": "Claude Architectural Audit — Triage (2026-06-24)",

@@ -455,18 +455,18 @@ admission an explicit contract:
 - full CI on protected merge paths;
 - scheduled cross-platform, benchmark, and soak jobs;
 - exact artifact and runner binding for qualification;
-- local OrbStack/commit-preflight admission before expensive runs;
+- local resource-admission coordination before expensive runs;
 - fail-closed behavior on `Unknown` or `Deny` resource state;
 - serialized or bounded parallelism for memory-heavy tasks;
 - durable checkpoints and attempt chains for long-running work;
 - no credit for downtime, setup time, preflight time, or stale evidence;
-- a public runbook that explains how to resume after a reboot without deleting
-  evidence.
+- the [local resource-admission coordinator runbook](CI_RESOURCE_ADMISSION_RUNBOOK.md),
+  including reboot recovery without deleting evidence.
 
-The `commit-ci-preflight` repository and installed macOS v3 policy are supporting
-infrastructure, not a substitute for Matryca's own source and release gates.
-When a policy or image changes, record the exact contract and preserve old
-receipts as historical evidence.
+The local resource-admission coordinator and its macOS `macos-v4` policy are
+supporting operational infrastructure, not a substitute for Matryca's own
+source and release gates. When the policy changes, record the exact contract
+and preserve old receipts as historical evidence.
 
 ## Dependency-ordered execution plan
 
@@ -562,7 +562,7 @@ and what the experiment cannot establish.
 Deliverables:
 
 - document fast, full, scheduled, benchmark, soak, and release gates;
-- enforce resource admission for OrbStack and long-running local qualification;
+- enforce local resource admission for long-running qualification;
 - retain exact artifact/runner/provenance receipts;
 - add public release evidence summaries and post-release observation windows;
 - test reboot, interruption, stale checkpoint, disk pressure, and service restart

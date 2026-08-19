@@ -2,6 +2,11 @@
 
 ## 2026-08-19
 
+- **Resource admission:** added the local resource-admission coordinator runbook
+  with the macOS `macos-v4` thresholds, fail-closed interruption policy,
+  ticket/workspace-lock rules, schema boundaries, and explicit non-qualification
+  limits.
+
 - **Interoperability contract:** added a read-first, vendor-neutral proposal and
   content-free fixture catalog. It records capability boundaries and negative
   cases without claiming external-provider, concurrent-writer, or semantic
