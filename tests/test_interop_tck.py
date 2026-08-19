@@ -6,8 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-
-from scripts.run_interop_tck import DEFAULT_MANIFEST, run_tck, TckError
+from scripts.run_interop_tck import DEFAULT_MANIFEST, TckError, run_tck
 
 ROOT = Path(__file__).resolve().parents[1]
 
