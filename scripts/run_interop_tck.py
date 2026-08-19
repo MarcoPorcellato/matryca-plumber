@@ -142,7 +142,9 @@ def run_tck(
 ) -> str:
     """Return the receipt, optionally writing it once to an explicit new file."""
     receipt = build_receipt(manifest_path, repository_root=repository_root)
-    serialized = json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n"
+    serialized = (
+        json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n"
+    )
     if output_path is not None:
         if output_path.exists():
             raise TckError("refusing to overwrite existing output file")
