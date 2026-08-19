@@ -2,6 +2,10 @@
 
 ## 2026-08-19
 
+- **Contributor architecture guidance:** corrected the active contributor
+  philosophy and Phase 4 guidance to distinguish the v2 external, disposable
+  SQLite Shadow cache from an authoritative database or remote memory store.
+
 - **Public release and soak evidence:** added the canonical retention, redaction,
   review, correction, and exact-artifact boundary policy for source checks, CI,
   package artifacts, soak campaigns, release publication, and post-release
