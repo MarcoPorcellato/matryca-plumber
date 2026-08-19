@@ -1353,6 +1353,48 @@
       "missing": false
     },
     {
+      "path": "docs/quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_EXECUTION_STATUS_2026-08-19.md",
+      "type": "Roadmap",
+      "title": "Repository governance and AAIF readiness execution status",
+      "description": "Mutable, evidence-bound status ledger and persistent goal for the repository governance and AAIF readiness programme.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Mutable execution authority for the canonical governance and AAIF-readiness programme; preserve each material checkpoint through version control.",
+      "missing": false,
+      "classification": "active"
+    },
+    {
+      "path": "docs/quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_PROGRAMME_2026-08-19.md",
+      "type": "Roadmap",
+      "title": "Repository governance and AAIF readiness programme",
+      "description": "Evidence-first programme for making Matryca Plumber easier to trust, contribute to, operate, integrate, and evaluate after the v2.0.0 stable release.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "repository.governance-and-aaif-readiness",
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Canonical cross-cutting governance and AAIF-readiness programme; specialist benchmark and historical dossiers remain linked evidence.",
+      "missing": false,
+      "classification": "canonical"
+    },
+    {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Repomix Architectural Audit — Triage (2026-06)",
@@ -2508,7 +2550,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v1.10.0-GITHUB.md",
@@ -3020,7 +3063,8 @@
       "destination": "docs/knowledge/releases/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v2.0.0-GITHUB.md",
@@ -3038,7 +3082,8 @@
       "destination": "docs/knowledge/releases/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v2.0.0-alpha-GITHUB.md",
