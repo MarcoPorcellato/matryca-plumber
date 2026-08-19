@@ -9,6 +9,10 @@ proactive adaptive runtime remain outside this release's enabled behavior.
 
 ### Added
 
+- **Resource-safe semantic code intelligence guide** — document admission gating,
+  single-language workspace selection, cache quarantine, bounded query discipline,
+  process cleanup, and evidence-calibrated memory measurement for maintainer tooling.
+
 - **Frozen Shadow read-profile fixtures** — publish a content-free v1 admission
   corpus with healthy, malformed, future-version, unhealthy, and foreign-binding
   packets for deterministic compatibility checks; no cache operation or new read
