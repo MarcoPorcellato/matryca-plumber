@@ -14,16 +14,20 @@ authority: github-reconciliation
 
 # Legacy milestone reconciliation
 
-This document records a read-only reconciliation plan for the two open
-pre-v2 milestones that remain after the v2.0.0 stable release. It is a
-disposition proposal, not a remote mutation record. Refresh the GitHub API
-state immediately before applying any change.
+This document records the source review, disposition decision, and completed
+remote reconciliation for the two pre-v2 milestones that remained open after
+the v2.0.0 stable release. The original review is retained as provenance; the
+application record below is the authority for what was changed. Refresh the
+GitHub API state before any later amendment.
 
 ## Evidence boundary
 
-- **Remote source:** public GitHub REST responses read on 2026-08-19 without
-  authentication; no issue, milestone, label, Project, or Discussion was
-  modified.
+- **Initial remote source:** public GitHub REST responses read on 2026-08-19
+  without authentication; no mutation was made during that initial audit.
+- **Application evidence:** authenticated GitHub CLI access was restored, the
+  seven open issues and both milestones were revalidated, the documented
+  milestone moves were applied, and milestones #7 and #8 were rechecked with
+  zero open issues before closure.
 - **Source comparison:** local delivery branch from
   `origin/main@2724f7504d943da91e2f4e6a6309cac4d0c9fb30`; a source match does
   not prove a hosted result or a completed issue.
@@ -35,8 +39,8 @@ state immediately before applying any change.
 
 | Milestone | Open | Closed | Decision |
 | --- | ---: | ---: | --- |
-| [#7 — v1.9.11 Performance & I/O](https://github.com/MarcoPorcellato/matryca-plumber/milestone/7) | 4 | 16 | Keep open until each remaining performance issue is closed or moved. |
-| [#8 — v1.9.12 Code Perfection & Tech Debt](https://github.com/MarcoPorcellato/matryca-plumber/milestone/8) | 3 | 38 | Keep open until each remaining debt issue is closed or moved. |
+| [#7 — v1.9.11 Performance & I/O](https://github.com/MarcoPorcellato/matryca-plumber/milestone/7) | 0 | 16 | Closed at 2026-08-19T20:20:57Z after the four remaining issues were moved. |
+| [#8 — v1.9.12 Code Perfection & Tech Debt](https://github.com/MarcoPorcellato/matryca-plumber/milestone/8) | 0 | 38 | Closed at 2026-08-19T20:21:19Z after the three remaining issues were moved. |
 
 The milestone names describe work that was intended as a v2 prerequisite. They
 must not remain active merely as a historical bucket after their remaining work
@@ -54,21 +58,18 @@ is explicitly re-sequenced.
 | [#63](https://github.com/MarcoPorcellato/matryca-plumber/issues/63) | A private parser import remains, now `_insertion_line_after_node` from `agent_writer`. | Keep open; update the issue's stale symbol reference, then require a public parser seam or a reviewed local replacement with compatibility tests. | v2.1.0 — Memory & Logseq DB Safe-Sync |
 | [#73](https://github.com/MarcoPorcellato/matryca-plumber/issues/73) | `tests/slow/test_daemon_memory_soak.py` now provides a bounded 200-page bootstrap memory check, but not the stated sustained daemon/load qualification. | Keep open; narrow the claim to a staged daemon-soak programme with resource admission, bounded fixtures, trend receipts, and no default-CI inflation. | v2.1.0 — Memory & Logseq DB Safe-Sync |
 
-## Safe remote application sequence
+## Completed remote application record
 
-1. Restore authenticated GitHub CLI access and re-fetch milestones #7 and #8,
-   all seven issues, labels, projects, rulesets, and any new review activity.
-2. Revalidate the current source and issue bodies. Update #63 and #73 before
-   moving them, because their current text is materially stale.
-3. Move #47, #49, and #54 to v2.2.0; move #48, #61, #63, and #73 to v2.1.0.
-   Preserve the `audit-2026` label as historical provenance; do not use it as a
-   present-priority label.
-4. Verify that each legacy milestone has zero open items, then close #7 and #8
-   with a concise comment linking this disposition record and the successor
-   milestones.
-5. Re-fetch the exact resulting issue and milestone state, update the execution
-   ledger with the timestamp and endpoint evidence, and only then describe the
-   cleanup as completed.
+1. Authenticated GitHub CLI access was restored and the two milestones plus all
+   seven issues were re-fetched immediately before mutation.
+2. Public re-sequencing notes preserved the stale historical context of #63 and
+   #73 without altering the issue acceptance scope.
+3. Issues #47, #49, and #54 were moved to v2.2.0; #48, #61, #63, and #73 were
+   moved to v2.1.0. No issue was closed and historical labels were retained.
+4. Both legacy milestones were re-fetched with zero open issues and closed at
+   the timestamps recorded in the table above.
+5. The authoritative execution ledger records this result and the remaining
+   contributor-path exit gate. Future changes require a new live revalidation.
 
 Do not create a new maintenance milestone merely to avoid a decision. The
 proposed v2.1/v2.2 targets already express the dependency order. Do not close an
