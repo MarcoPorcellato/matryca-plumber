@@ -4,7 +4,9 @@ title: Release qualification gate map
 description: Independent local, CI, package, operational, security, and publication gates.
 last_verified: 2026-08-19
 stale_after: 2026-11-17
-status: maintained-proposal
+status: draft
+classification: active
+owner: release
 authority: release-process-and-workflows
 ---
 

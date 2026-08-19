@@ -8,6 +8,11 @@
   the current security-support line, and linked the programme from maintained
   documentation entry points.
 
+- **Governance and evidence entry points:** added the maintainer governance
+  model, contribution-triage guidance, public quality evidence index, and
+  independent release-qualification gate map without broadening any release or
+  external-readiness claim.
+
 ## 2026-08-18
 
 - **Stable v2.0.0 publication:** recorded the signed tag, exact stable commit,

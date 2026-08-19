@@ -6,7 +6,10 @@ resource: docs/quality/
 tags: [quality, evidence, release, governance]
 last_verified: 2026-08-19
 stale_after: 2026-11-17
-status: bootstrap
+status: draft
+classification: canonical
+canonical_for: quality.evidence-index
+owner: quality
 authority: evidence-index
 ---
 

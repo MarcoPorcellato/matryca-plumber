@@ -41,8 +41,8 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 
 | Milestone | State | Exit evidence | Next action |
 | --- | --- | --- | --- |
-| M0 — isolated delivery and baseline | `in_progress` | clean delivery worktree; exact anchor; programme and ledger validated | create and validate the first reviewable documentation tranche |
-| M1 — documentation authority and freshness | `pending` | current contracts, generated inventory, link and documentation gates | reconcile successor roles and supported-version policy |
+| M0 — isolated delivery and baseline | `complete` | isolated branch from exact anchor; programme, ledger, bounded audits, and first documentation tranche are validated | keep the worktree clean and update exact anchors before each new milestone |
+| M1 — documentation authority and freshness | `in_progress` | current contracts, generated inventory, link and documentation gates | complete successor-role review and publish the evidence index/release gate map as reviewed repository metadata |
 | M2 — governance and contributor scale | `pending` | governance model, real ownership, contribution path | establish policy and GitHub metadata proposal |
 | M3 — interoperability and TCK | `pending` | versioned contract, corpus, deterministic result schema | reconcile existing Logseq, MCP, Tine, and projection surfaces |
 | M4 — outcome evaluation | `pending` | reproducible graph-outcome evidence | continue the existing specialist programme through its gates |
@@ -60,6 +60,7 @@ delivery_branch: aaif/repository-governance-readiness-20260819
 | 2026-08-19 | GitHub operating-model audit | Templates/workflows are strong; current rulesets, labels, Projects, Discussions, and milestone state remain unverified because GitHub auth/network are unavailable | `partial` |
 | 2026-08-19 | Interoperability and outcome audit | Reusable contracts and receipts exist; no unified interoperability contract, TCK, or completed resettable graph-outcome harness exists | `verified` |
 | 2026-08-19 | CI, release, and recovery audit | CI and release automation exist; gate-map, public release manifest, recovery proof, and resource-admission contract are incomplete | `verified` |
+| 2026-08-19 | Documentation foundation | Added the programme, execution ledger, governance model, support triage rules, PR evidence prompts, public evidence index, release gate map, and maintained navigation; documentation gates pass on the delivery branch | `verified` |
 
 ## External gates and boundaries
 

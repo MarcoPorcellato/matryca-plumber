@@ -1143,6 +1143,27 @@
       "missing": false
     },
     {
+      "path": "docs/quality/EVIDENCE_INDEX.md",
+      "type": "Reference",
+      "title": "Public quality evidence index",
+      "description": "Bootstrap index of bounded, source-backed claims for Matryca Plumber.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "quality.evidence-index",
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Canonical public index of bounded claims; every claim retains its owning source contract and review deadline.",
+      "missing": false,
+      "classification": "canonical"
+    },
+    {
       "path": "docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md",
       "type": "Audit",
       "title": "Expert Architectural Audit — Triage (2026-06)",
@@ -1313,6 +1334,27 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/quality/RELEASE_QUALIFICATION_GATE_MAP.md",
+      "type": "Guide",
+      "title": "Release qualification gate map",
+      "description": "Independent local, CI, package, operational, security, and publication gates.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Supporting release-evidence map; release mechanics remain owned by docs/RELEASE_PROCESS.md.",
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md",

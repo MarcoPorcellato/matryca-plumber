@@ -26,7 +26,10 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Contributor guide](../../CONTRIBUTING.md) — Development standards and verification gates.
 - [OpenSpec index](../openspec/README.md) — Normative feature and agent contracts.
 - [Roadmaps](../roadmaps/) — Active and historical delivery plans.
+- [Governance](../../GOVERNANCE.md) — Maintainer authority, contribution decisions, security escalation, and current limits.
 - [Quality evidence](../quality/) — Audits, qualification evidence, and issue-source records.
+- [Public quality evidence index](../quality/EVIDENCE_INDEX.md) — Bounded public claims with owning sources, limitations, and review dates.
+- [Release qualification gate map](../quality/RELEASE_QUALIFICATION_GATE_MAP.md) — Independent local, CI, package, operational, security, and publication gates.
 - [Release records](../releases/) — Version-specific public release documentation.
 
 ## Maintenance
