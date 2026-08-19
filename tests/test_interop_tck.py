@@ -52,6 +52,9 @@ def test_happy_manifest_contains_only_manifest_results_and_fixture_attestations(
         "fixture-available",
         "unsupported",
     }
+    assert receipt["receipt_kind"] == "deterministic-fixture-attestation"
+    assert receipt["scope"] == "manifest-and-fixture-bytes"
+    assert all(entry["source_authority"] for entry in receipt["entries"])
     assert all("content" not in entry for entry in receipt["entries"])
     assert receipt["non_goals"]
 
@@ -75,6 +78,16 @@ def test_invalid_declared_result_is_rejected(tmp_path: Path) -> None:
     )
 
     with pytest.raises(TckError, match="validation failed"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_duplicate_catalogue_entry_id_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/tana/minimal_direct.json")
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["catalog"].append(payload["catalog"][0].copy())
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TckError, match="duplicate catalogue entry id: case"):
         run_tck(manifest, repository_root=ROOT)
 
 

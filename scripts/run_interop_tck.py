@@ -97,6 +97,11 @@ def _load_manifest(manifest_path: Path) -> tuple[CompatibilityManifest, bytes]:
         manifest = CompatibilityManifest.model_validate_json(raw)
     except ValidationError as exc:
         raise TckError(f"manifest validation failed: {exc.error_count()} error(s)") from exc
+    seen_ids: set[str] = set()
+    for entry in manifest.catalog:
+        if entry.id in seen_ids:
+            raise TckError(f"manifest contains duplicate catalogue entry id: {entry.id}")
+        seen_ids.add(entry.id)
     return manifest, raw
 
 
@@ -116,11 +121,14 @@ def build_receipt(manifest_path: Path, *, repository_root: Path = ROOT) -> dict[
                 "fixture_sha256": _sha256(fixture),
                 "category": entry.category,
                 "capability_level": entry.capability_level,
+                "source_authority": entry.source_authority,
                 "declared_expected_result": entry.expected_result,
             }
         )
     return {
         "runner": "matryca-interop-tck-admission-v1",
+        "receipt_kind": "deterministic-fixture-attestation",
+        "scope": "manifest-and-fixture-bytes",
         "manifest_schema_version": manifest.schema_version,
         "manifest_sha256": hashlib.sha256(raw_manifest).hexdigest(),
         "status": manifest.status,

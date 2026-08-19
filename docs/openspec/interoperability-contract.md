@@ -41,7 +41,8 @@ Every operation declares its source authority, target authority, capability leve
 
 ## 4. Provenance and result receipts
 
-Every result or receipt must identify, at minimum:
+An operational interoperability receipt is the full evidence record for an executed
+read, derive, or write operation. It must identify, at minimum:
 
 - `schema_version` and the contract/profile version;
 - normalized provider and consumer identifiers and versions;
@@ -52,6 +53,17 @@ Every result or receipt must identify, at minimum:
 - stable reasons for every non-pass outcome.
 
 Receipts must be deterministic for identical source bytes, inputs, policy versions, and provider outputs. They must not expose credentials, absolute paths, private configuration, raw SQL, or unbounded graph content. A receipt is evidence of the stated operation only; it is not proof of a stronger capability.
+
+The repository's `scripts/run_interop_tck.py` emits a different, deliberately limited
+receipt kind: `deterministic-fixture-attestation`, with scope
+`manifest-and-fixture-bytes`. This receipt binds the manifest bytes, fixture bytes,
+declared outcomes, source authority, and its explicit non-goals. It does not assert
+provider or consumer versions, source revision or generation, a verification time,
+or that any read, derive, or write operation was executed. `declared_expected_result`
+is preserved as a manifest declaration and is not independently evaluated by this
+runner. A deterministic fixture-attestation receipt is limited evidence; it does not
+substitute for an operational provenance receipt or for interoperability conformance
+qualification.
 
 ## 5. Unsupported and negative cases
 
