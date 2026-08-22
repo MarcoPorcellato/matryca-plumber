@@ -3385,6 +3385,27 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
+      "type": "Specification",
+      "title": "Graph-native derived projection qualification design",
+      "description": "Architecture and evidence gates for preserving SQLite as the stable Shadow backend while qualifying LadybugDB as an optional graph-native derived projection.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "shadow-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Becomes design authority only after maintainer review; implementation and public claims remain gated.",
+      "missing": false
+    },
+    {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
