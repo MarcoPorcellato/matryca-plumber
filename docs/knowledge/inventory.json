@@ -801,6 +801,27 @@
       "classification": "active"
     },
     {
+      "path": "docs/openspec/interoperability-contract.md",
+      "type": "Specification",
+      "title": "Matryca interoperability contract",
+      "description": "Read-first capability levels, source authority, negative cases, and provenance requirements for future external interoperability qualification.",
+      "classification": "canonical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": "integration.interoperability-contract",
+      "owner": "integrations",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/openspec/l1-l2-routing.md",
       "type": "Specification",
       "title": "L1 / L2 routing (Matryca Plumber)",
@@ -1067,6 +1088,27 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/CI_RESOURCE_ADMISSION_RUNBOOK.md",
+      "type": "Guide",
+      "title": "Local resource-admission coordinator runbook",
+      "description": "Evidence-bound admission, interruption, ticket, workspace-lock, and journal handling for expensive local qualification work.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Operational support only; does not qualify Matryca release, artifact, CI, identity, external, or platform claims.",
+      "missing": false,
+      "classification": "active"
+    },
+    {
       "path": "docs/quality/CLAUDE_ARCH_AUDIT_TRIAGE_2026-06-24.md",
       "type": "Audit",
       "title": "Claude Architectural Audit — Triage (2026-06-24)",
@@ -1141,6 +1183,27 @@
       "supersedes": [],
       "notes": "Dependency-advisory evidence artifact; GitHub alert state remains authoritative after default-branch rescans.",
       "missing": false
+    },
+    {
+      "path": "docs/quality/EVIDENCE_INDEX.md",
+      "type": "Reference",
+      "title": "Public quality evidence index",
+      "description": "Bootstrap index of bounded, source-backed claims for Matryca Plumber.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "quality.evidence-index",
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Canonical public index of bounded claims; every claim retains its owning source contract and review deadline.",
+      "missing": false,
+      "classification": "canonical"
     },
     {
       "path": "docs/quality/EXPERT_AUDIT_TRIAGE_2026-06.md",
@@ -1258,6 +1321,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/GRAPH_OUTCOME_SYNTHETIC_HARNESS.md",
+      "type": "Audit",
+      "title": "Synthetic graph-outcome harness runner",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/ISSUE_CONTROL_PLANE_2026-08-08.md",
       "type": "Audit",
       "title": "Issue and milestone control plane — 2026-08-08",
@@ -1296,6 +1377,48 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/LEGACY_MILESTONE_RECONCILIATION_2026-08-19.md",
+      "type": "Audit",
+      "title": "Legacy milestone reconciliation",
+      "description": "Current-source disposition plan for the remaining open issues in the pre-v2 performance and technical-debt milestones.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Read-only disposition proposal; refresh authenticated GitHub state before applying any remote change.",
+      "missing": false,
+      "classification": "active"
+    },
+    {
+      "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
+      "type": "Guide",
+      "title": "Public release and soak evidence policy",
+      "description": "Retention, redaction, review, and claim-boundary rules for public release and operational qualification evidence.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "quality.public-release-and-soak-evidence-policy",
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Policy boundary only; it does not certify a release, CI run, soak, or external review.",
+      "missing": false,
+      "classification": "canonical"
+    },
+    {
       "path": "docs/quality/READ_ONLY_IMMUTABILITY_E2E.md",
       "type": "Audit",
       "title": "Strict Read Only end-to-end immutability gate",
@@ -1313,6 +1436,27 @@
       "notes": "",
       "missing": false,
       "classification": "historical"
+    },
+    {
+      "path": "docs/quality/RELEASE_QUALIFICATION_GATE_MAP.md",
+      "type": "Guide",
+      "title": "Release qualification gate map",
+      "description": "Independent local, CI, package, operational, security, and publication gates.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Supporting release-evidence map; release mechanics remain owned by docs/RELEASE_PROCESS.md.",
+      "missing": false,
+      "classification": "active"
     },
     {
       "path": "docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md",
@@ -1351,6 +1495,48 @@
       "notes": "Improvement-plan artifact; not a release authorization or architecture SSOT.",
       "classification": "active",
       "missing": false
+    },
+    {
+      "path": "docs/quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_EXECUTION_STATUS_2026-08-19.md",
+      "type": "Roadmap",
+      "title": "Repository governance and AAIF readiness execution status",
+      "description": "Mutable, evidence-bound status ledger and persistent goal for the repository governance and AAIF readiness programme.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Mutable execution authority for the canonical governance and AAIF-readiness programme; preserve each material checkpoint through version control.",
+      "missing": false,
+      "classification": "active"
+    },
+    {
+      "path": "docs/quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_PROGRAMME_2026-08-19.md",
+      "type": "Roadmap",
+      "title": "Repository governance and AAIF readiness programme",
+      "description": "Evidence-first programme for making Matryca Plumber easier to trust, contribute to, operate, integrate, and evaluate after the v2.0.0 stable release.",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "repository.governance-and-aaif-readiness",
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Canonical cross-cutting governance and AAIF-readiness programme; specialist benchmark and historical dossiers remain linked evidence.",
+      "missing": false,
+      "classification": "canonical"
     },
     {
       "path": "docs/quality/REPOmix_AUDIT_TRIAGE_2026-06.md",
@@ -2508,7 +2694,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v1.10.0-GITHUB.md",
@@ -3020,7 +3207,8 @@
       "destination": "docs/knowledge/releases/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v2.0.0-GITHUB.md",
@@ -3038,7 +3226,8 @@
       "destination": "docs/knowledge/releases/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/releases/v2.0.0-alpha-GITHUB.md",

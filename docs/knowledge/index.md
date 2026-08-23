@@ -8,6 +8,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Matryca Plumber knowledge profile](profile.md) — OKF v0.2 compatibility and stricter Matryca producer rules.
 - [Repository documentation inventory](inventory.md) — Generated view of every root and `docs/` Markdown surface.
 - [Documentation update log](log.md) — Material documentation-system changes, newest first.
+- [Repository governance and AAIF readiness programme](../quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_PROGRAMME_2026-08-19.md) — Current cross-cutting sequence for governance, evidence, interoperability, and external-readiness work.
 
 ## Maintained architecture
 
@@ -24,8 +25,15 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Getting started](../FIRST_CONTRIBUTION.md) — First-contribution path and repository setup.
 - [Contributor guide](../../CONTRIBUTING.md) — Development standards and verification gates.
 - [OpenSpec index](../openspec/README.md) — Normative feature and agent contracts.
+- [Interoperability contract](../openspec/interoperability-contract.md) — Read-first capability levels, source authority, and boundaries for future external qualification.
 - [Roadmaps](../roadmaps/) — Active and historical delivery plans.
+- [Governance](../../GOVERNANCE.md) — Maintainer authority, contribution decisions, security escalation, and current limits.
 - [Quality evidence](../quality/) — Audits, qualification evidence, and issue-source records.
+- [Public quality evidence index](../quality/EVIDENCE_INDEX.md) — Bounded public claims with owning sources, limitations, and review dates.
+- [Release qualification gate map](../quality/RELEASE_QUALIFICATION_GATE_MAP.md) — Independent local, CI, package, operational, security, and publication gates.
+- [Public release and soak evidence policy](../quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md) — Retention, redaction, review, and artifact-bound claim rules for public qualification evidence.
+- [Local resource-admission coordinator runbook](../quality/CI_RESOURCE_ADMISSION_RUNBOOK.md) — macOS `macos-v4` admission, interruption, recovery, and evidence boundaries.
+- [Legacy milestone reconciliation](../quality/LEGACY_MILESTONE_RECONCILIATION_2026-08-19.md) — Source review and completed migration of the remaining pre-v2 audit issues into v2.1 and v2.2.
 - [Release records](../releases/) — Version-specific public release documentation.
 
 ## Maintenance

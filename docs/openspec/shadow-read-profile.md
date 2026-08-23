@@ -48,4 +48,11 @@ health routing or Markdown/BM25 fallback.
 `healthy_v1.json` is a valid profile snapshot. The malformed, future-version,
 unhealthy, and foreign-binding packets are explicit negative admission cases for
 compatibility verification; they do not describe normal producer states. The corpus
-contains no filesystem path, graph content, identifiers, query, SQL, or secret.
+contains no filesystem path, graph content, source graph identifier, query, SQL, or
+secret. Its symbolic binding values are fixture-local and have no relationship to a
+real graph identity.
+
+The v2 fixture manifest used by `scripts/run_interop_tck.py` evaluates those packets
+only against the closed `ShadowDbStateResponse` schema and a symbolic, manifest-bound
+expected graph identifier. It proves neither a cache opening nor a graph read; it is
+a deterministic consumer-admission guard for the content-free profile envelope.

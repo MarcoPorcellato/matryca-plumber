@@ -33,7 +33,7 @@ Matryca Plumber is built on three pillars. Every contribution must respect them:
 | Pillar | Meaning |
 |--------|---------|
 | **Local-first** | The Logseq graph on disk (`LOGSEQ_GRAPH_PATH`) is the system of record. Reads and writes go through UTF-8 Markdown I/O, `fcntl.flock` RMW locks, and atomic swaps — not a hosted sync service. |
-| **Zero external databases** | No SQLite, Postgres, Redis, or cloud DB as a dependency for core behavior. Ephemeral in-memory indexes and JSON ledgers at the graph root are allowed; the vault itself stays pure Markdown. |
+| **Derived storage is never authoritative** | No database server, cloud store, or separate memory layer may become the source of truth for graph content. The v2 external SQLite Shadow DB is permitted only as a disposable derived read cache outside the graph; the vault stays pure Markdown. |
 | **Absolute Logseq AST parity** | Spatial structure comes from **`logseq_matryca_parser`** and bounded helpers in `src/graph/`. Mutations must preserve outliner semantics: nested bullets, property planes, multiline continuations, and fence-protected dead zones. |
 
 ---
@@ -66,7 +66,7 @@ flowchart LR
     P2 -->|"mtime matches"| Write["atomic write\ntmp -> fsync -> os.replace\nunder page_rmw_lock"]
     P2 -->|"mtime drifted"| Abort["abort write\npreserve human edit"]
     Write --> P3["Phase 3\nAST parity\nfrontmatter / id:: / dead zones"]
-    P3 --> P4["Phase 4\nNo central DB\nJSON ledger only"]
+    P3 --> P4["Phase 4\nDerived state\nnever authoritative"]
 ```
 
 ### Phase 0 — Paradigm lock
@@ -113,16 +113,23 @@ Logseq OG's on-disk contract is strict. Violations cause silent index corruption
 
 When in doubt: exercise mutators with **`dry_run=true`** first (from **pytest** fixtures, the **CLI**, or the **optional MCP** path); ground truth lives in **`read_logseq_page`** / the parser adapter — not in guessed line offsets.
 
-### Phase 4 — No central DB (JSON ledger only)
+### Phase 4 — Derived state is never authoritative
 
-Matryca Plumber tracks daemon progress in a **local JSON ledger** at the graph root — not in a database server.
+Matryca Plumber tracks daemon progress in a **local JSON ledger** at the graph root.
+The v2 [external Shadow DB](docs/knowledge/architecture/shadow-db.md) may also
+hold a disposable SQLite read cache outside the graph. Neither store owns graph
+content, replaces Logseq Markdown, or permits graph writes outside the shared
+mutation plane.
 
 | File | Role |
 |------|------|
 | **`.matryca_daemon_state.json`** | AI ledger + checkpoint plane (processed files, bootstrap phase, token telemetry, quarantine flags). Written atomically (tmp → fsync → `os.replace`). |
 | **`.matryca_xray_state.json`** | Session alias map (`[n]` → block UUID) for X-Ray mode. |
 
-**Forbidden:** SQLite, Postgres, Redis, or any hosted DB as system-of-record for graph content or daemon state.
+**Forbidden:** a database server, cloud service, or separate memory layer as the
+system of record for graph content or daemon state. The external Shadow DB is
+allowed only under its documented derived-cache, health, fallback, and Read Only
+boundaries.
 
 Optional git snapshots on the graph repo are fine; they remain files on disk.
 

@@ -1,5 +1,24 @@
 ## [Unreleased]
 
+### Added
+
+- **Synthetic graph-outcome harness** — add a provider-free, temporary-root
+  evaluation seam that produces closed, content-free episode receipts for
+  strict-read-only success, unauthorized-tool refusal, stale-write veto, and
+  reset isolation, including a veto-to-Strict-Read-Only transition. It does not execute a real agent, vault, Shadow database,
+  benchmark, or concurrent-writer workflow.
+- **Synthetic graph-outcome report runner** — emit a deterministic,
+  source-revision-bound, content-free self-check for the provider-free episode
+  suite and reset-isolation proofs. It refuses output overwrites and does not
+  qualify an agent, real vault, Shadow database, provider, external system, or
+  release.
+- **Interoperability TCK admission runner** — validate the closed, content-free
+  fixture catalogue, reject duplicate entry identifiers, and emit bounded
+  deterministic fixture attestations. The v2 manifest independently checks declared
+  Shadow-profile schema, symbolic graph binding, readiness, compatibility, and state
+  capability outcomes without opening a graph or cache; it makes no external-provider
+  or concurrent-writer qualification claim.
+
 ## [2.0.0] - 2026-08-18
 
 **v2.0.0** — stable Shadow read path with a default-on external derived cache,

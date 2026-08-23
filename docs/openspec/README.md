@@ -29,6 +29,7 @@ Trimmed behavioral specs aligned with [MehmetGoekce/llm-wiki](https://github.com
 | [`l1-l2-routing.md`](l1-l2-routing.md) | L1 memory vs L2 graph routing and MCP hints. |
 | [`runtime-bootstrap.md`](runtime-bootstrap.md) | Startup directory/config provisioning (logs, L1, cache, wiki YAML); master catalog flock/merge persistence (v1.10.0). |
 | [`shadow-read-profile.md`](shadow-read-profile.md) | Versioned, content-free profile for safe consumers of Shadow read state. |
+| [`interoperability-contract.md`](interoperability-contract.md) | Read-first interoperability capability levels, authority boundaries, provenance receipts, and the fixture-backed TCK proposal. |
 | [`llm-performance.md`](llm-performance.md) | v1.8 KV-cache layout, RAM caps, cooperative bootstrap I/O; v1.12 Tier-1 builders + L0 safety; journal Phase-2 semantic bypass. |
 | [`../PROMPT_ARCHITECTURE.md`](../PROMPT_ARCHITECTURE.md) | **v1.12** — Clean Architecture map for prompts (plan v3), semver recommendation, mermaid/ASCII flows. |
 | [`../knowledge/architecture/shadow-db.md`](../knowledge/architecture/shadow-db.md) | Canonical current Shadow runtime and operator contract. |

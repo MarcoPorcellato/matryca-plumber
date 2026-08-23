@@ -1,5 +1,46 @@
 # Documentation update log
 
+## 2026-08-19
+
+- **Legacy milestone reconciliation:** recorded the initial source review and
+  applied the seven documented issue moves after fresh authenticated
+  revalidation; the empty historical v1.9.11 and v1.9.12 milestones are closed
+  while all unresolved work remains open in v2.1 or v2.2.
+
+- **Interoperability consumer paths:** added an evidence-bounded matrix for
+  parser, CLI, MCP, external-cache, and Matryca Knowledge consumers. Each path
+  now states its safe starting point, required hold, and non-claims.
+
+- **Contributor architecture guidance:** corrected the active contributor
+  philosophy and Phase 4 guidance to distinguish the v2 external, disposable
+  SQLite Shadow cache from an authoritative database or remote memory store.
+
+- **Public release and soak evidence:** added the canonical retention, redaction,
+  review, correction, and exact-artifact boundary policy for source checks, CI,
+  package artifacts, soak campaigns, release publication, and post-release
+  observations.
+
+- **Resource admission:** added the local resource-admission coordinator runbook
+  with the macOS `macos-v4` thresholds, fail-closed interruption policy,
+  ticket/workspace-lock rules, schema boundaries, and explicit non-qualification
+  limits.
+
+- **Interoperability contract:** added a read-first, vendor-neutral proposal and
+  content-free fixture catalog. It records capability boundaries and negative
+  cases without claiming external-provider, concurrent-writer, or semantic
+  interoperability qualification.
+
+- **Repository governance and AAIF readiness:** established the canonical
+  cross-cutting programme and its evidence-bound execution ledger; retained
+  existing specialist and historical dossiers in their original roles, corrected
+  the current security-support line, and linked the programme from maintained
+  documentation entry points.
+
+- **Governance and evidence entry points:** added the maintainer governance
+  model, contribution-triage guidance, public quality evidence index, and
+  independent release-qualification gate map without broadening any release or
+  external-readiness claim.
+
 ## 2026-08-18
 
 - **Stable v2.0.0 publication:** recorded the signed tag, exact stable commit,
