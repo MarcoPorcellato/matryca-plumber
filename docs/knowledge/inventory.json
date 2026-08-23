@@ -1672,6 +1672,26 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
+      "type": "Roadmap",
+      "title": "v2.0.1 release qualification plan",
+      "description": "Candidate-first, artifact-bound release plan for the bounded journal-day maintenance patch.",
+      "classification": "canonical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "release.v2.0.1-qualification",
+      "owner": "release",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Preparation and qualification contract only; it contains no publication or terminal-evidence claim.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/V2_ALPHA_BETA_EXPERIMENT_EVIDENCE.md",
       "type": "Audit",
       "title": "V2 alpha/beta experiment evidence ledger",

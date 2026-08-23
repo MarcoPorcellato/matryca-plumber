@@ -41,7 +41,7 @@ retains deeper system design, while roadmaps describe future work only.
 | Is Shadow enabled? | Yes by default; `MATRYCA_SHADOW_DB_ENABLED=false` opts out explicitly. |
 | Can Strict Read Only use Shadow? | Yes. `MATRYCA_READ_ONLY=true` blocks graph-local mutation while validated external derived-cache writes remain available. |
 | What happens when Shadow is unavailable or unhealthy? | Reads fall back to generational BM25 and the Markdown repository; graph writes never depend on cache success. |
-| Where are release gates defined? | [`docs/RELEASE_PROCESS.md`](../../RELEASE_PROCESS.md#v20-promotion-override). |
+| Where are release gates defined? | [`docs/RELEASE_PROCESS.md`](../../RELEASE_PROCESS.md#v2-release-qualification-rule). |
 | Where is current qualification evidence recorded? | [`v2-rc-stable-readiness.md`](../../quality/issue-bodies/v2-rc-stable-readiness.md). |
 
 The sections below own the detailed current contract. Version deltas belong in

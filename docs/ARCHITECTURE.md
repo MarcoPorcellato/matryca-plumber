@@ -3,7 +3,7 @@ type: Document
 ---
 # Matryca Plumber — System Architecture
 
-**Architecture baseline:** v2.0.0-rc.2 source. Current Shadow defaults and operator behavior are owned by the [v2 operator contract](knowledge/architecture/shadow-db.md); qualification and publication gates are owned by the [release process](RELEASE_PROCESS.md#v20-promotion-override).
+**Architecture baseline:** v2.0.0-rc.2 source. Current Shadow defaults and operator behavior are owned by the [v2 operator contract](knowledge/architecture/shadow-db.md); qualification and publication gates are owned by the [release process](RELEASE_PROCESS.md#v2-release-qualification-rule).
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
@@ -174,7 +174,7 @@ Full map: [`docs/CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md#mainten
 
 | Module | Mega-tool | Role |
 |--------|-----------|------|
-| `dispatch_read_handlers.py` | `read_graph_data` | Page, subtree, xray, dashboard, …; subtree via `GraphReadPort` |
+| `dispatch_read_handlers.py` | `read_graph_data` | Page, exact journal day, subtree, xray, dashboard, …; subtree via `GraphReadPort` |
 | `dispatch_search_handlers.py` | `search_graph` | bm25, semantic, regex, journal_tasks, … |
 | `dispatch_mutate_handlers.py` | `mutate_graph` | write_outline, edit_property, append_journal, inject_query |
 | `dispatch_refactor_handlers.py` | `refactor_blocks` | split_large, reparent, generate_flashcards |

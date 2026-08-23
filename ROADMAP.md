@@ -6,13 +6,36 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-18** — stable `v2.0.0` is published. The historical RC1
+*Status as of **2026-08-23** — stable `v2.0.0` is published. The historical RC1
 split outcome is preserved for failure analysis; the corrected public RC2 candidate
 completed its fresh dual-profile Gate B soaks, upgrade matrix, and seven-day
 observation window. The exact stable candidate then passed CI, artifact proof, and
 the publication workflow. See the [`v2.0.0 release record`](docs/releases/v2.0.0-GITHUB.md)
 and canonical [`stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
+The next bounded maintenance candidate is `v2.0.1-rc.1`; its separate qualification
+plan is [`docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md`](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 Issue numbers link to GitHub.*
+
+---
+
+## v2.0.1 — bounded journal-day retrieval and fresh qualification
+
+`v2.0.1-rc.1` adds a single `read_graph_data(target_type="journal_day")` target for
+an ISO-dated canonical journal. It is Markdown-authoritative, digest-bound, paginated,
+and independent of Shadow initialization. The candidate also carries provider-free
+quality/evidence tools already merged on `main`; those tools do not enable adaptive
+runtime behavior, an external integration, or a new write path.
+
+| Release gate | Required state |
+|--------------|----------------|
+| Candidate source and changelog | Exact merged preparation commit; `2.0.1rc1` metadata and curated candidate notes |
+| Pull-request and package gates | Terminal required CI on the exact PR head; exact build/install/digest evidence |
+| Public RC | Signed `v2.0.1-rc.1` tag, GitHub prerelease, and PyPI candidate wheel |
+| Operational qualification | Fresh, dual-profile Gate B campaign against that exact public wheel; no `v2.0.0` evidence transfer |
+| Stable promotion | Separate exact-source, publication, and terminal-evidence decision for `v2.0.1` |
+
+The full decision boundary, non-goals, and restart-safe evidence sequence are in the
+[v2.0.1 release qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 
 ---
 

@@ -17,7 +17,7 @@ Add user-facing bullets under **`## [Unreleased]`** (`Added` / `Changed` / `Fixe
 
 Replace `X.Y.Z` with the semver you are shipping (no `v` prefix in `pyproject.toml`; use `vX.Y.Z` for the git tag).
 
-### v2.0 promotion override
+### v2 release qualification rule
 
 The generic checklist below is necessary but not sufficient for the Shadow DB
 release track. Current runtime defaults, Read Only behavior, external-cache location,
@@ -28,14 +28,19 @@ release mechanics and maintainer authority gates. The fail-closed decision recor
 
 - do not tag or publish a release candidate until its exact preparation commit
   has passed the full release gate;
-- do not treat the exact `2.0.0b1` soak as proof of the later default-on,
-  external-cache implementation;
-- after publishing each RC, collect Gate B against that exact installed public
-  artifact; rc.1 evidence never transfers to rc.2;
-- do not tag or publish stable `v2.0.0` until every Gate B row is complete.
+- bind every Gate B campaign to the exact installed public candidate wheel and its
+  runner, profiles, digest, checkpoints, and valid elapsed time;
+- do not transfer RC, stable, benchmark, or observation evidence to changed source
+  bytes or a later artifact, even for a patch release;
+- do not tag or publish a stable v2 patch until its candidate-specific qualification
+  plan records every applicable gate as terminal or explicitly dispositioned.
 
 Release preparation, tag creation, publication, and the final stable decision
 remain separate maintainer authority gates.
+
+For the current maintenance track, follow the
+[v2.0.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
+It is deliberately a candidate plan, not a publication record.
 
 ### 1. Prepare (Cursor or manual)
 
