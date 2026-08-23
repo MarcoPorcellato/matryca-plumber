@@ -16,7 +16,11 @@ Mirror llm-wiki-style ingest. See `docs/ARCHITECTURE.md` for bridge vs on-disk b
 
 ### Phase 2 — Scan
 
-- `read_graph_data` / `page` for every page you will touch.
+- `read_graph_data` / `page` for every page you will touch. For a single daily journal,
+  use `journal_day` with an ISO date instead of a title search; it is an exact bounded
+  Markdown read with provenance and no Shadow dependency. If `next_cursor` is not null,
+  reissue its strict JSON query with that cursor; concatenate only the exact returned source
+  slices after verifying the stable full-source digest.
 - `subtree` when you need a focused excerpt (optional `heading` filter); `block_ast` for the raw on-disk splice around one `id::`.
 - `structural_hops` before creating entities that might duplicate existing pages.
 - `dashboard` for quick health before large edits.
@@ -70,6 +74,7 @@ When the host runs **`uvx matryca-plumber`** or **`matryca`** instead of MCP too
 | Pattern | Example |
 |---------|---------|
 | JSON stdout | `matryca --json read page "My Project"` |
+| Exact journal day | `matryca --json read journal_day 2026-08-13` |
 | Context macro | `matryca context load "My Project"` or `… load "Page\|uuid"` |
 | Subtree read | `matryca read subtree "Page\|uuid"` |
 
@@ -84,7 +89,7 @@ Spec: [`docs/openspec/agent-dx.md`](docs/openspec/agent-dx.md). Distribution gui
 ## Quick discriminator cheat sheet
 
 ```
-READ   page | memory | bootstrap_status | block_ast | subtree | structural_hops | dashboard | xray_page
+READ   page | journal_day | memory | bootstrap_status | block_ast | subtree | structural_hops | dashboard | xray_page
 SEARCH bm25 | semantic | regex | unlinked_mentions | journal_tasks | resolve_entity
 MUTATE write_outline | edit_property | append_journal | inject_query
 REFACTOR split_large | reparent | generate_flashcards

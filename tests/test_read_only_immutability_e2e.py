@@ -115,8 +115,10 @@ async def _exercise_mcp_surfaces(graph: Path) -> None:
     context = _mcp_context()
 
     page = await tools["read_graph_data"].fn(context, "page", "Alpha")
+    journal_day = await tools["read_graph_data"].fn(context, "journal_day", "2026-08-02")
     regex = await tools["search_graph"].fn(context, "regex", "Alpha")
     assert "Alpha" in page
+    assert "TODO qualify" in journal_day
     assert "Alpha" in regex
 
     for mutate_action in MUTATE_ACTIONS:

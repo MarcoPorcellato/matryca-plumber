@@ -24,6 +24,7 @@ _REGEX_SCAN_TIMEOUT_SECONDS = 5.0
 
 ReadGraphTarget = Literal[
     "page",
+    "journal_day",
     "memory",
     "block_ast",
     "subtree",

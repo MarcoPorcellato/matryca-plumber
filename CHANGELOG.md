@@ -2,6 +2,8 @@
 
 ### Added
 
+- **Exact read-only journal-day MCP/CLI target** — add `read_graph_data(target_type="journal_day")` for one ISO-dated canonical journal with a bounded provenance/trust envelope, strict sandbox and regular-file checks, stateless digest-bound pagination, and no Shadow dependency or graph mutation.
+
 - **Graph-outcome evidence** — Added a provider-free corrupt-derived-state
   no-serve scenario with reset-isolation proof to the synthetic outcome harness.
 

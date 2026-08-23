@@ -51,6 +51,7 @@ from .ui_server import run_ui_server
 
 READ_TARGETS: tuple[ReadGraphTarget, ...] = (
     "page",
+    "journal_day",
     "memory",
     "block_ast",
     "subtree",

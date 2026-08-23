@@ -11,6 +11,7 @@ from loguru import logger
 from ..config import MatrycaWikiConfig
 from ..graph.bootstrap_status import format_bootstrap_status_markdown
 from ..graph.dashboard import build_dashboard_markdown
+from ..graph.journal_read import read_journal_day_markdown
 from ..graph.link_tag_hop import format_hop_report_markdown
 from ..rag.matryca_hooks import get_page_spatial_context
 from ..shadow.state_api import resolve_shadow_db_state_for_api
@@ -65,6 +66,15 @@ async def handle_read_page(_wiki_config: MatrycaWikiConfig, graph_path: str, que
         return f"Could not read the page file from disk: {exc}"
     body = append_read_page_routing_hint(cap_llm_payload_chars(markdown))
     return body + format_resolution_notes_footer(page_norm.resolution_notes)
+
+
+async def handle_read_journal_day(
+    _wiki_config: MatrycaWikiConfig,
+    graph_path: str,
+    query: str,
+) -> str:
+    """Read one dated journal through the Markdown authority, never through Shadow."""
+    return await asyncio.to_thread(read_journal_day_markdown, graph_path, query)
 
 
 async def handle_read_xray_page(
@@ -223,6 +233,7 @@ async def handle_read_dashboard(
 _READ_HANDLERS: dict[ReadGraphTarget, ReadHandler] = {
     "memory": handle_read_memory,
     "page": handle_read_page,
+    "journal_day": handle_read_journal_day,
     "xray_page": handle_read_xray_page,
     "block_ast": handle_read_block_ast,
     "subtree": handle_read_subtree,
@@ -257,6 +268,7 @@ __all__ = [
     "handle_read_block_ast",
     "handle_read_dashboard",
     "handle_read_memory",
+    "handle_read_journal_day",
     "handle_read_page",
     "handle_read_shadow_status",
     "handle_read_structural_hops",
