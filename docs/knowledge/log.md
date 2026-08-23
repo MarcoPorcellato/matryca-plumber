@@ -1,5 +1,18 @@
 # Documentation update log
 
+## 2026-08-23
+
+- **v2.0.1 candidate qualification:** established a public, candidate-first plan
+  for bounded journal-day retrieval. It separates preparation, tag publication,
+  independent package binding, fresh dual-profile Gate B qualification, and any
+  later stable-promotion decision; no `v2.0.0` evidence is transferred to the
+  new artifact.
+
+- **Read-surface documentation:** aligned the README, roadmap, release mechanics,
+  agent onboarding, agent guide, and architecture maps with the canonical
+  `journal_day` read contract: one ISO-dated journal, confined Markdown access,
+  digest-bound bounded pagination, and no Shadow initialization or graph mutation.
+
 ## 2026-08-19
 
 - **Legacy milestone reconciliation:** recorded the initial source review and

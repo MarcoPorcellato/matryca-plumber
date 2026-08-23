@@ -49,13 +49,18 @@ Normative block/property rules: [`openspec/logseq-paradigm.md`](../../openspec/l
 
 | Handler module | Mega-tool | Role |
 | --- | --- | --- |
-| `dispatch_read_handlers.py` | `read_graph_data` | Page, subtree, xray, dashboard |
+| `dispatch_read_handlers.py` | `read_graph_data` | Page, exact journal day, subtree, xray, dashboard |
 | `dispatch_search_handlers.py` | `search_graph` | bm25, semantic, regex, journal_tasks |
 | `dispatch_mutate_handlers.py` | `mutate_graph` | write_outline, edit_property, append_journal |
 | `dispatch_refactor_handlers.py` | `refactor_blocks` | split, reparent, flashcards |
 | `dispatch_lint_handlers.py` | `run_linter` | unify_tags, block_refs, wiki scan |
 
-Subtree reads use **`GraphReadPort`** (`MarkdownGraphRepository` by default; optional shadow routing — see [Shadow DB](shadow-db.md)). Writes flow through OCC-aware helpers such as `_headless_append_child` in `graph_dispatch.py`.
+Subtree reads use **`GraphReadPort`** (`MarkdownGraphRepository` by default; optional
+Shadow routing — see [Shadow DB](shadow-db.md)). Exact journal-day reads are a separate
+Markdown-authoritative path: they require an ISO date, use strict confined file access,
+return a bounded digest-bearing envelope, and neither initialize nor depend on Shadow.
+Writes flow through OCC-aware helpers such as `_headless_append_child` in
+`graph_dispatch.py`.
 
 ## Safe-Sync read/write boundary
 

@@ -1,13 +1,21 @@
 ---
 type: Document
 ---
-# Agent onboarding (`llms.txt`) — v2.0.0
+# Agent onboarding (`llms.txt`) — v2.0.1rc1 candidate
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
 **Companion specs:** [`agent-dx.md`](agent-dx.md) (CLI `--json`, `context load`, Journey Log) · [`agent-ax-robustness.md`](agent-ax-robustness.md) (lenient page titles, safe writes) · [`security-sandbox.md`](security-sandbox.md) (path sandbox, bounded JSON, CI read gate)
 
-External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. The stable `v2.0.0` distribution contract uses default-on external Shadow with an explicit false opt-out, parser 1.7.1, and the fail-closed fallback and Read Only rules described below. Current operator behavior belongs to the [canonical Shadow operator contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
+External LLM hosts must reach Matryca Plumber through a **published versioned PyPI
+wheel**, not a cloned development tree. The stable `v2.0.0` distribution contract uses
+default-on external Shadow with an explicit false opt-out, parser 1.7.1, and the
+fail-closed fallback and Read Only rules described below. The `v2.0.1-rc.1` candidate
+adds only bounded canonical journal-day retrieval; it does not change Shadow defaults
+or write authority. Current operator behavior belongs to the [canonical Shadow operator
+contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the
+[readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md) and the
+[candidate qualification plan](../quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 
 ---
 
@@ -29,6 +37,14 @@ Both files must stay **byte-identical**; edit one and mirror the other in the sa
 2. **`uvx matryca-plumber …`** — Default entry for agents. Resolves the latest compatible wheel from PyPI without polluting the user environment.
 3. **`--json` before subcommand** — Machine-readable stdout; secrets redacted in-place (`redact_secrets_in_text`).
 4. **No raw Markdown scraping** — Use `read`, `search`, `context load`, or MCP tools on the shared `graph_dispatch` plane.
+
+### Bounded journal-day retrieval
+
+Use `read_graph_data` with `target_type="journal_day"` and an ISO date such as
+`2026-08-23`. The target returns one canonical journal with a bounded trust envelope
+and source digest. A structured query may carry a pagination cursor and maximum
+character budget. It never initializes Shadow and never mutates the graph; invalid,
+missing, empty, or out-of-range requests return explicit bounded statuses.
 
 ### Anti-patterns (documented in `llms.txt`)
 

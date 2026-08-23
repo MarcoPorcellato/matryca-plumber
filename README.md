@@ -33,6 +33,11 @@
 > [release record](docs/releases/v2.0.0-GITHUB.md) and [changelog](CHANGELOG.md)
 > for the exact scope and upgrade notes.
 
+> **Maintenance candidate:** `v2.0.1-rc.1` is the next patch candidate. It adds a
+> bounded, canonical `journal_day` read without invoking Shadow or mutating a graph,
+> alongside provider-free evidence tooling. It is qualified separately from `v2.0.0`:
+> see the [release qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
+
 **Local-first agentic memory and maintenance for Logseq OG.** Matryca Plumber gives
 humans and agents one safe, structured interface to a Markdown knowledge graph—without
 turning an opaque database or a model provider into the owner of that knowledge.
@@ -78,6 +83,15 @@ To install the stable release explicitly:
 uv tool install matryca-plumber==2.0.0
 ```
 
+Once the candidate is published, evaluators may install it explicitly without
+changing the stable recommendation:
+
+```bash
+uv tool install matryca-plumber==2.0.1rc1
+```
+
+The candidate is not a claim that the final patch has been published or qualified.
+
 ## What v2.0.0 changes
 
 The stable v2 release makes the Shadow read path a practical default while keeping
@@ -95,6 +109,19 @@ ownership and mutation boundaries explicit:
 Biological memory, native Logseq DB Safe-Sync writes, content-aware Tana merge, and
 proactive adaptive runtime remain future work; they are not silently included in the
 v2.0.0 contract.
+
+## What the v2.0.1 candidate adds
+
+`journal_day` is a narrow read target for one canonical ISO-dated Logseq journal. It
+keeps the same ownership model as v2: Markdown is authoritative, the response carries
+bounded provenance and a source digest, malformed dates and pagination requests fail
+closed, and the read neither initializes nor depends on a Shadow cache. The feature is
+useful when an operator or agent needs one day of context without widening retrieval to
+the surrounding graph.
+
+The candidate does not change the default-on Shadow contract, Read Only boundaries,
+write plane, or any experimental graph-native projection. Its evidence tooling remains
+provider-free and is not a benchmark, a real-agent evaluation, or a release result.
 
 ## Why Matryca Plumber
 

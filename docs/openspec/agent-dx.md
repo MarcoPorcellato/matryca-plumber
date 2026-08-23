@@ -196,7 +196,7 @@ Full spec: [`agent-ax-robustness.md`](agent-ax-robustness.md). Chaos tests: `tes
 
 | Command | Role |
 |---------|------|
-| `matryca read` | `page`, `memory`, `block_ast`, **`subtree`**, `structural_hops`, `dashboard`, `xray_page` |
+| `matryca read` | `page`, **`journal_day`**, `memory`, `block_ast`, **`subtree`**, `structural_hops`, `dashboard`, `xray_page` |
 | `matryca search` | `bm25`, `semantic`, `regex`, `unlinked_mentions`, `journal_tasks`, `resolve_entity` |
 | `matryca mutate` | `write_outline`, `edit_property`, `append_journal`, `inject_query` |
 | `matryca refactor` | `split_large`, `reparent` (JSON **array** of group objects — repaired via `loads_repaired_json`), `generate_flashcards` |
