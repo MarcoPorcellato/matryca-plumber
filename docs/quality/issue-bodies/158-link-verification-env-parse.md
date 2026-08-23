@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/graph/link_verification.py` already uses `env_bool` for `MATRYCA_LINK_VERIFY_ENABLED`, but `link_verify_strikes_threshold`, `link_verify_batch_size`, and `link_verify_timeout_seconds` duplicate inline `os.environ.get` + `try/except` parsing (~L73–94).

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Structural link verification (v1.9 — GitHub #15)
 
 **Milestone:** v1.9.0 — Structural Graph Hygiene  

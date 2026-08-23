@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # v2.0-alpha hardening — tracking issue
 
 ## Problem Description

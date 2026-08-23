@@ -1,8 +1,8 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: b2e3ef9722e3141d2ab0e90f91bb9fd13240ba0e5df3bddfabecfd13b1fa19d9 -->
+<!-- build-hash: c8d303369a629926098aa80e39cdd29803baab2dbda7ad171b1510383ce08eb4 -->
 
-<!-- package-version: v2.0.0rc2 -->
+<!-- package-version: v2.0.0 -->
 
 
 
@@ -290,7 +290,7 @@ For large pages, prefer **`read_graph_data` / `target_type="xray_page"`** with `
 
 Before #393, strict read-only X-Ray parsed the requested page and only then attempted the graph-root alias write, where the shared lock/write policy raised `GraphReadOnlyError`. The external state route makes the public read classification match runtime behavior without weakening the graph boundary.
 
-**Gate B impact decision (#393):** the published `2.0.0rc1` `read-only-external` probe does not invoke `xray_page`, so it cannot exercise this corrected branch. Existing evidence remains bound to the exact RC artifact and is not rewritten. A stable candidate must pass focused X-Ray generation, subsequent alias resolution, concurrent replacement, cross-graph isolation, and full graph-manifest checks under Strict Read Only; this configuration-excluded change does not restart the historical multi-day RC soak.
+**Gate B impact decision (#393):** the published RC2 soak did not invoke `xray_page`, so its terminal receipt does not claim that probe coverage. The corrected branch is covered by the focused X-Ray generation, alias-resolution, concurrent-replacement, cross-graph-isolation, and graph-manifest tests in the stable candidate CI; no historical soak credit is retroactively assigned.
 
 On later **`mutate_graph`** or **`refactor_blocks`** calls (including separate CLI invocations), pass **`[n]`** directly wherever you would use a 36-character UUID:
 

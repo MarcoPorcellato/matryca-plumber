@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Issue triage — 2026-07-01
 
 **Operator:** Marco Porcellato (maintainer)  

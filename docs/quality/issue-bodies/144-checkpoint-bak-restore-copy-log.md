@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `read_daemon_checkpoint` in `src/daemon/checkpoint.py` (~L64–66) recovers from a corrupt primary checkpoint by reading `.matryca_daemon_state.json.bak`, then restores the primary file via `shutil.copy2(bak_path, path)` inside `contextlib.suppress(OSError)`.

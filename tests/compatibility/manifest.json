@@ -1,0 +1,74 @@
+{
+  "schema_version": "matryca-interop-tck.v2",
+  "status": "proposed",
+  "catalog": [
+    {
+      "id": "shadow-read-healthy-v1",
+      "fixture_path": "tests/fixtures/shadow_read_profile/healthy_v1.json",
+      "category": "read-profile",
+      "capability_level": "read",
+      "expected_result": "pass",
+      "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
+      "notes": "Content-free ready profile with schema compatibility and state capability."
+    },
+    {
+      "id": "shadow-read-malformed",
+      "fixture_path": "tests/fixtures/shadow_read_profile/malformed_payload.json",
+      "category": "negative-admission",
+      "capability_level": "read",
+      "expected_result": "rejected",
+      "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
+      "notes": "Malformed profile must not validate or authorize serving."
+    },
+    {
+      "id": "shadow-read-future-profile",
+      "fixture_path": "tests/fixtures/shadow_read_profile/unsupported_future_profile.json",
+      "category": "negative-admission",
+      "capability_level": "read",
+      "expected_result": "rejected",
+      "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
+      "notes": "Future profile version is unsupported; no compatibility result is claimed."
+    },
+    {
+      "id": "shadow-read-unhealthy",
+      "fixture_path": "tests/fixtures/shadow_read_profile/unhealthy_not_ready.json",
+      "category": "negative-admission",
+      "capability_level": "read",
+      "expected_result": "no-serve",
+      "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
+      "notes": "A stale, not-ready snapshot remains an explicit admission failure."
+    },
+    {
+      "id": "shadow-read-foreign-binding",
+      "fixture_path": "tests/fixtures/shadow_read_profile/foreign_binding.json",
+      "category": "negative-admission",
+      "capability_level": "read",
+      "expected_result": "rejected",
+      "source_authority": "Matryca Shadow read-profile fixture",
+      "expected_graph_id": "v1-expected",
+      "notes": "Foreign graph binding must not be accepted as the requested graph."
+    },
+    {
+      "id": "tana-direct-export",
+      "fixture_path": "tests/fixtures/tana/minimal_direct.json",
+      "category": "import-read",
+      "capability_level": "read",
+      "expected_result": "fixture-available",
+      "source_authority": "Repository Tana importer fixture",
+      "notes": "Available input fixture; conversion qualification is owned by the Tana tests, not this manifest."
+    },
+    {
+      "id": "tana-concurrent-writer",
+      "fixture_path": "tests/fixtures/shadow_read_profile/healthy_v1.json",
+      "category": "unsupported-case",
+      "capability_level": "concurrent-writer-not-supported",
+      "expected_result": "unsupported",
+      "source_authority": "Interoperability contract proposal",
+      "notes": "The referenced fixture is an evidence anchor only; no two-process execution or concurrency result is claimed."
+    }
+  ]
+}

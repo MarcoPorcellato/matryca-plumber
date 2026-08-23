@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/cli/tui_dashboard.py` `collect_snapshot_safe` calls `collect_snapshot`, which already loads daemon state via `_try_load_daemon_state`. On success, `collect_snapshot_safe` calls `load_daemon_state(root)` **again** (L236–238).

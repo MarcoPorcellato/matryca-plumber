@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Shadow DB exact-beta 72-hour soak — terminal evidence record
 
 **Status:** terminal `PASS`, recorded 2026-08-03 at 00:52:20 UTC. This is a

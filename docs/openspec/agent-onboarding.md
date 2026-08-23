@@ -1,10 +1,13 @@
-# Agent onboarding (`llms.txt`) — v2.0.0rc2
+---
+type: Document
+---
+# Agent onboarding (`llms.txt`) — v2.0.0
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
 **Companion specs:** [`agent-dx.md`](agent-dx.md) (CLI `--json`, `context load`, Journey Log) · [`agent-ax-robustness.md`](agent-ax-robustness.md) (lenient page titles, safe writes) · [`security-sandbox.md`](security-sandbox.md) (path sandbox, bounded JSON, CI read gate)
 
-External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. `v2.0.0-rc.1` / `2.0.0rc1` remains the historical first release-candidate baseline. The `v2.0.0rc2` distribution contract preserves default-on external Shadow with an explicit false opt-out, adds parser 1.7.1 and the corrected Gate B qualifier, and keeps imperative commands, verified flags, and explicit anti-patterns. Current operator behavior belongs to the [canonical Shadow operator contract](../knowledge/architecture/shadow-db.md); current qualification and stable-promotion status belong to the [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
+External LLM hosts (Cursor, Claude Code, Windsurf, Hermes, custom agents) must reach Matryca Plumber through a **published versioned PyPI wheel**, not a cloned dev tree. The stable `v2.0.0` distribution contract uses default-on external Shadow with an explicit false opt-out, parser 1.7.1, and the fail-closed fallback and Read Only rules described below. Current operator behavior belongs to the [canonical Shadow operator contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
 ---
 

@@ -4,6 +4,39 @@
 
 - **Exact read-only journal-day MCP/CLI target** — add `read_graph_data(target_type="journal_day")` for one ISO-dated canonical journal with a bounded provenance/trust envelope, strict sandbox and regular-file checks, stateless digest-bound pagination, and no Shadow dependency or graph mutation.
 
+- **Graph-outcome evidence** — Added a provider-free corrupt-derived-state
+  no-serve scenario with reset-isolation proof to the synthetic outcome harness.
+
+- **Synthetic graph-outcome harness** — add a provider-free, temporary-root
+  evaluation seam that produces closed, content-free episode receipts for
+  strict-read-only success, unauthorized-tool refusal, stale-write veto, and
+  reset isolation, including a veto-to-Strict-Read-Only transition. It does not execute a real agent, vault, Shadow database,
+  benchmark, or concurrent-writer workflow.
+- **Synthetic graph-outcome report runner** — emit a deterministic,
+  source-revision-bound, content-free self-check for the provider-free episode
+  suite and reset-isolation proofs. It refuses output overwrites and does not
+  qualify an agent, real vault, Shadow database, provider, external system, or
+  release.
+- **Interoperability TCK admission runner** — validate the closed, content-free
+  fixture catalogue, reject duplicate entry identifiers, and emit bounded
+  deterministic fixture attestations. The v2 manifest independently checks declared
+  Shadow-profile schema, symbolic graph binding, readiness, compatibility, and state
+  capability outcomes without opening a graph or cache; it makes no external-provider
+  or concurrent-writer qualification claim.
+
+## [2.0.0] - 2026-08-18
+
+**v2.0.0** — stable Shadow read path with a default-on external derived cache,
+Strict Read Only graph protection, Markdown authority, and fail-closed
+Markdown/BM25 fallback. Biological memory, Logseq DB Safe-Sync writes, and
+proactive adaptive runtime remain outside this release's enabled behavior.
+
+### Added
+
+- **Resource-safe semantic code intelligence guide** — document admission gating,
+  single-language workspace selection, cache quarantine, bounded query discipline,
+  process cleanup, and evidence-calibrated memory measurement for maintainer tooling.
+
 - **Frozen Shadow read-profile fixtures** — publish a content-free v1 admission
   corpus with healthy, malformed, future-version, unhealthy, and foreign-binding
   packets for deterministic compatibility checks; no cache operation or new read

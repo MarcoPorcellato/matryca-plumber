@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Resilient structured output — TRIZ applied to local LLMs
 
 **Status:** Shipped (see [`CHANGELOG.md`](../CHANGELOG.md) under `[1.10.3]` / recent releases).  

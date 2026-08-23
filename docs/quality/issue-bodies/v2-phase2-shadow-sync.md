@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Shadow DB DDL exists ([`src/shadow/schema.py`](../../../src/shadow/schema.py)) but no runtime sync populates `pages`/`blocks` from Markdown edits.

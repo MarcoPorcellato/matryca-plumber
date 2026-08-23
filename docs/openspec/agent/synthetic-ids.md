@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## CRITICAL: synthetic IDs and broken links
 
 `read_graph_data` with `target_type="page"` returns Matryca Parser spatial output per block:

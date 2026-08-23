@@ -79,7 +79,17 @@ def check_llms_byte_identity() -> None:
 
 def check_agent_onboarding_version(version: str) -> None:
     path = ROOT / "docs" / "openspec" / "agent-onboarding.md"
-    first_line = path.read_text(encoding="utf-8").splitlines()[0]
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if lines and lines[0].strip() == "---":
+        try:
+            end = next(
+                index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"
+            )
+        except StopIteration:
+            end = -1
+        if end >= 0:
+            lines = lines[end + 1 :]
+    first_line = next((line for line in lines if line.strip()), "")
     expected = f"v{version}"
     if expected not in first_line:
         _fail(

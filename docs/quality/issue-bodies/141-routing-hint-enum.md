@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/agent/routing_hint.py` emits L1/L2 routing markers as **magic strings** in HTML comments:

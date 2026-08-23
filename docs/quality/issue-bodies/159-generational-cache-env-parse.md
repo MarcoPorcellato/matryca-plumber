@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/graph/generational_cache.py` reads `MATRYCA_GENERATIONAL_CACHE_MAX_GRAPHS` and `MATRYCA_BM25_MODE` via inline `os.environ.get` in `_generational_cache_max_graphs()` and `_bm25_mode()` (~L32–72).

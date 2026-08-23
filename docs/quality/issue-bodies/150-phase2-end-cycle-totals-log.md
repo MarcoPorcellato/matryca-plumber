@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 At **cycle start**, `run_cycle` already logs `refresh_phase2_cognitive_totals` failures (`logger.warning`, ~L2919–2922). At **cycle end** (~L3043–3045), the same refresh runs inside `contextlib.suppress(OSError)` every 10 vault refresh ticks.

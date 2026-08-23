@@ -5,7 +5,7 @@
 [![PyPI Downloads](https://img.shields.io/pypi/dm/matryca-plumber.svg)](https://pypi.org/project/matryca-plumber/)
 [![GitHub release](https://img.shields.io/github/v/release/MarcoPorcellato/matryca-plumber?display_name=tag)](https://github.com/MarcoPorcellato/matryca-plumber/releases)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue?logo=python&logoColor=white)](https://github.com/MarcoPorcellato/matryca-plumber/blob/main/pyproject.toml#L10)
-[![Tests](https://img.shields.io/badge/tests-1139%2B%20passing-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-full%20suite%20green-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A570%25-brightgreen)](https://github.com/MarcoPorcellato/matryca-plumber/blob/main/pyproject.toml#L138)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -26,6 +26,13 @@
 > I gave an AI agent access to my notes. It corrupted them.<br>
 > I built Matryca Plumber so that never happens again.
 
+> **v2.0.0 is stable and available now.** Matryca Plumber's default-on external
+> Shadow DB, Strict Read Only protection, Markdown authority, and fail-closed
+> fallback contract are now published on [GitHub Releases](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0)
+> and [PyPI](https://pypi.org/project/matryca-plumber/2.0.0/). Read the
+> [release record](docs/releases/v2.0.0-GITHUB.md) and [changelog](CHANGELOG.md)
+> for the exact scope and upgrade notes.
+
 **Local-first agentic memory and maintenance for Logseq OG.** Matryca Plumber gives
 humans and agents one safe, structured interface to a Markdown knowledge graph—without
 turning an opaque database or a model provider into the owner of that knowledge.
@@ -36,6 +43,7 @@ turning an opaque database or a model provider into the owner of that knowledge.
   <a href="#a-different-model-of-agentic-memory">Memory model</a> ·
   <a href="#how-it-works">Architecture</a> ·
   <a href="docs/knowledge/architecture/shadow-db.md">Shadow DB</a> ·
+  <a href="docs/releases/v2.0.0-GITHUB.md">v2.0.0 release</a> ·
   <a href="llms.txt">Agent guide</a> ·
   <a href="#documentation">Documentation</a>
 </p>
@@ -63,6 +71,30 @@ matryca service install
 Start with a clone of your graph, especially before enabling writes or applying an
 import. See the [operator contract](docs/knowledge/architecture/shadow-db.md),
 [security policy](SECURITY.md), and [support guide](SUPPORT.md).
+
+To install the stable release explicitly:
+
+```bash
+uv tool install matryca-plumber==2.0.0
+```
+
+## What v2.0.0 changes
+
+The stable v2 release makes the Shadow read path a practical default while keeping
+ownership and mutation boundaries explicit:
+
+- **External Shadow DB by default:** healthy FTS5 and subtree reads use a disposable
+  cache outside the Logseq graph; set `MATRYCA_SHADOW_DB_ENABLED=false` to opt out.
+- **Strict Read Only remains useful:** `MATRYCA_READ_ONLY=true` blocks graph-local
+  mutation while validated external Shadow maintenance remains available.
+- **Markdown remains authoritative:** Shadow never replaces Logseq Markdown, OCC, or
+  the parser-aware write plane. Unavailable, stale, or unhealthy Shadow state falls
+  back to Markdown-backed BM25 reads.
+- **Stable parser baseline:** the release uses `logseq-matryca-parser` 1.7.1.
+
+Biological memory, native Logseq DB Safe-Sync writes, content-aware Tana merge, and
+proactive adaptive runtime remain future work; they are not silently included in the
+v2.0.0 contract.
 
 ## Why Matryca Plumber
 
@@ -259,8 +291,10 @@ and large-export behavior.
 | Review features and contracts | [OpenSpec index](docs/openspec/README.md) |
 | Contribute | [First contribution](docs/FIRST_CONTRIBUTION.md) and [contributor guide](CONTRIBUTING.md) |
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
+| Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |
+| Follow the current repository reconciliation | [GitHub and repository reconciliation](docs/quality/GITHUB_REPOSITORY_RECONCILIATION_2026-08-18.md) |
 
 ## Project and community
 

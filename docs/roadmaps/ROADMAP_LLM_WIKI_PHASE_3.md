@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Phase 3 roadmap — High-safety PKM + deep outliner tools (no Postgres)
 
 Actionable checklist aligned with **pure Logseq OG**: on-disk Markdown, **`logseq_matryca_parser`** for spatial truth where structure matters, **FastMCP** tools, and **no PostgreSQL**, **no embeddings**, **no PyMuPDF/VLM ingestion**.

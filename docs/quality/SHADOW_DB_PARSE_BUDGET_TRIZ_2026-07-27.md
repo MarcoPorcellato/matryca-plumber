@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Shadow DB page-parse budget — measurement, contradiction, and quarantine design
 
 _Recorded 2026-07-27, during `v2.0.0-beta.1` release-candidate preparation._

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/graph/concurrency_probe.py` reads `MATRYCA_ALLOW_FLOCK_DEGRADATION` with inline `os.environ.get` and manual truthy-token parsing (~L33).

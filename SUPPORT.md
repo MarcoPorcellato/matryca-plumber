@@ -19,4 +19,26 @@
 
 ## Response expectations
 
-This is a maintainer-led OSS project. Issues and discussions are triaged as capacity allows; security advisories take priority over feature requests.
+This is a maintainer-led OSS project. Issues and discussions are triaged as
+capacity allows; there are no response-time or resolution guarantees.
+
+## Triage and disposition
+
+The maintainer first checks whether a report has enough information to
+reproduce or evaluate it, whether it belongs in this repository, and whether it
+contains sensitive security information. A report may then be:
+
+- kept open for investigation or implementation;
+- converted to a discussion when it is primarily a question or proposal;
+- linked to an existing issue or epic when it duplicates tracked work;
+- deferred or closed as out of scope, unsupported, unreproducible, or already
+  resolved, with the reason recorded where practical.
+
+Priority is based on impact and safety, not arrival order. Active security or
+privacy risk is handled ahead of ordinary work. P0/P1 issues affect safety,
+data integrity, security, release qualification, or a broad blocking failure;
+P2 issues affect important supported behavior without an immediate broad risk;
+P3 issues are limited, cosmetic, exploratory, or convenience improvements.
+Priority may change as evidence changes. Do not include secrets, private graph
+content, credentials, or exploit details in public reports; use
+[`SECURITY.md`](SECURITY.md) for vulnerabilities.

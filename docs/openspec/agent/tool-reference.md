@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Tool reference and invocation examples
 
 Invoke tools with the discriminator as a **string literal** plus the parameters shown. `payload` and enriched `query` values are JSON **strings** (serialize objects before sending).

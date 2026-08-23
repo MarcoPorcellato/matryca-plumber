@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 All v2 read routing must pass through a storage abstraction ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17)). Today `graph_dispatch` calls `src/graph/*` directly — no testable port, no shadow adapter slot.

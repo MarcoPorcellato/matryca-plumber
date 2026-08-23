@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `tests/test_graph_layer_boundary.py` forbids `src/graph/` from importing `agent` and `daemon`, enforcing the v1.11.2 layer inversion ([#134](https://github.com/MarcoPorcellato/matryca-plumber/issues/134)).

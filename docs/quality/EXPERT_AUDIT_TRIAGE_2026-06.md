@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Expert Architectural Audit — Triage (2026-06)
 
 Cross-reference between the **Expert Architectural Audit** (external review) and Matryca Plumber's existing backlog: v1.9.x perfection audit (#01–#38), GitHub issues, ROADMAP, openspec, CHANGELOG.

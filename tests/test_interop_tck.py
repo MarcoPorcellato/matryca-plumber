@@ -1,0 +1,180 @@
+"""Tests for the deterministic interoperability TCK admission runner."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+from scripts.run_interop_tck import DEFAULT_MANIFEST, TckError, run_tck
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _manifest(
+    tmp_path: Path,
+    fixture_path: str,
+    *,
+    schema_version: str = "matryca-interop-tck.v1",
+    expected_result: str = "fixture-available",
+) -> Path:
+    path = tmp_path / "manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": schema_version,
+                "status": "proposed",
+                "catalog": [
+                    {
+                        "id": "case",
+                        "fixture_path": fixture_path,
+                        "category": "test",
+                        "capability_level": "read",
+                        "expected_result": expected_result,
+                        "source_authority": "test",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_happy_manifest_contains_only_manifest_results_and_fixture_attestations() -> None:
+    receipt = json.loads(run_tck(DEFAULT_MANIFEST))
+
+    assert len(receipt["entries"]) == 7
+    assert {entry["declared_expected_result"] for entry in receipt["entries"]} == {
+        "pass",
+        "rejected",
+        "no-serve",
+        "fixture-available",
+        "unsupported",
+    }
+    assert receipt["receipt_kind"] == "deterministic-fixture-attestation"
+    assert receipt["runner"] == "matryca-interop-tck-admission-v2"
+    assert receipt["scope"] == "manifest-fixture-bytes-and-declared-shadow-profile-admission"
+    assert all(entry["source_authority"] for entry in receipt["entries"])
+    assert all("content" not in entry for entry in receipt["entries"])
+    assert receipt["non_goals"]
+
+
+def test_v2_profile_fixtures_are_independently_evaluated() -> None:
+    receipt = json.loads(run_tck(DEFAULT_MANIFEST))
+    results = {
+        entry["id"]: entry["fixture_validation"]
+        for entry in receipt["entries"]
+        if entry["category"] in {"read-profile", "negative-admission"}
+    }
+
+    assert results == {
+        "shadow-read-healthy-v1": {
+            "status": "validated",
+            "actual_result": "pass",
+            "reason": "profile-admitted",
+        },
+        "shadow-read-malformed": {
+            "status": "validated",
+            "actual_result": "rejected",
+            "reason": "profile-schema-rejected",
+        },
+        "shadow-read-future-profile": {
+            "status": "validated",
+            "actual_result": "rejected",
+            "reason": "profile-schema-rejected",
+        },
+        "shadow-read-unhealthy": {
+            "status": "validated",
+            "actual_result": "no-serve",
+            "reason": "profile-not-servable",
+        },
+        "shadow-read-foreign-binding": {
+            "status": "validated",
+            "actual_result": "rejected",
+            "reason": "graph-binding-rejected",
+        },
+    }
+
+
+def test_v2_profile_fixture_rejects_a_manifest_outcome_mismatch(tmp_path: Path) -> None:
+    payload = json.loads(DEFAULT_MANIFEST.read_text(encoding="utf-8"))
+    payload["catalog"][4]["expected_result"] = "pass"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TckError, match="does not match evaluated result"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_unsupported_schema_version_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(
+        tmp_path,
+        "tests/fixtures/tana/minimal_direct.json",
+        schema_version="test-v1",
+    )
+
+    with pytest.raises(TckError, match="validation failed"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_invalid_declared_result_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(
+        tmp_path,
+        "tests/fixtures/tana/minimal_direct.json",
+        expected_result="executed-pass",
+    )
+
+    with pytest.raises(TckError, match="validation failed"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_duplicate_catalogue_entry_id_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/tana/minimal_direct.json")
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload["catalog"].append(payload["catalog"][0].copy())
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TckError, match="duplicate catalogue entry id: case"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_traversal_fixture_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/../compatibility/manifest.json")
+
+    with pytest.raises(TckError, match="traverse"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_missing_fixture_is_rejected(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/does-not-exist.json")
+
+    with pytest.raises(TckError, match="missing"):
+        run_tck(manifest, repository_root=ROOT)
+
+
+def test_receipt_is_deterministic(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/tana/minimal_direct.json")
+
+    assert run_tck(manifest, repository_root=ROOT) == run_tck(manifest, repository_root=ROOT)
+
+
+def test_v1_manifest_remains_a_byte_attestation(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path, "tests/fixtures/tana/minimal_direct.json")
+    receipt = json.loads(run_tck(manifest, repository_root=ROOT))
+
+    assert receipt["runner"] == "matryca-interop-tck-admission-v1"
+    assert receipt["scope"] == "manifest-and-fixture-bytes"
+    assert receipt["entries"][0]["fixture_validation"] == {
+        "status": "not-applicable",
+        "reason": "schema-v1-byte-attestation",
+    }
+
+
+def test_output_does_not_overwrite_existing_file(tmp_path: Path) -> None:
+    output = tmp_path / "receipt.json"
+    output.write_text("keep me", encoding="utf-8")
+
+    with pytest.raises(TckError, match="overwrite"):
+        run_tck(DEFAULT_MANIFEST, output_path=output)
+    assert output.read_text(encoding="utf-8") == "keep me"

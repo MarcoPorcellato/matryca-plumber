@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # LLM OS instructions — two-tier agent contract
 
 **Artifacts:** [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) (Tier-2 cognitive law), [`llms.txt`](../../llms.txt) / [`.well-known/llms.txt`](../../.well-known/llms.txt) (distribution pointer), optional `matryca-l1/llm-os-rules.md` (operator overlay)

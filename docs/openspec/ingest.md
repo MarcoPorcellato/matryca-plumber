@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Atomic document ingestion (Master RFC — Phase 2)
 
 **Roadmap:** Master architecture RFC — Phase 2 (external markdown → L2 graph)  

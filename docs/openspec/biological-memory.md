@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Biological memory layer — OpenSpec (projection contract, v2.1+)
 
 **Status:** P0 canonical recall is shipped behind a disabled-by-default feature gate. It is a
