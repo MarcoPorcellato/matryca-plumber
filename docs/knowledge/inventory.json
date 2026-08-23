@@ -3385,6 +3385,27 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-08-23-graph-native-derived-projection.md",
+      "type": "Roadmap",
+      "title": "Graph-native derived projection implementation plan",
+      "description": "M0-M6 execution plan for a backend-neutral projection contract, SQLite compatibility, deterministic PQK, offline Ladybug qualification, and an evidence-bound terminal decision.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "shadow-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved design execution plan; runtime changes and public claims remain individually gated.",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
