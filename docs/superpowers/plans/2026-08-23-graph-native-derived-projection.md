@@ -47,7 +47,7 @@ stale_after: 2027-02-19
 - Approved design commit: `7a83e97e6e39a219dc015134fe77674a4a7bde5a`.
 - Design base: `main@505cfb0da805fce2dc2a7497b911846d857bbd39`.
 - Stable product baseline: `v2.0.0@987446b8337f7abd308a9efe4abb834ce1acdc1b`.
-- Local code-audit index: exact design commit, 10,235 nodes, 30,140 edges, 479 clusters, 300 flows.
+- Local graph-based analysis was refreshed against the exact design commit; local analysis metrics are intentionally not published.
 - Current programme authorities verified on 2026-08-23: #178, #446, #452, #483, #519, and #520 are open; #448 and #449 are closed evidence foundations.
 - The read-only Matryca Knowledge projection was unavailable during planning because its status call could not resolve `sources.toml`; Task 1 records this as a coordination gap and does not reinterpret it as source-repository failure.
 - Official package evidence on 2026-08-23: PyPI publishes `ladybug==0.19.1` for CPython 3.12 and 3.13 on macOS, Linux, and Windows, requires Python `>=3.10,<3.15`, uses trusted publishing, and identifies an MIT-licensed upstream. Revalidate this exact evidence during Task 8.
