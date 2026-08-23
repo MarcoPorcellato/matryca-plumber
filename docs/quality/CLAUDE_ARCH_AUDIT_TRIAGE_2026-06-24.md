@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Claude Architectural Audit — Triage (2026-06-24)
 
 Staff-level review (Repomix snapshot, June 2026). Cross-reference: [Expert Audit](EXPERT_AUDIT_TRIAGE_2026-06.md), [Repomix](REPOmix_AUDIT_TRIAGE_2026-06.md), [Clean Arch](CLEAN_ARCH_AUDIT_TRIAGE_2026-06.md), v1.9.x perfection audit JSON.

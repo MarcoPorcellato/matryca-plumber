@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Agent Experience (AX) robustness — lenient resolution & safe writes (v1.9.7+)
 
 **Milestone:** v1.9.7 — AX Robustness & Lenient Resolution · v1.9.8 — documentation harmonization · v1.9.9 — Security & Sandbox (complements MCP title normalization; see [`security-sandbox.md`](security-sandbox.md))  

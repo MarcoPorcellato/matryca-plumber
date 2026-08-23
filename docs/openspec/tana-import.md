@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Tana workspace JSON import (enterprise migration)
 
 **Version:** 1.0  

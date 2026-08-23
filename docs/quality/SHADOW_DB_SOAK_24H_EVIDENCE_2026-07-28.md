@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Shadow DB 24-hour soak — evidence record
 
 **Status:** evidence record, 2026-07-28. This is a sanitized quality artifact, not a release note and not a release decision. It reports what one 24-hour soak run observed, including two interruptions and what they do and do not prove. The release decision remains [`issue-bodies/v2-beta-readiness.md`](issue-bodies/v2-beta-readiness.md); the reproducibility analysis that motivated the current harness remains [`BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md`](BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md).

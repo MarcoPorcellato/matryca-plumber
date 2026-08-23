@@ -6,13 +6,13 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-09** — `v2.0.0rc1` is the historical first public RC.
-Its Read Only external-cache Gate B profile reached terminal `PASS`; its
-default-on profile was frozen non-terminal after exposing a qualifier cleanup
-defect. `v2.0.0rc2` is the next exact candidate, carrying parser 1.7.1 and the
-corrected qualifier. Stable promotion remains blocked until fresh rc.2 Gate B
-evidence reaches terminal `PASS`; implementation progress does not imply release
-qualification. Issue numbers link to GitHub.*
+*Status as of **2026-08-18** — stable `v2.0.0` is published. The historical RC1
+split outcome is preserved for failure analysis; the corrected public RC2 candidate
+completed its fresh dual-profile Gate B soaks, upgrade matrix, and seven-day
+observation window. The exact stable candidate then passed CI, artifact proof, and
+the publication workflow. See the [`v2.0.0 release record`](docs/releases/v2.0.0-GITHUB.md)
+and canonical [`stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
+Issue numbers link to GitHub.*
 
 ---
 
@@ -34,11 +34,12 @@ qualification. Issue numbers link to GitHub.*
 
 ## v2.0.0 RC and stable promotion
 
-The `v2.0.0` stable scope is the Shadow DB read path. The next promotion is
-`v2.0.0-rc.2`, where unset configuration prefers health-gated Shadow reads and
-explicit `MATRYCA_SHADOW_DB_ENABLED=false` restores the legacy path. Stable
-`v2.0.0` follows only after RC observation and deprecates in-memory BM25 as the
-default discovery path while retaining it as a mandatory fallback.
+The `v2.0.0` stable scope is the Shadow DB read path. The qualified public
+`v2.0.0-rc.2` artifact established the default-on external-cache contract;
+unset configuration prefers health-gated Shadow reads and explicit
+`MATRYCA_SHADOW_DB_ENABLED=false` restores the legacy path. Stable `v2.0.0`
+deprecates in-memory BM25 as the default discovery path while retaining it as a
+mandatory fallback.
 
 Biological memory, Logseq DB Safe-Sync writes, content-aware Tana merge, and
 independent DX tracks are deferred to `v2.1.0` or later. The fail-closed
@@ -49,8 +50,9 @@ restart-resilient 72-hour soak. The sanitized
 [`terminal evidence record`](docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md)
 records 415 completed cycles, 259,225.349 observed seconds, source Markdown
 unchanged during the source-to-working-copy check, and a terminal `PASS`; this closes only
-Gate A's exact-beta real-vault row. The currently active `2.0.0rc1` Gate B run
-remains `RUNNING` and is tracked as an independent stable-preparation checkpoint.
+Gate A's exact-beta real-vault row. The historical RC1 split outcome is preserved
+in the [stable-readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md)
+and must not be read as the current RC2 Gate B state.
 
 The published `2.0.0rc1` candidate line has merged Strict Read Only enforcement,
 external per-user Shadow cache routing, default-on Shadow with explicit opt-out,
@@ -59,16 +61,13 @@ and the bounded 8,192-entry BM25 result cache (#354–#366). These source change
 do not inherit the beta.1 soak result: the published beta is opt-in and
 graph-local, while the next candidate is default-on and external.
 
-Promotion therefore remains deliberately sequential:
+The completed promotion sequence was deliberately sequential:
 
-1. complete every remaining Gate A row on the exact candidate, including
-   upgrade/rollback, defect disposition, default-on/read-only installed-wheel
-   proof, operator-contract synchronization, and release build/platform checks;
-2. publish `v2.0.0-rc.1` so prerelease users can exercise the complete external
-   Shadow path;
-3. complete Gate B on that published RC, including at least seven days of
-   observation and the default-on/read-only soaks;
-4. publish stable `v2.0.0` only after every Gate B row passes.
+1. freeze the exact stable candidate source commit and complete its synchronized
+   version, changelog, operator-surface, and lockfile checks;
+2. obtain terminal full CI, supported-platform, clean-build, installed-wheel,
+   and artifact-digest evidence for that exact stable commit;
+3. publish stable `v2.0.0` only after every Gate B row and final proof pass — **completed 2026-08-18**.
 
 ---
 

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `_count_catalog_summaries` in `src/graph/graph_analytics.py` (~L118–124) wraps `load_master_catalog(root)` in bare `except Exception` and returns `0` with **no log line**.

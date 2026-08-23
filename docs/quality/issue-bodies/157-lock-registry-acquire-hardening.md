@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `page_write_lock._lock_for_key` evicts LRU registry entries when `not old_lock.locked()` before allocating a new `RLock` for a path (`_MAX_PAGE_LOCK_REGISTRY = 4096`).

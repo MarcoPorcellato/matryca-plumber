@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Gate B RC2 terminal qualification evidence — 2026-08-13
 
 ## Purpose and decision boundary
@@ -6,6 +9,11 @@ This record captures the terminal dual-profile Gate B qualification of the
 published `matryca-plumber==2.0.0rc2` artifact. It is evidence for that exact
 installed public wheel only. It does not qualify a later source commit, a new
 wheel, or the stable `2.0.0` artifact by implication.
+
+> **Later publication status — 2026-08-18:** this historical RC2 evidence was
+> consumed as one input to the stable readiness decision, not silently rebound to
+> the stable wheel. The independently verified stable artifact and publication
+> proof are recorded in [`v2.0.0-GITHUB.md`](../releases/v2.0.0-GITHUB.md).
 
 The campaign exercised the default-on Shadow profile and the Strict Read Only
 profile with an external derived-cache root. Logseq Markdown remained the
@@ -59,10 +67,14 @@ This closes the **Default-on soak** and **Read Only external-cache soak** rows
 for the exact RC2 artifact in the v2 stable-readiness decision. RC1's split
 outcome remains preserved as historical evidence and is not rewritten.
 
-Stable `v2.0.0` remains a separate maintainer decision. The following gates
-are intentionally still open: the minimum RC observation window, exact-artifact
-upgrade matrix, supported-platform evidence, performance disposition, stable
-operator wording, and full release proof on the exact stable commit.
+Stable `v2.0.0` remains a separate maintainer decision. The persistent
+exact-public-`2.0.0rc2` upgrade/rollback receipt has since reached terminal
+`PASS` across `1.14.5`, `2.0.0a5`, `2.0.0b1`, and `2.0.0rc1`; it binds the wheel
+SHA-256 recorded above and preserves working Markdown after each rollback. It
+closes the RC2 upgrade-matrix row only, not final stable-artifact verification.
+The following gates are intentionally still open: the minimum RC observation
+window, supported-platform evidence, performance disposition, stable operator
+wording, and full release proof on the exact stable commit.
 
 The published RC2 wheel is therefore a qualified public prerelease for users
 who want to test the v2 Shadow DB contract now. It must not be represented as

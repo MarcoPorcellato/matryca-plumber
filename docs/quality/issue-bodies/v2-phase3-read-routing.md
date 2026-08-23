@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Shadow sync (Phase 2) must be opt-in before v2.0.0-rc. Operators and agents need predictable fallback when shadow is disabled or stale.

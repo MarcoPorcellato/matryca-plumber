@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `save_daemon_state` in `src/agent/maintenance_daemon.py` (~L830–832) atomically writes the primary daemon state, then copies it to `.matryca_daemon_state.json.bak` inside `contextlib.suppress(OSError)`.

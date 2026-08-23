@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Logseq OG paradigm (SSOT)
 
 Canonical spec: [`docs/openspec/agent/paradigm.md`](agent/paradigm.md).

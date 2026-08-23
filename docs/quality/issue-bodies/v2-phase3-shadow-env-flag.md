@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Phase 3 alpha requires an explicit operator opt-in before MCP/CLI prefer shadow reads.

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Dual embedding strategy (Master RFC — Phase 3)
 
 **Implementation:** `src/semantic/`  

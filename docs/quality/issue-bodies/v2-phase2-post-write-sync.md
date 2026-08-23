@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 Shadow tables stay empty until Markdown edits flow into `pages`/`blocks` rows. Phase 2 requires incremental sync, not full-vault rescans on every bullet edit.

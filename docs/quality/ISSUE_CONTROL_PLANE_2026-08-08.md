@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Issue and milestone control plane — 2026-08-08
 
 **Related execution dossier:** [Agentic Memory Leadership Programme — August 10, 2026](AGENTIC_MEMORY_LEADERSHIP_PROGRAMME_2026-08-10.md)

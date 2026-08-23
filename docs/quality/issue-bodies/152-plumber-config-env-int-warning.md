@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `_env_int` in `src/agent/plumber_config.py` (~L58–65) returns the Python default when `int(raw)` raises `ValueError`, with **no warning**. Operators who typo `MATRYCA_*` numeric env vars get silent fallback behavior.

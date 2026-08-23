@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `resolve_shadow_health` returns **`ready`** when `last_full_sync_completed=true` and `last_sync_error` is empty, **without validating** that `shadow_meta` row counts match the actual `pages` table.

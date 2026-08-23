@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from src.agent.dispatch_read_handlers import (
     dispatch_read_target,
+    handle_read_journal_day,
     handle_read_subtree,
 )
 from src.agent.graph_dispatch import dispatch_read
@@ -47,6 +48,28 @@ async def test_dispatch_read_subtree_via_port(
 async def test_handle_read_subtree_empty_query_message() -> None:
     body = await handle_read_subtree(MatrycaWikiConfig(), "/tmp/graph", "  ")
     assert "target_type=subtree" in body
+
+
+@pytest.mark.asyncio
+async def test_dispatch_read_journal_day_reads_exact_canonical_journal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    journal = tmp_path / "journals" / "2026_08_13.md"
+    journal.parent.mkdir()
+    journal.write_text("- TODO qualify daily brief\n", encoding="utf-8")
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+
+    body = await dispatch_read_target(MatrycaWikiConfig(), "journal_day", "2026-08-13")
+
+    assert '"shadow":"not_used"' in body
+    assert "TODO qualify daily brief" in body
+
+
+@pytest.mark.asyncio
+async def test_handle_read_journal_day_invalid_date_is_explicit() -> None:
+    body = await handle_read_journal_day(MatrycaWikiConfig(), "/tmp/graph", "yesterday")
+    assert "journal_day_invalid_date" in body
 
 
 @pytest.mark.asyncio

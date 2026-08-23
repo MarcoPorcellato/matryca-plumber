@@ -1,11 +1,3 @@
----
-type: Reference Index
-title: Matryca Plumber reference index
-description: Navigation for technical, operational, and integration reference material.
-status: active
-last_verified: 2026-08-12
----
-
 # Matryca Plumber reference index
 
 - [System architecture](../ARCHITECTURE.md)
@@ -13,3 +5,4 @@ last_verified: 2026-08-12
 - [Prompt architecture](../PROMPT_ARCHITECTURE.md)
 - [Maintained architecture concepts](../knowledge/architecture/index.md)
 - [OpenSpec contracts](../openspec/README.md)
+- [Resource-safe semantic code intelligence](resource-safe-semantic-code-intelligence.md)

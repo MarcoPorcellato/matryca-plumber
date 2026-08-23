@@ -1,3 +1,6 @@
+---
+type: Document
+---
 # Security & Sandbox (v1.9.9)
 
 **Milestone:** v1.9.9 — Security & Sandbox (v1.9.x perfection track)  

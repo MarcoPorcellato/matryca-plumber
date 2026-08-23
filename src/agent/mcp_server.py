@@ -109,7 +109,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         target_type: ReadGraphTarget,
         query: str = "",
     ) -> str:
-        """Unified read plane: pages, L1 memory, block excerpts, structural hops, dashboards.
+        """Unified read plane: pages, dated journals, L1 memory, block excerpts, hops, dashboards.
 
         Pick ``target_type`` first, then set ``query`` exactly as below (ignored where noted).
 
@@ -117,6 +117,15 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         not a file path.
         Returns spatial-parser Markdown: block tree, ``synthetic_id``, ``source_uuid``, ``uuid``.
         Use before edits; pair with ``mutate_graph`` only when you have a parent block UUID.
+
+        **``target_type=journal_day``** — ``query`` = ISO ``YYYY-MM-DD`` or strict JSON
+        ``{"date":"YYYY-MM-DD","cursor":0,"max_chars":25000}``. Reads exactly
+        ``journals/YYYY_MM_DD.md`` through the Markdown path sandbox. JSON permits only those
+        three fields; each stateless call re-reads canonical Markdown and returns `cursor`,
+        `returned_start`, `returned_end`, `next_cursor`, full source SHA-256, and bounded
+        content. Missing, empty, invalid-date/query/cursor, symlink, non-regular, and UTF-8
+        failures are explicit. This is read-only and never initializes, reads, or depends on
+        Shadow.
 
         **``target_type=memory``** — ``query`` ignored. Loads L1 fast-context Markdown
         (``MATRYCA_L1_PATH``, ``memory_path`` in ``matryca-wiki.yml``, or ``matryca-l1/*.md``).

@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 During Phase-2 cognitive lint in `run_cycle` (`src/agent/maintenance_daemon.py`, ~L2636–2638), `merge_page_links_into_registry` runs inside `contextlib.suppress(OSError)` before `run_cognitive_lint_pipeline`.

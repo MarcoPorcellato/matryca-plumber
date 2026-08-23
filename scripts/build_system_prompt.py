@@ -83,6 +83,18 @@ def compute_source_hash(paths: list[Path]) -> str:
     return digest.hexdigest()
 
 
+def strip_frontmatter(text: str) -> str:
+    """Remove an OKF YAML frontmatter block from a prompt fragment."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return text
+    try:
+        end = next(index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---")
+    except StopIteration:
+        return text
+    return "\n".join(lines[end + 1 :])
+
+
 def assemble_document(*, version: str | None = None) -> str:
     paths = fragment_paths()
     source_hash = compute_source_hash(paths)
@@ -90,7 +102,9 @@ def assemble_document(*, version: str | None = None) -> str:
     if version:
         parts.append(f"<!-- package-version: v{version} -->")
     parts.append("")
-    parts.extend(fragment.read_text(encoding="utf-8").strip() for fragment in paths)
+    parts.extend(
+        strip_frontmatter(fragment.read_text(encoding="utf-8")).strip() for fragment in paths
+    )
     return "\n\n".join(parts).rstrip() + "\n"
 
 

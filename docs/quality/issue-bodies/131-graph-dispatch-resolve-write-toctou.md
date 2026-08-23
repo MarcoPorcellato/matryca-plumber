@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/agent/graph_dispatch.py` `_run_write_outline` resolves the write parent in one `asyncio.to_thread` call (`_resolve_write_parent_target`) and performs the write in a second call (`_headless_write_outline` or `_headless_write_outline_empty_page`).

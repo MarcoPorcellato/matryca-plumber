@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `src/semantic/config.py` already centralizes embedding env resolution (`EmbeddingSettings`, `HybridWeights`, `dual_embedding_enabled()`). However `src/semantic/indexer.py` `index_page_blocks` calls `dual_embedding_enabled()` at **call time**, reading `os.environ` indirectly on every indexing invocation.

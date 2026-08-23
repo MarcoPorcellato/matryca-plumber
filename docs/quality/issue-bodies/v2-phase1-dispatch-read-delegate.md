@@ -1,3 +1,6 @@
+---
+type: Document
+---
 ## Problem Description
 
 `graph_dispatch` imports graph helpers directly — bypassing any repository port introduced in the graph-read-port slice.
