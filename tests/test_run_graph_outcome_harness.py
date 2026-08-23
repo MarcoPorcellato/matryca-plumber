@@ -23,13 +23,16 @@ def test_report_is_deterministic_and_keeps_the_expected_boundaries() -> None:
         "strict_read_only_completed": True,
         "unauthorized_tool_rejected": True,
         "stale_mutation_vetoed": True,
+        "corrupt_derived_state_no_serve": True,
         "default_reset_isolation": True,
         "policy_transition_reset_isolation": True,
+        "corrupt_state_reset_isolation": True,
     }
     assert [episode["scenario"] for episode in report["episodes"]] == [
         "strict-read-only-success",
         "unauthorized-tool-request",
         "stale-unverified-mutation",
+        "corrupt-derived-state",
     ]
     assert report["non_goals"]
 

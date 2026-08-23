@@ -2,6 +2,9 @@
 
 ### Added
 
+- **Graph-outcome evidence** — Added a provider-free corrupt-derived-state
+  no-serve scenario with reset-isolation proof to the synthetic outcome harness.
+
 - **Synthetic graph-outcome harness** — add a provider-free, temporary-root
   evaluation seam that produces closed, content-free episode receipts for
   strict-read-only success, unauthorized-tool refusal, stale-write veto, and

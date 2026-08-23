@@ -38,9 +38,13 @@ digests, metrics, validation states, and proof flags.
 - Strict Read Only can complete the scripted read path without a mutation.
 - An unauthorized tool is rejected and the episode abstains.
 - A stale unverified mutation is vetoed without executing the mutation.
+- A corrupt synthetic derived state triggers an explicit no-serve decision
+  without executing retrieval or mutating canonical bytes.
 - Two ordinary Strict Read Only episodes have distinct temporary roots and no
   cross-episode state leak.
 - A vetoed stale-write episode leaves no contamination for a following Strict
+  Read Only episode.
+- A corrupt-derived-state episode leaves no contamination for a following Strict
   Read Only episode.
 
 Every episode uses fresh temporary canonical and derived roots outside the
