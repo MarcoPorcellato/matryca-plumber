@@ -5,10 +5,15 @@ from collections.abc import Callable
 import pytest
 from pydantic import ValidationError
 from src.contracts.pocket.models import (
+    MAX_PATH_BYTES,
+    MAX_RECORDS,
+    DocumentV1,
+    EvidenceV1,
     PackFileV1,
     PackManifestV1,
     SourceRevisionV1,
     payload_content_root,
+    validate_record_set,
 )
 
 _A = "a" * 40
@@ -53,6 +58,144 @@ def _valid_manifest_payload() -> dict[str, object]:
 
 def _manifest() -> PackManifestV1:
     return PackManifestV1.model_validate(_valid_manifest_payload())
+
+
+def _document(document_id: str = "doc-001") -> DocumentV1:
+    return DocumentV1(
+        document_id=document_id,
+        source_id="knowledge",
+        title="Documento sintetico",
+        source_path="docs/example.md",
+        media_type="text/markdown",
+    )
+
+
+def _evidence(evidence_id: str = "evidence-001") -> EvidenceV1:
+    return EvidenceV1(
+        evidence_id=evidence_id,
+        document_id="doc-001",
+        locator_kind="line_range",
+        locator_start=10,
+        locator_end=12,
+        cited_text="Contenuto sintetico verificabile.",
+    )
+
+
+def test_record_set_accepts_complete_references() -> None:
+    validate_record_set(_manifest(), (_document(),), (_evidence(),))
+
+
+def test_record_set_rejects_missing_source_and_document_references() -> None:
+    missing_source = DocumentV1.model_validate({**_document().model_dump(), "source_id": "missing"})
+    with pytest.raises(ValueError, match="missing_source_reference"):
+        validate_record_set(_manifest(), (missing_source,), ())
+
+    missing_document = EvidenceV1.model_validate(
+        {**_evidence().model_dump(), "document_id": "missing"}
+    )
+    with pytest.raises(ValueError, match="missing_document_reference"):
+        validate_record_set(_manifest(), (_document(),), (missing_document,))
+
+
+def test_evidence_rejects_reversed_locator_and_non_nfc_text() -> None:
+    with pytest.raises(ValueError, match="invalid_locator_range"):
+        EvidenceV1.model_validate(
+            {**_evidence().model_dump(), "locator_start": 12, "locator_end": 10}
+        )
+    with pytest.raises(ValueError, match="non_nfc_string"):
+        EvidenceV1.model_validate({**_evidence().model_dump(), "cited_text": "Citta\u0300"})
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "code"),
+    [
+        ("document_id", "UPPER", "invalid_document_id"),
+        ("source_id", "UPPER", "invalid_source_id"),
+        ("title", "Citta\u0300", "non_nfc_string"),
+        ("media_type", "Text/markdown", "invalid_media_type"),
+        ("source_path", "/docs/example.md", "unsafe_bundle_path"),
+        ("source_path", "docs\\example.md", "unsafe_bundle_path"),
+        ("source_path", "docs/line\nbreak.md", "unsafe_bundle_path"),
+        ("source_path", "docs//example.md", "unsafe_bundle_path"),
+        ("source_path", "docs/./example.md", "unsafe_bundle_path"),
+        ("source_path", "docs/../example.md", "unsafe_bundle_path"),
+        ("source_path", "docs/citta\u0300.md", "non_nfc_string"),
+        ("source_path", f"docs/{'x' * MAX_PATH_BYTES}", "unsafe_bundle_path"),
+    ],
+)
+def test_document_rejects_invalid_scalars_and_source_paths(
+    field: str,
+    value: str,
+    code: str,
+) -> None:
+    payload = _document().model_dump()
+    payload[field] = value
+    with pytest.raises(ValueError, match=code):
+        DocumentV1.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "code"),
+    [
+        ("evidence_id", "UPPER", "invalid_evidence_id"),
+        ("document_id", "UPPER", "invalid_document_id"),
+        ("locator_kind", "offset", "literal_error"),
+        ("locator_start", 0, "greater_than_equal"),
+        ("locator_end", MAX_RECORDS + 1, "less_than_equal"),
+    ],
+)
+def test_evidence_rejects_invalid_scalars(
+    field: str,
+    value: str | int,
+    code: str,
+) -> None:
+    payload = _evidence().model_dump()
+    payload[field] = value
+    with pytest.raises(ValueError, match=code):
+        EvidenceV1.model_validate(payload)
+
+
+def test_document_and_evidence_are_closed_and_frozen() -> None:
+    document = _document()
+    evidence = _evidence()
+    with pytest.raises(ValueError, match="unexpected_fields"):
+        DocumentV1.model_validate({**document.model_dump(), "secret": "forbidden"})
+    with pytest.raises(ValueError, match="unexpected_fields"):
+        EvidenceV1.model_validate({**evidence.model_dump(), "secret": "forbidden"})
+    with pytest.raises(ValidationError, match="frozen"):
+        document.title = "changed"
+    with pytest.raises(ValidationError, match="frozen"):
+        evidence.cited_text = "changed"
+
+
+@pytest.mark.parametrize(
+    ("documents", "evidence", "code"),
+    [
+        ((_document("doc-002"), _document("doc-001")), (), "noncanonical_order"),
+        ((_document(), _document()), (), "duplicate_document_id"),
+        (
+            (_document(),),
+            (_evidence("evidence-002"), _evidence("evidence-001")),
+            "noncanonical_order",
+        ),
+        ((_document(),), (_evidence(), _evidence()), "duplicate_evidence_id"),
+    ],
+)
+def test_record_set_rejects_noncanonical_or_duplicate_identifiers(
+    documents: tuple[DocumentV1, ...],
+    evidence: tuple[EvidenceV1, ...],
+    code: str,
+) -> None:
+    with pytest.raises(ValueError, match=code):
+        validate_record_set(_manifest(), documents, evidence)
+
+
+@pytest.mark.parametrize("record_kind", ["documents", "evidence"])
+def test_record_set_rejects_too_many_records(record_kind: str) -> None:
+    documents = (_document(),) * (MAX_RECORDS + 1) if record_kind == "documents" else ()
+    evidence = (_evidence(),) * (MAX_RECORDS + 1) if record_kind == "evidence" else ()
+    with pytest.raises(ValueError, match="too_many_records"):
+        validate_record_set(_manifest(), documents, evidence)
 
 
 def test_manifest_is_closed_frozen_sorted_and_content_bound() -> None:

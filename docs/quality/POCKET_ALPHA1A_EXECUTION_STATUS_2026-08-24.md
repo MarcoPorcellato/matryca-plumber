@@ -159,6 +159,60 @@ processes, and `risk_level: low`. The empty symbol inventory reflects the
 known stale index and is not a zero-impact proof; no HIGH or CRITICAL finding
 appeared. Task 4, not this fix round, must append this fix commit's final SHA.
 
+## Task 4 checkpoint ledger
+
+Task 3 implementation checkpoint: `4c0ff6b96c7de00772a2b25935b73f6f73072c9e`.
+Task 3 evidence checkpoint: `a5d5495f7363ee09c4a8846d95bdb68c6fc10c6e`.
+
+The current gate is document/evidence model RED. The required RED command is:
+
+```text
+rtk uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+```
+
+The direct command could not initialize the sandbox-denied default uv cache at
+`/Users/marco1/.cache/uv`. Re-running with the approved temporary cache reached
+collection and produced the required RED receipt:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+ImportError: cannot import name 'DocumentV1' from 'src.contracts.pocket.models'
+1 error in 0.11s
+```
+
+The implementation adds closed, frozen `DocumentV1` and `EvidenceV1` records,
+the `LocatorKind` literal, and `validate_record_set`. The records reuse the
+existing identifier, NFC, safe-path, and media-type helpers; source paths are
+safe relative paths without a `payload` prefix requirement. The validator
+enforces record bounds, sorted and unique identifiers, source/document
+references, and evidence locator ordering. The focused GREEN and static
+receipts were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+........................................................                 [100%]
+56 passed in 0.10s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+8 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 8 source files
+```
+
+`mcp__gitnexus__impact` could not resolve `_ClosedModel` in the known-stale
+index, so live bounded source inspection was used without re-indexing. Before
+the commit, `mcp__gitnexus__detect_changes`, compared against
+`af939e7e14e8f7f2e4dd5783bd3a72a1433adf1e` in this worktree, reported
+`risk_level: low`, `affected_count: 0`, and no affected processes. Its broad
+base comparison contains pre-existing historical symbols because the index
+predates the Task 3/Task 4 leaves; it is not a zero-impact proof. No HIGH or
+CRITICAL finding appeared. Task 5, not this task, must append this task's final
+SHA.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,

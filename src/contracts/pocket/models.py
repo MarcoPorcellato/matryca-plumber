@@ -28,6 +28,8 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _MEDIA_TYPE = re.compile(r"^[a-z0-9][a-z0-9.+-]*/[a-z0-9][a-z0-9.+-]*$")
 _UTC_SECOND = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
+LocatorKind = Literal["line_range", "page", "record"]
+
 
 def _validate_nfc(value: str) -> None:
     if not unicodedata.is_normalized("NFC", value):
@@ -177,3 +179,75 @@ class PackManifestV1(_ClosedModel):
         if payload_content_root(self.files) != self.content_root:
             raise PocketContractError("content_root_mismatch")
         return self
+
+
+class DocumentV1(_ClosedModel):
+    document_id: str = Field(
+        max_length=MAX_ID_LENGTH,
+        json_schema_extra={"pattern": _IDENTIFIER.pattern},
+    )
+    source_id: str = Field(
+        max_length=MAX_ID_LENGTH,
+        json_schema_extra={"pattern": _IDENTIFIER.pattern},
+    )
+    title: str = Field(min_length=1, max_length=MAX_TITLE_CHARACTERS)
+    source_path: str
+    media_type: str = Field(max_length=127, json_schema_extra={"pattern": _MEDIA_TYPE.pattern})
+
+    @model_validator(mode="after")
+    def _validate_document(self) -> DocumentV1:
+        _validate_identifier(self.document_id, "invalid_document_id")
+        _validate_identifier(self.source_id, "invalid_source_id")
+        _validate_nfc(self.title)
+        _validate_safe_path(self.source_path, payload_only=False)
+        _validate_nfc(self.media_type)
+        if _MEDIA_TYPE.fullmatch(self.media_type) is None:
+            raise PocketContractError("invalid_media_type")
+        return self
+
+
+class EvidenceV1(_ClosedModel):
+    evidence_id: str = Field(
+        max_length=MAX_ID_LENGTH,
+        json_schema_extra={"pattern": _IDENTIFIER.pattern},
+    )
+    document_id: str = Field(
+        max_length=MAX_ID_LENGTH,
+        json_schema_extra={"pattern": _IDENTIFIER.pattern},
+    )
+    locator_kind: LocatorKind
+    locator_start: int = Field(ge=1, le=MAX_RECORDS)
+    locator_end: int = Field(ge=1, le=MAX_RECORDS)
+    cited_text: str = Field(min_length=1, max_length=MAX_CITED_TEXT_CHARACTERS)
+
+    @model_validator(mode="after")
+    def _validate_evidence(self) -> EvidenceV1:
+        _validate_identifier(self.evidence_id, "invalid_evidence_id")
+        _validate_identifier(self.document_id, "invalid_document_id")
+        _validate_nfc(self.cited_text)
+        if self.locator_end < self.locator_start:
+            raise PocketContractError("invalid_locator_range")
+        return self
+
+
+def validate_record_set(
+    manifest: PackManifestV1,
+    documents: tuple[DocumentV1, ...],
+    evidence: tuple[EvidenceV1, ...],
+) -> None:
+    if len(documents) > MAX_RECORDS or len(evidence) > MAX_RECORDS:
+        raise PocketContractError("too_many_records")
+    source_ids = {item.source_id for item in manifest.sources}
+    document_ids = [item.document_id for item in documents]
+    evidence_ids = [item.evidence_id for item in evidence]
+    if document_ids != sorted(document_ids) or evidence_ids != sorted(evidence_ids):
+        raise PocketContractError("noncanonical_order")
+    if len(set(document_ids)) != len(document_ids):
+        raise PocketContractError("duplicate_document_id")
+    if len(set(evidence_ids)) != len(evidence_ids):
+        raise PocketContractError("duplicate_evidence_id")
+    if any(item.source_id not in source_ids for item in documents):
+        raise PocketContractError("missing_source_reference")
+    known_documents = set(document_ids)
+    if any(item.document_id not in known_documents for item in evidence):
+        raise PocketContractError("missing_document_reference")
