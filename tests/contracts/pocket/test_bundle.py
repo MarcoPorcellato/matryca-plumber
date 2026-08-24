@@ -10,7 +10,12 @@ from pathlib import Path
 
 import pytest
 from src.contracts.pocket import bundle as bundle_module
-from src.contracts.pocket.bundle import BundleFileV1, build_contract_bundle, verify_contract_bundle
+from src.contracts.pocket.bundle import (
+    BundleFileV1,
+    ContractBundleManifestV1,
+    build_contract_bundle,
+    verify_contract_bundle,
+)
 from src.contracts.pocket.canonical import PocketContractError
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -189,6 +194,27 @@ def test_build_rejects_c1_and_surrogate_source_paths(
     )
     with pytest.raises(PocketContractError, match="^unsafe_bundle_path$"):
         build_contract_bundle(surrogate_source, tmp_path / "surrogate-output")
+
+
+def test_bundle_manifest_invariant_error_hides_rejected_paths() -> None:
+    private_marker = "private-bundle-path"
+    private_file = {
+        "size_bytes": 0,
+        "sha256": "0" * 64,
+        "path": private_marker,
+    }
+
+    with pytest.raises(ValueError) as captured:
+        ContractBundleManifestV1.model_validate(
+            {
+                "bundle_version": "matryca-pocket-contract-bundle.v1",
+                "content_root": "0" * 64,
+                "files": [private_file],
+            }
+        )
+
+    assert "content_root_mismatch" in str(captured.value)
+    assert private_marker not in str(captured.value)
 
 
 def test_rejects_fifo_unsafe_names_and_source_manifest(tmp_path: Path) -> None:
@@ -927,6 +953,51 @@ def test_publish_rollback_failure_uses_distinct_honest_error(
         bundle_module._publish_staging(staging, destination)
     assert not destination.exists()
     assert list(tmp_path.glob(".destination.backup-*"))
+
+
+def test_build_reports_rollback_failure_when_concurrent_output_blocks_restore(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    original_identity = output.stat()
+    original_rename = os.rename
+    injected = False
+
+    def _insert_concurrent_output(
+        source: str | os.PathLike[str],
+        target: str | os.PathLike[str],
+        *args: int,
+        **kwargs: int,
+    ) -> None:
+        nonlocal injected
+        source_name = Path(source).name
+        if (
+            source_name.startswith(".output.")
+            and ".backup-" not in source_name
+            and Path(target).name == output.name
+            and not injected
+        ):
+            output.mkdir()
+            (output / "concurrent-entry").write_text("retain", encoding="utf-8")
+            injected = True
+        original_rename(source, target, *args, **kwargs)
+
+    monkeypatch.setattr(os, "rename", _insert_concurrent_output)
+
+    with pytest.raises(PocketContractError, match="^bundle_publish_rollback_failed$"):
+        build_contract_bundle(SOURCE, output)
+
+    assert injected
+    assert (output / "concurrent-entry").read_text(encoding="utf-8") == "retain"
+    backups = list(tmp_path.glob(".output.backup-*"))
+    assert len(backups) == 1
+    backup_identity = backups[0].stat()
+    assert (backup_identity.st_dev, backup_identity.st_ino) == (
+        original_identity.st_dev,
+        original_identity.st_ino,
+    )
+    assert [path for path in tmp_path.glob(".output.*") if ".backup-" not in path.name] == []
 
 
 def test_post_publish_cleanup_failure_rolls_back_existing_empty_destination(

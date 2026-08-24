@@ -32,6 +32,10 @@ LocatorKind = Literal["line_range", "page", "record"]
 
 
 def _validate_nfc(value: str) -> None:
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise PocketContractError("non_utf8_string") from None
     if not unicodedata.is_normalized("NFC", value):
         raise PocketContractError("non_nfc_string")
 
@@ -61,6 +65,10 @@ def _validate_media_type(value: str) -> None:
 
 
 def _validate_safe_path(value: str, *, payload_only: bool) -> None:
+    try:
+        encoded_length = len(value.encode("utf-8"))
+    except UnicodeEncodeError:
+        raise PocketContractError("unsafe_bundle_path") from None
     _validate_nfc(value)
     path = PurePosixPath(value)
     raw_parts = value.split("/")
@@ -68,15 +76,20 @@ def _validate_safe_path(value: str, *, payload_only: bool) -> None:
         path.is_absolute()
         or any(part in {"", ".", ".."} for part in raw_parts)
         or "\\" in value
-        or any(ord(character) < 32 or ord(character) == 127 for character in value)
-        or len(value.encode("utf-8")) > MAX_PATH_BYTES
+        or any(unicodedata.category(character) in {"Cc", "Cs"} for character in value)
+        or encoded_length > MAX_PATH_BYTES
         or (payload_only and (len(path.parts) < 2 or path.parts[0] != "payload"))
     ):
         raise PocketContractError("unsafe_bundle_path")
 
 
 class _ClosedModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        hide_input_in_errors=True,
+    )
 
     @model_validator(mode="before")
     @classmethod

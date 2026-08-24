@@ -26,6 +26,10 @@ def _validate_json_value(value: object) -> None:
             raise PocketContractError("integer_out_of_range")
         return
     if isinstance(value, str):
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError:
+            raise PocketContractError("non_utf8_string") from None
         if not unicodedata.is_normalized("NFC", value):
             raise PocketContractError("non_nfc_string")
         return

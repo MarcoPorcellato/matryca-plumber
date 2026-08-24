@@ -42,7 +42,7 @@ rejected.
 
 The bundle builder and verifier additionally limit every bundle file, including
 `bundle-manifest.json`, to 32 MiB, all non-manifest bundle files to 256 MiB
-total, and each scanned directory to 32,768 entries. The manifest byte cap is
+total, and the complete scanned tree to 32,768 entries. The manifest byte cap is
 applied before stdlib JSON parsing; the manifest file-count check runs after
 `json.loads` and before Pydantic materialization. This is not a streaming-parser
 claim.
@@ -76,7 +76,7 @@ Stable content-free error codes include:
 
 | Area | Codes |
 | --- | --- |
-| Canonical values | `invalid_object_key`, `integer_out_of_range`, `non_nfc_string`, `unsupported_json_type` |
+| Canonical values | `invalid_object_key`, `integer_out_of_range`, `non_utf8_string`, `non_nfc_string`, `unsupported_json_type` |
 | Model scalars | `invalid_source_id`, `invalid_repository_slug`, `invalid_source_commit`, `invalid_generator_id`, `invalid_generator_commit`, `invalid_key_id`, `invalid_pack_id`, `invalid_created_at`, `invalid_media_type`, `invalid_sha256`, `invalid_content_root`, `invalid_document_id`, `invalid_evidence_id`, `invalid_locator_range`, `unsafe_bundle_path` |
 | Model and record-set invariants | `unexpected_fields`, `noncanonical_order`, `duplicate_source_id`, `duplicate_source_revision`, `duplicate_file_path`, `duplicate_document_id`, `duplicate_evidence_id`, `missing_source_reference`, `missing_document_reference`, `too_many_records`, `content_root_mismatch` |
 | Bundle assembly and verification | `unsafe_source_root`, `unsafe_output_parent`, `unsafe_output_root`, `output_not_empty`, `source_bundle_manifest`, `nonregular_source_file`, `nonregular_bundle_file`, `too_many_bundle_entries`, `too_many_bundle_files`, `bundle_file_too_large`, `bundle_too_large`, `invalid_bundle_manifest`, `missing_bundle_manifest`, `missing_bundle_file`, `unexpected_bundle_file`, `duplicate_bundle_file`, `bundle_digest_mismatch`, `source_changed`, `bundle_write_failed`, `bundle_publish_failed`, `bundle_publish_rollback_failed`, `staging_cleanup_failed`, `bundle_changed`, `unsafe_bundle_root`, `safe_open_unsupported` |

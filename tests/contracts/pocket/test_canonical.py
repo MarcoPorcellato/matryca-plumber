@@ -43,3 +43,14 @@ def test_canonical_json_rejects_values_outside_the_profile(
 ) -> None:
     with pytest.raises(PocketContractError, match=code):
         canonical_json_bytes(cast(JsonValue, value))
+
+
+def test_canonical_json_rejects_surrogate_without_value_disclosure() -> None:
+    private_marker = "private-canonical-value"
+    value = cast(JsonValue, {"title": f"{private_marker}\ud800"})
+
+    with pytest.raises(PocketContractError) as captured:
+        canonical_json_bytes(value)
+
+    assert str(captured.value) == "non_utf8_string"
+    assert private_marker not in str(captured.value)

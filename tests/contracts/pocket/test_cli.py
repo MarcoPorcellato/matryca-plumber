@@ -69,3 +69,21 @@ def test_cli_rejects_tampered_bundle_without_path_or_body_disclosure(tmp_path: P
     assert result.stderr == "bundle_digest_mismatch\n"
     assert str(tmp_path) not in result.stderr
     assert "schemas/document.schema.json" not in result.stderr
+
+
+def test_cli_normalizes_deep_manifest_recursion_without_disclosure(tmp_path: Path) -> None:
+    bundle = tmp_path / "deep-manifest-bundle"
+    bundle.mkdir()
+    private_marker = "private-manifest-body"
+    manifest = bundle / "bundle-manifest.json"
+    manifest.write_bytes(b"[" * 50_000 + json.dumps(private_marker).encode("utf-8") + b"]" * 50_000)
+    assert manifest.stat().st_size < 1024 * 1024
+
+    result = _run_cli("verify", "--bundle-dir", str(bundle))
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert result.stderr == "invalid_bundle_manifest\n"
+    assert str(ROOT) not in result.stderr
+    assert str(tmp_path) not in result.stderr
+    assert private_marker not in result.stderr

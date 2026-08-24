@@ -5,8 +5,10 @@ from collections.abc import Callable
 import pytest
 from pydantic import ValidationError
 from src.contracts.pocket.models import (
+    MAX_CITED_TEXT_CHARACTERS,
     MAX_PATH_BYTES,
     MAX_RECORDS,
+    MAX_TITLE_CHARACTERS,
     DocumentV1,
     EvidenceV1,
     PackFileV1,
@@ -175,6 +177,40 @@ def test_document_and_evidence_are_closed_and_frozen() -> None:
         document.title = "changed"
     with pytest.raises(ValidationError, match="frozen"):
         evidence.cited_text = "changed"
+
+
+def test_public_model_diagnostics_hide_overlong_text() -> None:
+    private_title = "private-title-" + "x" * MAX_TITLE_CHARACTERS
+    with pytest.raises(ValidationError) as title_error:
+        DocumentV1.model_validate({**_document().model_dump(), "title": private_title})
+    assert "string_too_long" in str(title_error.value)
+    assert "private-title" not in str(title_error.value)
+
+    private_cited_text = "private-cited-text-" + "x" * MAX_CITED_TEXT_CHARACTERS
+    with pytest.raises(ValidationError) as cited_text_error:
+        EvidenceV1.model_validate({**_evidence().model_dump(), "cited_text": private_cited_text})
+    assert "string_too_long" in str(cited_text_error.value)
+    assert "private-cited-text" not in str(cited_text_error.value)
+
+
+def test_public_model_diagnostics_normalize_and_hide_surrogate_paths() -> None:
+    cases = (
+        (
+            DocumentV1,
+            {**_document().model_dump(), "source_path": "docs/private-source-path\ud800.md"},
+            "private-source-path",
+        ),
+        (
+            PackFileV1,
+            {**_file().model_dump(), "path": "payload/private-bundle-path\ud800.jsonl"},
+            "private-bundle-path",
+        ),
+    )
+    for model, payload, private_marker in cases:
+        with pytest.raises(ValidationError) as captured:
+            model.model_validate(payload)
+        assert "unsafe_bundle_path" in str(captured.value)
+        assert private_marker not in str(captured.value)
 
 
 @pytest.mark.parametrize(

@@ -39,7 +39,12 @@ _SCHEMA_MODELS: dict[str, type[BaseModel]] = {
 
 
 class _ClosedBundleModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        hide_input_in_errors=True,
+    )
 
 
 def _schema_artifact_bytes(schema: object) -> bytes:
@@ -556,7 +561,7 @@ def _manifest_from_bytes(data: bytes) -> ContractBundleManifestV1:
         manifest = ContractBundleManifestV1.model_validate(value)
     except PocketContractError:
         raise
-    except (json.JSONDecodeError, UnicodeDecodeError, ValidationError):
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError, ValidationError):
         raise PocketContractError("invalid_bundle_manifest") from None
     if _write_bundle_manifest(manifest.files) != data:
         raise PocketContractError("bundle_digest_mismatch")
@@ -801,9 +806,11 @@ def _begin_publish_at(
         )
     except (OSError, NotImplementedError) as error:
         try:
-            if _entry_exists_at(parent_descriptor, backup_name) and not _entry_exists_at(
-                parent_descriptor, output_name
-            ):
+            backup_exists = _entry_exists_at(parent_descriptor, backup_name)
+            output_exists_after_failure = _entry_exists_at(parent_descriptor, output_name)
+            if backup_exists and output_exists_after_failure:
+                raise PocketContractError("bundle_publish_rollback_failed")
+            if backup_exists:
                 os.rename(
                     backup_name,
                     output_name,

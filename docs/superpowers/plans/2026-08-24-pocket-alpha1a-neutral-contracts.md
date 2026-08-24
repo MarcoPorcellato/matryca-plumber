@@ -918,7 +918,7 @@ Create one directory per row. Each case mutates only the named invariant from `v
 | --- | --- | --- | --- |
 | `unknown-field` | add manifest field `secret` | invalid | `unexpected_fields` |
 | `invalid-commit` | set source commit to uppercase `A` repeated 40 times | invalid | `invalid_source_commit` |
-| `unsafe-path` | set document `source_path` to `../secret.md` | valid | `unsafe_source_path` |
+| `unsafe-path` | set document `source_path` to `../secret.md` | valid | `unsafe_bundle_path` |
 | `non-nfc-title` | set title to `Citta\u0300` | valid | `non_nfc_string` |
 | `duplicate-source` | repeat the same manifest source | valid | `duplicate_source_id` |
 | `noncanonical-files` | add `payload/z` before `payload/a` with valid metadata | valid | `noncanonical_order` |
