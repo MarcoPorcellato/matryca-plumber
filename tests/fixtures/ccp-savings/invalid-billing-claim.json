@@ -1,0 +1,41 @@
+{
+  "billing_source": null,
+  "candidate_hosted_seconds": 319,
+  "captured_at": "2026-08-24T12:00:00Z",
+  "ccp": null,
+  "classification": "excluded",
+  "comparability": "fail",
+  "eligibility_reason": "Negative fixture for unsupported billing claims.",
+  "estimated_avoided_hosted_seconds": null,
+  "estimated_net_hosted_seconds_saved": null,
+  "fallback_reason": null,
+  "limitations": [
+    "This fixture is intentionally invalid."
+  ],
+  "negative_case": null,
+  "observed_verifier_seconds": null,
+  "pr_number": 702,
+  "provider_confirmed_billed_minutes": 5,
+  "provider_confirmed_cost": 1.0,
+  "record_id": "2026-08-24-pr-702-invalid-billing",
+  "repository": "MarcoPorcellato/matryca-plumber",
+  "schema_version": "1.0",
+  "source_sha": "3333333333333333333333333333333333333333",
+  "source_urls": [
+    "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/3"
+  ],
+  "supersedes": null,
+  "verifier": null,
+  "workflow_runs": [
+    {
+      "completed_at": null,
+      "conclusion": "excluded",
+      "elapsed_seconds": 319,
+      "job_id": 3,
+      "job_name": "Candidate Linux cohort",
+      "run_id": 3,
+      "source_sha": "3333333333333333333333333333333333333333",
+      "started_at": null
+    }
+  ]
+}
