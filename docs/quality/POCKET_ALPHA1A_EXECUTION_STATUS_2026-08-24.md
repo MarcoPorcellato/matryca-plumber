@@ -255,6 +255,44 @@ Success: no issues found in 8 source files
 known-stale index. No re-index was performed; bounded inspection of the current
 model and tests supplied the live context.
 
+## Task 5 checkpoint ledger
+
+Task 4 implementation checkpoint: `a62dc832511e188455bbdecbd10cbdba44a7427e`.
+Task 5 adds three committed Draft 2020-12 schemas, thirteen canonical JSON
+vectors, two synthetic valid cases, and ten isolated invalid cases. The fixture
+harness separately records `schema_status` and `contract_status`; only the
+unknown-field and invalid-commit cases are structural failures. All other
+invalid cases are schema-valid and fail the complete contract validator with a
+stable code.
+
+R13 resolves the schema-artifact boundary: Pydantic emits standards-required
+`$defs` and `$ref` keys, which Pocket Canonical JSON correctly rejects for
+payloads. `bundle.py` therefore uses a private deterministic JSON Schema
+serializer only for `render_schema_files`; canonical payload serialization is
+unchanged. Regeneration parity and Draft 2020-12 meta-validation bind this
+exception.
+
+The required RED receipts were the missing bundle-module import and, after the
+R13 regression was added, `PocketContractError: invalid_object_key` from the
+old schema renderer. The focused GREEN and static receipts were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py tests/contracts/pocket/test_schemas.py tests/contracts/pocket/test_fixtures.py -q --no-cov
+70 passed in 0.16s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+11 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 11 source files
+```
+
+Task 5 intended commit subject: `feat(contracts): add Pocket V1 conformance corpus`.
+The resulting SHA must be recorded by Task 6 under R7.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,
