@@ -14,6 +14,7 @@ CONFIG_PATH = ROOT / ".commit-ci-preflight.toml"
 POLICY_PATH = ROOT / ".commit-ci-policy.toml"
 RECEIPT_GATE_PATH = ROOT / ".github" / "workflows" / "receipt-gate.yml"
 CI_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "ci.yml"
+MAKEFILE_PATH = ROOT / "Makefile"
 
 EXPECTED_IMAGES = {
     "python312": (
@@ -151,6 +152,15 @@ def test_ccp_local_state_is_narrowly_ignored() -> None:
     assert ".ccp-mounts/" in ignored
     assert ".commit-ci-preflight.toml" not in ignored
     assert ".commit-ci-policy.toml" not in ignored
+
+
+def test_make_targets_preserve_the_matrix_preflight_hold() -> None:
+    makefile = MAKEFILE_PATH.read_text(encoding="utf-8")
+    assert "ccp-plan:" in makefile
+    assert "ccp-verify:" in makefile
+    assert "ccp-savings-check:" in makefile
+    assert "ccp-doctor:" not in makefile
+    assert "ccp-dry-run:" not in makefile
 
 
 def test_receipt_gate_is_observation_only_and_trusted() -> None:

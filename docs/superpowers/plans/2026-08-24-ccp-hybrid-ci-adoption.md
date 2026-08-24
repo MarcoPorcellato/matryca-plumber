@@ -52,6 +52,9 @@ v1.0.
   exact merged-commit `main` CI remain hosted.
 - Hosted Linux jobs are not skipped until parity, negative cases, routing
   observation, and separate ruleset authorization are terminal.
+- The pinned CCP source supports matrix `plan` and `run` but not matrix-aware
+  `doctor` or `dry-run`; an official heavy matrix run is blocked until that
+  preflight gap is resolved and the trusted source/policy are re-reviewed.
 - Unknown, denied, unsafe, malformed, stale, mismatched, cancelled, or
   non-terminal state fails closed.
 - Never delete or reinterpret CCP coordinator locks, tickets, leases, journals,
@@ -94,20 +97,20 @@ v1.0.
 - Produces: canonical design, execution plan, historical baseline, evidence
   pointer, and chronology used by every later task.
 
-- [ ] **Step 1: Verify the documentation facts**
+- [x] **Step 1: Verify the documentation facts**
 
   Confirm exact base and CCP SHAs, six baseline workflow IDs, median `319`
   seconds, verifier sample `50` seconds, estimated net `269` seconds, and the
   explicit absence of billing or monetary claims.
 
-- [ ] **Step 2: Add evidence and chronology records**
+- [x] **Step 2: Add evidence and chronology records**
 
   Add `CCP-SAVINGS-BASELINE-001` to `EVIDENCE_INDEX.md` with status
   `historical` and the limitation that no Matryca PR has skipped hosted work.
   Add a newest-first 2026-08-24 knowledge-log entry linking the design and
   baseline and preserving hosted CI as current authority.
 
-- [ ] **Step 3: Synchronize and verify documentation**
+- [x] **Step 3: Synchronize and verify documentation**
 
   ```bash
   make docs-inventory-sync
@@ -120,7 +123,7 @@ v1.0.
   Expected: blocking commands exit `0`; the audit remains informational; the
   generated inventory is byte-consistent.
 
-- [ ] **Step 4: Commit only when locally authorized**
+- [x] **Step 4: Commit only when locally authorized**
 
   ```bash
   git add docs/superpowers/specs/2026-08-24-ccp-hybrid-ci-adoption-design.md \
@@ -148,7 +151,7 @@ v1.0.
 - Produces: runtime IDs `python312`, `python313`, `node22`; stable check IDs;
   exact plan digests; and trusted repository policy.
 
-- [ ] **Step 1: Write failing contract tests**
+- [x] **Step 1: Write failing contract tests**
 
   Use `tomllib` and these exact constants:
 
@@ -164,7 +167,7 @@ v1.0.
   checks, absolute or overlapping cache mounts, inherited secrets, and
   policy/config/image/check drift.
 
-- [ ] **Step 2: Confirm the expected RED state**
+- [x] **Step 2: Confirm the expected RED state**
 
   ```bash
   uv run pytest -q tests/test_ccp_adoption_contract.py
@@ -172,7 +175,7 @@ v1.0.
 
   Expected: FAIL because the contract files do not exist.
 
-- [ ] **Step 3: Create `.commit-ci-preflight.toml`**
+- [x] **Step 3: Create `.commit-ci-preflight.toml`**
 
   Use project `MarcoPorcellato/matryca-plumber`, receipt
   `.ccp/receipt.json`, freshness `86400`, and these initial bounds:
@@ -188,7 +191,7 @@ v1.0.
   `PYTHONDONTWRITEBYTECODE=1`, and `COVERAGE_FILE`. Invoke the commands behind
   `make ci` directly. The Node runtime executes `npm ci`, lint, test, and build.
 
-- [ ] **Step 4: Freeze policy from the reviewed plan**
+- [x] **Step 4: Freeze policy from the reviewed plan**
 
   ```bash
   commit-ci-preflight plan --config .commit-ci-preflight.toml --json
@@ -199,24 +202,23 @@ v1.0.
   `macos`, architecture `aarch64`, runtime kind `docker_compatible`, and age
   `86400`. Never derive policy from a completed receipt.
 
-- [ ] **Step 5: Ignore only CCP-owned local state**
+- [x] **Step 5: Ignore only CCP-owned local state**
 
   Add `.ccp/receipt.json` and `.ccp-mounts/` to `.gitignore`.
 
-- [ ] **Step 6: Verify contract and read-only runtime rendering**
+- [x] **Step 6: Verify the contract and record the upstream preflight gap**
 
   ```bash
   uv run pytest -q tests/test_ccp_adoption_contract.py
   commit-ci-preflight plan --config .commit-ci-preflight.toml --json
-  commit-ci-preflight doctor --config .commit-ci-preflight.toml --json
-  commit-ci-preflight dry-run --config .commit-ci-preflight.toml --repository . --json
   git diff --check
   ```
 
-  Expected: PASS and a read-only source mount with only declared writable
-  bindings.
+  Expected: tests and plan PASS. Preserve the verified source finding that
+  matrix `doctor` and `dry-run` reject `runtime_id`; do not relabel a v1 render
+  as v2 evidence. Block Task 6 until reviewed CCP source closes this gap.
 
-- [ ] **Step 7: Commit when authorized**
+- [x] **Step 7: Commit when authorized**
 
   ```bash
   git add .commit-ci-preflight.toml .commit-ci-policy.toml .gitignore \
@@ -244,7 +246,7 @@ v1.0.
 - Produces: `load_records`, `summarize`, `render_markdown`, and the CLI commands
   `validate`, `render`, `check`, and `promotion-status`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
   Require exact lowercase 40-hex SHAs, positive run/PR IDs, UTC timestamps,
   bounded elapsed seconds, PASS comparability for `ccp_saved`, exclusion of
@@ -252,20 +254,20 @@ v1.0.
   `max(0, candidate - verifier)` net seconds, explicit billing-source binding,
   stable sorting, and byte-identical Markdown.
 
-- [ ] **Step 2: Confirm RED**
+- [x] **Step 2: Confirm RED**
 
   ```bash
   uv run pytest -q tests/test_ccp_savings_report.py
   ```
 
-- [ ] **Step 3: Implement with the Python standard library**
+- [x] **Step 3: Implement with the Python standard library**
 
   Use `argparse`, `dataclasses`, `datetime`, `hashlib`, `json`, `pathlib`, and
   `statistics`. `promotion-status` passes only with at least 10 eligible
   observations over 21 days, two hosted fallbacks, and all four negative
   receipt cases.
 
-- [ ] **Step 4: Encode and render the baseline**
+- [x] **Step 4: Encode and render the baseline**
 
   Record the six workflow IDs and verifier run `32330532453`; classify it
   `observed_baseline` and keep billing fields `null`. Then run:
@@ -279,7 +281,7 @@ v1.0.
 
   Expected: PASS; promotion threshold remains unmet.
 
-- [ ] **Step 5: Commit when authorized**
+- [x] **Step 5: Commit when authorized**
 
   ```bash
   git add docs/quality/ccp-savings \
@@ -304,7 +306,7 @@ v1.0.
 - Produces: exact-head status `commit-ci-preflight/receipt`; it does not yet
   authorize a hosted skip.
 
-- [ ] **Step 1: Extend failing workflow-security tests**
+- [x] **Step 1: Extend failing workflow-security tests**
 
   Assert `pull_request_target` only for opened, synchronize, reopened, and
   ready-for-review; permissions exactly `contents: read` and `statuses: write`;
@@ -312,19 +314,19 @@ v1.0.
   execution, cache, secret, Docker run, project test, `make`, `uv`, or `npm`;
   and final fail-closed status on the exact head.
 
-- [ ] **Step 2: Confirm RED**
+- [x] **Step 2: Confirm RED**
 
   ```bash
   uv run pytest -q tests/test_ccp_adoption_contract.py
   ```
 
-- [ ] **Step 3: Adapt the upstream cross-repository template**
+- [x] **Step 3: Adapt the upstream cross-repository template**
 
   Pin the exact CCP source and full `actions/checkout` commit. Retain the
   six-minute timeout, per-PR cancellation, bounded receipt path, one-MiB input
   limit, trusted verifier-only build, and final `always()` publication.
 
-- [ ] **Step 4: Verify observation-only behavior**
+- [x] **Step 4: Verify observation-only behavior**
 
   ```bash
   uv run pytest -q tests/test_ccp_adoption_contract.py
@@ -335,7 +337,7 @@ v1.0.
   Expected: PASS; `.github/workflows/ci.yml` is unchanged and hosted CI still
   runs fully.
 
-- [ ] **Step 5: Commit when authorized**
+- [x] **Step 5: Commit when authorized**
 
   ```bash
   git add .github/workflows/receipt-gate.yml tests/test_ccp_adoption_contract.py
@@ -361,17 +363,11 @@ v1.0.
 - Produces: non-destructive Make targets and a fail-closed runbook; heavy run
   and push commands remain explicit authority-bearing operations.
 
-- [ ] **Step 1: Add non-destructive Make targets**
+- [x] **Step 1: Add non-destructive Make targets**
 
   ```make
   ccp-plan:
 	commit-ci-preflight plan --config .commit-ci-preflight.toml --json
-
-  ccp-doctor:
-	commit-ci-preflight doctor --config .commit-ci-preflight.toml --json
-
-  ccp-dry-run:
-	commit-ci-preflight dry-run --config .commit-ci-preflight.toml --repository . --json
 
   ccp-verify:
 	commit-ci-preflight verify --receipt .ccp/receipt.json --policy .commit-ci-policy.toml --expected-commit "$$(git rev-parse HEAD)" --json
@@ -380,9 +376,9 @@ v1.0.
 	uv run python scripts/ccp_savings_report.py check --root docs/quality/ccp-savings --output docs/quality/CCP_GITHUB_ACTIONS_SAVINGS_CASE_STUDY.md
   ```
 
-- [ ] **Step 2: Write the exact fail-closed operator sequence**
+- [x] **Step 2: Write the exact fail-closed operator sequence**
 
-  The runbook includes:
+  The runbook includes the read-only bootstrap sequence:
 
   ```bash
   git status --short --branch
@@ -393,27 +389,24 @@ v1.0.
   docker context show
   docker ps -q
   make ccp-plan
-  make ccp-doctor
-  make ccp-dry-run
-  commit-ci-preflight run --config .commit-ci-preflight.toml --repository . --generation <monotonic-integer> --admission-timeout-seconds 21600 --json
-  make ccp-verify
   ```
 
-  Explain how generation advances from the attempt chain. Document interruption,
+  Document the matrix `doctor`/`dry-run` gap as a hard stop. Explain the future
+  run sequence, how generation advances from the attempt chain, interruption,
   restart, quarantine, post-run checks, and fallback without private paths.
 
-- [ ] **Step 3: Document append-only evidence publication**
+- [x] **Step 3: Document append-only evidence publication**
 
   Use a temporary worktree at the exact source SHA, branch
   `ccp-evidence/<source-sha>`, forced add of only `.ccp/receipt.json`, and normal
   non-force push. Stop if the remote branch exists with different bytes.
 
-- [ ] **Step 4: Integrate documentation authority**
+- [x] **Step 4: Integrate documentation authority**
 
   Link the runbook from the knowledge index, add evidence claim
   `CCP-HYBRID-CONTRACT-001` as `proposed`, and add the knowledge-log entry.
 
-- [ ] **Step 5: Verify and commit when authorized**
+- [x] **Step 5: Verify and commit when authorized**
 
   ```bash
   make docs-inventory-sync
@@ -443,6 +436,10 @@ v1.0.
   images, and clean bootstrap commit.
 - Produces: independently verified exact-head receipt and cleanup evidence; no
   GitHub skip authority.
+
+**Prerequisite:** reviewed CCP source must expose matrix-aware runtime diagnosis
+and rendered mount inspection, or a separately approved equivalent. Until then,
+this task is blocked and hosted CI remains authoritative.
 
 - [ ] **Step 1: Diagnose coordinator state read-only**
 
@@ -678,8 +675,6 @@ v1.0.
   make docs-check
   make docs-audit
   make ccp-plan
-  make ccp-doctor
-  make ccp-dry-run
   make ccp-savings-check
   make ci
   git diff --check

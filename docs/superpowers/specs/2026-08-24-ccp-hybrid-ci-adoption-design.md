@@ -171,6 +171,15 @@ therefore claims only the multi-runtime contract actually proven by its plan,
 receipt, macOS resource admission, watchdog, and runtime limits. Expansion of
 the claim requires a separately reviewed CCP contract evolution.
 
+Bootstrap verification identified one additional upstream boundary in the
+exact pinned source: matrix schema `2.0` is dispatched by `plan` and `run`, but
+`doctor` and `dry-run` still load the single-runtime configuration path and
+reject `runtime_id`. The repository therefore exposes only matrix `plan` during
+PR A. An official heavy matrix run remains blocked until reviewed CCP source
+provides matrix-aware runtime diagnosis and mount rendering, or an equivalent
+preflight is separately designed and qualified. A v1 diagnostic cannot be
+transferred to the v2 matrix claim.
+
 ## Pull-request routing contract
 
 | PR state | Receipt decision | Hosted Linux path | Merge effect |
@@ -200,6 +209,8 @@ successful.
   run. Lock, ticket, lease, and coordinator files are never deleted manually.
 - The Docker-compatible runtime must be responsive and unaccounted containers
   must be absent.
+- The matrix-aware runtime diagnosis and mount-rendering gap must be resolved
+  under reviewed CCP source before the first official heavy matrix run.
 - The checkout must be clean and its exact SHA must match the intended PR head.
 - Any check failure, timeout, pressure cancellation, receipt mismatch, or
   evidence-publication failure is inconclusive or failed, never a partial PASS.

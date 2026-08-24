@@ -1104,7 +1104,49 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": "Immutable pre-activation evidence; future epochs add records instead of rewriting this baseline."
+      "notes": "Immutable pre-activation evidence; future epochs add records instead of rewriting this baseline.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/CCP_GITHUB_ACTIONS_SAVINGS_CASE_STUDY.md",
+      "type": "Audit",
+      "title": "Commit CI Preflight GitHub Actions Savings Case Study",
+      "description": "Deterministic status generated from immutable Matryca Plumber hybrid-CI observations.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Generated from the immutable JSON ledger; promotion remains NOT READY until its closed gate passes.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/CCP_HYBRID_CI_RUNBOOK.md",
+      "type": "Runbook",
+      "title": "Commit CI Preflight Hybrid CI Operator Runbook",
+      "description": "Fail-closed operating sequence for Matryca Plumber local qualification, exact-head receipt verification, hosted fallback, and savings evidence.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Bootstrap and observation authority only; heavy matrix qualification remains blocked on reviewed preflight support.",
+      "missing": false
     },
     {
       "path": "docs/quality/CI_RESOURCE_ADMISSION_RUNBOOK.md",
@@ -3709,7 +3751,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Execution plan; hosted skips, ruleset mutation, and cross-repository publication remain separately gated."
+      "notes": "Execution plan; hosted skips, ruleset mutation, and cross-repository publication remain separately gated.",
+      "missing": false
     },
     {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
@@ -3750,7 +3793,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Approved architecture; implementation, routing activation, and public savings claims remain evidence-gated."
+      "notes": "Approved architecture; implementation, routing activation, and public savings claims remain evidence-gated.",
+      "missing": false
     },
     {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",

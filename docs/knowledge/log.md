@@ -2,6 +2,13 @@
 
 ## 2026-08-24
 
+- **Hybrid local CI bootstrap:** added the pinned three-runtime CCP matrix,
+  exact policy bindings, observation-only trusted receipt gate, immutable
+  savings ledger and generated report, and the fail-closed operator runbook.
+  Source verification found that matrix `doctor` and `dry-run` are not yet
+  supported at the reviewed CCP pin, so official heavy local qualification and
+  any hosted skip remain blocked while full hosted CI stays authoritative.
+
 - **Hybrid local CI design:** approved a fail-closed, observation-first
   [Commit CI Preflight adoption design](../superpowers/specs/2026-08-24-ccp-hybrid-ci-adoption-design.md)
   and preserved its [pre-activation GitHub Actions baseline](../quality/CCP_GITHUB_ACTIONS_SAVINGS_BASELINE_2026-08-24.md).
