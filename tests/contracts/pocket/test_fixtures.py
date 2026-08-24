@@ -4,6 +4,7 @@ import hashlib
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import cast
 
@@ -24,6 +25,9 @@ SCHEMA_ROOT = CONTRACT_ROOT / "schemas"
 VECTOR_PATH = CONTRACT_ROOT / "vectors/canonical-json.json"
 MAX_JSON_BYTES = 1_000_000
 MAX_JSONL_ROW_BYTES = 128_000
+EXPECTED_CASE_FILES = frozenset(
+    {"documents.jsonl", "evidence.jsonl", "expectation.json", "manifest.json"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,9 +37,47 @@ class FixtureExpectation:
     contract_error_code: str | None = None
 
 
+class _ReadTrackingBuffer(BytesIO):
+    def __init__(self, initial_bytes: bytes) -> None:
+        super().__init__(initial_bytes)
+        self.read_sizes: list[int] = []
+
+    def read(self, size: int | None = -1) -> bytes:
+        self.read_sizes.append(-1 if size is None else size)
+        return super().read(size)
+
+
+class _ReadTrackingPath:
+    def __init__(self, initial_bytes: bytes) -> None:
+        self.buffer = _ReadTrackingBuffer(initial_bytes)
+
+    def open(self, mode: str) -> _ReadTrackingBuffer:
+        assert mode == "rb"
+        return self.buffer
+
+
+def test_read_bounded_reads_only_limit_plus_one_bytes() -> None:
+    path = _ReadTrackingPath(b"12345")
+
+    with pytest.raises(AssertionError, match="fixture_too_large"):
+        _read_bounded(cast(Path, path), limit=4)
+
+    assert path.buffer.read_sizes == [5]
+
+
+def test_fixture_file_set_rejects_extra_file(tmp_path: Path) -> None:
+    for filename in EXPECTED_CASE_FILES | {"extra.json"}:
+        (tmp_path / filename).write_bytes(b"")
+
+    with pytest.raises(AssertionError, match="unexpected_fixture_files"):
+        _assert_case_files(tmp_path)
+
+
 def _read_bounded(path: Path, limit: int = MAX_JSON_BYTES) -> bytes:
-    raw = path.read_bytes()
-    assert len(raw) <= limit, path
+    with path.open("rb") as handle:
+        raw = handle.read(limit + 1)
+    if len(raw) > limit:
+        raise AssertionError("fixture_too_large")
     return raw
 
 
@@ -98,6 +140,11 @@ def _case_roots() -> tuple[Path, ...]:
     return tuple(sorted(path for path in FIXTURE_ROOT.glob("*/*") if path.is_dir()))
 
 
+def _assert_case_files(case_root: Path) -> None:
+    if {path.name for path in case_root.iterdir()} != EXPECTED_CASE_FILES:
+        raise AssertionError("unexpected_fixture_files")
+
+
 def test_fixture_cases_declare_and_meet_independent_schema_and_contract_statuses() -> None:
     cases = _case_roots()
     assert {case.relative_to(FIXTURE_ROOT).as_posix() for case in cases} == {
@@ -115,6 +162,7 @@ def test_fixture_cases_declare_and_meet_independent_schema_and_contract_statuses
         "valid/unicode-citation",
     }
     for case in cases:
+        _assert_case_files(case)
         expectation = load_expectation(case / "expectation.json")
         schema_status = "invalid" if tuple(_schema_errors(case)) else "valid"
         contract_error = _contract_error(case)
@@ -135,7 +183,14 @@ def test_canonical_vectors_bind_bytes_digests_and_recursive_values() -> None:
     cases = raw["cases"]
     assert isinstance(cases, list)
     names = {case["name"] for case in cases if isinstance(case, dict)}
-    assert {"nested-objects", "ordered-array"}.issubset(names)
+    assert {"direct-recursive-list-object", "nested-objects", "ordered-array"}.issubset(names)
+    direct_case = next(case for case in cases if case["name"] == "direct-recursive-list-object")
+    assert direct_case == {
+        "canonical_text": '{"direct":[{"child":{"items":[]}}]}',
+        "name": "direct-recursive-list-object",
+        "sha256": "254a53e5185da7bfc83139b60dda21da2874ea50f83cb88a2ffc72e560ced1ee",
+        "value": {"direct": [{"child": {"items": []}}]},
+    }
     for case in cases:
         assert isinstance(case, dict)
         value = cast(JsonValue, case["value"])

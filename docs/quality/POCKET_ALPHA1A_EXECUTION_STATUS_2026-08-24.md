@@ -293,6 +293,36 @@ Success: no issues found in 11 source files
 Task 5 intended commit subject: `feat(contracts): add Pocket V1 conformance corpus`.
 The resulting SHA must be recorded by Task 6 under R7.
 
+### Task 5 fix round 1: bounded fixture reads and direct recursion vector
+
+The fixture harness now reads at most `limit + 1` bytes before deciding that a
+file is too large, with stable `fixture_too_large` behavior. It also rejects any
+case directory whose file set differs from the four declared fixture files. The
+canonical vector corpus adds the direct recursive list-to-object case
+`{"direct":[{"child":{"items":[]}}]}` with SHA-256
+`254a53e5185da7bfc83139b60dda21da2874ea50f83cb88a2ffc72e560ced1ee`.
+
+The focused RED and final GREEN receipts were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_fixtures.py -q --no-cov -k 'read_bounded or fixture_file_set or canonical_vectors'
+3 failed, 2 deselected in 0.11s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py tests/contracts/pocket/test_schemas.py tests/contracts/pocket/test_fixtures.py -q --no-cov
+72 passed in 0.17s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+11 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 11 source files
+```
+
+Task 5 fix-round intended commit subject: `fix(contracts): bound fixture reads and complete vectors`.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,
