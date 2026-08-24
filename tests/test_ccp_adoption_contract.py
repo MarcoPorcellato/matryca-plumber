@@ -7,6 +7,8 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / ".commit-ci-preflight.toml"
 POLICY_PATH = ROOT / ".commit-ci-policy.toml"
@@ -153,6 +155,16 @@ def test_ccp_local_state_is_narrowly_ignored() -> None:
 
 def test_receipt_gate_is_observation_only_and_trusted() -> None:
     workflow = RECEIPT_GATE_PATH.read_text(encoding="utf-8")
+    parsed = yaml.load(workflow, Loader=yaml.BaseLoader)
+    assert isinstance(parsed, dict)
+    assert parsed["on"]["pull_request_target"]["types"] == [
+        "opened",
+        "synchronize",
+        "reopened",
+        "ready_for_review",
+    ]
+    assert parsed["permissions"] == {"contents": "read", "statuses": "write"}
+    assert set(parsed["jobs"]) == {"receipt"}
     required = (
         "pull_request_target:",
         "types: [opened, synchronize, reopened, ready_for_review]",
