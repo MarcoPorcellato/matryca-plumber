@@ -45,10 +45,24 @@ Task 2 intended commit subject: `feat(contracts): add Pocket canonical JSON`.
 The resulting Task 2 SHA must be appended by Task 3; this task cannot record its own SHA.
 
 R8–R10 recovery ruling corrected the plan's canonical digest vectors to
-`5542d7da4dc43e39c1a568dedf22af565304b575c871db738c4a9a2718df75ba` and
-recorded the focused GREEN evidence: 6 tests passed; Ruff format/check passed;
-mypy passed with no issues. The original missing-module RED evidence remains
-valid above.
+`5542d7da4dc43e39c1a568dedf22af565304b575c871db738c4a9a2718df75ba`. The
+original missing-module RED evidence remains valid above. The exact focused
+GREEN commands and terminal outcomes were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py -q --no-cov
+......                                                                   [100%]
+6 passed in 0.03s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+6 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 6 source files
+```
 
 ## Isolation and baseline evidence
 
