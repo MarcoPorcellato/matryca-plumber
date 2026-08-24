@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import stat
-from collections.abc import Iterator
 from dataclasses import asdict
 from pathlib import Path
 
@@ -161,6 +160,34 @@ def test_rejects_ancestor_symlinks_and_overlong_bundle_paths(tmp_path: Path) -> 
     BundleFileV1(path="è" * 2048, size_bytes=0, sha256="0" * 64)
     with pytest.raises(ValueError, match="unsafe_bundle_path"):
         BundleFileV1(path="è" * 2049, size_bytes=0, sha256="0" * 64)
+    for unsafe_path in ("bad\u0085name", "bad\ud800name"):
+        with pytest.raises(ValueError, match="unsafe_bundle_path"):
+            BundleFileV1(path=unsafe_path, size_bytes=0, sha256="0" * 64)
+
+
+def test_build_rejects_c1_and_surrogate_source_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c1_source = tmp_path / "c1-source"
+    c1_source.mkdir()
+    (c1_source / "bad\u0085name").write_bytes(b"x")
+    with pytest.raises(PocketContractError, match="^unsafe_bundle_path$"):
+        build_contract_bundle(c1_source, tmp_path / "c1-output")
+
+    surrogate_source = tmp_path / "surrogate-source"
+    surrogate_source.mkdir()
+    fake_entry = bundle_module._TreeEntry(
+        path="bad\ud800name",
+        mode=stat.S_IFREG | 0o600,
+        size_bytes=0,
+        device=0,
+        inode=0,
+    )
+    monkeypatch.setattr(
+        bundle_module, "_bounded_tree_entries", lambda *_args, **_kwargs: [fake_entry]
+    )
+    with pytest.raises(PocketContractError, match="^unsafe_bundle_path$"):
+        build_contract_bundle(surrogate_source, tmp_path / "surrogate-output")
 
 
 def test_rejects_fifo_unsafe_names_and_source_manifest(tmp_path: Path) -> None:
@@ -376,6 +403,183 @@ def test_build_rejects_output_ancestor_substitution_before_staging(
     assert not list(displaced_parent.glob(".output.*"))
 
 
+def test_build_has_no_validation_to_parent_open_redirect_gap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selected_parent = tmp_path / "selected-parent"
+    selected_parent.mkdir()
+    output = selected_parent / "output"
+    substitute_parent = tmp_path / "substitute-parent"
+    substitute_parent.mkdir()
+    displaced_parent = tmp_path / "displaced-parent"
+    original_validation = bundle_module._validate_output_root
+    substituted = False
+
+    def _swap_after_validation(path: Path) -> None:
+        nonlocal substituted
+        original_validation(path)
+        selected_parent.replace(displaced_parent)
+        substitute_parent.replace(selected_parent)
+        substituted = True
+
+    monkeypatch.setattr(bundle_module, "_validate_output_root", _swap_after_validation)
+    receipt = build_contract_bundle(SOURCE, output)
+    assert not substituted
+    assert verify_contract_bundle(output) == receipt
+    assert not displaced_parent.exists()
+
+
+@pytest.mark.parametrize("existing_output", [False, True])
+def test_postpublish_identity_failure_rolls_back_absent_or_empty_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    existing_output: bool,
+) -> None:
+    selected_parent = tmp_path / "selected-parent"
+    selected_parent.mkdir()
+    output = selected_parent / "output"
+    if existing_output:
+        output.mkdir()
+    substitute_parent = tmp_path / "substitute-parent"
+    substitute_parent.mkdir()
+    displaced_parent = tmp_path / "displaced-parent"
+    original_identity = bundle_module._assert_root_identity
+    identity_checks = 0
+
+    def _swap_after_prepublish_check(path: Path, descriptor: int, *, code: str) -> None:
+        nonlocal identity_checks
+        identity_checks += 1
+        original_identity(path, descriptor, code=code)
+        if identity_checks == 1:
+            selected_parent.replace(displaced_parent)
+            substitute_parent.replace(selected_parent)
+
+    monkeypatch.setattr(bundle_module, "_assert_root_identity", _swap_after_prepublish_check)
+    with pytest.raises(PocketContractError, match="^unsafe_output_parent$"):
+        build_contract_bundle(SOURCE, output)
+    assert identity_checks == 2
+    assert not output.exists()
+    displaced_output = displaced_parent / "output"
+    assert displaced_output.exists() is existing_output
+    if existing_output:
+        assert list(displaced_output.iterdir()) == []
+    assert not list(displaced_parent.glob(".output.*"))
+
+
+def test_postcommit_output_parent_close_error_does_not_reverse_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "output"
+    original_open_root = bundle_module._open_root
+    original_close = os.close
+    output_parent_descriptor: int | None = None
+
+    def _capture_output_parent(path: Path, *, code: str) -> int:
+        nonlocal output_parent_descriptor
+        descriptor = original_open_root(path, code=code)
+        if path == output.parent and code == "unsafe_output_parent":
+            output_parent_descriptor = descriptor
+        return descriptor
+
+    def _fail_final_close(descriptor: int) -> None:
+        if descriptor == output_parent_descriptor and output.exists():
+            raise OSError("postcommit close")
+        original_close(descriptor)
+
+    monkeypatch.setattr(bundle_module, "_open_root", _capture_output_parent)
+    monkeypatch.setattr(os, "close", _fail_final_close)
+    receipt = build_contract_bundle(SOURCE, output)
+    assert verify_contract_bundle(output) == receipt
+    assert output_parent_descriptor is not None
+    original_close(output_parent_descriptor)
+
+
+@pytest.mark.parametrize("operation", ["read", "write"])
+def test_descriptor_handoff_close_failure_closes_each_descriptor_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    operation: str,
+) -> None:
+    root = tmp_path / operation
+    (root / "nested").mkdir(parents=True)
+    original_open = os.open
+    original_close = os.close
+    original_dup = os.dup
+    root_descriptor = original_open(root, os.O_RDONLY | os.O_DIRECTORY)
+    old_descriptor: int | None = None
+    next_descriptor: int | None = None
+    close_calls: list[int] = []
+
+    def _capture_dup(descriptor: int) -> int:
+        nonlocal old_descriptor
+        duplicated = original_dup(descriptor)
+        old_descriptor = duplicated
+        return duplicated
+
+    def _capture_open(
+        path: str | os.PathLike[str],
+        flags: int,
+        *args: int,
+        **kwargs: int,
+    ) -> int:
+        nonlocal next_descriptor
+        opened = original_open(path, flags, *args, **kwargs)
+        if Path(path) == Path("nested") and kwargs.get("dir_fd") == old_descriptor:
+            next_descriptor = opened
+        return opened
+
+    def _fail_old_close(descriptor: int) -> None:
+        close_calls.append(descriptor)
+        original_close(descriptor)
+        if descriptor == old_descriptor:
+            raise OSError("handoff close")
+
+    monkeypatch.setattr(os, "dup", _capture_dup)
+    monkeypatch.setattr(os, "open", _capture_open)
+    monkeypatch.setattr(os, "close", _fail_old_close)
+    with pytest.raises(PocketContractError):
+        if operation == "read":
+            bundle_module._open_relative_directory(
+                root_descriptor, ("nested",), code="source_changed"
+            )
+        else:
+            bundle_module._write_file_at(root_descriptor, "nested/file", b"x")
+    assert old_descriptor is not None and next_descriptor is not None
+    assert close_calls.count(old_descriptor) == 1
+    assert close_calls.count(next_descriptor) == 1
+    monkeypatch.undo()
+    original_close(root_descriptor)
+
+
+def test_missing_follow_symlink_capability_and_notimplemented_fail_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(bundle_module, "_STAT_SUPPORTS_FOLLOW_SYMLINKS", False, raising=False)
+    with pytest.raises(PocketContractError, match="^safe_open_unsupported$"):
+        build_contract_bundle(SOURCE, tmp_path / "missing-capability")
+
+    monkeypatch.undo()
+    original_stat = os.stat
+
+    def _unsupported_stat(
+        path: str | bytes | os.PathLike[str] | int,
+        *,
+        dir_fd: int | None = None,
+        follow_symlinks: bool = True,
+    ) -> os.stat_result:
+        if not follow_symlinks:
+            raise NotImplementedError("private path")
+        return original_stat(path, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+
+    monkeypatch.setattr(os, "stat", _unsupported_stat)
+    with pytest.raises(PocketContractError, match="^safe_open_unsupported$") as captured:
+        build_contract_bundle(SOURCE, tmp_path / "unsupported-stat")
+    assert captured.value.__cause__ is None
+    assert "private path" not in str(captured.value)
+
+
 def test_public_filesystem_errors_are_normalized_and_caps_precede_reads(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -403,14 +607,24 @@ def test_prevalidation_permission_errors_are_content_free_contract_errors(
 ) -> None:
     destination = tmp_path / "destination"
     destination.mkdir()
-    original_iterdir = Path.iterdir
+    destination_identity = (destination.stat().st_dev, destination.stat().st_ino)
+    original_scandir = os.scandir
 
-    def _deny_output(path: Path) -> Iterator[Path]:
-        if path == destination:
+    def _deny_output(
+        path: int | str | bytes | os.PathLike[str] | os.PathLike[bytes],
+    ) -> object:
+        if (
+            isinstance(path, int)
+            and (
+                os.fstat(path).st_dev,
+                os.fstat(path).st_ino,
+            )
+            == destination_identity
+        ):
             raise PermissionError("private-output-path")
-        return original_iterdir(path)
+        return original_scandir(path)
 
-    monkeypatch.setattr(Path, "iterdir", _deny_output)
+    monkeypatch.setattr(os, "scandir", _deny_output)
     with pytest.raises(PocketContractError, match="^unsafe_output_root$") as captured:
         build_contract_bundle(SOURCE, destination)
     assert captured.value.__cause__ is None

@@ -10,7 +10,7 @@ import uuid
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Final, Literal, cast
+from typing import Final, Literal, Never, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -24,6 +24,7 @@ MAX_PATH_BYTES: Final[int] = 4_096
 MAX_DIRECTORY_ENTRIES: Final[int] = 32_768
 _OPEN_SUPPORTS_DIR_FD: Final[bool] = os.open in os.supports_dir_fd
 _SCANDIR_SUPPORTS_FD: Final[bool] = os.scandir in os.supports_fd
+_STAT_SUPPORTS_FOLLOW_SYMLINKS: Final[bool] = os.stat in os.supports_follow_symlinks
 _MUTATIONS_SUPPORT_DIR_FD: Final[bool] = all(
     function in os.supports_dir_fd
     for function in (os.mkdir, os.rename, os.stat, os.unlink, os.rmdir)
@@ -66,13 +67,17 @@ def render_schema_files() -> dict[str, bytes]:
 def _validate_bundle_path(value: str) -> None:
     path = PurePosixPath(value)
     raw_parts = value.split("/")
+    try:
+        encoded_length = len(value.encode("utf-8"))
+    except UnicodeEncodeError:
+        raise PocketContractError("unsafe_bundle_path") from None
     if (
         not unicodedata.is_normalized("NFC", value)
         or path.is_absolute()
         or any(part in {"", ".", ".."} for part in raw_parts)
         or "\\" in value
-        or any(ord(character) < 32 or ord(character) == 127 for character in value)
-        or len(value.encode("utf-8")) > MAX_PATH_BYTES
+        or any(unicodedata.category(character) in {"Cc", "Cs"} for character in value)
+        or encoded_length > MAX_PATH_BYTES
     ):
         raise PocketContractError("unsafe_bundle_path")
 
@@ -132,12 +137,19 @@ class _TreeEntry:
     inode: int
 
 
+@dataclass(frozen=True, slots=True)
+class _PublishTransaction:
+    output_existed: bool
+    backup_name: str | None
+
+
 def _safe_open_flags(*, directory: bool) -> int:
     if (
         not hasattr(os, "O_NOFOLLOW")
         or (directory and not hasattr(os, "O_DIRECTORY"))
         or not _OPEN_SUPPORTS_DIR_FD
         or not _SCANDIR_SUPPORTS_FD
+        or not _STAT_SUPPORTS_FOLLOW_SYMLINKS
         or not _MUTATIONS_SUPPORT_DIR_FD
     ):
         raise PocketContractError("safe_open_unsupported")
@@ -152,8 +164,24 @@ def _safe_open_flags(*, directory: bool) -> int:
 def _close_descriptor(descriptor: int, *, code: str) -> None:
     try:
         os.close(descriptor)
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
+
+
+def _handoff_descriptor(current: int, next_descriptor: int, *, code: str) -> int:
+    try:
+        os.close(current)
+    except (OSError, NotImplementedError) as error:
+        with suppress(OSError, NotImplementedError):
+            os.close(next_descriptor)
+        _raise_filesystem_error(error, code=code)
+    return next_descriptor
+
+
+def _raise_filesystem_error(error: BaseException, *, code: str) -> Never:
+    if isinstance(error, NotImplementedError):
+        raise PocketContractError("safe_open_unsupported") from None
+    raise PocketContractError(code) from None
 
 
 def _reject_symlink_ancestors(path: Path, *, allow_missing_leaf: bool, code: str) -> None:
@@ -165,9 +193,13 @@ def _reject_symlink_ancestors(path: Path, *, allow_missing_leaf: bool, code: str
         current /= part
         try:
             mode = current.lstat().st_mode
-        except (FileNotFoundError, PermissionError, OSError):
+        except FileNotFoundError:
             if allow_missing_leaf and index == len(parts) - 1:
                 return
+            raise PocketContractError(code) from None
+        except NotImplementedError:
+            raise PocketContractError("safe_open_unsupported") from None
+        except (PermissionError, OSError):
             raise PocketContractError(code) from None
         if stat.S_ISLNK(mode):
             raise PocketContractError(code)
@@ -182,8 +214,8 @@ def _open_root(path: Path, *, code: str) -> int:
         descriptor = os.open(path, _safe_open_flags(directory=True))
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     try:
         opened = os.fstat(descriptor)
         if not stat.S_ISDIR(opened.st_mode) or (opened.st_dev, opened.st_ino) != (
@@ -194,9 +226,9 @@ def _open_root(path: Path, *, code: str) -> int:
     except PocketContractError:
         _close_descriptor(descriptor, code=code)
         raise
-    except OSError:
+    except (OSError, NotImplementedError) as error:
         _close_descriptor(descriptor, code=code)
-        raise PocketContractError(code) from None
+        _raise_filesystem_error(error, code=code)
     return descriptor
 
 
@@ -212,8 +244,8 @@ def _validate_output_root(output_dir: Path) -> None:
         return
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError("unsafe_output_root") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="unsafe_output_root")
     if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
         raise PocketContractError("unsafe_output_root")
     try:
@@ -221,16 +253,16 @@ def _validate_output_root(output_dir: Path) -> None:
             raise PocketContractError("output_not_empty")
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError("unsafe_output_root") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="unsafe_output_root")
 
 
 def _assert_root_identity(path: Path, descriptor: int, *, code: str) -> None:
     try:
         expected = path.lstat()
         opened = os.fstat(descriptor)
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     if (
         not stat.S_ISDIR(expected.st_mode)
         or stat.S_ISLNK(expected.st_mode)
@@ -244,8 +276,8 @@ def _validate_output_entry_at(parent_descriptor: int, output_name: str) -> None:
         mode = os.stat(output_name, dir_fd=parent_descriptor, follow_symlinks=False).st_mode
     except FileNotFoundError:
         return
-    except OSError:
-        raise PocketContractError("unsafe_output_root") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="unsafe_output_root")
     if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
         raise PocketContractError("unsafe_output_root")
     try:
@@ -254,8 +286,8 @@ def _validate_output_entry_at(parent_descriptor: int, output_name: str) -> None:
             _safe_open_flags(directory=True),
             dir_fd=parent_descriptor,
         )
-    except OSError:
-        raise PocketContractError("unsafe_output_root") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="unsafe_output_root")
     try:
         try:
             with os.scandir(descriptor) as entries:
@@ -263,8 +295,8 @@ def _validate_output_entry_at(parent_descriptor: int, output_name: str) -> None:
                     raise PocketContractError("output_not_empty")
         except PocketContractError:
             raise
-        except OSError:
-            raise PocketContractError("unsafe_output_root") from None
+        except (OSError, NotImplementedError) as error:
+            _raise_filesystem_error(error, code="unsafe_output_root")
     finally:
         _close_descriptor(descriptor, code="unsafe_output_root")
 
@@ -273,8 +305,8 @@ def _read_regular_file(path: Path, *, expected_size: int, source: bool) -> bytes
     code = "source_changed" if source else "bundle_digest_mismatch"
     try:
         descriptor = os.open(path, _safe_open_flags(directory=False))
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     try:
         opened = os.fstat(descriptor)
         if not stat.S_ISREG(opened.st_mode):
@@ -289,8 +321,8 @@ def _read_regular_file(path: Path, *, expected_size: int, source: bool) -> bytes
             if not block:
                 break
             data.extend(block)
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     finally:
         _close_descriptor(descriptor, code=code)
     if len(data) > MAX_FILE_BYTES:
@@ -302,24 +334,33 @@ def _read_regular_file(path: Path, *, expected_size: int, source: bool) -> bytes
 
 def _open_relative_directory(root_descriptor: int, parts: tuple[str, ...], *, code: str) -> int:
     try:
-        descriptor = os.dup(root_descriptor)
-    except OSError:
-        raise PocketContractError(code) from None
+        descriptor: int | None = os.dup(root_descriptor)
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     try:
         for part in parts:
+            assert descriptor is not None
             next_descriptor = os.open(
                 part,
                 _safe_open_flags(directory=True),
                 dir_fd=descriptor,
             )
-            _close_descriptor(descriptor, code=code)
-            descriptor = next_descriptor
+            current_descriptor = descriptor
+            descriptor = None
+            descriptor = _handoff_descriptor(
+                current_descriptor,
+                next_descriptor,
+                code=code,
+            )
     except PocketContractError:
-        _close_descriptor(descriptor, code=code)
+        if descriptor is not None:
+            _close_descriptor(descriptor, code=code)
         raise
-    except OSError:
-        _close_descriptor(descriptor, code=code)
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        if descriptor is not None:
+            _close_descriptor(descriptor, code=code)
+        _raise_filesystem_error(error, code=code)
+    assert descriptor is not None
     return descriptor
 
 
@@ -331,18 +372,25 @@ def _read_relative_file(
 ) -> bytes:
     code = "source_changed" if source else "bundle_digest_mismatch"
     parts = tuple(PurePosixPath(entry.path).parts)
-    parent_descriptor = _open_relative_directory(root_descriptor, parts[:-1], code=code)
+    parent_descriptor: int | None = _open_relative_directory(root_descriptor, parts[:-1], code=code)
     try:
-        try:
-            descriptor = os.open(
-                parts[-1],
-                _safe_open_flags(directory=False),
-                dir_fd=parent_descriptor,
-            )
-        except OSError:
-            raise PocketContractError(code) from None
-    finally:
-        _close_descriptor(parent_descriptor, code=code)
+        assert parent_descriptor is not None
+        next_descriptor = os.open(
+            parts[-1],
+            _safe_open_flags(directory=False),
+            dir_fd=parent_descriptor,
+        )
+        current_descriptor = parent_descriptor
+        parent_descriptor = None
+        descriptor = _handoff_descriptor(current_descriptor, next_descriptor, code=code)
+    except PocketContractError:
+        if parent_descriptor is not None:
+            _close_descriptor(parent_descriptor, code=code)
+        raise
+    except (OSError, NotImplementedError) as error:
+        if parent_descriptor is not None:
+            _close_descriptor(parent_descriptor, code=code)
+        _raise_filesystem_error(error, code=code)
     try:
         opened = os.fstat(descriptor)
         if not stat.S_ISREG(opened.st_mode):
@@ -362,8 +410,8 @@ def _read_relative_file(
             data.extend(block)
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     finally:
         _close_descriptor(descriptor, code=code)
     if len(data) > MAX_FILE_BYTES:
@@ -377,8 +425,8 @@ def _bounded_tree_entries(root_descriptor: int, *, code: str) -> list[_TreeEntry
     pending: list[tuple[str, int]] = []
     try:
         pending.append(("", os.dup(root_descriptor)))
-    except OSError:
-        raise PocketContractError(code) from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code=code)
     entries: list[_TreeEntry] = []
     try:
         while pending:
@@ -403,8 +451,8 @@ def _bounded_tree_entries(root_descriptor: int, *, code: str) -> list[_TreeEntry
                         )
             except PocketContractError:
                 raise
-            except OSError:
-                raise PocketContractError(code) from None
+            except (OSError, NotImplementedError) as error:
+                _raise_filesystem_error(error, code=code)
             finally:
                 _close_descriptor(directory_descriptor, code=code)
             for child in reversed(sorted(children, key=lambda item: item.path)):
@@ -413,9 +461,9 @@ def _bounded_tree_entries(root_descriptor: int, *, code: str) -> list[_TreeEntry
                     child_descriptor = _open_relative_directory(root_descriptor, parts, code=code)
                     try:
                         opened = os.fstat(child_descriptor)
-                    except OSError:
+                    except (OSError, NotImplementedError) as error:
                         _close_descriptor(child_descriptor, code=code)
-                        raise PocketContractError(code) from None
+                        _raise_filesystem_error(error, code=code)
                     if (opened.st_dev, opened.st_ino) != (child.device, child.inode):
                         _close_descriptor(child_descriptor, code=code)
                         raise PocketContractError(code)
@@ -423,7 +471,7 @@ def _bounded_tree_entries(root_descriptor: int, *, code: str) -> list[_TreeEntry
             entries.extend(children)
     finally:
         for _path, pending_descriptor in pending:
-            with suppress(OSError):
+            with suppress(OSError, NotImplementedError):
                 os.close(pending_descriptor)
     return sorted(entries, key=lambda item: item.path)
 
@@ -444,6 +492,7 @@ def _source_regular_entries(root_descriptor: int) -> tuple[_TreeEntry, ...]:
     regular_entries: list[_TreeEntry] = []
     total_size = 0
     for entry in entries:
+        _validate_bundle_path(entry.path)
         if stat.S_ISLNK(entry.mode):
             raise PocketContractError("nonregular_source_file")
         if stat.S_ISDIR(entry.mode):
@@ -580,8 +629,8 @@ def _entry_exists_at(parent_descriptor: int, name: str) -> bool:
         os.stat(name, dir_fd=parent_descriptor, follow_symlinks=False)
     except FileNotFoundError:
         return False
-    except OSError:
-        raise PocketContractError("bundle_publish_failed") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="bundle_publish_failed")
     return True
 
 
@@ -590,8 +639,8 @@ def _remove_tree_at(parent_descriptor: int, name: str) -> None:
         observed = os.stat(name, dir_fd=parent_descriptor, follow_symlinks=False)
     except FileNotFoundError:
         return
-    except OSError:
-        raise PocketContractError("staging_cleanup_failed") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="staging_cleanup_failed")
     try:
         if stat.S_ISDIR(observed.st_mode) and not stat.S_ISLNK(observed.st_mode):
             descriptor = os.open(
@@ -614,15 +663,15 @@ def _remove_tree_at(parent_descriptor: int, name: str) -> None:
             os.unlink(name, dir_fd=parent_descriptor)
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError("staging_cleanup_failed") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="staging_cleanup_failed")
 
 
 def _remove_empty_directory_at(parent_descriptor: int, name: str) -> None:
     try:
         os.rmdir(name, dir_fd=parent_descriptor)
-    except OSError:
-        raise PocketContractError("staging_cleanup_failed") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="staging_cleanup_failed")
 
 
 def _remove_staging(path: Path) -> None:
@@ -640,30 +689,36 @@ def _create_staging_at(parent_descriptor: int, output_name: str) -> tuple[str, i
             os.mkdir(staging_name, 0o700, dir_fd=parent_descriptor)
         except FileExistsError:
             continue
-        except OSError:
-            raise PocketContractError("bundle_write_failed") from None
+        except (OSError, NotImplementedError) as error:
+            _raise_filesystem_error(error, code="bundle_write_failed")
         try:
             descriptor = os.open(
                 staging_name,
                 _safe_open_flags(directory=True),
                 dir_fd=parent_descriptor,
             )
-        except (OSError, PocketContractError):
-            with suppress(OSError):
+        except PocketContractError:
+            with suppress(OSError, NotImplementedError):
                 os.rmdir(staging_name, dir_fd=parent_descriptor)
-            raise PocketContractError("bundle_write_failed") from None
+            raise
+        except (OSError, NotImplementedError) as error:
+            with suppress(OSError, NotImplementedError):
+                os.rmdir(staging_name, dir_fd=parent_descriptor)
+            _raise_filesystem_error(error, code="bundle_write_failed")
         return staging_name, descriptor
     raise PocketContractError("bundle_write_failed")
 
 
 def _write_file_at(root_descriptor: int, path: str, data: bytes) -> None:
+    _validate_bundle_path(path)
     parts = tuple(PurePosixPath(path).parts)
     try:
-        parent_descriptor = os.dup(root_descriptor)
-    except OSError:
-        raise PocketContractError("bundle_write_failed") from None
+        parent_descriptor: int | None = os.dup(root_descriptor)
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="bundle_write_failed")
     try:
         for part in parts[:-1]:
+            assert parent_descriptor is not None
             with suppress(FileExistsError):
                 os.mkdir(part, 0o700, dir_fd=parent_descriptor)
             next_descriptor = os.open(
@@ -671,13 +726,26 @@ def _write_file_at(root_descriptor: int, path: str, data: bytes) -> None:
                 _safe_open_flags(directory=True),
                 dir_fd=parent_descriptor,
             )
-            _close_descriptor(parent_descriptor, code="bundle_write_failed")
-            parent_descriptor = next_descriptor
-        descriptor = os.open(
+            current_descriptor = parent_descriptor
+            parent_descriptor = None
+            parent_descriptor = _handoff_descriptor(
+                current_descriptor,
+                next_descriptor,
+                code="bundle_write_failed",
+            )
+        assert parent_descriptor is not None
+        next_descriptor = os.open(
             parts[-1],
             os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
             0o600,
             dir_fd=parent_descriptor,
+        )
+        current_descriptor = parent_descriptor
+        parent_descriptor = None
+        descriptor = _handoff_descriptor(
+            current_descriptor,
+            next_descriptor,
+            code="bundle_write_failed",
         )
         try:
             remaining = memoryview(data)
@@ -690,13 +758,18 @@ def _write_file_at(root_descriptor: int, path: str, data: bytes) -> None:
             _close_descriptor(descriptor, code="bundle_write_failed")
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError("bundle_write_failed") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="bundle_write_failed")
     finally:
-        _close_descriptor(parent_descriptor, code="bundle_write_failed")
+        if parent_descriptor is not None:
+            _close_descriptor(parent_descriptor, code="bundle_write_failed")
 
 
-def _publish_staging_at(parent_descriptor: int, staging_name: str, output_name: str) -> None:
+def _begin_publish_at(
+    parent_descriptor: int,
+    staging_name: str,
+    output_name: str,
+) -> _PublishTransaction:
     output_exists = _entry_exists_at(parent_descriptor, output_name)
     if not output_exists:
         try:
@@ -706,9 +779,9 @@ def _publish_staging_at(parent_descriptor: int, staging_name: str, output_name: 
                 src_dir_fd=parent_descriptor,
                 dst_dir_fd=parent_descriptor,
             )
-        except OSError:
-            raise PocketContractError("bundle_publish_failed") from None
-        return
+        except (OSError, NotImplementedError) as error:
+            _raise_filesystem_error(error, code="bundle_publish_failed")
+        return _PublishTransaction(output_existed=False, backup_name=None)
 
     backup_name = f".{output_name}.backup-{uuid.uuid4().hex}"
     if _entry_exists_at(parent_descriptor, backup_name):
@@ -726,7 +799,7 @@ def _publish_staging_at(parent_descriptor: int, staging_name: str, output_name: 
             src_dir_fd=parent_descriptor,
             dst_dir_fd=parent_descriptor,
         )
-    except OSError:
+    except (OSError, NotImplementedError) as error:
         try:
             if _entry_exists_at(parent_descriptor, backup_name) and not _entry_exists_at(
                 parent_descriptor, output_name
@@ -737,29 +810,67 @@ def _publish_staging_at(parent_descriptor: int, staging_name: str, output_name: 
                     src_dir_fd=parent_descriptor,
                     dst_dir_fd=parent_descriptor,
                 )
-        except (OSError, PocketContractError):
+        except (OSError, NotImplementedError, PocketContractError):
             raise PocketContractError("bundle_publish_rollback_failed") from None
-        raise PocketContractError("bundle_publish_failed") from None
+        _raise_filesystem_error(error, code="bundle_publish_failed")
+    return _PublishTransaction(output_existed=True, backup_name=backup_name)
+
+
+def _rollback_publication_at(
+    parent_descriptor: int,
+    staging_name: str,
+    output_name: str,
+    transaction: _PublishTransaction,
+) -> None:
     try:
-        _remove_empty_directory_at(parent_descriptor, backup_name)
+        os.rename(
+            output_name,
+            staging_name,
+            src_dir_fd=parent_descriptor,
+            dst_dir_fd=parent_descriptor,
+        )
+        if transaction.output_existed:
+            assert transaction.backup_name is not None
+            os.rename(
+                transaction.backup_name,
+                output_name,
+                src_dir_fd=parent_descriptor,
+                dst_dir_fd=parent_descriptor,
+            )
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="bundle_publish_rollback_failed")
+
+
+def _finalize_publication_at(
+    parent_descriptor: int,
+    staging_name: str,
+    output_name: str,
+    transaction: _PublishTransaction,
+) -> None:
+    if not transaction.output_existed:
+        return
+    assert transaction.backup_name is not None
+    try:
+        _remove_empty_directory_at(parent_descriptor, transaction.backup_name)
     except PocketContractError as cleanup_error:
-        try:
-            os.rename(
-                output_name,
-                staging_name,
-                src_dir_fd=parent_descriptor,
-                dst_dir_fd=parent_descriptor,
-            )
-            os.rename(
-                backup_name,
-                output_name,
-                src_dir_fd=parent_descriptor,
-                dst_dir_fd=parent_descriptor,
-            )
-            _remove_tree_at(parent_descriptor, staging_name)
-        except (OSError, PocketContractError):
-            raise PocketContractError("bundle_publish_rollback_failed") from None
+        _rollback_publication_at(
+            parent_descriptor,
+            staging_name,
+            output_name,
+            transaction,
+        )
+        _remove_tree_at(parent_descriptor, staging_name)
         raise cleanup_error from None
+
+
+def _publish_staging_at(parent_descriptor: int, staging_name: str, output_name: str) -> None:
+    transaction = _begin_publish_at(parent_descriptor, staging_name, output_name)
+    _finalize_publication_at(
+        parent_descriptor,
+        staging_name,
+        output_name,
+        transaction,
+    )
 
 
 def _publish_staging(staging_path: Path, output_dir: Path) -> None:
@@ -773,11 +884,11 @@ def _publish_staging(staging_path: Path, output_dir: Path) -> None:
 
 
 def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
-    _validate_output_root(output_dir)
     output_parent_descriptor = _open_root(output_dir.parent, code="unsafe_output_parent")
     source_descriptor: int | None = None
     staging_name: str | None = None
     staging_descriptor: int | None = None
+    transaction_committed = False
     try:
         _validate_output_entry_at(output_parent_descriptor, output_dir.name)
         source_descriptor = _open_root(source_root, code="unsafe_source_root")
@@ -802,19 +913,46 @@ def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
         receipt = _receipt(manifest, verified_bytes)
         _close_descriptor(staging_descriptor, code="bundle_write_failed")
         staging_descriptor = None
+        _close_descriptor(source_descriptor, code="source_changed")
+        source_descriptor = None
         _assert_root_identity(
             output_dir.parent,
             output_parent_descriptor,
             code="unsafe_output_parent",
         )
         _validate_output_entry_at(output_parent_descriptor, output_dir.name)
-        _publish_staging_at(output_parent_descriptor, staging_name, output_dir.name)
+        transaction = _begin_publish_at(
+            output_parent_descriptor,
+            staging_name,
+            output_dir.name,
+        )
+        try:
+            _assert_root_identity(
+                output_dir.parent,
+                output_parent_descriptor,
+                code="unsafe_output_parent",
+            )
+        except PocketContractError:
+            _rollback_publication_at(
+                output_parent_descriptor,
+                staging_name,
+                output_dir.name,
+                transaction,
+            )
+            raise
+        _finalize_publication_at(
+            output_parent_descriptor,
+            staging_name,
+            output_dir.name,
+            transaction,
+        )
+        transaction_committed = True
         staging_name = None
         return receipt
     except PocketContractError:
         raise
-    except OSError:
-        raise PocketContractError("bundle_write_failed") from None
+    except (OSError, NotImplementedError) as error:
+        _raise_filesystem_error(error, code="bundle_write_failed")
     finally:
         try:
             if staging_descriptor is not None:
@@ -826,7 +964,11 @@ def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
                 if source_descriptor is not None:
                     _close_descriptor(source_descriptor, code="source_changed")
             finally:
-                _close_descriptor(output_parent_descriptor, code="unsafe_output_parent")
+                if transaction_committed:
+                    with suppress(OSError, NotImplementedError):
+                        os.close(output_parent_descriptor)
+                else:
+                    _close_descriptor(output_parent_descriptor, code="unsafe_output_parent")
 
 
 def verify_contract_bundle(bundle_dir: Path) -> BundleReceipt:

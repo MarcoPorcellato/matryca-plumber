@@ -456,6 +456,62 @@ pre-Pydantic count rejection; no no-materialization claim remains.
 Backup disposal uses descriptor-relative `rmdir`, never recursive deletion, so
 concurrent content prevents cleanup and enters the tested rollback path.
 
+### Task 6 fix round 3 under R16
+
+Architecture review retained the root-FD design and identified five localized
+transaction edges at base `1bec23c7ea1916628800c2671b8bac285b739e31`.
+The output parent is now the first bound resource: there is no preliminary
+pathname validation gap, and output validation is FD-relative. Publication
+remains reversible through a second post-publication parent-identity check.
+Absent output rolls back from output to staging on identity failure; existing
+empty output retains its backup until the same check succeeds, then finalizes.
+Both ancestor-swap windows have direct regressions and cannot report success at
+a redirected pathname.
+
+R16: after publication and its identity check are irreversibly committed, the
+final output-parent directory-FD close is best-effort. Raising at that point
+cannot satisfy the public destination-unchanged failure semantics. The injected
+post-commit close-error regression returns success and verifies the published
+output. This ruling makes no claim that an unbounded descriptor leak is
+possible or accepted.
+
+All non-output descriptors close before publication. Descriptor handoff now
+closes old and next exactly once if close-old reports failure, for both read
+traversal and write paths. Bundle paths reject Unicode Cc (including C1), Cs
+surrogates, and `UnicodeEncodeError` as `unsafe_bundle_path`, while retaining
+the 4096-byte UTF-8 boundary. Safe-open admission now also requires
+`os.stat` follow-symlink capability; simulated `NotImplementedError` is
+content-free and normalized to `safe_open_unsupported` or the stable operation
+error.
+
+Fresh round-3 verification recorded:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+29 passed in 0.69s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+101 passed in 0.89s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format --check src/contracts tests/contracts
+12 files already formatted
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 12 source files
+```
+
+The intended round-3 subject is
+`fix(contracts): close bundle transaction edge cases`.
+
+The exact round-3 staging contains only this execution ledger, the bundle
+module, and the bundle tests. `rtk git diff --cached --check` passed and the
+dependency/lock diff is empty. Staged GitNexus `detect_changes` reported 3
+changed files, LOW risk, 0 mapped symbols, and 0 affected processes. The index
+still predates the Pocket leaf, so the empty mapping is not zero-impact proof.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,
