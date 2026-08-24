@@ -1517,6 +1517,25 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/POCKET_ALPHA1A_EXECUTION_STATUS_2026-08-24.md",
+      "type": "Runbook",
+      "title": "Pocket Alpha 1A execution status — 2026-08-24",
+      "description": "Maintained execution envelope for the bounded Pocket Alpha 1A contract work.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Execution envelope before Pocket Alpha 1A production code.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
       "type": "Guide",
       "title": "Public release and soak evidence policy",
@@ -3770,7 +3789,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
