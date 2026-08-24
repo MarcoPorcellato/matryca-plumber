@@ -1,5 +1,14 @@
 # Documentation update log
 
+## 2026-08-24
+
+- **Hybrid local CI design:** approved a fail-closed, observation-first
+  [Commit CI Preflight adoption design](../superpowers/specs/2026-08-24-ccp-hybrid-ci-adoption-design.md)
+  and preserved its [pre-activation GitHub Actions baseline](../quality/CCP_GITHUB_ACTIONS_SAVINGS_BASELINE_2026-08-24.md).
+  Hosted CI remains authoritative until exact-head parity, negative cases,
+  fallback qualification, routing observation, and separate ruleset approval
+  are terminal.
+
 ## 2026-08-23
 
 - **v2.0.1 candidate qualification:** established a public, candidate-first plan
