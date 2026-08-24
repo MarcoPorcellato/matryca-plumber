@@ -164,3 +164,7 @@ bug_execution_plan_part3.md
 
 # Maintainer-local tooling (never published to PyPI/GitHub)
 .local/
+
+# Commit CI Preflight local evidence and writable runtime mounts
+.ccp/receipt.json
+.ccp-mounts/

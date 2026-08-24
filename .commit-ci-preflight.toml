@@ -1,0 +1,226 @@
+schema_version = "2.0"
+project = "MarcoPorcellato/matryca-plumber"
+
+[receipt]
+output = ".ccp/receipt.json"
+freshness_seconds = 86400
+
+[environment]
+allow = []
+
+[[runtimes]]
+id = "python312"
+kind = "docker_compatible"
+image = "ghcr.io/astral-sh/uv@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58"
+cpu_count = 4
+memory_mib = 6144
+pids_limit = 512
+network = true
+
+[[runtimes]]
+id = "python313"
+kind = "docker_compatible"
+image = "ghcr.io/astral-sh/uv@sha256:531f855bda2c73cd6ef67d56b733b357cea384185b3022bd09f05e002cd144ca"
+cpu_count = 4
+memory_mib = 6144
+pids_limit = 512
+network = true
+
+[[runtimes]]
+id = "node22"
+kind = "docker_compatible"
+image = "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436"
+cpu_count = 2
+memory_mib = 3072
+pids_limit = 256
+network = true
+
+[[caches]]
+id = "coverage"
+mount_path = ".ccp-mounts/coverage"
+
+[[caches]]
+id = "hypothesis"
+mount_path = ".ccp-mounts/hypothesis"
+
+[[caches]]
+id = "mypy"
+mount_path = ".ccp-mounts/mypy"
+
+[[caches]]
+id = "npm"
+mount_path = ".ccp-mounts/npm"
+
+[[caches]]
+id = "ruff"
+mount_path = ".ccp-mounts/ruff"
+
+[[caches]]
+id = "uv"
+mount_path = ".ccp-mounts/uv"
+
+[[caches]]
+id = "venv-py312"
+mount_path = ".ccp-mounts/venv-py312"
+
+[[caches]]
+id = "venv-py313"
+mount_path = ".ccp-mounts/venv-py313"
+
+[[caches]]
+id = "frontend-dist"
+mount_path = "frontend/dist"
+
+[[caches]]
+id = "frontend-node-modules"
+mount_path = "frontend/node_modules"
+
+[[checks]]
+id = "python312-sync"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "sync", "--locked", "--extra", "dev"]
+working_directory = "."
+timeout_seconds = 600
+
+[[checks]]
+id = "python312-format"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "RUFF_CACHE_DIR=/workspace/.ccp-mounts/ruff", "uv", "run", "ruff", "format", "--check", "."]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-lint"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "RUFF_CACHE_DIR=/workspace/.ccp-mounts/ruff", "uv", "run", "ruff", "check", "."]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-types"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "mypy", "--cache-dir", "/workspace/.ccp-mounts/mypy", "src/", "tests/"]
+working_directory = "."
+timeout_seconds = 600
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-sandbox-read"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "python", "scripts/check_graph_read_sandbox.py"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-version"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "python", "scripts/check_version_consistency.py"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-agents"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "python", "scripts/check_agents_coherence.py"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-public-metrics"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "python", "scripts/check_public_code_audit_metrics.py"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-docs"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "python", "scripts/docs_knowledge_check.py", "check-bundle"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-system-prompt"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "run", "python", "scripts/build_system_prompt.py", "--check"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python312-tests"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "COVERAGE_FILE=/workspace/.ccp-mounts/coverage/python312", "HYPOTHESIS_STORAGE_DIRECTORY=/workspace/.ccp-mounts/hypothesis", "uv", "run", "pytest", "-n", "auto", "-q"]
+working_directory = "."
+timeout_seconds = 1200
+depends_on = ["python312-sync"]
+
+[[checks]]
+id = "python313-sync"
+runtime_id = "python313"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py313", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "uv", "sync", "--locked", "--extra", "dev"]
+working_directory = "."
+timeout_seconds = 600
+
+[[checks]]
+id = "python313-tests"
+runtime_id = "python313"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py313", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "COVERAGE_FILE=/workspace/.ccp-mounts/coverage/python313", "HYPOTHESIS_STORAGE_DIRECTORY=/workspace/.ccp-mounts/hypothesis", "uv", "run", "pytest", "-n", "auto", "-q", "-o", "addopts="]
+working_directory = "."
+timeout_seconds = 1200
+depends_on = ["python313-sync"]
+
+[[checks]]
+id = "node22-install"
+runtime_id = "node22"
+required = true
+argv = ["env", "NPM_CONFIG_CACHE=/workspace/.ccp-mounts/npm", "npm", "ci"]
+working_directory = "frontend"
+timeout_seconds = 600
+
+[[checks]]
+id = "node22-lint"
+runtime_id = "node22"
+required = true
+argv = ["env", "NPM_CONFIG_CACHE=/workspace/.ccp-mounts/npm", "npm", "run", "lint"]
+working_directory = "frontend"
+timeout_seconds = 300
+depends_on = ["node22-install"]
+
+[[checks]]
+id = "node22-tests"
+runtime_id = "node22"
+required = true
+argv = ["env", "NPM_CONFIG_CACHE=/workspace/.ccp-mounts/npm", "npm", "run", "test"]
+working_directory = "frontend"
+timeout_seconds = 600
+depends_on = ["node22-install"]
+
+[[checks]]
+id = "node22-build"
+runtime_id = "node22"
+required = true
+argv = ["env", "NPM_CONFIG_CACHE=/workspace/.ccp-mounts/npm", "npm", "run", "build"]
+working_directory = "frontend"
+timeout_seconds = 600
+depends_on = ["node22-install"]

@@ -1088,6 +1088,67 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/CCP_GITHUB_ACTIONS_SAVINGS_BASELINE_2026-08-24.md",
+      "type": "Audit",
+      "title": "Commit CI Preflight GitHub Actions Savings Baseline",
+      "description": "Historical pre-activation baseline for measuring hosted Linux compute displaced by Matryca Plumber's future hybrid CCP path.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "Immutable pre-activation evidence; future epochs add records instead of rewriting this baseline.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/CCP_GITHUB_ACTIONS_SAVINGS_CASE_STUDY.md",
+      "type": "Audit",
+      "title": "Commit CI Preflight GitHub Actions Savings Case Study",
+      "description": "Deterministic status generated from immutable Matryca Plumber hybrid-CI observations.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Generated from the immutable JSON ledger; promotion remains NOT READY until its closed gate passes.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/CCP_HYBRID_CI_RUNBOOK.md",
+      "type": "Runbook",
+      "title": "Commit CI Preflight Hybrid CI Operator Runbook",
+      "description": "Fail-closed operating sequence for Matryca Plumber local qualification, exact-head receipt verification, hosted fallback, and savings evidence.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Bootstrap and observation authority only; heavy matrix qualification remains blocked on reviewed preflight support.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/CI_RESOURCE_ADMISSION_RUNBOOK.md",
       "type": "Guide",
       "title": "Local resource-admission coordinator runbook",
@@ -1336,7 +1397,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/HUMAN_GOVERNED_ADAPTIVE_RETRIEVAL_EXECUTION_STATUS_2026-08-16.md",
@@ -3672,6 +3734,27 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-08-24-ccp-hybrid-ci-adoption.md",
+      "type": "Roadmap",
+      "title": "Hybrid Commit CI Preflight Adoption Implementation Plan",
+      "description": "Dependency-ordered implementation, qualification, routing, measurement, and case-study publication plan for Matryca Plumber's hybrid CCP path.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Execution plan; hosted skips, ruleset mutation, and cross-repository publication remain separately gated.",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -3690,6 +3773,27 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Becomes design authority only after maintainer review; implementation and public claims remain gated.",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-08-24-ccp-hybrid-ci-adoption-design.md",
+      "type": "Specification",
+      "title": "Hybrid Commit CI Preflight Adoption Design",
+      "description": "Fail-closed architecture for replacing duplicated pull-request Linux checks with exact-head local receipts while retaining trusted hosted fallbacks and measurable savings evidence.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved architecture; implementation, routing activation, and public savings claims remain evidence-gated.",
       "missing": false
     },
     {

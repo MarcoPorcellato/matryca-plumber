@@ -1,0 +1,41 @@
+{
+  "billing_source": null,
+  "candidate_hosted_seconds": 319,
+  "captured_at": "2026-08-24T13:00:00Z",
+  "ccp": null,
+  "classification": "fallback",
+  "comparability": "not_applicable",
+  "eligibility_reason": "Hosted fallback retained full Linux qualification.",
+  "estimated_avoided_hosted_seconds": null,
+  "estimated_net_hosted_seconds_saved": null,
+  "fallback_reason": "ci:hosted-fallback selected",
+  "limitations": [
+    "Fallback observations do not enter the saved-compute numerator."
+  ],
+  "negative_case": null,
+  "observed_verifier_seconds": null,
+  "pr_number": 701,
+  "provider_confirmed_billed_minutes": null,
+  "provider_confirmed_cost": null,
+  "record_id": "2026-08-24-pr-701-fallback",
+  "repository": "MarcoPorcellato/matryca-plumber",
+  "schema_version": "1.0",
+  "source_sha": "2222222222222222222222222222222222222222",
+  "source_urls": [
+    "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/2"
+  ],
+  "supersedes": null,
+  "verifier": null,
+  "workflow_runs": [
+    {
+      "completed_at": "2026-08-24T13:05:19Z",
+      "conclusion": "success",
+      "elapsed_seconds": 319,
+      "job_id": 2,
+      "job_name": "Candidate Linux cohort",
+      "run_id": 2,
+      "source_sha": "2222222222222222222222222222222222222222",
+      "started_at": "2026-08-24T13:00:00Z"
+    }
+  ]
+}
