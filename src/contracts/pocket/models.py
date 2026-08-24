@@ -54,18 +54,23 @@ def _validate_digest(value: str, code: str) -> None:
         raise PocketContractError(code)
 
 
+def _validate_media_type(value: str) -> None:
+    _validate_nfc(value)
+    if _MEDIA_TYPE.fullmatch(value) is None:
+        raise PocketContractError("invalid_media_type")
+
+
 def _validate_safe_path(value: str, *, payload_only: bool) -> None:
     _validate_nfc(value)
     path = PurePosixPath(value)
     raw_parts = value.split("/")
     if (
         path.is_absolute()
-        or len(path.parts) < 2
         or any(part in {"", ".", ".."} for part in raw_parts)
         or "\\" in value
         or any(ord(character) < 32 or ord(character) == 127 for character in value)
         or len(value.encode("utf-8")) > MAX_PATH_BYTES
-        or (payload_only and path.parts[0] != "payload")
+        or (payload_only and (len(path.parts) < 2 or path.parts[0] != "payload"))
     ):
         raise PocketContractError("unsafe_bundle_path")
 
@@ -109,9 +114,7 @@ class PackFileV1(_ClosedModel):
     @model_validator(mode="after")
     def _validate_pack_file(self) -> PackFileV1:
         _validate_safe_path(self.path, payload_only=True)
-        _validate_nfc(self.media_type)
-        if _MEDIA_TYPE.fullmatch(self.media_type) is None:
-            raise PocketContractError("invalid_media_type")
+        _validate_media_type(self.media_type)
         _validate_digest(self.sha256, "invalid_sha256")
         return self
 
@@ -200,9 +203,7 @@ class DocumentV1(_ClosedModel):
         _validate_identifier(self.source_id, "invalid_source_id")
         _validate_nfc(self.title)
         _validate_safe_path(self.source_path, payload_only=False)
-        _validate_nfc(self.media_type)
-        if _MEDIA_TYPE.fullmatch(self.media_type) is None:
-            raise PocketContractError("invalid_media_type")
+        _validate_media_type(self.media_type)
         return self
 
 

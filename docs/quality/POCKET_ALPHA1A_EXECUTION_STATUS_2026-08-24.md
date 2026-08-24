@@ -213,6 +213,48 @@ predates the Task 3/Task 4 leaves; it is not a zero-impact proof. No HIGH or
 CRITICAL finding appeared. Task 5, not this task, must append this task's final
 SHA.
 
+### Task 4 fix round 1: source paths and media-type helper
+
+The fix RED coverage adds a one-segment safe-relative `DocumentV1.source_path`
+case (`README.md`) and explicit empty, `.`, and `..` negative cases. The
+required RED command and terminal outcome were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov -k one_segment_safe_source_path
+F                                                                        [100%]
+1 failed, 56 deselected in 0.06s
+```
+
+The failure was `unsafe_bundle_path`: `_validate_safe_path` applied its
+two-segment rule even when `payload_only=False`. The minimum correction keeps
+that rule within the `payload_only` branch, preserving `PackFileV1`'s
+`payload/...` boundary while allowing a valid one-segment document source path.
+Empty, dot, dot-dot, absolute, backslash, control, non-NFC, and overlong paths
+remain rejected. A single `_validate_media_type` helper now supplies the
+existing NFC, regex, and `invalid_media_type` behavior to both `PackFileV1` and
+`DocumentV1`, with no validation behavior change.
+
+The focused GREEN and static receipts were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+............................................................             [100%]
+60 passed in 0.11s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+8 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 8 source files
+```
+
+`mcp__gitnexus__impact` could not resolve `_validate_safe_path` in the
+known-stale index. No re-index was performed; bounded inspection of the current
+model and tests supplied the live context.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,

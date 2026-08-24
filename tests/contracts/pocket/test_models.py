@@ -85,6 +85,12 @@ def test_record_set_accepts_complete_references() -> None:
     validate_record_set(_manifest(), (_document(),), (_evidence(),))
 
 
+def test_document_accepts_one_segment_safe_source_path() -> None:
+    document = DocumentV1.model_validate({**_document().model_dump(), "source_path": "README.md"})
+
+    assert document.source_path == "README.md"
+
+
 def test_record_set_rejects_missing_source_and_document_references() -> None:
     missing_source = DocumentV1.model_validate({**_document().model_dump(), "source_id": "missing"})
     with pytest.raises(ValueError, match="missing_source_reference"):
@@ -114,6 +120,9 @@ def test_evidence_rejects_reversed_locator_and_non_nfc_text() -> None:
         ("title", "Citta\u0300", "non_nfc_string"),
         ("media_type", "Text/markdown", "invalid_media_type"),
         ("source_path", "/docs/example.md", "unsafe_bundle_path"),
+        ("source_path", "", "unsafe_bundle_path"),
+        ("source_path", ".", "unsafe_bundle_path"),
+        ("source_path", "..", "unsafe_bundle_path"),
         ("source_path", "docs\\example.md", "unsafe_bundle_path"),
         ("source_path", "docs/line\nbreak.md", "unsafe_bundle_path"),
         ("source_path", "docs//example.md", "unsafe_bundle_path"),
