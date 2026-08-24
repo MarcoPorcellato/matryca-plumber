@@ -64,6 +64,58 @@ rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contr
 Success: no issues found in 6 source files
 ```
 
+## Task 3 checkpoint ledger
+
+Task 2 implementation checkpoint: `275bd1845945cc89d1585c46baedd4fc27746729`.
+Task 2 evidence checkpoint: `9e9c607e6e4ee9e446ac75b6b8b316b30514ac47`.
+
+The current gate is manifest-model RED. The required RED command is:
+
+```text
+rtk uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+```
+
+The direct command could not initialize the sandbox-denied default uv cache at
+`/Users/marco1/.cache/uv`. Re-running with the approved temporary cache reached
+collection and produced the required RED receipt:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+ModuleNotFoundError: No module named 'src.contracts.pocket.models'
+1 error in 0.10s
+```
+
+The manifest-model implementation adds closed, frozen source/file/manifest
+records; validates canonical scalar and path invariants; rejects malformed
+UUIDv7 values with `invalid_pack_id`; rejects duplicate source revisions with
+`duplicate_source_revision`; and binds the inventory to its canonical content
+root. The focused GREEN and static receipts were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py -q --no-cov
+................................                                         [100%]
+32 passed in 0.08s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+8 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 8 source files
+```
+
+GitNexus is indexed only through `2794b831827eba0dc1a31823d4d4df26a5de03a1`,
+three commits behind the implementation HEAD. No re-index was performed under
+this envelope; live bounded source inspection supplied the current contract
+context. The required `detect_changes` comparison against
+`af939e7e14e8f7f2e4dd5783bd3a72a1433adf1e`, scoped to this worktree, reported
+`risk_level: low`, `affected_count: 0`, and no affected processes. Its changed
+symbol inventory omitted the new models because the index predates Task 2; this
+is an index limitation, not a zero-impact proof. No HIGH or CRITICAL finding
+appeared. Task 4, not this task, must append this task's final SHA.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,
