@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from scripts.ccp_savings_report import (
@@ -19,7 +20,8 @@ FIXTURES = ROOT / "tests" / "fixtures" / "ccp-savings"
 
 
 def _load_fixture(name: str) -> dict[str, object]:
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    loaded = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    return cast(dict[str, object], loaded)
 
 
 def _write_record(root: Path, name: str, record: dict[str, object]) -> None:
@@ -121,7 +123,8 @@ def test_promotion_requires_window_fallbacks_and_all_negative_cases(tmp_path: Pa
         record["captured_at"] = f"2026-08-{day:02d}T12:00:00Z"
         record["pr_number"] = 800 + index
         record["source_sha"] = f"{index + 1:040x}"
-        record["ccp"]["source_sha"] = record["source_sha"]  # type: ignore[index]
+        ccp = cast(dict[str, object], record["ccp"])
+        ccp["source_sha"] = record["source_sha"]
         _write_record(tmp_path, f"eligible-{index:02d}.json", record)
 
     assert promotion_status(load_records(tmp_path))["ready"] is False

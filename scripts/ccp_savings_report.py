@@ -290,7 +290,12 @@ def _validate_record(raw: object, path: Path) -> Record:
             raise _error(path, "ccp.conclusion", "eligible records require PASS")
         if raw["verifier"] is None or raw["verifier"]["conclusion"] != "success":
             raise _error(path, "verifier.conclusion", "eligible records require success")
-    if None not in (candidate, verifier, net) and net != max(0, candidate - verifier):
+    if (
+        candidate is not None
+        and verifier is not None
+        and net is not None
+        and net != max(0, candidate - verifier)
+    ):
         raise _error(
             path,
             "estimated_net_hosted_seconds_saved",
