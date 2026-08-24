@@ -394,6 +394,68 @@ opens with `fstat`, bounded `scandir` traversal, and a source-level portable
 backup/rollback publication strategy for an existing empty destination. This is
 not a native Windows qualification claim.
 
+### Task 6 resolver hardening under R14 and R15
+
+The authorized resolver run preserved the Task 6 public APIs and reproduced
+five direct RED regressions before implementation: source-root ancestor
+substitution, bundle-root ancestor substitution, output prevalidation
+permission leakage, file/total caps reached after content reading, and an
+oversized manifest files list reaching model validation. Post-publication
+backup-cleanup rollback and rollback-failure honesty remained direct required
+regressions.
+
+R14 is narrowed to the behavior the stdlib implementation actually proves:
+manifest bytes are rejected above `MAX_FILE_BYTES` before parsing, while the
+file-count cap is checked after `json.loads` and before Pydantic materialization.
+The stdlib parser materializes an in-cap JSON array; this implementation makes
+no streaming or pre-materialization claim, and no parser dependency was added.
+R15 retains verified root descriptors for source collection/copy, bundle
+verification, and the output parent. Traversal, staging creation/writes,
+publication, rollback, and cleanup are descriptor-relative; output-parent
+identity is rechecked before publication. Platforms without the required safe
+descriptor primitives fail closed with `safe_open_unsupported`.
+
+Fresh resolver verification recorded:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+21 passed in 0.62s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+93 passed in 0.77s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format --check src/contracts tests/contracts
+12 files already formatted
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 12 source files
+```
+
+The exact deterministic receipt remains `file_count: 52`, `content_root:
+e34efa4bc490034302d2d6c9686babf775a10d55cd56aa7a1e0cd307b3c81bec`, and
+`bundle_digest:
+1af777dc9e6b0743f3dfab4160624f270356c5444be763b0bfd6e811fa1de173` for both
+build and verification. The intended resolver subject is
+`fix(contracts): anchor bundle traversal and publication`.
+
+The staged resolver audit contains exactly the execution ledger, bundle module,
+and bundle tests. `rtk git diff --cached --check` passed. Staged GitNexus
+`detect_changes` reported 3 changed files, LOW risk, 0 mapped changed symbols,
+and 0 affected processes. The assigned index still predates this Pocket leaf,
+so the empty graph mapping remains a known limitation, not zero-impact proof.
+
+Controller review then exposed the output-parent pathname race and the
+overstated R14 claim. The direct output substitution regression failed against
+the prior code because the build silently followed the replacement ancestor;
+it is green with retained-parent-FD staging and pre-publication identity
+checking. The R14 test and prose now bind only the byte cap and post-stdlib,
+pre-Pydantic count rejection; no no-materialization claim remains.
+Backup disposal uses descriptor-relative `rmdir`, never recursive deletion, so
+concurrent content prevents cleanup and enters the tested rollback path.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,
