@@ -281,8 +281,11 @@ error receipt only when the execution envelope explicitly authorizes it.
 Implementation follows test-driven development:
 
 1. focused tests fail because the Pocket contract modules do not exist;
-2. valid fixtures pass both Pydantic and JSON Schema validation;
-3. invalid fixtures fail in both validators for the declared invariant;
+2. valid fixtures pass both structural JSON Schema validation and the complete
+   Pydantic/semantic contract validation;
+3. structurally invalid fixtures fail both layers, while semantically invalid
+   fixtures may pass JSON Schema and must fail the complete contract validator
+   with the declared stable code;
 4. unknown fields, malformed digests, unsafe paths, duplicate IDs,
    noncanonical ordering, broken references, Unicode violations, and numeric
    bounds have explicit negative coverage;
@@ -314,7 +317,8 @@ Stop without an implementation commit if:
 
 - the base differs from the approved execution envelope;
 - a new dependency becomes necessary without separate admission;
-- model and JSON Schema validators disagree;
+- structural JSON Schema and Pydantic validation disagree on an invariant both
+  layers are specified to enforce;
 - canonical vectors differ across two runs;
 - any real content, secret, key material, network access, or out-of-scope
   repository change appears;
@@ -333,7 +337,9 @@ Alpha 1A is complete only when one exact Plumber commit provides:
 - the four closed contract record families and three public JSON Schemas;
 - content-free valid, invalid, and canonical-vector fixtures;
 - deterministic build and strict verification of the contract bundle;
-- matching Pydantic and JSON Schema outcomes for every fixture;
+- an explicit `schema_status` and `contract_status` for every fixture, with
+  structural parity where both layers enforce the invariant and semantic
+  failures owned by the complete Pydantic/cross-record validator;
 - byte-identical outputs across two clean builds;
 - focused and full verification receipts bound to the exact commit;
 - no real Matryca content, runtime integration, consumer edit, new dependency,
