@@ -1,0 +1,90 @@
+schema_version = "2.0"
+project = "MarcoPorcellato/matryca-plumber"
+configuration_digest = "sha256:c1c620a8f037d5368368eac8276c38e915b7663eafa4a1499b9e3a9b14166670"
+max_age_seconds = 86400
+
+[[required_checks]]
+id = "node22-build"
+runtime_id = "node22"
+
+[[required_checks]]
+id = "node22-install"
+runtime_id = "node22"
+
+[[required_checks]]
+id = "node22-lint"
+runtime_id = "node22"
+
+[[required_checks]]
+id = "node22-tests"
+runtime_id = "node22"
+
+[[required_checks]]
+id = "python312-agents"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-docs"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-format"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-lint"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-public-metrics"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-sandbox-read"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-sync"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-system-prompt"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-tests"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-types"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python312-version"
+runtime_id = "python312"
+
+[[required_checks]]
+id = "python313-sync"
+runtime_id = "python313"
+
+[[required_checks]]
+id = "python313-tests"
+runtime_id = "python313"
+
+[[runtimes]]
+id = "node22"
+configuration_digest = "sha256:c7df43272e7f276cdda9f505f693fd9d236aea8b4d5ecdc77109d9b799ae92f6"
+image_reference = "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436"
+platforms = [{ host_os = "macos", host_arch = "aarch64", runtime_kind = "docker_compatible" }]
+
+[[runtimes]]
+id = "python312"
+configuration_digest = "sha256:fa83b8b1f3ab79cd6abbbf2682dc5b57cb86ef977aaa19794303353a1b3a5fad"
+image_reference = "ghcr.io/astral-sh/uv@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58"
+platforms = [{ host_os = "macos", host_arch = "aarch64", runtime_kind = "docker_compatible" }]
+
+[[runtimes]]
+id = "python313"
+configuration_digest = "sha256:d9618eb286702885635073a77eaa36629aa49c94b2103c7609691cdc1377c576"
+image_reference = "ghcr.io/astral-sh/uv@sha256:531f855bda2c73cd6ef67d56b733b357cea384185b3022bd09f05e002cd144ca"
+platforms = [{ host_os = "macos", host_arch = "aarch64", runtime_kind = "docker_compatible" }]
