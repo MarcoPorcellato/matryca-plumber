@@ -323,6 +323,67 @@ Success: no issues found in 11 source files
 
 Task 5 fix-round intended commit subject: `fix(contracts): bound fixture reads and complete vectors`.
 
+### Task 5 closure and Task 6 entry evidence
+
+Task 5 implementation checkpoint: `9102276`. Task 5 fix checkpoint:
+`f60faa4`. Fix round 1 closed two Important findings and one Minor finding; the
+scoped re-review disposition was GO. The final focused contract suite recorded
+72 passing tests, with Ruff format/check and mypy green. The deferred Task 2
+Minor is closed. Task 5 is complete for the exact range
+`a62dc83..f60faa4`.
+
+Task 6 begins from `f60faa44bf159ebca0b7939799c5f0e6fe6933f3`; its required
+evidence is recorded below only after deterministic bundle build and
+verification gates complete.
+
+## Task 6 checkpoint ledger
+
+The required RED command was run with the approved temporary uv cache:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+ImportError: cannot import name 'build_contract_bundle'
+1 error in 0.11s
+```
+
+The deterministic two-build/self-verification receipt has `file_count: 52`,
+`content_root: e34efa4bc490034302d2d6c9686babf775a10d55cd56aa7a1e0cd307b3c81bec`,
+and `bundle_digest: 1af777dc9e6b0743f3dfab4160624f270356c5444be763b0bfd6e811fa1de173`.
+The receipt contains only these digests and count. The focused and complete
+contract gates were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+8 passed in 0.47s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+80 passed in 0.60s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+12 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 12 source files
+```
+
+The bundle tests cover byte-identical builds; absent and existing-empty output
+publication; source/output-root and entry symlinks; FIFO/non-regular entries;
+unsafe paths; source manifest rejection; missing, renamed, extra, altered, and
+mutated-manifest files; bounded count/size/total limits; and interrupted
+staging cleanup. Task 6 intended commit subject:
+`feat(contracts): build deterministic Pocket bundles`.
+
+No re-index was authorized. The staged `mcp__gitnexus__detect_changes` result
+reported `changed_files: 4`, `changed_count: 0`, `affected_count: 0`, no
+affected processes, and `risk_level: low`. The assigned index predates the
+current Pocket leaf, so this empty graph mapping is a known limitation and not
+a zero-impact proof. `rtk git diff --cached --check` passed. Per R12, this
+task leaves the exact four owned tracked files staged for controller commit and
+does not commit them.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,
