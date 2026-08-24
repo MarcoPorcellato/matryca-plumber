@@ -10,6 +10,11 @@
   until the reviewed CCP source supports matrix-aware diagnosis and mount
   rendering.
 
+- **Pocket Alpha 1A contract design** — document the proposed closed,
+  content-free, deterministic Plumber contract bundle for future signed Mobile
+  Knowledge Pack producers and offline Android consumers; no runtime contract,
+  pack generation, or Pocket behavior is implemented by this design-only change.
+
 ## [2.0.1-rc.1] - 2026-08-23
 
 ### Added

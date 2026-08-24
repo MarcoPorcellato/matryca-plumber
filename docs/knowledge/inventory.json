@@ -3797,6 +3797,24 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/specs/2026-08-24-pocket-alpha1a-neutral-contracts-design.md",
+      "type": "Archive",
+      "title": "Pocket Alpha 1A Neutral Contracts Design",
+      "description": "Date: 2026-08-24",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
