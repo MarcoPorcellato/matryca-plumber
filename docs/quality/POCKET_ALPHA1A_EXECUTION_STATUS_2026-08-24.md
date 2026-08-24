@@ -475,9 +475,11 @@ post-commit close-error regression returns success and verifies the published
 output. This ruling makes no claim that an unbounded descriptor leak is
 possible or accepted.
 
-All non-output descriptors close before publication. Descriptor handoff now
-closes old and next exactly once if close-old reports failure, for both read
-traversal and write paths. Bundle paths reject Unicode Cc (including C1), Cs
+Round 3 moved the ordinary non-output close attempts before publication and
+proved old/next descriptor-handoff ownership for read traversal and write paths.
+It did not establish exactly-once ownership when a direct close completed and
+then reported failure; round-4 review supersedes that overbroad lifecycle claim.
+Bundle paths reject Unicode Cc (including C1), Cs
 surrogates, and `UnicodeEncodeError` as `unsafe_bundle_path`, while retaining
 the 4096-byte UTF-8 boundary. Safe-open admission now also requires
 `os.stat` follow-symlink capability; simulated `NotImplementedError` is
@@ -511,6 +513,58 @@ module, and the bundle tests. `rtk git diff --cached --check` passed and the
 dependency/lock diff is empty. Staged GitNexus `detect_changes` reported 3
 changed files, LOW risk, 0 mapped symbols, and 0 affected processes. The index
 still predates the Pocket leaf, so the empty mapping is not zero-impact proof.
+
+### Task 6 fix round 4
+
+Fix round 4 started from
+`6fb88b1b469fe68e5442179ba0544b1d5474f256`. Direct RED regressions injected
+staging- and source-FD closes that closed the owned descriptor before reporting
+failure. The prior staging path attempted the same numeric descriptor three
+times, the source path twice, and a failure from the staging close in the outer
+cleanup left its hidden staging directory behind:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov -k 'prepublication_close_after_success or cleanup_continues_after_staging_close'
+3 failed, 29 deselected in 0.18s
+```
+
+GREEN clears each ownership variable before every direct prepublication or
+finalizer close. The failure finalizer retains the first stable, content-free
+cleanup error while still attempting staging-tree removal and all remaining
+owned-descriptor closes exactly once. The regressions prove absent or
+identity-preserved empty output, no hidden staging tree, one target-close
+attempt, no close of the replacement sentinel, and no remaining owned FD.
+
+Fresh round-4 verification recorded:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+32 passed in 0.77s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+104 passed in 0.90s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format --check src/contracts tests/contracts
+12 files already formatted
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 12 source files
+```
+
+The exact deterministic build and verification receipt remains `file_count:
+52`, `content_root:
+e34efa4bc490034302d2d6c9686babf775a10d55cd56aa7a1e0cd307b3c81bec`, and
+`bundle_digest:
+1af777dc9e6b0743f3dfab4160624f270356c5444be763b0bfd6e811fa1de173`.
+The exact staged scope remains this execution ledger, the bundle module, and
+the bundle tests; `rtk git diff --cached --check` passed and dependency/lock
+diffs are empty. Staged GitNexus detection reported 3 changed files, LOW risk,
+0 mapped symbols, and 0 affected processes under the unchanged stale-index
+limitation. The intended subject is
+`fix(contracts): finalize descriptor cleanup ownership`.
 
 ## Isolation and baseline evidence
 

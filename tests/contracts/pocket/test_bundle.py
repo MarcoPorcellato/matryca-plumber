@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import stat
+from contextlib import suppress
 from dataclasses import asdict
 from pathlib import Path
 
@@ -493,6 +494,144 @@ def test_postcommit_output_parent_close_error_does_not_reverse_success(
     assert verify_contract_bundle(output) == receipt
     assert output_parent_descriptor is not None
     original_close(output_parent_descriptor)
+
+
+@pytest.mark.parametrize("target", ["staging", "source"])
+def test_prepublication_close_after_success_is_not_retried_or_redirected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    target: str,
+) -> None:
+    output = tmp_path / "output"
+    if target == "source":
+        output.mkdir()
+    output_identity = output.stat() if output.exists() else None
+    original_open_root = bundle_module._open_root
+    original_create_staging = bundle_module._create_staging_at
+    original_open = os.open
+    original_close = os.close
+    owned_descriptors: dict[str, int] = {}
+    close_attempts: dict[str, int] = {}
+    sentinel_descriptor: int | None = None
+
+    def _capture_root(path: Path, *, code: str) -> int:
+        descriptor = original_open_root(path, code=code)
+        if code == "unsafe_output_parent":
+            owned_descriptors["output_parent"] = descriptor
+        elif code == "unsafe_source_root":
+            owned_descriptors["source"] = descriptor
+        return descriptor
+
+    def _capture_staging(parent_descriptor: int, output_name: str) -> tuple[str, int]:
+        staging_name, descriptor = original_create_staging(parent_descriptor, output_name)
+        owned_descriptors["staging"] = descriptor
+        return staging_name, descriptor
+
+    def _close_then_report_failure(descriptor: int) -> None:
+        nonlocal sentinel_descriptor
+        for name, owned_descriptor in owned_descriptors.items():
+            if descriptor == owned_descriptor:
+                close_attempts[name] = close_attempts.get(name, 0) + 1
+        if descriptor == owned_descriptors.get(target) and sentinel_descriptor is None:
+            original_close(descriptor)
+            sentinel_descriptor = original_open(os.devnull, os.O_RDONLY)
+            assert sentinel_descriptor == descriptor
+            raise OSError("close completed before reporting failure")
+        original_close(descriptor)
+
+    monkeypatch.setattr(bundle_module, "_open_root", _capture_root)
+    monkeypatch.setattr(bundle_module, "_create_staging_at", _capture_staging)
+    monkeypatch.setattr(os, "close", _close_then_report_failure)
+    expected_error = "bundle_write_failed" if target == "staging" else "source_changed"
+    try:
+        with pytest.raises(PocketContractError, match=f"^{expected_error}$"):
+            build_contract_bundle(SOURCE, output)
+        assert close_attempts[target] == 1
+        assert sentinel_descriptor is not None
+        os.fstat(sentinel_descriptor)
+        for name in {"staging", "source", "output_parent"}.difference({target}):
+            with pytest.raises(OSError):
+                os.fstat(owned_descriptors[name])
+        if output_identity is None:
+            assert not output.exists()
+        else:
+            observed = output.stat()
+            assert (observed.st_dev, observed.st_ino) == (
+                output_identity.st_dev,
+                output_identity.st_ino,
+            )
+            assert list(output.iterdir()) == []
+        assert list(tmp_path.glob(".output.*")) == []
+    finally:
+        monkeypatch.undo()
+        for descriptor in {*owned_descriptors.values(), sentinel_descriptor}:
+            if descriptor is not None:
+                with suppress(OSError):
+                    original_close(descriptor)
+
+
+def test_cleanup_continues_after_staging_close_reports_postclose_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "output"
+    original_open_root = bundle_module._open_root
+    original_create_staging = bundle_module._create_staging_at
+    original_open = os.open
+    original_close = os.close
+    owned_descriptors: dict[str, int] = {}
+    close_attempts: dict[str, int] = {}
+    sentinel_descriptor: int | None = None
+
+    def _capture_root(path: Path, *, code: str) -> int:
+        descriptor = original_open_root(path, code=code)
+        if code == "unsafe_output_parent":
+            owned_descriptors["output_parent"] = descriptor
+        elif code == "unsafe_source_root":
+            owned_descriptors["source"] = descriptor
+        return descriptor
+
+    def _capture_staging(parent_descriptor: int, output_name: str) -> tuple[str, int]:
+        staging_name, descriptor = original_create_staging(parent_descriptor, output_name)
+        owned_descriptors["staging"] = descriptor
+        return staging_name, descriptor
+
+    def _interrupt(*_args: object, **_kwargs: object) -> bytes:
+        raise PocketContractError("interrupted_staging")
+
+    def _close_then_report_failure(descriptor: int) -> None:
+        nonlocal sentinel_descriptor
+        for name, owned_descriptor in owned_descriptors.items():
+            if descriptor == owned_descriptor:
+                close_attempts[name] = close_attempts.get(name, 0) + 1
+        if descriptor == owned_descriptors.get("staging") and sentinel_descriptor is None:
+            original_close(descriptor)
+            sentinel_descriptor = original_open(os.devnull, os.O_RDONLY)
+            assert sentinel_descriptor == descriptor
+            raise OSError("close completed before reporting failure")
+        original_close(descriptor)
+
+    monkeypatch.setattr(bundle_module, "_open_root", _capture_root)
+    monkeypatch.setattr(bundle_module, "_create_staging_at", _capture_staging)
+    monkeypatch.setattr(bundle_module, "_write_bundle_manifest", _interrupt)
+    monkeypatch.setattr(os, "close", _close_then_report_failure)
+    try:
+        with pytest.raises(PocketContractError, match="^staging_cleanup_failed$"):
+            build_contract_bundle(SOURCE, output)
+        assert close_attempts == {"output_parent": 1, "source": 1, "staging": 1}
+        assert sentinel_descriptor is not None
+        os.fstat(sentinel_descriptor)
+        for name in ("source", "output_parent"):
+            with pytest.raises(OSError):
+                os.fstat(owned_descriptors[name])
+        assert not output.exists()
+        assert list(tmp_path.glob(".output.*")) == []
+    finally:
+        monkeypatch.undo()
+        for descriptor in {*owned_descriptors.values(), sentinel_descriptor}:
+            if descriptor is not None:
+                with suppress(OSError):
+                    original_close(descriptor)
 
 
 @pytest.mark.parametrize("operation", ["read", "write"])

@@ -884,12 +884,15 @@ def _publish_staging(staging_path: Path, output_dir: Path) -> None:
 
 
 def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
-    output_parent_descriptor = _open_root(output_dir.parent, code="unsafe_output_parent")
+    output_parent_descriptor: int | None = _open_root(
+        output_dir.parent, code="unsafe_output_parent"
+    )
     source_descriptor: int | None = None
     staging_name: str | None = None
     staging_descriptor: int | None = None
     transaction_committed = False
     try:
+        assert output_parent_descriptor is not None
         _validate_output_entry_at(output_parent_descriptor, output_dir.name)
         source_descriptor = _open_root(source_root, code="unsafe_source_root")
         files = _collect_source_files_from_root(source_descriptor)
@@ -911,10 +914,12 @@ def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
         _write_file_at(staging_descriptor, _BUNDLE_MANIFEST, manifest_bytes)
         manifest, verified_bytes = _verify_bundle_from_root(staging_descriptor)
         receipt = _receipt(manifest, verified_bytes)
-        _close_descriptor(staging_descriptor, code="bundle_write_failed")
+        descriptor_to_close = staging_descriptor
         staging_descriptor = None
-        _close_descriptor(source_descriptor, code="source_changed")
+        _close_descriptor(descriptor_to_close, code="bundle_write_failed")
+        descriptor_to_close = source_descriptor
         source_descriptor = None
+        _close_descriptor(descriptor_to_close, code="source_changed")
         _assert_root_identity(
             output_dir.parent,
             output_parent_descriptor,
@@ -954,21 +959,42 @@ def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
     except (OSError, NotImplementedError) as error:
         _raise_filesystem_error(error, code="bundle_write_failed")
     finally:
-        try:
-            if staging_descriptor is not None:
-                _close_descriptor(staging_descriptor, code="staging_cleanup_failed")
-            if staging_name is not None:
-                _remove_tree_at(output_parent_descriptor, staging_name)
-        finally:
+        cleanup_error: PocketContractError | None = None
+        if staging_descriptor is not None:
+            descriptor_to_close = staging_descriptor
+            staging_descriptor = None
             try:
-                if source_descriptor is not None:
-                    _close_descriptor(source_descriptor, code="source_changed")
-            finally:
-                if transaction_committed:
-                    with suppress(OSError, NotImplementedError):
-                        os.close(output_parent_descriptor)
-                else:
-                    _close_descriptor(output_parent_descriptor, code="unsafe_output_parent")
+                _close_descriptor(descriptor_to_close, code="staging_cleanup_failed")
+            except PocketContractError as error:
+                cleanup_error = error
+        if staging_name is not None and output_parent_descriptor is not None:
+            try:
+                _remove_tree_at(output_parent_descriptor, staging_name)
+            except PocketContractError as error:
+                if cleanup_error is None:
+                    cleanup_error = error
+        if source_descriptor is not None:
+            descriptor_to_close = source_descriptor
+            source_descriptor = None
+            try:
+                _close_descriptor(descriptor_to_close, code="source_changed")
+            except PocketContractError as error:
+                if cleanup_error is None:
+                    cleanup_error = error
+        if output_parent_descriptor is not None:
+            descriptor_to_close = output_parent_descriptor
+            output_parent_descriptor = None
+            if transaction_committed:
+                with suppress(OSError, NotImplementedError):
+                    os.close(descriptor_to_close)
+            else:
+                try:
+                    _close_descriptor(descriptor_to_close, code="unsafe_output_parent")
+                except PocketContractError as error:
+                    if cleanup_error is None:
+                        cleanup_error = error
+        if cleanup_error is not None:
+            raise cleanup_error from None
 
 
 def verify_contract_bundle(bundle_dir: Path) -> BundleReceipt:
