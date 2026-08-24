@@ -15,8 +15,10 @@ stale_after: 2026-11-22
 ## Current authority
 
 The repository is in **bootstrap and observation mode**. GitHub-hosted CI remains
-authoritative. The receipt workflow may report an exact-head observation, but
-no hosted job is skipped and no branch-protection rule depends on that status.
+authoritative. The receipt workflow runs only for a non-draft, same-repository,
+non-Dependabot pull request after a trusted maintainer applies
+`ci:observe-local-receipt`; it may then report an exact-head observation, but no
+hosted job is skipped and no branch-protection rule depends on that status.
 
 The governing [design](../superpowers/specs/2026-08-24-ccp-hybrid-ci-adoption-design.md)
 and [implementation plan](../superpowers/plans/2026-08-24-ccp-hybrid-ci-adoption.md)
@@ -55,8 +57,34 @@ Consequences:
   the design accepts a separately proven replacement;
 - a v1 diagnostic result must never be relabelled as matrix-v2 evidence.
 
-This limitation does not weaken hosted CI. The observation workflow simply
-fails closed when no valid receipt exists.
+This limitation does not weaken hosted CI. Unlabelled pull requests publish no
+receipt status. A labelled observation fails closed when no valid receipt
+exists, while the unconditional hosted workflow continues independently.
+
+## CCP source compatibility acceptance gate
+
+A newer CCP commit is a candidate, not an automatic upgrade. Before changing
+the frozen source pin or any policy digest, preserve one review packet that
+proves all of the following against the same exact clean source:
+
+- exact source commit, complete source-test result, binary digest, version, and
+  the prior rollback pin;
+- matrix schema support across `plan`, `run`, `doctor`, and `dry-run`, including
+  `runtime_id` dispatch and rendered read-only/writable mount inspection;
+- receipt schema and verifier behavior for required checks, freshness,
+  exact-head binding, policy binding, and incomplete terminal state;
+- regenerated outer and per-runtime configuration digests derived from the
+  reviewed plan rather than from a completed receipt;
+- immutable image references, Linux arm64 resolution, platform declarations,
+  and unchanged required-check ownership;
+- workflow trust tests plus disposable rejection tests for missing, malformed,
+  stale, corrupt-digest, wrong-SHA, wrong-policy, and incomplete receipts;
+- unchanged unconditional hosted CI, a documented rollback, and no required
+  receipt status or hosted skip before later authorization.
+
+Any unsupported command, schema drift, digest mismatch, ambiguous mount,
+unexpected skip, or incomplete negative case rejects the candidate. Existing
+receipts and pins remain historical evidence under their original contract.
 
 ## Read-only operator checkpoint
 
@@ -158,8 +186,9 @@ paths run the full hosted Linux qualification. The future
 writers; it is not a waiver and cannot synthesize PASS.
 
 During bootstrap, hosted fallback is effectively universal because the current
-CI workflow remains unconditional. Missing, stale, corrupt, wrong-SHA, failed,
-or unavailable local evidence must not suppress it.
+CI workflow remains unconditional. Missing, malformed, stale, corrupt-digest,
+wrong-SHA, wrong-policy, incomplete, failed, or unavailable local evidence must
+not suppress it.
 
 ## Savings ledger
 
@@ -190,7 +219,8 @@ terminal and separately reviewed:
 
 - matrix-aware preflight gap resolved;
 - exact-head local/hosted parity across the required change classes;
-- missing, stale, corrupt, and wrong-SHA receipts fail closed;
+- missing, malformed, stale, corrupt-digest, wrong-SHA, wrong-policy, and
+  incomplete receipts fail closed;
 - two hosted fallback routes pass;
 - latest-head status behavior is observed across PR lifecycle events;
 - branch-protection change is explicitly authorized;

@@ -308,8 +308,10 @@ v1.0.
 
 - [x] **Step 1: Extend failing workflow-security tests**
 
-  Assert `pull_request_target` only for opened, synchronize, reopened, and
-  ready-for-review; permissions exactly `contents: read` and `statuses: write`;
+  Assert `pull_request_target` only for opened, synchronize, reopened,
+  ready-for-review, and labelled events; permissions exactly `contents: read`
+  and `statuses: write`; require a non-draft, same-repository, non-Dependabot PR
+  plus the trusted `ci:observe-local-receipt` label;
   full SHA pins; trusted base checkout; SHA-derived evidence branch; no PR code
   execution, cache, secret, Docker run, project test, `make`, `uv`, or `npm`;
   and final fail-closed status on the exact head.
@@ -334,8 +336,9 @@ v1.0.
   git diff --check
   ```
 
-  Expected: PASS; `.github/workflows/ci.yml` is unchanged and hosted CI still
-  runs fully.
+  Expected: PASS; unlabelled pull requests publish no receipt status,
+  labelled observations fail closed, `.github/workflows/ci.yml` is unchanged,
+  and hosted CI still runs fully.
 
 - [x] **Step 5: Commit when authorized**
 
@@ -441,6 +444,19 @@ v1.0.
 and rendered mount inspection, or a separately approved equivalent. Until then,
 this task is blocked and hosted CI remains authoritative.
 
+- [ ] **Step 0: Accept one replacement CCP source boundary**
+
+  Record the exact clean CCP source commit, complete source-test result, binary
+  digest, version, and rollback pin. Prove matrix schema compatibility across
+  `plan`, `run`, `doctor`, and `dry-run`, including `runtime_id` dispatch and
+  rendered read-only/writable mount inspection. Recheck receipt-schema and
+  verifier compatibility for required checks, freshness, exact-head binding,
+  policy binding, and incomplete terminal state. Recompute the outer and every
+  per-runtime configuration digest from the reviewed plan; verify immutable
+  image references and Linux arm64 selection; then rerun workflow security,
+  negative-fixture, documentation, and unchanged-hosted-CI tests. Any mismatch
+  keeps the old pin historical and Task 6 blocked.
+
 - [ ] **Step 1: Diagnose coordinator state read-only**
 
   Preserve outputs from version, resource status, admission status, recover
@@ -495,10 +511,13 @@ this task is blocked and hosted CI remains authoritative.
   locked-dependency, and mixed change. Compare required check IDs and terminal
   dispositions. A mismatch resets the parity count after correction.
 
-- [ ] **Step 2: Prove four negative receipt cases**
+- [ ] **Step 2: Prove seven negative receipt cases**
 
-  Prove missing, stale, corrupt, and wrong-SHA receipts fail using disposable
-  evidence or verifier fixtures. Never alter valid historical evidence.
+  Prove missing, malformed JSON, stale, corrupt-digest, wrong-SHA,
+  wrong-policy, and incomplete or non-terminal receipts fail using disposable
+  evidence or verifier fixtures. Generate mutations from the accepted receipt
+  schema and verifier source rather than duplicating verifier logic in Matryca.
+  Never alter valid historical evidence.
 
 - [ ] **Step 3: Prove hosted fallback**
 
@@ -514,7 +533,7 @@ this task is blocked and hosted CI remains authoritative.
 
 - [ ] **Step 5: Issue M3 GO or NO-GO**
 
-  GO requires five comparable pairs, four fail-closed negatives, and two hosted
+  GO requires five comparable pairs, seven fail-closed negatives, and two hosted
   fallbacks. NO-GO preserves results and leaves hosted CI authoritative.
 
 ### Task 8: Observe and activate routing in a separate PR

@@ -196,6 +196,14 @@ is added as a second required context only after observation proves it attaches
 to the latest PR-head SHA. Job-level conditions are used for hosted skips;
 workflow-level path or commit filters must not leave a required context pending.
 
+During bootstrap, receipt observation is explicitly opt-in for non-draft,
+same-repository, non-Dependabot pull requests through the trusted
+`ci:observe-local-receipt` label. Every other pull request publishes no local
+receipt status, avoiding an expected red status before evidence exists. Once
+the label is present on an eligible pull request, missing or invalid evidence
+still fails closed. The label does not skip hosted work, satisfy a required
+context, or authorize a merge.
+
 The fallback label is controlled by repository writers. It is a routing choice,
 not a waiver: it authorizes the hosted path and never marks a failing check as
 successful.
@@ -346,7 +354,9 @@ trusted receipt gate, operator runbook, and savings schema/report tooling exist.
 Hosted CI remains fully authoritative and no job is skipped.
 
 **Exit evidence:** parser/schema tests, trusted-workflow security tests, report
-goldens, CCP `plan`, `doctor`, and `dry-run` pass on the exact bootstrap head.
+goldens, and CCP `plan` pass on the exact bootstrap head. The observation gate
+is opt-in and hosted CI remains unconditional. Matrix-aware `doctor` and
+`dry-run` are an explicit M2 prerequisite, not evidence transferred from M1.
 
 ### M2 — Local runtime qualification
 
@@ -364,8 +374,9 @@ checks with identical required-check dispositions. Negative and fallback tests
 are terminal.
 
 **Exit evidence:** source-bound comparison records for Python, frontend,
-documentation, dependency, and mixed changes; missing/corrupt/stale/SHA mismatch
-fail closed; fork and maintainer fallback run hosted checks.
+documentation, dependency, and mixed changes; missing, malformed, stale,
+corrupt-digest, SHA-mismatched, policy-mismatched, and incomplete receipts fail
+closed; fork and maintainer fallback run hosted checks.
 
 ### M4 — Routing observation
 
@@ -437,7 +448,8 @@ Never rely on a temporary worktree path as the sole copy of valuable work.
 - [ ] Bootstrap files and contract tests exist without skipping hosted CI.
 - [ ] The pinned CCP binary and coordinator are independently qualified.
 - [ ] The three-runtime exact-head receipt verifies against trusted policy.
-- [ ] Five representative parity PRs and all negative/fallback cases pass.
+- [ ] Five representative parity PRs, all seven negative receipt cases, and
+      both fallback cases pass.
 - [ ] Receipt-or-fallback status is proven on the latest PR-head SHA.
 - [ ] Ruleset activation is separately authorized and reversible.
 - [ ] Eligible PRs skip only the duplicated Linux jobs.

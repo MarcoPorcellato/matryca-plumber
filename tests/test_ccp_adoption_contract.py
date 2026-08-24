@@ -172,16 +172,26 @@ def test_receipt_gate_is_observation_only_and_trusted() -> None:
         "synchronize",
         "reopened",
         "ready_for_review",
+        "labeled",
     ]
     assert parsed["permissions"] == {"contents": "read", "statuses": "write"}
     assert set(parsed["jobs"]) == {"receipt"}
+    assert parsed["jobs"]["receipt"]["if"] == (
+        "github.event.pull_request.draft == false && "
+        "github.event.pull_request.head.repo.full_name == github.repository && "
+        "github.event.pull_request.user.login != 'dependabot[bot]' && "
+        "contains(github.event.pull_request.labels.*.name, "
+        "'ci:observe-local-receipt')"
+    )
     required = (
         "pull_request_target:",
-        "types: [opened, synchronize, reopened, ready_for_review]",
+        "types: [opened, synchronize, reopened, ready_for_review, labeled]",
         "contents: read",
         "statuses: write",
         "timeout-minutes: 6",
         "github.event.pull_request.head.sha",
+        "github.event.pull_request.head.repo.full_name == github.repository",
+        "github.event.pull_request.user.login != 'dependabot[bot]'",
         "github.event.pull_request.base.sha",
         "CCP_SOURCE_COMMIT: 866db18a571f55ed3d9b481d6c9c9c3bd5e98d55",
         "repository: MarcoPorcellato/commit-ci-preflight",
@@ -189,6 +199,7 @@ def test_receipt_gate_is_observation_only_and_trusted() -> None:
         "ccp-evidence/${{ github.event.pull_request.head.sha }}",
         "trusted-repository/.commit-ci-policy.toml",
         "commit-ci-preflight/receipt",
+        "ci:observe-local-receipt",
         "if: always()",
     )
     for token in required:

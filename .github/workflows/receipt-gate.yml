@@ -2,7 +2,7 @@ name: Commit CI Preflight Receipt Observation
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
 
 permissions:
   contents: read
@@ -20,7 +20,11 @@ env:
 jobs:
   receipt:
     name: Observe exact-head local receipt
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      contains(github.event.pull_request.labels.*.name, 'ci:observe-local-receipt')
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:

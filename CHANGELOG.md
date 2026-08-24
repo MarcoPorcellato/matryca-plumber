@@ -3,11 +3,12 @@
 ### Added
 
 - **Hybrid local CI bootstrap** — add a pinned three-runtime Commit CI
-  Preflight matrix and policy, an observation-only exact-head receipt verifier,
-  a fail-closed operator runbook, and an immutable generated savings ledger;
-  hosted CI remains authoritative, and official heavy local qualification is
-  blocked until the reviewed CCP source supports matrix-aware diagnosis and
-  mount rendering.
+  Preflight matrix and policy, an opt-in exact-head receipt observer, a
+  fail-closed source-upgrade and operator runbook, and an immutable generated
+  savings ledger; ordinary PRs avoid expected receipt failures, hosted CI
+  remains authoritative, and official heavy local qualification is blocked
+  until the reviewed CCP source supports matrix-aware diagnosis and mount
+  rendering.
 
 ## [2.0.1-rc.1] - 2026-08-23
 
