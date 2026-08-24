@@ -29,6 +29,27 @@ related: []
 | Remote Git authority | none |
 | Next gate | canonical JSON RED test |
 
+## Task 2 checkpoint ledger
+
+Task 1 checkpoint: `375947dacfa48210103a91e81fd7935e08bb862f`.
+
+The current gate is canonical JSON RED. The required RED command was:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py -q --no-cov
+```
+
+It failed at collection with `ModuleNotFoundError: No module named 'src.contracts'`, as expected before the leaf package existed.
+
+Task 2 intended commit subject: `feat(contracts): add Pocket canonical JSON`.
+The resulting Task 2 SHA must be appended by Task 3; this task cannot record its own SHA.
+
+R8–R10 recovery ruling corrected the plan's canonical digest vectors to
+`5542d7da4dc43e39c1a568dedf22af565304b575c871db738c4a9a2718df75ba` and
+recorded the focused GREEN evidence: 6 tests passed; Ruff format/check passed;
+mypy passed with no issues. The original missing-module RED evidence remains
+valid above.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,

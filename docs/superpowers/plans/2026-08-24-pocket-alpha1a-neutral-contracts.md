@@ -227,7 +227,7 @@ def test_canonical_json_has_exact_utf8_bytes_and_digest() -> None:
     assert canonical_json_bytes(value) == expected
     assert canonical_json_line(value) == expected + b"\n"
     assert canonical_json_sha256(value) == (
-        "e9da76aa87d7b6c0c02dc6680c7a5ad0c34e82e7d779a0737ef078fcbdfb07c4"
+        "5542d7da4dc43e39c1a568dedf22af565304b575c871db738c4a9a2718df75ba"
     )
 
 
@@ -895,7 +895,7 @@ Generate the three schema files from this function once, then commit the exact o
 Commit `vectors/canonical-json.json` as canonical JSON describing cases with `name`, admitted JSON `value`, exact UTF-8 text, and SHA-256. Include at least:
 
 ```json
-{"cases":[{"canonical_text":"{\"contract_version\":\"matryca-pocket-contract.v1\",\"title\":\"Città\"}","name":"italian-nfc","sha256":"e9da76aa87d7b6c0c02dc6680c7a5ad0c34e82e7d779a0737ef078fcbdfb07c4","value":{"contract_version":"matryca-pocket-contract.v1","title":"Città"}}]}
+{"cases":[{"canonical_text":"{\"contract_version\":\"matryca-pocket-contract.v1\",\"title\":\"Città\"}","name":"italian-nfc","sha256":"5542d7da4dc43e39c1a568dedf22af565304b575c871db738c4a9a2718df75ba","value":{"contract_version":"matryca-pocket-contract.v1","title":"Città"}}]}
 ```
 
 Add test cases for the empty file inventory, booleans, `0`, `2**63 - 1`, nested objects, and array order. Add rejection vectors for decomposed Unicode, `null`, float, non-snake-case key, negative integer, and `2**63`; rejection vectors name an error code and omit canonical bytes.
