@@ -14,7 +14,7 @@ related: []
 
 | Field | Recorded value |
 | --- | --- |
-| Status | Alpha 1A execution envelope |
+| Status | ALPHA 1A PASS |
 | Approved design | `7849017b91b830cb94271d606763697a0aebf336` |
 | Implementation base | `af939e7e14e8f7f2e4dd5783bd3a72a1433adf1e` |
 | Upstream snapshot | `af939e7e14e8f7f2e4dd5783bd3a72a1433adf1e` |
@@ -27,7 +27,12 @@ related: []
 | Locked validator evidence | `pydantic` `2.13.4`; `jsonschema` `4.26.0` |
 | Knowledge projection | `degraded: sources.toml unresolved` — `matryca_status`: `[Errno 2] No such file or directory: 'sources.toml'` |
 | Remote Git authority | none |
-| Next gate | canonical JSON RED test |
+| Next gate | separate authorization for Alpha 1B pack production/signing |
+
+Path-redaction note: angle-bracket cache values in historical command receipts
+are neutral documentation placeholders, not literal arguments that were
+executed. The commands used an approved ephemeral cache; host-specific paths
+are intentionally not published in this ledger.
 
 ## Task 2 checkpoint ledger
 
@@ -36,7 +41,7 @@ Task 1 checkpoint: `375947dacfa48210103a91e81fd7935e08bb862f`.
 The current gate is canonical JSON RED. The required RED command was:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_canonical.py -q --no-cov
 ```
 
 It failed at collection with `ModuleNotFoundError: No module named 'src.contracts'`, as expected before the leaf package existed.
@@ -50,17 +55,17 @@ original missing-module RED evidence remains valid above. The exact focused
 GREEN commands and terminal outcomes were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_canonical.py -q --no-cov
 ......                                                                   [100%]
 6 passed in 0.03s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 6 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 6 source files
 ```
 
@@ -76,11 +81,11 @@ rtk uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 ```
 
 The direct command could not initialize the sandbox-denied default uv cache at
-`/Users/marco1/.cache/uv`. Re-running with the approved temporary cache reached
+`<default-uv-cache>`. Re-running with the approved temporary cache reached
 collection and produced the required RED receipt:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 ModuleNotFoundError: No module named 'src.contracts.pocket.models'
 1 error in 0.10s
 ```
@@ -92,17 +97,17 @@ UUIDv7 values with `invalid_pack_id`; rejects duplicate source revisions with
 root. The focused GREEN and static receipts were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py -q --no-cov
 ................................                                         [100%]
 32 passed in 0.08s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 8 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 8 source files
 ```
 
@@ -123,7 +128,7 @@ negative coverage for `SourceRevisionV1`, `PackFileV1`, and `PackManifestV1`.
 The required RED command and terminal outcome were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov -k unknown_fields
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov -k unknown_fields
 FFF                                                                      [100%]
 3 failed, 26 deselected in 0.07s
 ```
@@ -138,17 +143,17 @@ in its public `ValidationError`, whose diagnostic contains the stable code.
 The GREEN/static receipts were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 .............................                                            [100%]
 29 passed in 0.08s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 8 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 8 source files
 ```
 
@@ -171,11 +176,11 @@ rtk uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 ```
 
 The direct command could not initialize the sandbox-denied default uv cache at
-`/Users/marco1/.cache/uv`. Re-running with the approved temporary cache reached
+`<default-uv-cache>`. Re-running with the approved temporary cache reached
 collection and produced the required RED receipt:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 ImportError: cannot import name 'DocumentV1' from 'src.contracts.pocket.models'
 1 error in 0.11s
 ```
@@ -189,17 +194,17 @@ references, and evidence locator ordering. The focused GREEN and static
 receipts were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 ........................................................                 [100%]
 56 passed in 0.10s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 8 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 8 source files
 ```
 
@@ -220,7 +225,7 @@ case (`README.md`) and explicit empty, `.`, and `..` negative cases. The
 required RED command and terminal outcome were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov -k one_segment_safe_source_path
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov -k one_segment_safe_source_path
 F                                                                        [100%]
 1 failed, 56 deselected in 0.06s
 ```
@@ -237,17 +242,17 @@ existing NFC, regex, and `invalid_media_type` behavior to both `PackFileV1` and
 The focused GREEN and static receipts were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
 ............................................................             [100%]
 60 passed in 0.11s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 8 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 8 source files
 ```
 
@@ -277,16 +282,16 @@ R13 regression was added, `PocketContractError: invalid_object_key` from the
 old schema renderer. The focused GREEN and static receipts were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py tests/contracts/pocket/test_schemas.py tests/contracts/pocket/test_fixtures.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py tests/contracts/pocket/test_schemas.py tests/contracts/pocket/test_fixtures.py -q --no-cov
 70 passed in 0.16s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 11 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 11 source files
 ```
 
@@ -305,19 +310,19 @@ canonical vector corpus adds the direct recursive list-to-object case
 The focused RED and final GREEN receipts were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_fixtures.py -q --no-cov -k 'read_bounded or fixture_file_set or canonical_vectors'
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_fixtures.py -q --no-cov -k 'read_bounded or fixture_file_set or canonical_vectors'
 3 failed, 2 deselected in 0.11s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py tests/contracts/pocket/test_schemas.py tests/contracts/pocket/test_fixtures.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_canonical.py tests/contracts/pocket/test_models.py tests/contracts/pocket/test_schemas.py tests/contracts/pocket/test_fixtures.py -q --no-cov
 72 passed in 0.17s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 11 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 11 source files
 ```
 
@@ -341,7 +346,7 @@ verification gates complete.
 The required RED command was run with the approved temporary uv cache:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
 ImportError: cannot import name 'build_contract_bundle'
 1 error in 0.11s
 ```
@@ -353,19 +358,19 @@ The receipt contains only these digests and count. The focused and complete
 contract gates were:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
 8 passed in 0.47s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket -q --no-cov
 80 passed in 0.60s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format src/contracts tests/contracts
 12 files left unchanged
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 12 source files
 ```
 
@@ -418,19 +423,19 @@ descriptor primitives fail closed with `safe_open_unsupported`.
 Fresh resolver verification recorded:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
 21 passed in 0.62s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket -q --no-cov
 93 passed in 0.77s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format --check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format --check src/contracts tests/contracts
 12 files already formatted
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 12 source files
 ```
 
@@ -489,19 +494,19 @@ error.
 Fresh round-3 verification recorded:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
 29 passed in 0.69s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket -q --no-cov
 101 passed in 0.89s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format --check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format --check src/contracts tests/contracts
 12 files already formatted
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 12 source files
 ```
 
@@ -524,7 +529,7 @@ times, the source path twice, and a failure from the staging close in the outer
 cleanup left its hidden staging directory behind:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov -k 'prepublication_close_after_success or cleanup_continues_after_staging_close'
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov -k 'prepublication_close_after_success or cleanup_continues_after_staging_close'
 3 failed, 29 deselected in 0.18s
 ```
 
@@ -538,19 +543,19 @@ attempt, no close of the replacement sentinel, and no remaining owned FD.
 Fresh round-4 verification recorded:
 
 ```text
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket/test_bundle.py -q --no-cov
 32 passed in 0.77s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket -q --no-cov
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket -q --no-cov
 104 passed in 0.90s
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format --check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format --check src/contracts tests/contracts
 12 files already formatted
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check src/contracts tests/contracts
 All checks passed!
 
-rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy src/contracts tests/contracts
 Success: no issues found in 12 source files
 ```
 
@@ -687,3 +692,162 @@ tests.
 The remaining gate is full-repository CI on the controller's exact committed
 Task 7 HEAD. The next action is `final qualification`. Task 7 intended subject:
 `docs(contracts): publish Pocket V1 bundle contract`.
+
+## Task 8 historical qualification receipts and final-review remediation
+
+The historical implementation commit exercised by the receipts below is
+`0530111b348d622ad773477a2f57a8b26b907369` on
+`feat/pocket-alpha1a-contracts`, based on
+`af939e7e14e8f7f2e4dd5783bd3a72a1433adf1e`. The local environment was Python
+`3.12.13`, `pydantic` `2.13.4`, and `jsonschema` `4.26.0`. No dependency or lock
+file changed. These historical receipts do not qualify a corrected tree and are
+not a terminal Alpha 1A PASS.
+
+The focused terminal receipts, using the approved temporary uv cache, were:
+
+```text
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket -q --no-cov
+107 passed in 1.67s
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format --check scripts/build_pocket_contract_bundle.py src/contracts tests/contracts
+14 files already formatted
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check scripts/build_pocket_contract_bundle.py src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy scripts/build_pocket_contract_bundle.py src/contracts tests/contracts
+Success: no issues found in 14 source files
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> make docs-check
+docs knowledge check OK
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> make agents-check
+agents coherence OK
+
+rtk git diff --exit-code origin/main...HEAD -- pyproject.toml uv.lock
+exit 0
+
+rtk git diff --check
+exit 0
+```
+
+The terminal repository gate was rerun outside the sandbox only because the
+sandbox denies the macOS `ps` child process used by an unrelated daemon-lock
+test. The approved rerun was:
+
+```text
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> make ci
+exit 0
+2039 passed, 5 skipped, 4 warnings in 99.24s
+Required test coverage of 70% reached. Total coverage: 84.47%
+```
+
+The failed sandbox-only run stopped at
+`tests/test_maintenance_daemon.py::test_try_acquire_daemon_process_lock_windows_fallback`
+after 1,084 passing tests with `PermissionError: [Errno 1] Operation not
+permitted: 'ps'`; it is an execution-sandbox limitation, not a repository test
+failure.
+
+Two fresh empty output directories were built and verified independently. Their
+absolute temporary names are deliberately omitted from this public ledger.
+Both build and verify receipts were byte-identical:
+
+```text
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run python scripts/build_pocket_contract_bundle.py build --source-dir contracts/pocket/v1 --output-dir <fresh-empty-directory>
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run python scripts/build_pocket_contract_bundle.py verify --bundle-dir <fresh-empty-directory>
+{"bundle_digest":"1af777dc9e6b0743f3dfab4160624f270356c5444be763b0bfd6e811fa1de173","content_root":"e34efa4bc490034302d2d6c9686babf775a10d55cd56aa7a1e0cd307b3c81bec","file_count":52}
+
+manifest_listed_files_compared=52
+all_manifest_listed_digests_and_bytes_identical=true
+bundle_manifests_byte_identical=true
+```
+
+GitNexus `detect_changes`, comparing the implementation base in this linked
+worktree, reported `changed_files: 70`, `changed_count: 43`,
+`affected_count: 0`, `risk_level: low`, and no affected processes. The index is
+stale at `2794b831827eba0dc1a31823d4d4df26a5de03a1`, so it maps historical
+documentation sections and omits the newer Pocket leaf symbols. Re-indexing was
+not authorized and was not performed; this graph receipt is not a zero-impact
+proof. Exact-diff review, the focused suite, the two-build comparison, and the
+full repository gate are the live evidence. No HIGH or CRITICAL graph finding
+appeared.
+
+Final review found three Important defects in the implementation at the
+historical HEAD:
+
+1. A deeply nested but under-cap bundle manifest can escape the public error
+   boundary as `RecursionError`, exposing a traceback and path details.
+2. An existing-empty-output publication race can strand the original destination
+   in a hidden backup while reporting `bundle_publish_failed`.
+3. Public model/canonical validation can disclose Pydantic input and can emit a
+   raw `UnicodeEncodeError` for surrogate strings or paths.
+
+The historical `0530111` receipts therefore remain non-terminal. Remediation
+and requalification evidence for the successor HEAD follows.
+
+### Remediation requalification: `568756e`
+
+The three findings above were remediated in exact implementation HEAD
+`568756e65cfa6f318a2bd4fa7fce2e6b9754d771` on
+`feat/pocket-alpha1a-contracts`, still based on
+`af939e7e14e8f7f2e4dd5783bd3a72a1433adf1e`. Python was `3.12.13`, `pydantic`
+was `2.13.4`, and `jsonschema` was `4.26.0`. The dependency/lock comparison and
+`git diff --check` both exited 0 before qualification.
+
+```text
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run pytest tests/contracts/pocket -q --no-cov
+113 passed in 1.87s
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff format --check scripts/build_pocket_contract_bundle.py src/contracts tests/contracts
+14 files already formatted
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run ruff check scripts/build_pocket_contract_bundle.py src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run mypy scripts/build_pocket_contract_bundle.py src/contracts tests/contracts
+Success: no issues found in 14 source files
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> make docs-check
+docs knowledge check OK
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> make agents-check
+agents coherence OK
+
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> make ci
+exit 0
+2045 passed, 5 skipped, 4 warnings in 99.53s
+Required test coverage of 70% reached. Total coverage: 84.47%
+```
+
+The sandbox run of that terminal gate again failed only in
+`test_try_acquire_daemon_process_lock_windows_fallback`, after 2,044 passing
+tests, because the sandbox denies the macOS `ps` child process. The authoritative
+approved unsandboxed gate above is the terminal receipt.
+
+Two new fresh empty output directories were independently built and verified;
+their absolute temporary names are omitted from this public ledger. Both
+receipts were identical, and every manifest-listed file was compared by SHA-256
+and bytes across the two trees:
+
+```text
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run python scripts/build_pocket_contract_bundle.py build --source-dir contracts/pocket/v1 --output-dir <fresh-empty-directory>
+rtk env UV_CACHE_DIR=<approved-temporary-uv-cache> uv run python scripts/build_pocket_contract_bundle.py verify --bundle-dir <fresh-empty-directory>
+{"bundle_digest":"1af777dc9e6b0743f3dfab4160624f270356c5444be763b0bfd6e811fa1de173","content_root":"e34efa4bc490034302d2d6c9686babf775a10d55cd56aa7a1e0cd307b3c81bec","file_count":52}
+
+manifest_listed_files_compared=52
+all_manifest_listed_digests_and_bytes_identical=true
+bundle_manifests_byte_identical=true
+```
+
+GitNexus `detect_changes`, compared to the recorded implementation base in this
+linked worktree, reported `changed_files: 70`, `changed_count: 43`,
+`affected_count: 0`, `risk_level: low`, and no affected processes. The index
+remains stale at `2794b831827eba0dc1a31823d4d4df26a5de03a1`; re-indexing was not
+authorized and was not performed. It omits the newer Pocket leaf symbols, so
+this is not a zero-impact proof. No HIGH or CRITICAL graph finding appeared.
+
+ALPHA 1A PASS applies only to the closed, content-free Plumber contract-bundle
+scope at `568756e65cfa6f318a2bd4fa7fce2e6b9754d771`. The following remain
+explicitly unproven and require separate authority: Alpha 1B pack
+production/signing, real Knowledge content, Alpha 1C Android admission and
+search, Pixel qualification, production trust, push, PR, merge, and release.
