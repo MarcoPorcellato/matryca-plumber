@@ -616,3 +616,74 @@ Stop without an implementation commit if:
 - any real content, secret, key material, network access, or out-of-scope
   repository change appears;
 - the full required verification cannot finish green.
+
+## Task 7 checkpoint ledger
+
+Task 6 is closed before this task. Its implementation and hardening commits
+are `bbf3f07b17db72e11fc21747ebfd585b63899a00`,
+`2fc0da6dcfe3ecae449f9d6ded4ccbe604f7de4a`,
+`1bec23c7ea1916628800c2671b8bac285b739e31`,
+`6fb88b1b469fe68e5442179ba0544b1d5474f256`, and
+`1ada0e228d31df5d2e34b700e0fac593c244340b`. Fix rounds 1–4 are complete; the
+final scoped review was GO with 0 Critical, 0 Important, and 0 Minor findings.
+Task 6 is complete for `f60faa44bf159ebca0b7939799c5f0e6fe6933f3..1ada0e228d31df5d2e34b700e0fac593c244340b`.
+
+All Alpha 1A commits through the Task 7 base are:
+
+| Commit | Subject |
+| --- | --- |
+| `68060eaac8b70eff31363927ed22fc4d858d99f4` | `docs: design Pocket Alpha 1A neutral contracts` |
+| `2794b831827eba0dc1a31823d4d4df26a5de03a1` | `docs: plan Pocket Alpha 1A neutral contracts` |
+| `375947dacfa48210103a91e81fd7935e08bb862f` | `docs(contracts): authorize Pocket Alpha 1A execution` |
+| `275bd1845945cc89d1585c46baedd4fc27746729` | `feat(contracts): add Pocket canonical JSON` |
+| `9e9c607e6e4ee9e446ac75b6b8b316b30514ac47` | `docs(contracts): record canonical GREEN` |
+| `4c0ff6b96c7de00772a2b25935b73f6f73072c9e` | `feat(contracts): add Pocket V1 manifest models` |
+| `a5d5495f7363ee09c4a8846d95bdb68c6fc10c6e` | `fix(contracts): stabilize Pocket unknown fields` |
+| `49d1818d27e8da007c525b1630cd2923381d05fd` | `feat(contracts): validate Pocket evidence records` |
+| `a62dc832511e188455bbdecbd10cbdba44a7427e` | `fix(contracts): accept single-segment source paths` |
+| `9102276c4ad09e2bb1a192004099adfd9aefdad2` | `feat(contracts): add Pocket V1 conformance corpus` |
+| `f60faa44bf159ebca0b7939799c5f0e6fe6933f3` | `fix(contracts): bound fixture reads and complete vectors` |
+| `bbf3f07b17db72e11fc21747ebfd585b63899a00` | `feat(contracts): build deterministic Pocket bundles` |
+| `2fc0da6dcfe3ecae449f9d6ded4ccbe604f7de4a` | `fix(contracts): harden bundle filesystem handling` |
+| `1bec23c7ea1916628800c2671b8bac285b739e31` | `fix(contracts): anchor bundle traversal and publication` |
+| `6fb88b1b469fe68e5442179ba0544b1d5474f256` | `fix(contracts): close bundle transaction edge cases` |
+| `1ada0e228d31df5d2e34b700e0fac593c244340b` | `fix(contracts): finalize descriptor cleanup ownership` |
+
+Task 6's two-build and verification receipt is unchanged in both runs:
+`file_count` 52, `content_root`
+`e34efa4bc490034302d2d6c9686babf775a10d55cd56aa7a1e0cd307b3c81bec`, and
+`bundle_digest`
+`1af777dc9e6b0743f3dfab4160624f270356c5444be763b0bfd6e811fa1de173`.
+
+Task 7 RED was the absent CLI script; the direct subprocess test failed with
+the expected missing-script error. Its focused GREEN test, using the approved
+temporary cache, reports 3 passing tests. R17: public-path hygiene overrides
+the plan's host-specific command example. The public contract uses
+`POCKET_BUNDLE_DIR="${TMPDIR:-/tmp}/pocket-contract-v1"` in the documented
+POSIX shell workflow; the cost is that shell-variable portability may differ
+outside POSIX shells.
+
+Controller staged GitNexus `detect_changes`, scoped to
+`matryca-plumber-alpha1a-impl`, reported `changed_files: 7`,
+`changed_count: 2`, `affected_count: 0`, `risk: LOW`, and 0 affected processes.
+The only mapped symbols were two sections in `docs/knowledge/inventory.md`.
+No re-index was performed. The inherited index is stale, so this receipt is not
+a zero-impact proof; exact-diff review and focused tests supply the bounded
+replacement evidence.
+
+Task 7 focused verification, using the approved temporary uv cache, recorded
+107 passing Pocket tests. Ruff format reported 14 files left unchanged, Ruff
+check passed, and mypy reported no issues in 14 source files. The
+dependency/lock comparisons against both `origin/main...HEAD` and `origin/main`
+were empty, and `git diff --check` passed. Inventory sync reported 205 total
+documents with no drift; the inventory Markdown, docs check, and agents check
+passed.
+
+Controller reran documentation inventory sync (0 added, 0 missing, 205 total),
+inventory Markdown generation, docs check, and agents check using the approved
+cache; all passed. The clean-architecture boundary suite reported 14 passing
+tests.
+
+The remaining gate is full-repository CI on the controller's exact committed
+Task 7 HEAD. The next action is `final qualification`. Task 7 intended subject:
+`docs(contracts): publish Pocket V1 bundle contract`.

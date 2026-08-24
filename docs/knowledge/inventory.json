@@ -364,6 +364,25 @@
       "classification": "active"
     },
     {
+      "path": "docs/contracts/POCKET_V1.md",
+      "type": "Archive",
+      "title": "Pocket V1 contract bundle",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/decisions/index.md",
       "type": "Archive",
       "title": "Matryca Plumber decisions",
