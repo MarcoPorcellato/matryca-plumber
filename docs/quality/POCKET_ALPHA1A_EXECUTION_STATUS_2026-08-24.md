@@ -384,6 +384,16 @@ a zero-impact proof. `rtk git diff --cached --check` passed. Per R12, this
 task leaves the exact four owned tracked files staged for controller commit and
 does not commit them.
 
+### Task 6 fix round 1
+
+RED regressions covered ancestor symlink traversal, descriptor-open symlink
+substitution for source and manifest files, public write failures, pre-read
+count/total/entry caps, portable publish rollback, and explicit cleanup failure.
+The hardening uses lexical `lstat` ancestor checks, descriptor `O_NOFOLLOW`
+opens with `fstat`, bounded `scandir` traversal, and a source-level portable
+backup/rollback publication strategy for an existing empty destination. This is
+not a native Windows qualification claim.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,

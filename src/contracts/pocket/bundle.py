@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import stat
 import tempfile
 import unicodedata
+import uuid
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Final, Literal, cast
@@ -19,6 +21,8 @@ from .models import DocumentV1, EvidenceV1, PackManifestV1
 MAX_FILES: Final[int] = 4_096
 MAX_FILE_BYTES: Final[int] = 32 * 1024 * 1024
 MAX_TOTAL_BYTES: Final[int] = 256 * 1024 * 1024
+MAX_PATH_BYTES: Final[int] = 4_096
+MAX_DIRECTORY_ENTRIES: Final[int] = 32_768
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _BUNDLE_MANIFEST = "bundle-manifest.json"
 _SCHEMA_MODELS: dict[str, type[BaseModel]] = {
@@ -63,6 +67,7 @@ def _validate_bundle_path(value: str) -> None:
         or any(part in {"", ".", ".."} for part in raw_parts)
         or "\\" in value
         or any(ord(character) < 32 or ord(character) == 127 for character in value)
+        or len(value.encode("utf-8")) > MAX_PATH_BYTES
     ):
         raise PocketContractError("unsafe_bundle_path")
 
@@ -121,12 +126,31 @@ def _is_link_or_not_directory(path: Path) -> bool:
     return stat.S_ISLNK(mode) or not stat.S_ISDIR(mode)
 
 
+def _reject_symlink_ancestors(path: Path, *, allow_missing_leaf: bool, code: str) -> None:
+    current = Path(path.anchor) if path.is_absolute() else Path()
+    parts = path.parts[1:] if path.is_absolute() else path.parts
+    for index, part in enumerate(parts):
+        if part in {"", ".", ".."}:
+            raise PocketContractError(code)
+        current /= part
+        try:
+            mode = current.lstat().st_mode
+        except (FileNotFoundError, PermissionError, OSError):
+            if allow_missing_leaf and index == len(parts) - 1:
+                return
+            raise PocketContractError(code) from None
+        if stat.S_ISLNK(mode):
+            raise PocketContractError(code)
+
+
 def _validate_source_root(source_root: Path) -> None:
+    _reject_symlink_ancestors(source_root, allow_missing_leaf=False, code="unsafe_source_root")
     if _is_link_or_not_directory(source_root):
         raise PocketContractError("unsafe_source_root")
 
 
 def _validate_output_root(output_dir: Path) -> None:
+    _reject_symlink_ancestors(output_dir, allow_missing_leaf=True, code="unsafe_output_parent")
     parent = output_dir.parent
     if _is_link_or_not_directory(parent):
         raise PocketContractError("unsafe_output_parent")
@@ -141,28 +165,75 @@ def _validate_output_root(output_dir: Path) -> None:
 
 
 def _read_regular_file(path: Path, *, expected_size: int, source: bool) -> bytes:
+    code = "source_changed" if source else "bundle_digest_mismatch"
+    flags = os.O_RDONLY
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise PocketContractError("safe_open_unsupported")
+    flags |= os.O_NOFOLLOW
     try:
-        mode = path.lstat().st_mode
-    except FileNotFoundError as error:
-        raise PocketContractError("source_changed" if source else "missing_bundle_file") from error
-    if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
-        raise PocketContractError("nonregular_source_file" if source else "nonregular_bundle_file")
-    with path.open("rb") as stream:
-        data = stream.read(MAX_FILE_BYTES + 1)
+        descriptor = os.open(path, flags)
+    except OSError:
+        raise PocketContractError(code) from None
+    try:
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode):
+            raise PocketContractError(
+                "nonregular_source_file" if source else "nonregular_bundle_file"
+            )
+        if opened.st_size != expected_size:
+            raise PocketContractError(code)
+        data = bytearray()
+        while len(data) <= MAX_FILE_BYTES:
+            block = os.read(descriptor, min(64 * 1024, MAX_FILE_BYTES + 1 - len(data)))
+            if not block:
+                break
+            data.extend(block)
+    except OSError:
+        raise PocketContractError(code) from None
+    finally:
+        try:
+            os.close(descriptor)
+        except OSError:
+            raise PocketContractError(code) from None
     if len(data) > MAX_FILE_BYTES:
         raise PocketContractError("bundle_file_too_large")
     if len(data) != expected_size:
-        raise PocketContractError("source_changed" if source else "bundle_digest_mismatch")
-    return data
+        raise PocketContractError(code)
+    return bytes(data)
+
+
+def _bounded_entries(root: Path, *, code: str) -> list[Path]:
+    pending = [root]
+    entries: list[Path] = []
+    while pending:
+        directory = pending.pop()
+        try:
+            with os.scandir(directory) as scan:
+                children: list[Path] = []
+                for entry in scan:
+                    if len(entries) + len(children) >= MAX_DIRECTORY_ENTRIES:
+                        raise PocketContractError("too_many_bundle_entries")
+                    children.append(Path(entry.path))
+        except PocketContractError:
+            raise
+        except OSError:
+            raise PocketContractError(code) from None
+        for entry_path in reversed(sorted(children, key=lambda item: item.name)):
+            try:
+                mode = entry_path.lstat().st_mode
+                if stat.S_ISDIR(mode) and not stat.S_ISLNK(mode):
+                    pending.append(entry_path)
+            except OSError:
+                raise PocketContractError(code) from None
+        entries.extend(sorted(children, key=lambda item: item.relative_to(root).as_posix()))
+    return sorted(entries, key=lambda item: item.relative_to(root).as_posix())
 
 
 def _collect_source_files(source_root: Path) -> tuple[BundleFileV1, ...]:
     _validate_source_root(source_root)
     files: list[BundleFileV1] = []
     total_size = 0
-    entries = sorted(
-        source_root.rglob("*"), key=lambda item: item.relative_to(source_root).as_posix()
-    )
+    entries = _bounded_entries(source_root, code="source_changed")
     for path in entries:
         relative_path = path.relative_to(source_root).as_posix()
         _validate_bundle_path(relative_path)
@@ -229,9 +300,7 @@ def _receipt(manifest: ContractBundleManifestV1, manifest_bytes: bytes) -> Bundl
 def _verify_bundle_root(bundle_dir: Path) -> tuple[ContractBundleManifestV1, bytes]:
     if _is_link_or_not_directory(bundle_dir):
         raise PocketContractError("unsafe_bundle_root")
-    entries = sorted(
-        bundle_dir.rglob("*"), key=lambda item: item.relative_to(bundle_dir).as_posix()
-    )
+    entries = _bounded_entries(bundle_dir, code="bundle_changed")
     observed: dict[str, tuple[Path, int]] = {}
     for path in entries:
         relative_path = path.relative_to(bundle_dir).as_posix()
@@ -282,6 +351,34 @@ def _verify_bundle_root(bundle_dir: Path) -> tuple[ContractBundleManifestV1, byt
     return manifest, manifest_bytes
 
 
+def _remove_staging(path: Path) -> None:
+    try:
+        shutil.rmtree(path)
+    except OSError:
+        raise PocketContractError("staging_cleanup_failed") from None
+
+
+def _publish_staging(staging_path: Path, output_dir: Path) -> None:
+    if not output_dir.exists():
+        try:
+            staging_path.replace(output_dir)
+        except OSError:
+            raise PocketContractError("bundle_publish_failed") from None
+        return
+    backup_path = output_dir.parent / f".{output_dir.name}.backup-{uuid.uuid4().hex}"
+    try:
+        output_dir.replace(backup_path)
+        staging_path.replace(output_dir)
+    except OSError:
+        try:
+            if backup_path.exists() and not output_dir.exists():
+                backup_path.replace(output_dir)
+        except OSError:
+            raise PocketContractError("bundle_publish_rollback_failed") from None
+        raise PocketContractError("bundle_publish_failed") from None
+    _remove_staging(backup_path)
+
+
 def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
     _validate_output_root(output_dir)
     files = _collect_source_files(source_root)
@@ -301,12 +398,16 @@ def build_contract_bundle(source_root: Path, output_dir: Path) -> BundleReceipt:
         manifest, verified_bytes = _verify_bundle_root(staging_path)
         receipt = _receipt(manifest, verified_bytes)
         _validate_output_root(output_dir)
-        staging_path.replace(output_dir)
+        _publish_staging(staging_path, output_dir)
         staging_path = None
         return receipt
+    except PocketContractError:
+        raise
+    except OSError:
+        raise PocketContractError("bundle_write_failed") from None
     finally:
         if staging_path is not None:
-            shutil.rmtree(staging_path, ignore_errors=True)
+            _remove_staging(staging_path)
 
 
 def verify_contract_bundle(bundle_dir: Path) -> BundleReceipt:

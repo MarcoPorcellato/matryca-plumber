@@ -3,13 +3,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import stat
 from dataclasses import asdict
 from pathlib import Path
 
 import pytest
 from src.contracts.pocket import bundle as bundle_module
-from src.contracts.pocket.bundle import build_contract_bundle, verify_contract_bundle
+from src.contracts.pocket.bundle import BundleFileV1, build_contract_bundle, verify_contract_bundle
 from src.contracts.pocket.canonical import PocketContractError
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -123,7 +124,7 @@ def test_build_and_verify_reject_symlink_roots_and_entries(tmp_path: Path) -> No
     output_target.mkdir()
     output_link = tmp_path / "output-link"
     output_link.symlink_to(output_target, target_is_directory=True)
-    with pytest.raises(PocketContractError, match="unsafe_output_root"):
+    with pytest.raises(PocketContractError, match="unsafe_output_(parent|root)"):
         build_contract_bundle(SOURCE, output_link)
 
     source = tmp_path / "source"
@@ -137,6 +138,26 @@ def test_build_and_verify_reject_symlink_roots_and_entries(tmp_path: Path) -> No
     (bundle / "schemas/link.json").symlink_to(bundle / "schemas/document.schema.json")
     with pytest.raises(PocketContractError, match="nonregular_bundle_file"):
         verify_contract_bundle(bundle)
+
+
+def test_rejects_ancestor_symlinks_and_overlong_bundle_paths(tmp_path: Path) -> None:
+    real_source_parent = tmp_path / "real-source-parent"
+    source = real_source_parent / "source"
+    _copy_source(source)
+    source_parent_link = tmp_path / "source-parent-link"
+    source_parent_link.symlink_to(real_source_parent, target_is_directory=True)
+    with pytest.raises(PocketContractError, match="unsafe_source_root"):
+        build_contract_bundle(source_parent_link / "source", tmp_path / "output")
+
+    real_output_parent = tmp_path / "real-output-parent"
+    real_output_parent.mkdir()
+    output_parent_link = tmp_path / "output-parent-link"
+    output_parent_link.symlink_to(real_output_parent, target_is_directory=True)
+    with pytest.raises(PocketContractError, match="unsafe_output_parent"):
+        build_contract_bundle(SOURCE, output_parent_link / "nested" / "output")
+
+    with pytest.raises(ValueError, match="unsafe_bundle_path"):
+        BundleFileV1(path="x" * 4097, size_bytes=0, sha256="0" * 64)
 
 
 def test_rejects_fifo_unsafe_names_and_source_manifest(tmp_path: Path) -> None:
@@ -220,3 +241,111 @@ def test_interrupted_staging_is_removed_and_destination_is_preserved(
         build_contract_bundle(SOURCE, destination)
     assert list(destination.iterdir()) == []
     assert list(tmp_path.glob(".destination.*")) == []
+
+
+def test_descriptor_open_rejects_symlink_substitution_without_path_leak(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    target = source / "data"
+    target.write_bytes(b"safe")
+    replacement = tmp_path / "fixture-body-must-not-leak"
+    replacement.write_bytes(b"secret")
+    original_open = os.open
+
+    def _race(path: str | os.PathLike[str], flags: int, *args: int) -> int:
+        if Path(path) == target:
+            target.unlink()
+            target.symlink_to(replacement)
+        return original_open(path, flags, *args)
+
+    monkeypatch.setattr(os, "open", _race)
+    with pytest.raises(PocketContractError, match="source_changed") as captured:
+        bundle_module._read_regular_file(target, expected_size=4, source=True)
+    assert str(tmp_path) not in str(captured.value)
+    assert "secret" not in str(captured.value)
+
+
+def test_public_filesystem_errors_are_normalized_and_caps_precede_reads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "one").write_bytes(b"x")
+    original_read = bundle_module._read_regular_file
+    monkeypatch.setattr(bundle_module, "MAX_FILES", 0)
+    monkeypatch.setattr(
+        bundle_module, "_read_regular_file", lambda *_args, **_kwargs: pytest.fail("read")
+    )
+    with pytest.raises(PocketContractError, match="too_many_bundle_files"):
+        bundle_module._collect_source_files(source)
+
+    monkeypatch.setattr(bundle_module, "MAX_FILES", 4_096)
+    monkeypatch.setattr(bundle_module, "_read_regular_file", original_read)
+    monkeypatch.setattr(
+        Path, "write_bytes", lambda *_args: (_ for _ in ()).throw(PermissionError())
+    )
+    with pytest.raises(PocketContractError, match="bundle_write_failed") as captured:
+        build_contract_bundle(SOURCE, tmp_path / "output")
+    assert str(tmp_path) not in str(captured.value)
+
+
+def test_manifest_race_and_entry_total_caps_fail_before_parse_or_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle = tmp_path / "bundle"
+    build_contract_bundle(SOURCE, bundle)
+    manifest = bundle / "bundle-manifest.json"
+    replacement = tmp_path / "replacement"
+    replacement.write_bytes(b"{}")
+    original_open = os.open
+
+    def _race(path: str | os.PathLike[str], flags: int, *args: int) -> int:
+        if Path(path) == manifest:
+            manifest.unlink()
+            manifest.symlink_to(replacement)
+        return original_open(path, flags, *args)
+
+    monkeypatch.setattr(os, "open", _race)
+    with pytest.raises(PocketContractError, match="bundle_digest_mismatch"):
+        verify_contract_bundle(bundle)
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "one").write_bytes(b"xx")
+    monkeypatch.setattr(bundle_module, "MAX_TOTAL_BYTES", 1)
+    monkeypatch.setattr(
+        bundle_module, "_read_regular_file", lambda *_args, **_kwargs: pytest.fail("read")
+    )
+    with pytest.raises(PocketContractError, match="bundle_too_large"):
+        bundle_module._collect_source_files(source)
+
+    monkeypatch.setattr(bundle_module, "MAX_DIRECTORY_ENTRIES", 0)
+    with pytest.raises(PocketContractError, match="too_many_bundle_entries"):
+        bundle_module._bounded_entries(source, code="source_changed")
+
+
+def test_publish_rollback_and_cleanup_failure_are_explicit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    (staging / "file").write_bytes(b"x")
+    original_replace = Path.replace
+
+    def _fail_publish(path: Path, target: Path) -> Path:
+        if path == staging:
+            raise OSError("publish")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", _fail_publish)
+    with pytest.raises(PocketContractError, match="bundle_publish_failed"):
+        bundle_module._publish_staging(staging, destination)
+    assert destination.exists() and list(destination.iterdir()) == []
+
+    monkeypatch.setattr(shutil, "rmtree", lambda _path: (_ for _ in ()).throw(OSError()))
+    with pytest.raises(PocketContractError, match="staging_cleanup_failed"):
+        bundle_module._remove_staging(tmp_path / "missing")
