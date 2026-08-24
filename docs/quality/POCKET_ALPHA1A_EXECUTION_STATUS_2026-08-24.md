@@ -116,6 +116,49 @@ symbol inventory omitted the new models because the index predates Task 2; this
 is an index limitation, not a zero-impact proof. No HIGH or CRITICAL finding
 appeared. Task 4, not this task, must append this task's final SHA.
 
+### Task 3 fix round 1: stable unknown-field code
+
+The RED coverage changed the manifest unknown-field assertion and added direct
+negative coverage for `SourceRevisionV1`, `PackFileV1`, and `PackManifestV1`.
+The required RED command and terminal outcome were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov -k unknown_fields
+FFF                                                                      [100%]
+3 failed, 26 deselected in 0.07s
+```
+
+Each failure exposed Pydantic `extra_forbidden` text instead of the required
+`unexpected_fields` stable contract code. The shared `_ClosedModel` now has a
+single before-validator that checks mapping keys against `cls.model_fields`,
+raises `PocketContractError("unexpected_fields")` before Pydantic's extra-field
+handler, and retains `extra="forbid"`. Pydantic wraps that validator exception
+in its public `ValidationError`, whose diagnostic contains the stable code.
+
+The GREEN/static receipts were:
+
+```text
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest tests/contracts/pocket/test_models.py -q --no-cov
+.............................                                            [100%]
+29 passed in 0.08s
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff format src/contracts tests/contracts
+8 files left unchanged
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run ruff check src/contracts tests/contracts
+All checks passed!
+
+rtk env UV_CACHE_DIR=/private/tmp/uv-cache uv run mypy src/contracts tests/contracts
+Success: no issues found in 8 source files
+```
+
+No GitNexus re-index was performed. `mcp__gitnexus__detect_changes`, compared
+against `4c0ff6b96c7de00772a2b25935b73f6f73072c9e` in this worktree, reported
+`changed_files: 3`, `changed_count: 0`, `affected_count: 0`, no affected
+processes, and `risk_level: low`. The empty symbol inventory reflects the
+known stale index and is not a zero-impact proof; no HIGH or CRITICAL finding
+appeared. Task 4, not this fix round, must append this fix commit's final SHA.
+
 ## Isolation and baseline evidence
 
 The implementation checkout is a clean linked worktree on the recorded branch,

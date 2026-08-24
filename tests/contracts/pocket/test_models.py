@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 from pydantic import ValidationError
 from src.contracts.pocket.models import (
@@ -70,10 +72,26 @@ def test_manifest_is_closed_frozen_sorted_and_content_bound() -> None:
     )
 
     assert manifest.content_root == payload_content_root(files)
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+    with pytest.raises(ValueError, match="unexpected_fields"):
         PackManifestV1.model_validate({**manifest.model_dump(), "secret": "forbidden"})
     with pytest.raises(ValidationError, match="frozen"):
         manifest.key_id = "changed"
+
+
+@pytest.mark.parametrize(
+    ("validator", "payload"),
+    [
+        (SourceRevisionV1.model_validate, _source().model_dump()),
+        (PackFileV1.model_validate, _file().model_dump()),
+        (PackManifestV1.model_validate, _valid_manifest_payload()),
+    ],
+)
+def test_closed_models_reject_unknown_fields(
+    validator: Callable[[object], object],
+    payload: dict[str, object],
+) -> None:
+    with pytest.raises(ValueError, match="unexpected_fields"):
+        validator({**payload, "secret": "forbidden"})
 
 
 @pytest.mark.parametrize(

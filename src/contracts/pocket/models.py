@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 import uuid
+from collections.abc import Mapping
 from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Final, Literal, cast
@@ -69,6 +70,13 @@ def _validate_safe_path(value: str, *, payload_only: bool) -> None:
 
 class _ClosedModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_unexpected_fields(cls, value: object) -> object:
+        if isinstance(value, Mapping) and set(value).difference(cls.model_fields):
+            raise PocketContractError("unexpected_fields")
+        return value
 
 
 class SourceRevisionV1(_ClosedModel):
