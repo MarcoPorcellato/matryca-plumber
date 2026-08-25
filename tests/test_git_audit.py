@@ -42,19 +42,28 @@ def test_robot_git_commit_stages_only_target_file(
 
     target.write_text("- hello world\n", encoding="utf-8")
     other.write_text("- other changed\n", encoding="utf-8")
+    _git(["add", "pages/b.md"], tmp_path)
 
     result = robot_git_commit(tmp_path, [target], "updated page a")
     assert result.get("committed") is True
 
-    status = subprocess.run(
-        ["git", "status", "--porcelain"],
+    committed_paths = subprocess.run(
+        ["git", "show", "--format=", "--name-only", "HEAD"],
         cwd=str(tmp_path),
         capture_output=True,
         text=True,
         check=True,
     )
-    assert "pages/a.md" not in status.stdout or status.stdout.strip() == ""
-    assert "pages/b.md" in status.stdout
+    assert committed_paths.stdout.splitlines() == ["pages/a.md"]
+
+    staged_paths = subprocess.run(
+        ["git", "diff", "--cached", "--name-only"],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert staged_paths.stdout.splitlines() == ["pages/b.md"]
 
 
 def test_path_is_sensitive_for_git() -> None:
