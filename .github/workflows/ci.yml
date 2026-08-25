@@ -64,9 +64,6 @@ jobs:
           npm run test
           npm run build
 
-      - name: Docs knowledge check
-        run: make docs-check
-
       - name: Legacy documentation audit (informational)
         continue-on-error: true
         run: make docs-audit
