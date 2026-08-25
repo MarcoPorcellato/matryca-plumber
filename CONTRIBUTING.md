@@ -385,22 +385,22 @@ If an overarching audit issue is closed by a maintainer while your PR is open, p
 |-----|------|
 | **[Discussion](https://github.com/MarcoPorcellato/matryca-plumber/discussions)** | RFCs, architecture debate, open-ended community Q&A |
 | **Issue** | Trackable work with a clear done state |
-| **`[EPIC]` parent issue** | Multi-PR initiatives (e.g. v2.0 Shadow DB) with **sub-issues** |
+| **`[EPIC]` parent issue** | Multi-PR initiatives (e.g. v2.1 memory and Safe-Sync) with **sub-issues** |
 | **`question` label** | Community questions that may convert to features |
 
 **Conventions:**
 
 - Apply **labels as GitHub metadata** — do not write `Labels: foo, bar` in the issue body.
 - Link PRs with `Fixes #N` / `Closes #N`.
-- v2.0 work uses milestone **`v2.0.0 — Shadow DB & Safe-Sync Architecture`** and labels `v2.0`, `epic`, `v2-prep`, `v2-alpha`, `v2-memory`, `v2-safesync`, `core`, `database`, `safety`, `mcp`, `dx` as appropriate.
+- v2.1 work uses milestone **`v2.1.0 — Memory & Logseq DB Safe-Sync`** and labels `v2.1`, `epic`, `v2-memory`, `v2-safesync`, `core`, `database`, `safety`, `mcp`, and `dx` as appropriate.
 
-### Contributing to v2.0
+### Contributing to v2.1
 
-1. Start at [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) and [Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20).
-2. Pick a **phase tracking issue** or **slice issue** (`label:v2.0` on GitHub).
+1. Start with the active `v2.1.0 — Memory & Logseq DB Safe-Sync` milestone and its linked epic or slice issues.
+2. Pick a **phase tracking issue** or **slice issue** (`label:v2.1` on GitHub).
 3. Shadow DB is a **read cache** — Markdown on disk remains the system of record; do not use SQLite as vault SoR.
-4. Slice PRs: `make check` green; `Refs #20` + `Fixes #N` on the slice issue.
-5. Maintainer blueprints: [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md). v1 good-first: [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md).
+4. Slice PRs: `make check` green; link the active parent epic with `Refs #N` and close the slice issue with `Fixes #N`.
+5. Historical v2.0 preparation context remains in [`docs/roadmaps/ROADMAP_V2_PREPARATION.md`](docs/roadmaps/ROADMAP_V2_PREPARATION.md) and [`v2_preparation_blueprints.md`](v2_preparation_blueprints.md). v1 good-first context remains in [`good_first_issues_blueprints.md`](good_first_issues_blueprints.md).
 - Agent UX contract work (Soft Gate, `bootstrap_status`) shipped in **v1.9.5**; tracked under **`v1.9.6 - Agent UX`** for issue closure.
 
 **Templates:** [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) — `feature_request.yml`, `bug_report.yml`, `epic.yml`, `question.yml`.
