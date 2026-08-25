@@ -1,5 +1,5 @@
 name: Epic / Tracking Issue
-description: Parent issue for a multi-release initiative (v2.0+)
+description: Parent issue for a multi-release initiative (v2.1+)
 title: "[EPIC] "
 labels:
   - epic
@@ -50,7 +50,7 @@ body:
     attributes:
       label: Target milestone
       options:
-        - v2.0.0 — Shadow DB & Safe-Sync Architecture
+        - v2.1.0 — Memory & Logseq DB Safe-Sync
         - Other / TBD
     validations:
       required: false

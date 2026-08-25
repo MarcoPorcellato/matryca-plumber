@@ -19,7 +19,7 @@ One-page path from fork to a green PR. Full rules live in [`CONTRIBUTING.md`](..
 git clone https://github.com/MarcoPorcellato/matryca-plumber.git
 cd matryca-plumber
 make install
-cd frontend && npm install && npm run build && cd ..
+cd frontend && npm ci && npm run build && cd ..
 ```
 
 Requires **Python ≥3.12** and **Node.js 22** (see [`pyproject.toml`](../pyproject.toml)).
