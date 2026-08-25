@@ -645,6 +645,65 @@ def test_dotenv_atomic_replace_failure_preserves_source_and_cleans_temp(
     assert not list(tmp_path.glob("..env.*.tmp"))
 
 
+def test_dotenv_atomic_replace_fsyncs_parent_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.cli import ui_server
+
+    env_path = tmp_path / ".env"
+    env_path.write_text("SETTING=original\n", encoding="utf-8")
+    events: list[str] = []
+    directory_fd = 987_654
+    real_open = os.open
+    real_close = os.close
+    real_fsync = os.fsync
+    real_replace = os.replace
+
+    def track_open(
+        path: str | os.PathLike[str],
+        flags: int,
+        mode: int = 0o777,
+    ) -> int:
+        if Path(path) == tmp_path:
+            events.append("directory-open")
+            return directory_fd
+        return real_open(path, flags, mode)
+
+    def track_fsync(fd: int) -> None:
+        if fd == directory_fd:
+            events.append("directory-fsync")
+            return
+        events.append("file-fsync")
+        real_fsync(fd)
+
+    def track_replace(source: Path, target: Path) -> None:
+        events.append("replace")
+        real_replace(source, target)
+
+    def track_close(fd: int) -> None:
+        if fd == directory_fd:
+            events.append("directory-close")
+            return
+        real_close(fd)
+
+    monkeypatch.setattr("src.cli.ui_server.os.open", track_open)
+    monkeypatch.setattr("src.cli.ui_server.os.fsync", track_fsync)
+    monkeypatch.setattr("src.cli.ui_server.os.replace", track_replace)
+    monkeypatch.setattr("src.cli.ui_server.os.close", track_close)
+
+    ui_server._apply_dotenv_updates({"SETTING": "updated"}, env_path=env_path)
+
+    assert env_path.read_text(encoding="utf-8") == "SETTING=updated\n"
+    assert events == [
+        "file-fsync",
+        "replace",
+        "directory-open",
+        "directory-fsync",
+        "directory-close",
+    ]
+
+
 @pytest.mark.parametrize("endpoint", ["/api/config", "/api/config/graph-path"])
 def test_config_updates_return_typed_dotenv_conflict(
     endpoint: str,

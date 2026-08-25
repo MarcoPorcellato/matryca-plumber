@@ -607,6 +607,14 @@ def _atomic_write_text(
             raise _DotenvConflictError("dotenv changed before atomic replacement")
         os.replace(tmp_path, path)
         committed = True
+        try:
+            directory_fd = os.open(str(path.parent), os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            pass
     finally:
         if not committed:
             tmp_path.unlink(missing_ok=True)
