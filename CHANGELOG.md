@@ -15,6 +15,8 @@
 - **Operator configuration durability** — fsync the parent directory after
   atomically replacing `.env`, preserving existing optimistic-concurrency and
   cleanup behavior.
+- **Surgical robot commits** — commit only the requested Markdown paths while
+  preserving unrelated user-staged Git changes exactly.
 
 ## [2.0.1-rc.1] - 2026-08-23
 

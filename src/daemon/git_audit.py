@@ -104,13 +104,13 @@ def robot_git_commit(
 
     try:
         repo.index.add(rel_paths)
-        if not repo.index.diff("HEAD"):
+        if not repo.index.diff("HEAD", paths=tuple(rel_paths)):
             return {
                 "committed": False,
                 "skipped": True,
                 "reason": "no changes to commit for staged paths",
             }
-        repo.index.commit(message)
+        repo.git.commit("--only", "-m", message, "--", *rel_paths)
     except Exception as exc:  # noqa: BLE001 - never crash writers
         logger.error("Robot git commit failed under {}: {}", root, exc)
         return {
