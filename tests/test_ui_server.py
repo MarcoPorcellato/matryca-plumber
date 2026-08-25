@@ -663,7 +663,7 @@ def test_dotenv_atomic_replace_fsyncs_parent_directory(
     def track_open(
         path: str | os.PathLike[str],
         flags: int,
-        mode: int = 0o777,
+        mode: int = 0o600,
     ) -> int:
         if Path(path) == tmp_path:
             events.append("directory-open")
