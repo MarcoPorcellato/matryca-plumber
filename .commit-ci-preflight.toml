@@ -147,6 +147,15 @@ timeout_seconds = 300
 depends_on = ["python312-sync"]
 
 [[checks]]
+id = "python312-security"
+runtime_id = "python312"
+required = true
+argv = ["env", "UV_CACHE_DIR=/workspace/.ccp-mounts/uv", "UV_PROJECT_ENVIRONMENT=/workspace/.ccp-mounts/venv-py312", "UV_LINK_MODE=copy", "PYTHONDONTWRITEBYTECODE=1", "RUFF_CACHE_DIR=/workspace/.ccp-mounts/ruff", "uv", "run", "ruff", "check", "--select", "S", "--ignore", "S101", "src"]
+working_directory = "."
+timeout_seconds = 300
+depends_on = ["python312-sync"]
+
+[[checks]]
 id = "python312-docs"
 runtime_id = "python312"
 required = true

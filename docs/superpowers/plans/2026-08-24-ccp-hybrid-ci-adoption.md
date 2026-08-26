@@ -6,7 +6,7 @@ status: draft
 classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: quality
-last_verified: 2026-08-24
+last_verified: 2026-08-29
 stale_after: 2027-02-20
 ---
 
@@ -27,8 +27,8 @@ workflow verifies only base policy and receipt data. An observation-first router
 later skips hosted Linux jobs only when the exact PR head has a valid receipt;
 every uncertain or external path executes hosted CI.
 
-**Tech Stack:** Commit CI Preflight 0.1.0 at reviewed source
-`866db18a571f55ed3d9b481d6c9c9c3bd5e98d55`, TOML schema 2.0, OCI
+**Tech Stack:** Commit CI Preflight 0.1.0 with trusted public verifier source
+`3fccc197e5055a2759ee7afe51b91133938ec904`, TOML schema 2.0, OCI
 digest-pinned Linux images, GitHub Actions, Python 3.12 standard library, JSON
 Schema, pytest, uv, Node.js 22, GitHub rulesets, OKF v0.2, and Matryca profile
 v1.0.
@@ -52,9 +52,23 @@ v1.0.
   exact merged-commit `main` CI remain hosted.
 - Hosted Linux jobs are not skipped until parity, negative cases, routing
   observation, and separate ruleset authorization are terminal.
-- The pinned CCP source supports matrix `plan` and `run` but not matrix-aware
-  `doctor` or `dry-run`; an official heavy matrix run is blocked until that
-  preflight gap is resolved and the trusted source/policy are re-reviewed.
+- Task 6 Step 0 accepts a matrix-aware CCP source boundary; an official heavy
+  matrix run remains blocked until Steps 1–5 have their own fresh evidence and
+  authorization.
+- A separately qualified local coordinator upgrade does not replace the public
+  receipt-verifier pin or transfer receipt compatibility. The active local
+  coordinator recorded on 2026-08-29 is source
+  `27adf8d0820b3cd96f9c5e149de9b580ae41f639`, qualified tree
+  `d8e0364d1313fde0898a44517ae6d233d9e10763`, and executable
+  `sha256:c8021e2322e172686c0a0c07d2b0260eafb5812d085d2306dbbde3fe4e964bd4`;
+  the prior `sha256:7cde4c2888721d72fbb8c86b4fdcc75f992050979c5175a5bf10b0cecfa7c6f8`
+  executable is retained as rollback.
+- Official CCP documentation is pinned for this plan at
+  `main@6ff736b1e2a1dfde8778330efdd4b82c845d45e7`. The Matrix operator sequence
+  selects `current-v2` explicitly across `plan`, `doctor`, `dry-run`, and any
+  separately authorized `run`. Dry-run output is not a replay bundle.
+- `matrix-v2-legacy-v1` and single-runtime receipt-v2 policy `1.1` are separate
+  migration contracts. Neither is inferred or adopted by this plan.
 - Unknown, denied, unsafe, malformed, stale, mismatched, cancelled, or
   non-terminal state fails closed.
 - Never delete or reinterpret CCP coordinator locks, tickets, leases, journals,
@@ -300,8 +314,8 @@ v1.0.
 
 **Interfaces:**
 
-- Consumes: trusted base policy, CCP source
-  `866db18a571f55ed3d9b481d6c9c9c3bd5e98d55`, and
+- Consumes: trusted base policy, trusted public CCP verifier source
+  `3fccc197e5055a2759ee7afe51b91133938ec904`, and
   `ccp-evidence/<head-sha>/.ccp/receipt.json`.
 - Produces: exact-head status `commit-ci-preflight/receipt`; it does not yet
   authorize a hosted skip.
@@ -440,11 +454,12 @@ v1.0.
 - Produces: independently verified exact-head receipt and cleanup evidence; no
   GitHub skip authority.
 
-**Prerequisite:** reviewed CCP source must expose matrix-aware runtime diagnosis
-and rendered mount inspection, or a separately approved equivalent. Until then,
-this task is blocked and hosted CI remains authoritative.
+**Prerequisite:** Task 6 Step 0 must accept one reviewed CCP source with
+matrix-aware runtime diagnosis and rendered mount inspection, or a separately
+approved equivalent. Step 0 is accepted below; hosted CI remains authoritative
+until the later task gates are terminal.
 
-- [ ] **Step 0: Accept one replacement CCP source boundary**
+- [x] **Step 0: Accept one replacement CCP source boundary**
 
   Record the exact clean CCP source commit, complete source-test result, binary
   digest, version, and rollback pin. Prove matrix schema compatibility across
@@ -454,8 +469,34 @@ this task is blocked and hosted CI remains authoritative.
   policy binding, and incomplete terminal state. Recompute the outer and every
   per-runtime configuration digest from the reviewed plan; verify immutable
   image references and Linux arm64 selection; then rerun workflow security,
-  negative-fixture, documentation, and unchanged-hosted-CI tests. Any mismatch
-  keeps the old pin historical and Task 6 blocked.
+  negative-fixture, documentation, and unchanged-hosted-CI tests. Accepted
+  public verifier source: `3fccc197e5055a2759ee7afe51b91133938ec904`;
+  qualification executable:
+  `sha256:b8d26013800c99ba806506a0539a9ddc781bfab52f95c8f1dbdff1b65c2fcd4c`;
+  rollback executable:
+  `sha256:3c8621b8e834356ada379f3ad9bd916a7a884b2c4f4da7ffb606744ab79b4fa8`.
+  Qualified source tree: `9e478c1489a9926772e8ab8bea21bd57470494b6`; five
+  required checks and independent verification PASS in source-test receipt:
+  `sha256:2b6aec06b8b6cf6e07736c8e713dd05c03d439640c608cc52af124e93de290e7`.
+  The plan-derived outer digest is
+  `sha256:6f418ac6b90664e9ebbec4a5c7e28af946f0430250fcaf28b6a1f62196b4a635`.
+  The explicit selected profile is `current-v2`. A read-only comparison with
+  `matrix-v2-legacy-v1` produced the distinct outer digest
+  `sha256:a583c176ccef26dbfbc1171d7715fdd5285fc30527d27f7b2c801ad170798f87`;
+  it is not accepted policy evidence and does not authorize migration.
+  This closes only the replacement-source boundary: Steps 1–6 and M2 remain
+  incomplete, hosted CI remains authoritative, and no official receipt exists.
+  The later operational coordinator at source
+  `27adf8d0820b3cd96f9c5e149de9b580ae41f639`, qualified tree
+  `d8e0364d1313fde0898a44517ae6d233d9e10763`, and executable
+  `sha256:c8021e2322e172686c0a0c07d2b0260eafb5812d085d2306dbbde3fe4e964bd4`
+  is separately qualified local state; its immediate rollback is
+  `sha256:7cde4c2888721d72fbb8c86b4fdcc75f992050979c5175a5bf10b0cecfa7c6f8`.
+  Neither changes this public verifier boundary.
+  Official adoption, local-run, Matrix-profile, and dry-run guidance was
+  reconciled at upstream documentation commit
+  `6ff736b1e2a1dfde8778330efdd4b82c845d45e7` without changing the public
+  verifier pin, policy digest, hosted authority, or heavy-run gate.
 
 - [ ] **Step 1: Diagnose coordinator state read-only**
 
