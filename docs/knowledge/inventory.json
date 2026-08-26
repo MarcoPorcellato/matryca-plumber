@@ -3755,6 +3755,27 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-08-26-mlflow-evaluation-projection.md",
+      "type": "Roadmap",
+      "title": "MLflow Evaluation Projection PR A Implementation Plan",
+      "description": "Test-first execution plan for the deterministic, content-free graph-outcome evidence projection without an MLflow dependency or runtime path.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved PR A plan; PR B publisher design, implementation, dependency changes, and publication remain separately gated.",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",

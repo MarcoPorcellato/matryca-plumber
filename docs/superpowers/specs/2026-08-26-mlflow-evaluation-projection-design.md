@@ -266,7 +266,8 @@ The closed output contains only:
 - `validation_status` as `passed` or `rejected`;
 - sorted content-free `failure_codes`;
 - sorted `executed_tool_ids`;
-- closed outcome dimensions with dimension, status, and reason code;
+- closed outcome dimensions with dimension, status, and sorted passed/failed
+  check identifiers;
 - closed aggregate metrics already present in the canonical report;
 - initial and final canonical and derived fingerprints;
 - `roots_distinct`, `roots_outside_repository`, and `cleanup_verified`;
@@ -282,12 +283,14 @@ The maintainer CLI emits one closed suite envelope with schema identifier
   lexicographically by scenario identifier.
 
 The suite rejects duplicate, missing, unsupported, or mixed-provenance
-projections. It does not introduce aggregate status, timing, metadata, or a
-second interpretation of canonical results.
+projections. It does not introduce aggregate status, aggregate timing,
+metadata, or a second interpretation of canonical results.
 
-No wall-clock timing is projected in v1 because `EpisodeRun` does not currently
-provide a canonical bounded timing field. No field may be added merely because
-a tracking framework can display it.
+The closed process metrics include the canonical bounded
+`elapsed_milliseconds` duration already present in `EpisodeReport`. This is an
+elapsed duration, not a wall-clock timestamp. No generated-at time, start/end
+time, timezone, or framework timestamp is projected, and no field may be added
+merely because a tracking framework can display it.
 
 All Pydantic models use `extra="forbid"`. Collections use closed element types,
 bounded lengths, deterministic sorting, and existing identifier/digest
@@ -316,8 +319,11 @@ remain unchanged when placed in a suite.
 Repeated projection of identical validated evidence at the same source
 revision must produce byte-identical final documents. Reordered equivalent
 input collections must also produce identical bytes. Any changed allowlisted
-value, schema version, protocol version, or source revision must change the
-projection identity.
+value or source revision must change the projection identity. Schema v1 accepts
+only the declared projection and suite schema identifiers and
+`graph-outcome-protocol.v1`; unsupported schema or protocol versions reject
+rather than entering the identity domain. Any future supported version must
+define a distinct identity domain before it can be accepted.
 
 ## Privacy contract
 
@@ -431,8 +437,8 @@ PR A is implemented test-first and must include these independent gates:
    reviewed canonical bytes and expected projection and suite IDs.
 2. **Reordered determinism:** equivalent reordered dimensions, artifacts,
    tool IDs, and failure codes produce the same bytes.
-3. **Identity invalidation:** changing any allowlisted value, schema version,
-   protocol version, or source revision changes the ID.
+3. **Identity invalidation:** changing any accepted allowlisted value or source
+   revision changes the ID; unsupported schema and protocol versions reject.
 4. **Canonical preservation:** task, report, receipt bytes, IDs, and statuses are
    unchanged before and after projection.
 5. **Adversarial privacy:** direct and recursively nested denied fields and
