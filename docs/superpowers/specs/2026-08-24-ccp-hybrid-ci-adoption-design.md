@@ -6,7 +6,7 @@ status: draft
 classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: quality
-last_verified: 2026-08-24
+last_verified: 2026-08-26
 stale_after: 2027-02-20
 ---
 
@@ -56,8 +56,8 @@ The repository also retains an append-only evidence series that distinguishes:
 | --- | --- | --- |
 | Matryca Plumber base | `main@48eae93b1152c9fe7d1f19d63de3f781b686932e` | Fresh `git fetch origin main` on 2026-08-24 |
 | Delivery branch | `docs/ccp-hybrid-adoption-20260824` | Isolated worktree created from the verified base |
-| CCP reviewed source | `866db18a571f55ed3d9b481d6c9c9c3bd5e98d55` | Current `commit-ci-preflight` `origin/main` on 2026-08-24 |
-| CCP producer version | `commit-ci-preflight 0.1.0` | Installed CLI version; source identity remains separately unproven |
+| CCP reviewed source | `3fccc197e5055a2759ee7afe51b91133938ec904` | Accepted Task 6 Step 0 boundary; five required checks and independent verification PASS in the recorded qualification receipt |
+| CCP producer version | `commit-ci-preflight 0.1.0` | Installed executable `sha256:b8d26013800c99ba806506a0539a9ddc781bfab52f95c8f1dbdff1b65c2fcd4c`; rollback `sha256:3c8621b8e834356ada379f3ad9bd916a7a884b2c4f4da7ffb606744ab79b4fa8` |
 | Current required check | `Ironclad Gatekeeper` | Active GitHub rulesets `17295807` and `16516530` |
 | Documentation profile | OKF v0.2 plus Matryca profile v1.0, target MKQ-4 | `docs/knowledge/profile.md` |
 | Matryca Knowledge MCP | degraded: `sources.toml` unavailable | `matryca_status` failure on 2026-08-24 |
@@ -147,7 +147,7 @@ receipt spanning independently pinned runtimes:
 
 | Runtime ID | Immutable image candidate | Required checks |
 | --- | --- | --- |
-| `python312` | `ghcr.io/astral-sh/uv@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58` | dependency sync, version consistency, format, Ruff, mypy, sandbox read check, agent coherence, public-metrics policy, documentation, generated prompt, pytest |
+| `python312` | `ghcr.io/astral-sh/uv@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58` | dependency sync, version consistency, format, Ruff, source security, mypy, sandbox read check, agent coherence, public-metrics policy, documentation, generated prompt, pytest |
 | `python313` | `ghcr.io/astral-sh/uv@sha256:531f855bda2c73cd6ef67d56b733b357cea384185b3022bd09f05e002cd144ca` | dependency sync and full Python 3.13 pytest evidence |
 | `node22` | `docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436` | `npm ci`, lint, test, and build |
 
@@ -171,14 +171,14 @@ therefore claims only the multi-runtime contract actually proven by its plan,
 receipt, macOS resource admission, watchdog, and runtime limits. Expansion of
 the claim requires a separately reviewed CCP contract evolution.
 
-Bootstrap verification identified one additional upstream boundary in the
-exact pinned source: matrix schema `2.0` is dispatched by `plan` and `run`, but
-`doctor` and `dry-run` still load the single-runtime configuration path and
-reject `runtime_id`. The repository therefore exposes only matrix `plan` during
-PR A. An official heavy matrix run remains blocked until reviewed CCP source
-provides matrix-aware runtime diagnosis and mount rendering, or an equivalent
-preflight is separately designed and qualified. A v1 diagnostic cannot be
-transferred to the v2 matrix claim.
+Task 6 Step 0 accepts the reviewed CCP boundary at
+`3fccc197e5055a2759ee7afe51b91133938ec904`: matrix schema `2.0` is dispatched
+by `plan`, `run`, `doctor`, and `dry-run`, including `runtime_id` dispatch and
+rendered source/cache-mount inspection. The plan-derived policy binds the
+resulting outer and per-runtime configuration digests. This source acceptance
+does not transfer to an official heavy matrix run: Task 6 Steps 1–5 retain
+their independent resource, admission, architecture, execution, and receipt
+evidence gates.
 
 ## Pull-request routing contract
 
@@ -217,8 +217,8 @@ successful.
   run. Lock, ticket, lease, and coordinator files are never deleted manually.
 - The Docker-compatible runtime must be responsive and unaccounted containers
   must be absent.
-- The matrix-aware runtime diagnosis and mount-rendering gap must be resolved
-  under reviewed CCP source before the first official heavy matrix run.
+- The accepted source boundary must be rechecked against the exact candidate
+  before the first official heavy matrix run.
 - The checkout must be clean and its exact SHA must match the intended PR head.
 - Any check failure, timeout, pressure cancellation, receipt mismatch, or
   evidence-publication failure is inconclusive or failed, never a partial PASS.
@@ -228,10 +228,9 @@ successful.
   exact HEAD, and next recovery command.
 - Hosted fallback remains available without weakening the rulesets.
 
-The currently installed CLI is not ready for an official pilot: resource status
-is `unknown` and admission inspection reports an unsafe coordinator layout at
-the local admission root. That state must receive read-only diagnosis and an
-independently authorized repair before any official CCP run.
+This source-boundary update does not assess the live coordinator. Task 6 Step 1
+must collect fresh read-only resource, admission, recovery, cache, and runtime
+state before any official CCP run; a non-admitted or ambiguous result blocks it.
 
 ## Savings evidence contract
 

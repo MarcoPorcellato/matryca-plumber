@@ -1,5 +1,14 @@
 # Documentation update log
 
+## 2026-08-26
+
+- **Hybrid local CI source boundary:** accepted the qualified CCP matrix source
+  at `3fccc197e5055a2759ee7afe51b91133938ec904`, regenerated the three-runtime
+  policy from its rendered plan, and added the existing Python 3.12 source
+  security gate to local parity. This closes Task 6 Step 0 only: hosted CI
+  remains authoritative; coordinator diagnosis, official receipt qualification,
+  parity, fallback, routing, ruleset, and savings milestones remain separate.
+
 ## 2026-08-25
 
 - **Source static-analysis baseline:** added a fast source-only security gate to

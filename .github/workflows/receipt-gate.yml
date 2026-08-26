@@ -15,7 +15,7 @@ concurrency:
 env:
   CCP_EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
   CCP_STATUS_CONTEXT: commit-ci-preflight/receipt
-  CCP_SOURCE_COMMIT: 866db18a571f55ed3d9b481d6c9c9c3bd5e98d55
+  CCP_SOURCE_COMMIT: 3fccc197e5055a2759ee7afe51b91133938ec904
 
 jobs:
   receipt:

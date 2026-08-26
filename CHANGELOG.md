@@ -6,9 +6,10 @@
   Preflight matrix and policy, an opt-in exact-head receipt observer, a
   fail-closed source-upgrade and operator runbook, and an immutable generated
   savings ledger; ordinary PRs avoid expected receipt failures, hosted CI
-  remains authoritative, and official heavy local qualification is blocked
-  until the reviewed CCP source supports matrix-aware diagnosis and mount
-  rendering.
+  remains authoritative. The accepted matrix-aware source boundary now includes
+  the existing Python 3.12 source-security check, while official heavy local
+  qualification, parity, routing, rulesets, and savings evidence remain
+  separately gated.
 
 ### Fixed
 

@@ -1749,7 +1749,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active dated decision; review the staged assertion exclusion by the document's stale-after date."
+      "notes": "Active dated decision; review the staged assertion exclusion by the document's stale-after date.",
+      "missing": false
     },
     {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",

@@ -44,6 +44,7 @@ EXPECTED_CHECKS = {
     "python312-version": "python312",
     "python312-agents": "python312",
     "python312-public-metrics": "python312",
+    "python312-security": "python312",
     "python312-docs": "python312",
     "python312-system-prompt": "python312",
     "python312-tests": "python312",
@@ -54,6 +55,7 @@ EXPECTED_CHECKS = {
     "node22-tests": "node22",
     "node22-build": "node22",
 }
+EXPECTED_CCP_SOURCE_COMMIT = "3fccc197e5055a2759ee7afe51b91133938ec904"
 EXPECTED_CACHE_MOUNTS = {
     ".ccp-mounts/coverage",
     ".ccp-mounts/hypothesis",
@@ -193,7 +195,7 @@ def test_receipt_gate_is_observation_only_and_trusted() -> None:
         "github.event.pull_request.head.repo.full_name == github.repository",
         "github.event.pull_request.user.login != 'dependabot[bot]'",
         "github.event.pull_request.base.sha",
-        "CCP_SOURCE_COMMIT: 866db18a571f55ed3d9b481d6c9c9c3bd5e98d55",
+        f"CCP_SOURCE_COMMIT: {EXPECTED_CCP_SOURCE_COMMIT}",
         "repository: MarcoPorcellato/commit-ci-preflight",
         "ref: ${{ env.CCP_SOURCE_COMMIT }}",
         "ccp-evidence/${{ github.event.pull_request.head.sha }}",

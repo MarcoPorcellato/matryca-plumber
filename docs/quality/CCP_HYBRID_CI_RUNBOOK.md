@@ -6,7 +6,7 @@ status: draft
 classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: quality
-last_verified: 2026-08-24
+last_verified: 2026-08-26
 stale_after: 2026-11-22
 ---
 
@@ -25,15 +25,19 @@ and [implementation plan](../superpowers/plans/2026-08-24-ccp-hybrid-ci-adoption
 define the later activation gates. This runbook never turns a local PASS into
 merge, release, or publication authority.
 
-## Frozen bootstrap contract
+## Current matrix contract
 
 | Boundary | Value |
 | --- | --- |
-| CCP source | `866db18a571f55ed3d9b481d6c9c9c3bd5e98d55` |
-| Matrix configuration digest | `sha256:c1c620a8f037d5368368eac8276c38e915b7663eafa4a1499b9e3a9b14166670` |
-| Node.js 22 runtime digest | `sha256:c7df43272e7f276cdda9f505f693fd9d236aea8b4d5ecdc77109d9b799ae92f6` |
-| Python 3.12 runtime digest | `sha256:fa83b8b1f3ab79cd6abbbf2682dc5b57cb86ef977aaa19794303353a1b3a5fad` |
-| Python 3.13 runtime digest | `sha256:d9618eb286702885635073a77eaa36629aa49c94b2103c7609691cdc1377c576` |
+| CCP source | `3fccc197e5055a2759ee7afe51b91133938ec904` |
+| Qualified source tree | `9e478c1489a9926772e8ab8bea21bd57470494b6` |
+| Source test result | five required checks PASS and independent verifier PASS; qualification receipt `sha256:2b6aec06b8b6cf6e07736c8e713dd05c03d439640c608cc52af124e93de290e7` (`sha256:0aa7ef0e9442b329a4ac71b6a3002d9331bef0f793cc9ab88d2f6a24fee3c0c5`) |
+| Installed executable | `commit-ci-preflight 0.1.0` — `sha256:b8d26013800c99ba806506a0539a9ddc781bfab52f95c8f1dbdff1b65c2fcd4c` |
+| Rollback executable | `sha256:3c8621b8e834356ada379f3ad9bd916a7a884b2c4f4da7ffb606744ab79b4fa8` |
+| Matrix configuration digest | `sha256:6f418ac6b90664e9ebbec4a5c7e28af946f0430250fcaf28b6a1f62196b4a635` |
+| Node.js 22 runtime digest | `sha256:d42b8cca0aebe5ba215b961b9066666a12fd0ccb4bee2e53e5a85396899754d7` |
+| Python 3.12 runtime digest | `sha256:0b022ab9c98c197c7a40c301d49ae6b0f871eb4153fab52b0ffb89ba9eb4a97b` |
+| Python 3.13 runtime digest | `sha256:ff84d7597c7384b29ad598163b4c47323a27dc4b7b2f2ece91fb209c8abba327` |
 | Receipt path | `.ccp/receipt.json` |
 | Evidence branch | `ccp-evidence/<exact-40-hex-source-sha>` |
 | Remote status | `commit-ci-preflight/receipt` |
@@ -41,21 +45,20 @@ merge, release, or publication authority.
 Any config, policy, image, required-check, source, or digest change creates a
 new qualification boundary. Never edit policy to match a completed receipt.
 
-## Known upstream preflight gap
+## Accepted source boundary
 
-At the pinned CCP source, `plan` and `run` understand matrix schema `2.0`, but
-`doctor` and `dry-run` still load only the single-runtime configuration path.
-They reject a matrix check's `runtime_id`. This was reproduced during PR A
-bootstrap and confirmed in the exact pinned source.
+Task 6 Step 0 accepts source `3fccc197e5055a2759ee7afe51b91133938ec904` as
+the reviewed replacement boundary. Its installed executable and rollback pin
+are recorded above. Matrix `plan`, `doctor`, and `dry-run` support the three
+configured `runtime_id` values and render the declared source and cache mounts.
+The resulting plan is the sole source of the policy digests in this document.
+The source qualification remains bound to its recorded clean source tree and
+terminal test receipt; it does not transfer to a later source revision.
 
-Consequences:
-
-- `make ccp-plan` is the only repository-provided matrix preflight target;
-- there are deliberately no `ccp-doctor` or `ccp-dry-run` Make targets;
-- an official heavy matrix run is **blocked** until reviewed CCP source exposes
-  equivalent matrix-aware runtime diagnosis and rendered-mount inspection, or
-  the design accepts a separately proven replacement;
-- a v1 diagnostic result must never be relabelled as matrix-v2 evidence.
+This acceptance is not an official matrix run, receipt, routing activation, or
+hosted-skip authorization. Repository Make targets remain intentionally limited
+to `ccp-plan`, `ccp-verify`, and `ccp-savings-check`; a future heavy operation
+must follow the explicit authorization and fresh-admission sequence below.
 
 This limitation does not weaken hosted CI. Unlabelled pull requests publish no
 receipt status. A labelled observation fails closed when no valid receipt
@@ -83,8 +86,9 @@ proves all of the following against the same exact clean source:
   receipt status or hosted skip before later authorization.
 
 Any unsupported command, schema drift, digest mismatch, ambiguous mount,
-unexpected skip, or incomplete negative case rejects the candidate. Existing
-receipts and pins remain historical evidence under their original contract.
+unexpected skip, or incomplete negative case rejects a future candidate.
+The previous source pin and its bootstrap findings remain historical evidence
+under their original contract.
 
 ## Read-only operator checkpoint
 
@@ -217,7 +221,7 @@ digested provider export.
 Hosted Linux work may be conditionally skipped only after all of these are
 terminal and separately reviewed:
 
-- matrix-aware preflight gap resolved;
+- the accepted source boundary is still current and independently rechecked;
 - exact-head local/hosted parity across the required change classes;
 - missing, malformed, stale, corrupt-digest, wrong-SHA, wrong-policy, and
   incomplete receipts fail closed;
