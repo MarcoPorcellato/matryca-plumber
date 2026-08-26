@@ -127,7 +127,7 @@ def _subclass_episode() -> EpisodeRun:
     "value",
     (
         {"scenario": "strict-read-only-success"},
-        cast(BenchmarkRunReport, object()),
+        BenchmarkRunReport.model_construct(),
         _subclass_episode(),
     ),
 )
@@ -178,3 +178,8 @@ def test_project_episode_rejects_mismatched_evidence(
 def test_project_episode_rejects_invalid_source_revision(source_revision: str) -> None:
     with pytest.raises(ProjectionEvidenceError, match="^source_revision_invalid$"):
         project_episode(_episodes()[0], source_revision=source_revision)
+
+
+def test_project_episode_rejects_non_string_source_revision() -> None:
+    with pytest.raises(ProjectionEvidenceError, match="^source_revision_invalid$"):
+        project_episode(_episodes()[0], source_revision=cast(str, 7))

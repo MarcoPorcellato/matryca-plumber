@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Literal, cast
 
 from src.memory.evidence_models import EvidenceContractError
 from src.memory.graph_outcome_harness import EpisodeRun
 from src.memory.graph_outcome_protocol import (
+    GRAPH_OUTCOME_PROTOCOL_SCHEMA_VERSION,
     canonical_outcome_receipt_bytes,
     validate_episode_against_task,
 )
@@ -32,7 +33,7 @@ class ProjectionEvidenceError(ValueError):
 
 
 def _require_source_revision(source_revision: str) -> None:
-    if not _REVISION.fullmatch(source_revision):
+    if not isinstance(source_revision, str) or not _REVISION.fullmatch(source_revision):
         raise ProjectionEvidenceError("source_revision_invalid")
 
 
@@ -85,7 +86,10 @@ def project_episode(
     return build_projection(
         GraphOutcomeProjectionPayload(
             source_revision=source_revision,
-            protocol_schema_version="graph-outcome-protocol.v1",
+            protocol_schema_version=cast(
+                Literal["graph-outcome-protocol.v1"],
+                GRAPH_OUTCOME_PROTOCOL_SCHEMA_VERSION,
+            ),
             scenario=run.scenario,
             policy_mode=run.task.policy_mode,
             task_bundle_digest=run.task.task_bundle_id,
@@ -147,7 +151,10 @@ def project_suite(
     return build_suite(
         GraphOutcomeSuitePayload(
             source_revision=source_revision,
-            protocol_schema_version="graph-outcome-protocol.v1",
+            protocol_schema_version=cast(
+                Literal["graph-outcome-protocol.v1"],
+                GRAPH_OUTCOME_PROTOCOL_SCHEMA_VERSION,
+            ),
             projections=projections,
         )
     )
