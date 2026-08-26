@@ -3797,6 +3797,27 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/specs/2026-08-26-mlflow-evaluation-projection-design.md",
+      "type": "Specification",
+      "title": "MLflow evaluation projection design",
+      "description": "Architecture and privacy contract for a deterministic graph-outcome evidence projection and a separately gated optional MLflow publisher.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved architecture becomes implementation authority only after maintainer review; PR A is pure and PR B remains separately gated.",
+      "missing": false
+    },
+    {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
