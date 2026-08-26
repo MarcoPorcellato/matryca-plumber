@@ -1755,6 +1755,24 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/STATIC_ANALYSIS_ADOPTION_BASELINE_2026-08-25.md",
+      "type": "Decision",
+      "title": "Source static-analysis adoption baseline",
+      "description": "Evidence-bounded adoption record for a fast source security gate, reviewed suppressions, staged assertion hardening, and hosted-compute limits.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active dated decision; review the staged assertion exclusion by the document's stale-after date."
+    },
+    {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
       "type": "Roadmap",
       "title": "v2.0.1 release qualification plan",

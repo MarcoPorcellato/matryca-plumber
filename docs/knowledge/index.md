@@ -34,6 +34,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Public release and soak evidence policy](../quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md) — Retention, redaction, review, and artifact-bound claim rules for public qualification evidence.
 - [Local resource-admission coordinator runbook](../quality/CI_RESOURCE_ADMISSION_RUNBOOK.md) — macOS `macos-v4` admission, interruption, recovery, and evidence boundaries.
 - [Hybrid Commit CI Preflight runbook](../quality/CCP_HYBRID_CI_RUNBOOK.md) — Observation-first local qualification, exact-head receipt verification, hosted fallback, upstream matrix-preflight hold, and savings ledger.
+- [Source static-analysis adoption baseline](../quality/STATIC_ANALYSIS_ADOPTION_BASELINE_2026-08-25.md) — Fast source security gate, reviewed suppression boundary, staged assertion hardening, and hosted-compute limits.
 - [Legacy milestone reconciliation](../quality/LEGACY_MILESTONE_RECONCILIATION_2026-08-19.md) — Source review and completed migration of the remaining pre-v2 audit issues into v2.1 and v2.2.
 - [Release records](../releases/) — Version-specific public release documentation.
 

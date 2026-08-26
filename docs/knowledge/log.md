@@ -1,5 +1,13 @@
 # Documentation update log
 
+## 2026-08-25
+
+- **Source static-analysis baseline:** added a fast source-only security gate to
+  the existing local and hosted aggregate checks, recorded every accepted
+  finding with line-bound rationale, and preserved runtime-assertion hardening
+  as a separate reviewed step. The gate adds no network access, container work,
+  heavy local admission, or additional hosted workflow job.
+
 ## 2026-08-24
 
 - **Hybrid local CI bootstrap:** added the pinned three-runtime CCP matrix,
