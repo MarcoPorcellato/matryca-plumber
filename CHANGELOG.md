@@ -18,6 +18,12 @@
 - **Surgical robot commits** — commit only the requested Markdown paths while
   preserving unrelated user-staged Git changes exactly.
 
+### Security
+
+- **Source security analysis** — add a fast production-source security gate to
+  the existing local and hosted aggregate checks, with narrow reviewed
+  suppressions and no additional hosted workflow job.
+
 ## [2.0.1-rc.1] - 2026-08-23
 
 ### Added

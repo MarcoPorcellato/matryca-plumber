@@ -124,13 +124,14 @@ def _preflight_block_uuids(
         seen_on_page.add(block_uuid)
 
     placeholders = ",".join("?" * len(seen_on_page))
+    query = (
+        "SELECT b.block_uuid, p.file_path "  # noqa: S608 - interpolation is '?' only
+        "FROM blocks b "
+        "JOIN pages p ON b.page_id = p.page_id "
+        f"WHERE b.block_uuid IN ({placeholders})"
+    )
     rows = connection.execute(
-        f"""
-        SELECT b.block_uuid, p.file_path
-        FROM blocks b
-        JOIN pages p ON b.page_id = p.page_id
-        WHERE b.block_uuid IN ({placeholders})
-        """,
+        query,
         tuple(seen_on_page),
     ).fetchall()
     stale_paths: set[str] = set()

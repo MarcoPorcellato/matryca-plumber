@@ -1,6 +1,6 @@
 NUM_WORKERS ?= 4
 
-.PHONY: help install format lint typecheck test test-full test-fast test-fast-parallel test-integration test-resilience check clean version-check agents-check public-metrics-check docs-check build-system-prompt check-system-prompt provision-local reindex-graph release-build ccp-plan ccp-verify ccp-savings-check
+.PHONY: help install format lint security-check typecheck test test-full test-fast test-fast-parallel test-integration test-resilience check clean version-check agents-check public-metrics-check docs-check build-system-prompt check-system-prompt provision-local reindex-graph release-build ccp-plan ccp-verify ccp-savings-check
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -14,6 +14,9 @@ format: ## Auto-format Python code using ruff
 
 lint: ## Run ruff to check for linting errors
 	uv run ruff check .
+
+security-check: ## Run the source security static-analysis baseline
+	uv run ruff check --select S --ignore S101 src
 
 typecheck: ## Run mypy for strict type checking
 	uv run mypy src/ tests/
@@ -85,9 +88,9 @@ perf: ## Run slow performance/memory tests (no coverage gate)
 format-check: ## Verify formatting without modifying files
 	uv run ruff format --check .
 
-check: lint typecheck sandbox-read-check version-check agents-check public-metrics-check docs-check check-system-prompt test ## Run linting, typing, sandbox, documentation, generated-prompt, and test gates
+check: lint security-check typecheck sandbox-read-check version-check agents-check public-metrics-check docs-check check-system-prompt test ## Run linting, security analysis, typing, sandbox, documentation, generated-prompt, and test gates
 
-ci: format-check lint typecheck sandbox-read-check version-check agents-check public-metrics-check docs-check check-system-prompt test ## CI gate: format + lint + types + sandbox + docs + generated prompt + tests
+ci: format-check lint security-check typecheck sandbox-read-check version-check agents-check public-metrics-check docs-check check-system-prompt test ## CI gate: format + lint + security + types + sandbox + docs + generated prompt + tests
 
 provision-local: ## Scaffold .local/ graph indexer (requires LOCAL_GRAPH_ANALYZER_NPM_PACKAGE)
 	@bash scripts/provision-local-workspace.sh

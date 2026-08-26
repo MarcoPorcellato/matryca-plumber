@@ -72,7 +72,11 @@ def _probe_openai_models(base_url: str, *, timeout_s: float = 3.0) -> tuple[bool
 
     opener = urllib.request.build_opener(NoRedirect())
     try:
-        request = urllib.request.Request(models_url, headers={"Accept": "application/json"})
+        # Caller supplies the canonical URL after the local inference URL policy validates it.
+        request = urllib.request.Request(  # noqa: S310
+            models_url,
+            headers={"Accept": "application/json"},
+        )
         with opener.open(request, timeout=timeout_s) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (OSError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:

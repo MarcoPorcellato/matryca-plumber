@@ -325,7 +325,8 @@ class BoundedPageParseWorker:
         started = time.perf_counter()
         proc: subprocess.Popen[bytes] | None = None
         try:
-            proc = subprocess.Popen(
+            # Exact current interpreter/module; request data is framed over stdin without a shell.
+            proc = subprocess.Popen(  # noqa: S603
                 [sys.executable, "-m", _SUBPROCESS_MODULE],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,

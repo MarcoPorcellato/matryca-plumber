@@ -162,8 +162,9 @@ def _read_lock_holder_pid(lock_path: Path) -> int | None:
 def _process_command_line(pid: int) -> str:
     """Return a best-effort command line for ``pid`` (platform-specific)."""
     if sys.platform == "win32":
+        # Fixed system utility and validated integer PID; no shell or graph input.
         result = subprocess.run(  # noqa: S603
-            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],  # noqa: S607
             capture_output=True,
             text=True,
             timeout=5.0,
@@ -171,8 +172,9 @@ def _process_command_line(pid: int) -> str:
         )
         return result.stdout or ""
     if sys.platform == "darwin":
+        # Fixed system utility and validated integer PID; no shell or graph input.
         result = subprocess.run(  # noqa: S603
-            ["ps", "-p", str(pid), "-o", "command="],
+            ["ps", "-p", str(pid), "-o", "command="],  # noqa: S607
             capture_output=True,
             text=True,
             timeout=5.0,

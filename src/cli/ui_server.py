@@ -1185,8 +1185,9 @@ def _ensure_frontend_built() -> None:
 
     sys.stderr.write("[Matryca Plumber] Rebuilding frontend dashboard…\n")
     sys.stderr.flush()
+    # Developer-owned package script; no graph or request value enters the command.
     result = subprocess.run(
-        ["npm", "run", "build"],
+        ["npm", "run", "build"],  # noqa: S607
         cwd=_FRONTEND_ROOT,
         check=False,
         capture_output=True,
@@ -1232,7 +1233,8 @@ def _schedule_browser_open(
         deadline = time.monotonic() + timeout_seconds
         while time.monotonic() < deadline:
             try:
-                with urllib.request.urlopen(health_url, timeout=0.5) as response:
+                # The URL is constructed locally with a fixed HTTP scheme and health path.
+                with urllib.request.urlopen(health_url, timeout=0.5) as response:  # noqa: S310
                     if response.status == 200:
                         webbrowser.open(url)
                         return
@@ -1251,7 +1253,7 @@ def run_ui_server(*, host: str = "127.0.0.1", port: int = DEFAULT_UI_PORT) -> No
 
     ensure_repo_dotenv_from_example()
     reload_plumber_dotenv()
-    if host == "0.0.0.0" and not _ui_allow_lan():
+    if host == "0.0.0.0" and not _ui_allow_lan():  # noqa: S104 - comparison, not binding
         raise ValueError(
             "Refusing to bind UI server to 0.0.0.0 without MATRYCA_UI_ALLOW_LAN=1 "
             "(LAN clients could reach authenticated API routes if they obtain a token)."
@@ -1261,7 +1263,7 @@ def run_ui_server(*, host: str = "127.0.0.1", port: int = DEFAULT_UI_PORT) -> No
     require_explicit_ui_token_if_configured()
     require_explicit_ui_token_for_lan()
     warn_if_ephemeral_ui_token()
-    if host == "0.0.0.0":
+    if host == "0.0.0.0":  # noqa: S104 - comparison, not binding
         logger.warning(
             "WARNING: Binding to 0.0.0.0 exposes authenticated API routes on the LAN. "
             "/api/auth/session remains loopback-only; MATRYCA_UI_TOKEN is required."
