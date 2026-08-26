@@ -15,6 +15,8 @@ from src.memory.graph_outcome_protocol import (
     TerminalStatus,
 )
 
+from tools.evaluation_projection.privacy import assert_projection_private
+
 PROJECTION_SCHEMA_VERSION = "matryca-graph-outcome-evaluation-projection.v1"
 SUITE_SCHEMA_VERSION = "matryca-graph-outcome-evaluation-projection-suite.v1"
 ProjectionScenario = Literal[
@@ -213,6 +215,7 @@ def canonical_suite_bytes(value: GraphOutcomeEvaluationSuite) -> bytes:
 def build_projection(payload: GraphOutcomeProjectionPayload) -> GraphOutcomeEvaluationProjection:
     """Return the normalized closed projection and its payload-derived identity."""
     normalized = GraphOutcomeProjectionPayload.model_validate(payload.model_dump())
+    assert_projection_private(normalized.model_dump(mode="json"))
     projection_id = hashlib.sha256(_canonical_bytes(normalized)).hexdigest()
     return GraphOutcomeEvaluationProjection(**normalized.model_dump(), projection_id=projection_id)
 
@@ -220,6 +223,7 @@ def build_projection(payload: GraphOutcomeProjectionPayload) -> GraphOutcomeEval
 def build_suite(payload: GraphOutcomeSuitePayload) -> GraphOutcomeEvaluationSuite:
     """Return the normalized closed four-scenario suite and its identity."""
     normalized = GraphOutcomeSuitePayload.model_validate(payload.model_dump())
+    assert_projection_private(normalized.model_dump(mode="json"))
     suite_id = hashlib.sha256(_canonical_bytes(normalized)).hexdigest()
     return GraphOutcomeEvaluationSuite(**normalized.model_dump(), suite_id=suite_id)
 
