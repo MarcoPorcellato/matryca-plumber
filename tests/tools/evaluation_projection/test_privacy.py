@@ -36,7 +36,11 @@ def test_guard_rejects_nested_forbidden_content_without_echo(payload: object) ->
     [
         {"source_revision": "a" * 40},
         {"digest": "b" * 64},
+        {"scenario": "strict-read-only-success"},
         {"failure_codes": ["first-failure"]},
+        {"executed_tool_ids": ["read.graph"]},
+        {"passed_check_ids": ["hermeticity.read"]},
+        {"failed_check_ids": ["canonical-outcome-failed"]},
         {"roots_distinct": True},
         {"elapsed_milliseconds": 86_400_000},
         {"metrics": {"elapsed_milliseconds": 86_400_000}},
