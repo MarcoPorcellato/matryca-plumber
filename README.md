@@ -25,6 +25,12 @@
 > I gave an AI agent access to my notes. It corrupted them.<br>
 > I built Matryca Plumber so that never happens again.
 
+We are not building another "agentic memory"...
+
+## We are building the **governed memory plane for humans and agents.**
+
+Human-owned memory. Agent-native access. Governed evolution.
+
 > **v2.0.0 is stable and available now.** Matryca Plumber's default-on external
 > Shadow DB, Strict Read Only protection, Markdown authority, and fail-closed
 > fallback contract are now published on [GitHub Releases](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0)
