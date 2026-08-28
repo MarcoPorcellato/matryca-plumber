@@ -31,6 +31,8 @@ We are not building another "agentic memory"...
 
 Human-owned memory. Agent-native access. Governed evolution.
 
+Matryca Plumber does not define or require a graph database, vector database, embedding model or retrieval algorithm.
+
 > **v2.0.0 is stable and available now.** Matryca Plumber's default-on external
 > Shadow DB, Strict Read Only protection, Markdown authority, and fail-closed
 > fallback contract are now published on [GitHub Releases](https://github.com/MarcoPorcellato/matryca-plumber/releases/tag/v2.0.0)
