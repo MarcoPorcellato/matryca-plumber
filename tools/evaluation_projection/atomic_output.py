@@ -12,17 +12,7 @@ from pathlib import Path
 _UNSUPPORTED_DIRECTORY_SYNC_ERRNOS = frozenset(
     (errno.EINVAL, errno.ENOTSUP, getattr(errno, "EOPNOTSUPP", errno.ENOTSUP))
 )
-_DIRECTORY_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-_TEMPORARY_FILE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
 _MAX_TEMPORARY_NAME_ATTEMPTS = 32
-_RELATIVE_DIRECTORY_APIS_SUPPORTED = (
-    hasattr(os, "O_DIRECTORY")
-    and hasattr(os, "O_NOFOLLOW")
-    and all(
-        operation in os.supports_dir_fd
-        for operation in (os.open, os.stat, os.mkdir, os.unlink, os.rmdir, os.link)
-    )
-)
 
 
 class AtomicOutputError(RuntimeError):
@@ -43,8 +33,30 @@ def _identity(status: os.stat_result) -> tuple[int, int]:
     return status.st_dev, status.st_ino
 
 
+def _directory_flags() -> int:
+    directory_flag = getattr(os, "O_DIRECTORY", None)
+    nofollow_flag = getattr(os, "O_NOFOLLOW", None)
+    if not isinstance(directory_flag, int) or not isinstance(nofollow_flag, int):
+        raise AtomicOutputError("output_install_failed")
+    return os.O_RDONLY | directory_flag | nofollow_flag
+
+
+def _temporary_file_flags() -> int:
+    nofollow_flag = getattr(os, "O_NOFOLLOW", None)
+    if not isinstance(nofollow_flag, int):
+        raise AtomicOutputError("output_install_failed")
+    return os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow_flag
+
+
 def _require_relative_directory_apis() -> None:
-    if not _RELATIVE_DIRECTORY_APIS_SUPPORTED:
+    _directory_flags()
+    _temporary_file_flags()
+    supported_dir_fd = getattr(os, "supports_dir_fd", ())
+    supported_follow_symlinks = getattr(os, "supports_follow_symlinks", ())
+    required_operations = (os.open, os.stat, os.mkdir, os.unlink, os.rmdir, os.link)
+    if not all(operation in supported_dir_fd for operation in required_operations) or (
+        os.link not in supported_follow_symlinks
+    ):
         raise AtomicOutputError("output_install_failed")
 
 
@@ -62,7 +74,7 @@ def _require_real_parent(destination: Path) -> tuple[Path, tuple[int, int]]:
 
 def _open_verified_directory(path: Path, expected_identity: tuple[int, int]) -> int:
     try:
-        descriptor = os.open(path, _DIRECTORY_FLAGS)
+        descriptor = os.open(path, _directory_flags())
     except OSError:
         raise AtomicOutputError("output_install_failed") from None
     try:
@@ -124,7 +136,7 @@ def _create_private_directory(
             )
             temporary_directory_fd = os.open(
                 temporary_directory_name,
-                _DIRECTORY_FLAGS,
+                _directory_flags(),
                 dir_fd=parent_fd,
             )
             if _identity(os.fstat(temporary_directory_fd)) != expected_identity:
@@ -149,7 +161,7 @@ def _create_temporary_file(temporary_directory_fd: int) -> tuple[str, int]:
         try:
             return temporary_name, os.open(
                 temporary_name,
-                _TEMPORARY_FILE_FLAGS,
+                _temporary_file_flags(),
                 0o600,
                 dir_fd=temporary_directory_fd,
             )
@@ -282,7 +294,7 @@ def write_projection_bytes(destination: Path, payload: bytes, *, overwrite: bool
                 )
             except FileExistsError:
                 raise AtomicOutputError("output_exists") from None
-            except OSError:
+            except (OSError, TypeError):
                 raise AtomicOutputError("output_install_failed") from None
             installed = True
             if _cleanup_file(temporary_directory_fd, temporary_name):

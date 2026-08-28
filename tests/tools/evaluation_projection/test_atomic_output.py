@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import errno
+import importlib.util
 import os
 from pathlib import Path
+from typing import Protocol, cast
 
 import pytest
 from tools.evaluation_projection.atomic_output import (
@@ -12,7 +14,30 @@ from tools.evaluation_projection.atomic_output import (
     write_projection_bytes,
 )
 
+from tools.evaluation_projection import atomic_output
+
 type _PathInput = str | bytes | os.PathLike[str] | os.PathLike[bytes]
+
+
+class _AtomicOutputModule(Protocol):
+    AtomicOutputError: type[AtomicOutputError]
+
+    def write_projection_bytes(
+        self, destination: Path, payload: bytes, *, overwrite: bool = False
+    ) -> None: ...
+
+
+def _load_atomic_output_platform_variant() -> _AtomicOutputModule:
+    module_path = atomic_output.__file__
+    assert module_path is not None
+    specification = importlib.util.spec_from_file_location(
+        "atomic_output_platform_variant", module_path
+    )
+    assert specification is not None
+    assert specification.loader is not None
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    return cast(_AtomicOutputModule, module)
 
 
 def _temporary_files(directory: Path) -> tuple[Path, ...]:
@@ -23,6 +48,14 @@ def _error_code(callable_: object, *args: object, **kwargs: object) -> AtomicOut
     with pytest.raises(AtomicOutputError) as caught:
         assert callable(callable_)
         callable_(*args, **kwargs)
+    return caught.value
+
+
+def _variant_error(
+    module: _AtomicOutputModule, destination: Path, payload: bytes
+) -> AtomicOutputError:
+    with pytest.raises(module.AtomicOutputError) as caught:
+        module.write_projection_bytes(destination, payload)
     return caught.value
 
 
@@ -220,6 +253,12 @@ def test_no_overwrite_race_preserves_racer_output_and_removes_owned_temporary(
         raise FileExistsError(errno.EEXIST, "already exists")
 
     monkeypatch.setattr(os, "link", race)
+    monkeypatch.setattr(os, "supports_dir_fd", frozenset((*os.supports_dir_fd, race)))
+    monkeypatch.setattr(
+        os,
+        "supports_follow_symlinks",
+        frozenset((*os.supports_follow_symlinks, race)),
+    )
 
     error = _error_code(write_projection_bytes, output, b"new\n")
 
@@ -317,6 +356,11 @@ def test_cleanup_failure_after_install_is_reported_without_hiding_new_bytes(
         real_unlink(path, dir_fd=dir_fd)
 
     monkeypatch.setattr(os, "unlink", fail_first_unlink)
+    monkeypatch.setattr(
+        os,
+        "supports_dir_fd",
+        frozenset((*os.supports_dir_fd, fail_first_unlink)),
+    )
 
     error = _error_code(write_projection_bytes, output, b"new\n")
 
@@ -350,6 +394,7 @@ def test_preinstall_primary_error_records_cleanup_failure_without_masking_it(
 
     monkeypatch.setattr(os, "fsync", fail_file_sync)
     monkeypatch.setattr(os, "unlink", fail_unlink)
+    monkeypatch.setattr(os, "supports_dir_fd", frozenset((*os.supports_dir_fd, fail_unlink)))
 
     error = _error_code(write_projection_bytes, output, b"new\n", overwrite=True)
 
@@ -421,4 +466,79 @@ def test_unsupported_directory_sync_is_best_effort_success(
     write_projection_bytes(output, b"new\n")
 
     assert output.read_bytes() == b"new\n"
+    assert _temporary_files(tmp_path) == ()
+
+
+def test_missing_directory_flag_is_a_stable_install_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+
+    with monkeypatch.context() as platform:
+        platform.delattr(os, "O_DIRECTORY")
+        module = _load_atomic_output_platform_variant()
+
+        error = _variant_error(module, output, b"new\n")
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert not output.exists()
+    assert _temporary_files(tmp_path) == ()
+
+
+def test_missing_link_follow_symlink_capability_is_a_stable_install_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+    without_link_follow = frozenset(
+        operation for operation in os.supports_follow_symlinks if operation is not os.link
+    )
+
+    with monkeypatch.context() as platform:
+        platform.setattr(os, "supports_follow_symlinks", without_link_follow)
+        module = _load_atomic_output_platform_variant()
+
+        error = _variant_error(module, output, b"new\n")
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert not output.exists()
+    assert _temporary_files(tmp_path) == ()
+
+
+def test_rejected_link_follow_symlink_keyword_is_a_stable_install_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+
+    def reject_link_follow_symlinks(
+        source: _PathInput,
+        destination: _PathInput,
+        *,
+        src_dir_fd: int | None = None,
+        dst_dir_fd: int | None = None,
+        follow_symlinks: bool = True,
+    ) -> None:
+        del source, destination, src_dir_fd, dst_dir_fd, follow_symlinks
+        raise TypeError("follow_symlinks is unsupported")
+
+    with monkeypatch.context() as platform:
+        platform.setattr(os, "link", reject_link_follow_symlinks)
+        platform.setattr(
+            os,
+            "supports_dir_fd",
+            frozenset((*os.supports_dir_fd, reject_link_follow_symlinks)),
+        )
+        platform.setattr(
+            os,
+            "supports_follow_symlinks",
+            frozenset((*os.supports_follow_symlinks, reject_link_follow_symlinks)),
+        )
+        module = _load_atomic_output_platform_variant()
+
+        error = _variant_error(module, output, b"new\n")
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert not output.exists()
     assert _temporary_files(tmp_path) == ()
