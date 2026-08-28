@@ -16,6 +16,14 @@ from tools.evaluation_projection.projector import ProjectionEvidenceError, proje
 from tools.evaluation_projection.provenance import SourceBindingError, resolve_source_binding
 from tools.evaluation_projection.schema import canonical_suite_bytes
 
+_SOURCE_BINDING_ERROR_CODES = {
+    "source_repository_unavailable": "source_repository_unavailable",
+    "source_head_detached": "source_head_detached",
+    "source_tree_dirty": "source_tree_dirty",
+    "source_revision_invalid": "source_revision_invalid",
+    "source_revision_mismatch": "source_revision_mismatch",
+}
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="project_graph_outcome_evidence")
@@ -37,7 +45,7 @@ def main(argv: Sequence[str] | None = None, *, repository_root: Path | None = No
     try:
         binding = resolve_source_binding(root, args.source_revision)
     except SourceBindingError as error:
-        _write_error(str(error))
+        _write_error(_SOURCE_BINDING_ERROR_CODES.get(str(error), "source_repository_unavailable"))
         return 3
 
     try:
@@ -49,7 +57,13 @@ def main(argv: Sequence[str] | None = None, *, repository_root: Path | None = No
         return 4
 
     if args.output is None:
-        sys.stdout.buffer.write(payload)
+        try:
+            if sys.stdout.buffer.write(payload) != len(payload):
+                raise OSError
+            sys.stdout.buffer.flush()
+        except OSError:
+            _write_error("output_failed")
+            return 6
         return 0
 
     try:

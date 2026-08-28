@@ -54,13 +54,49 @@ def test_stdout_success_is_canonical_and_has_no_stderr(
     monkeypatch.setattr(cli, "resolve_source_binding", lambda *_: _binding(tmp_path))
     monkeypatch.setattr(cli, "run_default_scenarios", _default_run)
     monkeypatch.setattr(cli, "project_suite", lambda *_args, **_kwargs: marker)
-    monkeypatch.setattr(cli, "canonical_suite_bytes", lambda value: b"{\"suite\":true}\n")
+    monkeypatch.setattr(cli, "canonical_suite_bytes", lambda value: b'{"suite":true}\n')
 
     assert cli.main([], repository_root=tmp_path) == 0
 
     captured = capsys.readouterr()
     assert captured.out == '{"suite":true}\n'
     assert captured.err == ""
+
+
+@pytest.mark.parametrize("failure", ("write", "short_write", "flush"))
+def test_stdout_output_failures_are_content_free_and_exit_six(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    failure: str,
+) -> None:
+    class FailingBuffer:
+        def write(self, payload: bytes) -> int:
+            if failure == "write":
+                raise OSError("synthetic output failure: /private/example")
+            if failure == "short_write":
+                return len(payload) - 1
+            return len(payload)
+
+        def flush(self) -> None:
+            if failure == "flush":
+                raise OSError("synthetic flush failure: /private/example")
+
+    class FailingStdout:
+        buffer = FailingBuffer()
+
+    monkeypatch.setattr(cli, "resolve_source_binding", lambda *_: _binding(tmp_path))
+    monkeypatch.setattr(cli, "run_default_scenarios", _default_run)
+    monkeypatch.setattr(cli, "project_suite", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(cli, "canonical_suite_bytes", lambda _value: b"canonical\n")
+    monkeypatch.setattr("tools.evaluation_projection.cli.sys.stdout", FailingStdout())
+
+    assert cli.main([], repository_root=tmp_path) == 6
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "evaluation_projection: output_failed\n"
+    assert "/private/example" not in captured.err
 
 
 def test_file_success_installs_only_the_canonical_bytes(
@@ -127,6 +163,34 @@ def test_source_mismatch_is_content_free_and_stops_before_harness(
     assert captured.out == ""
     assert captured.err == "evaluation_projection: source_revision_mismatch\n"
     assert supplied_revision not in captured.err
+
+
+@pytest.mark.parametrize(
+    "message",
+    (
+        "source_revision_mismatch: /private/example",
+        "fatal: not a git repository: /private/example",
+    ),
+)
+def test_unknown_or_malformed_source_binding_errors_are_content_free(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    message: str,
+) -> None:
+    def reject_source(*_: object) -> SourceBinding:
+        raise SourceBindingError(message)
+
+    monkeypatch.setattr(cli, "resolve_source_binding", reject_source)
+    monkeypatch.setattr(cli, "run_default_scenarios", _fail_if_called)
+
+    assert cli.main([], repository_root=tmp_path) == 3
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "evaluation_projection: source_repository_unavailable\n"
+    assert message not in captured.err
+    assert "/private/example" not in captured.err
 
 
 def test_canonicalization_rejection_has_stable_content_free_error(
