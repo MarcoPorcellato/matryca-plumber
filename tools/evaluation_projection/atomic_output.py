@@ -54,8 +54,9 @@ def _require_relative_directory_apis() -> None:
     supported_dir_fd = getattr(os, "supports_dir_fd", ())
     supported_follow_symlinks = getattr(os, "supports_follow_symlinks", ())
     required_operations = (os.open, os.stat, os.mkdir, os.unlink, os.rmdir, os.link)
-    if not all(operation in supported_dir_fd for operation in required_operations) or (
-        os.link not in supported_follow_symlinks
+    required_no_follow_operations = (os.stat, os.link)
+    if not all(operation in supported_dir_fd for operation in required_operations) or not all(
+        operation in supported_follow_symlinks for operation in required_no_follow_operations
     ):
         raise AtomicOutputError("output_install_failed")
 
@@ -65,7 +66,7 @@ def _require_real_parent(destination: Path) -> tuple[Path, tuple[int, int]]:
     try:
         resolved_parent = parent.resolve(strict=True)
         status = parent.stat(follow_symlinks=False)
-    except OSError:
+    except (OSError, TypeError, NotImplementedError):
         raise AtomicOutputError("output_install_failed") from None
     if resolved_parent != parent or not stat.S_ISDIR(status.st_mode):
         raise AtomicOutputError("output_install_failed")
@@ -96,7 +97,7 @@ def _destination_status(parent_fd: int, destination_name: str) -> os.stat_result
         return os.stat(destination_name, dir_fd=parent_fd, follow_symlinks=False)
     except FileNotFoundError:
         return None
-    except OSError:
+    except (OSError, TypeError, NotImplementedError):
         raise AtomicOutputError("output_install_failed") from None
 
 
@@ -123,7 +124,7 @@ def _create_private_directory(
             os.mkdir(temporary_directory_name, mode=0o700, dir_fd=parent_fd)
         except FileExistsError:
             continue
-        except OSError:
+        except (OSError, TypeError, NotImplementedError):
             raise AtomicOutputError("output_install_failed") from None
 
         try:
@@ -143,12 +144,12 @@ def _create_private_directory(
                 with suppress(OSError):
                     os.close(temporary_directory_fd)
                 raise AtomicOutputError("output_install_failed")
-        except OSError:
-            with suppress(OSError):
+        except (OSError, TypeError, NotImplementedError):
+            with suppress(OSError, TypeError, NotImplementedError):
                 os.rmdir(temporary_directory_name, dir_fd=parent_fd)
             raise AtomicOutputError("output_install_failed") from None
         except AtomicOutputError:
-            with suppress(OSError):
+            with suppress(OSError, TypeError, NotImplementedError):
                 os.rmdir(temporary_directory_name, dir_fd=parent_fd)
             raise
         return temporary_directory_name, temporary_directory_fd, expected_identity
@@ -167,7 +168,7 @@ def _create_temporary_file(temporary_directory_fd: int) -> tuple[str, int]:
             )
         except FileExistsError:
             continue
-        except OSError:
+        except (OSError, TypeError, NotImplementedError):
             raise AtomicOutputError("output_install_failed") from None
     raise AtomicOutputError("output_install_failed")
 
@@ -205,7 +206,7 @@ def _cleanup_file(temporary_directory_fd: int, temporary_name: str) -> bool:
         os.unlink(temporary_name, dir_fd=temporary_directory_fd)
     except FileNotFoundError:
         return False
-    except OSError:
+    except (OSError, TypeError, NotImplementedError):
         return True
     return False
 
@@ -231,13 +232,13 @@ def _cleanup_private_directory(
         )
     except FileNotFoundError:
         return False
-    except OSError:
+    except (OSError, TypeError, NotImplementedError):
         return True
     if not stat.S_ISDIR(status.st_mode) or _identity(status) != temporary_directory_identity:
         return True
     try:
         os.rmdir(temporary_directory_name, dir_fd=parent_fd)
-    except OSError:
+    except (OSError, TypeError, NotImplementedError):
         return True
     return False
 
@@ -280,7 +281,7 @@ def write_projection_bytes(destination: Path, payload: bytes, *, overwrite: bool
                     src_dir_fd=temporary_directory_fd,
                     dst_dir_fd=parent_fd,
                 )
-            except (OSError, TypeError):
+            except (OSError, TypeError, NotImplementedError):
                 raise AtomicOutputError("output_install_failed") from None
             temporary_name = None
         else:
@@ -294,7 +295,7 @@ def write_projection_bytes(destination: Path, payload: bytes, *, overwrite: bool
                 )
             except FileExistsError:
                 raise AtomicOutputError("output_exists") from None
-            except (OSError, TypeError):
+            except (OSError, TypeError, NotImplementedError):
                 raise AtomicOutputError("output_install_failed") from None
             installed = True
             if _cleanup_file(temporary_directory_fd, temporary_name):

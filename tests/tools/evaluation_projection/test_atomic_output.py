@@ -506,6 +506,64 @@ def test_missing_link_follow_symlink_capability_is_a_stable_install_error(
     assert _temporary_files(tmp_path) == ()
 
 
+def test_missing_stat_follow_symlink_capability_is_a_stable_install_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+    without_stat_follow = frozenset(
+        operation for operation in os.supports_follow_symlinks if operation is not os.stat
+    )
+
+    with monkeypatch.context() as platform:
+        platform.setattr(os, "supports_follow_symlinks", without_stat_follow)
+        module = _load_atomic_output_platform_variant()
+
+        error = _variant_error(module, output, b"new\n")
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert not output.exists()
+    assert _temporary_files(tmp_path) == ()
+
+
+def test_rejected_stat_descriptor_keywords_are_a_stable_install_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+    real_stat = os.stat
+
+    def reject_relative_stat(
+        path: _PathInput,
+        *,
+        dir_fd: int | None = None,
+        follow_symlinks: bool = True,
+    ) -> os.stat_result:
+        if dir_fd is not None:
+            raise NotImplementedError("descriptor-relative stat is unsupported")
+        return real_stat(path, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+
+    with monkeypatch.context() as platform:
+        platform.setattr(os, "stat", reject_relative_stat)
+        platform.setattr(
+            os,
+            "supports_dir_fd",
+            frozenset((*os.supports_dir_fd, reject_relative_stat)),
+        )
+        platform.setattr(
+            os,
+            "supports_follow_symlinks",
+            frozenset((*os.supports_follow_symlinks, reject_relative_stat)),
+        )
+        module = _load_atomic_output_platform_variant()
+
+        error = _variant_error(module, output, b"new\n")
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert not output.exists()
+    assert _temporary_files(tmp_path) == ()
+
+
 def test_rejected_link_follow_symlink_keyword_is_a_stable_install_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -541,4 +599,38 @@ def test_rejected_link_follow_symlink_keyword_is_a_stable_install_error(
     assert error.code == "output_install_failed"
     assert not error.installed
     assert not output.exists()
+    assert _temporary_files(tmp_path) == ()
+
+
+def test_rejected_replace_descriptor_keywords_are_a_stable_install_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+    output.write_bytes(b"old\n")
+
+    def reject_replace_descriptor_keywords(
+        source: _PathInput,
+        destination: _PathInput,
+        *,
+        src_dir_fd: int | None = None,
+        dst_dir_fd: int | None = None,
+    ) -> None:
+        del source, destination
+        assert src_dir_fd is not None
+        assert dst_dir_fd is not None
+        raise NotImplementedError("descriptor-relative replace is unsupported")
+
+    with monkeypatch.context() as platform:
+        platform.setattr(os, "replace", reject_replace_descriptor_keywords)
+        platform.setattr(
+            os,
+            "supports_dir_fd",
+            frozenset((*os.supports_dir_fd, reject_replace_descriptor_keywords)),
+        )
+
+        error = _error_code(write_projection_bytes, output, b"new\n", overwrite=True)
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert output.read_bytes() == b"old\n"
     assert _temporary_files(tmp_path) == ()
