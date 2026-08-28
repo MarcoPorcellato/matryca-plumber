@@ -1382,6 +1382,27 @@
       "missing": false
     },
     {
+      "path": "docs/quality/GRAPH_OUTCOME_EVALUATION_PROJECTION_RUNBOOK.md",
+      "type": "Runbook",
+      "title": "Graph-outcome evaluation projection runbook",
+      "description": "Maintainer procedure for generating, verifying, retaining, reconstructing, and deleting deterministic content-free graph-outcome projection suites.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Current PR A maintainer procedure for deterministic content-free projection generation; PR B publisher work remains a separate entry gate.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/GRAPH_OUTCOME_SYNTHETIC_HARNESS.md",
       "type": "Audit",
       "title": "Synthetic graph-outcome harness runner",
@@ -3758,7 +3779,7 @@
       "path": "docs/superpowers/plans/2026-08-26-mlflow-evaluation-projection.md",
       "type": "Roadmap",
       "title": "MLflow Evaluation Projection PR A Implementation Plan",
-      "description": "Test-first execution plan for the deterministic, content-free graph-outcome evidence projection without an MLflow dependency or runtime path.",
+      "description": "Test-first execution plan for the deterministic, content-free graph-outcome evidence projection without MLflow integration.",
       "classification": "active",
       "audience": [
         "maintainer",
@@ -3772,7 +3793,7 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Approved PR A plan; PR B publisher design, implementation, dependency changes, and publication remain separately gated.",
+      "notes": "Approved PR A plan; Tasks 1-6 are terminal at signed commits, while Task 7 retains only documentation and focused-gate evidence. PR B publisher design, implementation, dependency changes, and publication remain separate gates.",
       "missing": false
     },
     {

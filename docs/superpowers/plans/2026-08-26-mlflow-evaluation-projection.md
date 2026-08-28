@@ -41,7 +41,7 @@
 - Consumes: closed literal types from `src.memory.graph_outcome_protocol`.
 - Produces: `ProjectionDimension`, `ProjectionMetrics`, `ProjectionArtifact`, `GraphOutcomeProjectionPayload`, `GraphOutcomeEvaluationProjection`, `GraphOutcomeSuitePayload`, `GraphOutcomeEvaluationSuite`, `canonical_projection_bytes()`, `canonical_suite_bytes()`, `build_projection(payload: GraphOutcomeProjectionPayload)`, and `build_suite(payload: GraphOutcomeSuitePayload)`.
 
-- [ ] **Step 1: Write failing schema and identity tests**
+- [x] **Step 1: Write failing schema and identity tests**
 
 Create fixtures that use only fixed lowercase digests and identifiers. Cover:
 
@@ -83,7 +83,7 @@ def test_closed_models_reject_unknown_fields_and_invalid_hashes() -> None:
 
 Define `_REVISION = "a" * 40`, `_DIGEST = "1" * 64`, and `_SCENARIOS` as the exact four scenario literals. `_payload()` returns `GraphOutcomeProjectionPayload` with five dimension entries, every metrics field, nine required artifact kinds, four fingerprints, and the approved scalar/tuple fields. `_reordered_payload()` reverses dimensions, artifacts, tool IDs, failure codes, and check IDs without changing their values. `_four_projections()` calls `build_projection(_payload(scenario=name))` once per scenario. Parameterize identity invalidation across every accepted variable top-level scalar, tuple member, dimension field, metrics field, artifact field, and source revision. Assert construction rejects false isolation/cleanup invariants, incomplete or duplicate dimensions/artifacts, invalid dimension check combinations, inconsistent metric counts, unsupported projection/suite/protocol schema versions, and over-limit identifier collections. Assert suite construction rejects a missing scenario, duplicate scenario, unsupported scenario, mixed source revision, and mixed protocol version.
 
-- [ ] **Step 2: Run the schema tests and confirm RED**
+- [x] **Step 2: Run the schema tests and confirm RED**
 
 Run:
 
@@ -93,7 +93,7 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection/test_schema.py
 
 Expected: collection fails because `tools.evaluation_projection.schema` does not exist.
 
-- [ ] **Step 3: Implement the closed models and canonical serializer**
+- [x] **Step 3: Implement the closed models and canonical serializer**
 
 Use one frozen base model and explicit field models:
 
@@ -209,7 +209,7 @@ def canonical_suite_bytes(value: GraphOutcomeEvaluationSuite) -> bytes:
 
 `build_projection(payload)` normalizes and validates the identity-free closed payload, computes `sha256(_canonical_bytes(payload)).hexdigest()`, and constructs the final projection from the normalized payload fields. `build_suite(payload)` sorts by scenario, validates exact scenario membership and shared provenance, computes the suite hash from the normalized identity-free suite payload, and returns the final suite.
 
-- [ ] **Step 4: Run focused schema tests and confirm GREEN**
+- [x] **Step 4: Run focused schema tests and confirm GREEN**
 
 Run:
 
@@ -221,7 +221,7 @@ uv run mypy tools/evaluation_projection/schema.py tests/tools/evaluation_project
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Record reviewed golden IDs and commit**
+- [x] **Step 5: Record reviewed golden IDs and commit**
 
 Replace the initially computed golden constants with literal reviewed SHA-256 values, rerun Step 4, then:
 
@@ -243,7 +243,7 @@ git commit -S -m "feat(evaluation): add closed projection schema"
 - Consumes: a validated projection/suite dump or an adversarial nested object in direct guard tests.
 - Produces: `ProjectionPrivacyError(code: str)` and `assert_projection_private(value: object) -> None`; schema builders invoke the guard before calculating identities.
 
-- [ ] **Step 1: Write adversarial failing tests**
+- [x] **Step 1: Write adversarial failing tests**
 
 Test direct and nested inputs without ever asserting the forbidden value in an exception message:
 
@@ -270,7 +270,7 @@ def test_guard_rejects_nested_forbidden_content_without_echo(payload: object) ->
 
 Add positive tests for every approved scalar family: 40-hex source revision, 64-hex digests, closed scenario/tool/check identifiers, booleans, bounded integers including `elapsed_milliseconds`, schema versions, policy mode, terminal/dimension/validation status, and artifact kind.
 
-- [ ] **Step 2: Run privacy tests and confirm RED**
+- [x] **Step 2: Run privacy tests and confirm RED**
 
 Run:
 
@@ -280,7 +280,7 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection/test_privacy.py
 
 Expected: collection fails because `privacy.py` does not exist.
 
-- [ ] **Step 3: Implement path-aware recursive guarding**
+- [x] **Step 3: Implement path-aware recursive guarding**
 
 Use an exact allowed-key set matching the schema and exact forbidden key families:
 
@@ -340,7 +340,7 @@ high-confidence pattern. Errors contain only `privacy_key_forbidden`,
 
 The guard is defense in depth: closed models remain the primary allowlist. Call it from `build_projection()` and `build_suite()` on `model_dump(mode="json")` before each identity calculation.
 
-- [ ] **Step 4: Prove positive and negative privacy behavior**
+- [x] **Step 4: Prove positive and negative privacy behavior**
 
 Run:
 
@@ -352,7 +352,7 @@ uv run mypy tools/evaluation_projection/privacy.py tools/evaluation_projection/s
 
 Expected: all commands exit `0`; golden schema bytes remain unchanged unless the guard exposed a previously invalid field.
 
-- [ ] **Step 5: Commit the privacy boundary**
+- [x] **Step 5: Commit the privacy boundary**
 
 ```bash
 git add tools/evaluation_projection/privacy.py tools/evaluation_projection/schema.py tests/tools/evaluation_projection/test_privacy.py
@@ -372,7 +372,7 @@ git commit -S -m "feat(evaluation): enforce projection privacy boundary"
 - Consumes: `project_episode(run: EpisodeRun, *, source_revision: str) -> GraphOutcomeEvaluationProjection` and `project_suite(episodes: tuple[EpisodeRun, ...], *, source_revision: str) -> GraphOutcomeEvaluationSuite`.
 - Produces: closed projections only after replaying canonical validation and receipt identity checks; raises `ProjectionEvidenceError` with stable content-free codes.
 
-- [ ] **Step 1: Write failing evidence-mapping tests**
+- [x] **Step 1: Write failing evidence-mapping tests**
 
 Cover all default scenarios and canonical preservation:
 
@@ -412,7 +412,7 @@ allowed.
 
 Use `dataclasses.replace()` and closed-model copies to create mismatches for validation token/error/failure codes, report ID, task digest, receipt bytes, scenario, root isolation, cleanup, and source revision. Each must raise one stable code such as `validation_replay_mismatch`, `receipt_report_mismatch`, `receipt_task_mismatch`, `receipt_bytes_mismatch`, `scenario_mismatch`, `episode_isolation_unproven`, or `source_revision_invalid`.
 
-- [ ] **Step 2: Run projector tests and confirm RED**
+- [x] **Step 2: Run projector tests and confirm RED**
 
 Run:
 
@@ -422,7 +422,7 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection/test_projector.py
 
 Expected: collection fails because `projector.py` does not exist.
 
-- [ ] **Step 3: Implement exact validation replay**
+- [x] **Step 3: Implement exact validation replay**
 
 Reject unsupported input types before reading any fields, then replay success
 and expected rejection explicitly:
@@ -455,7 +455,7 @@ def _validation_status(run: EpisodeRun) -> Literal["passed", "rejected"]:
 
 Then require canonical receipt bytes, receipt/report/task IDs, root isolation, and cleanup. Map every output field explicitly; do not pass unrestricted `model_dump()` values into a generic mapping. Use closed schema constructors for dimensions, metrics, and artifacts.
 
-- [ ] **Step 4: Implement suite projection without scenario reinterpretation**
+- [x] **Step 4: Implement suite projection without scenario reinterpretation**
 
 ```python
 def project_suite(
@@ -475,7 +475,7 @@ def project_suite(
 
 Do not add aggregate pass/fail, reset-isolation interpretation, timing, or scenario aliases.
 
-- [ ] **Step 5: Run projector, harness, and protocol regressions**
+- [x] **Step 5: Run projector, harness, and protocol regressions**
 
 Run:
 
@@ -487,7 +487,7 @@ uv run mypy tools/evaluation_projection/projector.py tests/tools/evaluation_proj
 
 Expected: all commands exit `0`; existing report-runner golden behavior remains unchanged.
 
-- [ ] **Step 6: Commit the canonical adapter**
+- [x] **Step 6: Commit the canonical adapter**
 
 ```bash
 git add tools/evaluation_projection/projector.py tools/evaluation_projection/__init__.py tests/tools/evaluation_projection/test_projector.py
@@ -506,7 +506,7 @@ git commit -S -m "feat(evaluation): project canonical outcome evidence"
 - Consumes: a repository root `Path` and optional asserted revision.
 - Produces: frozen `SourceBinding(repository_root: Path, revision: str, branch: str)` from `resolve_source_binding(repository_root: Path, asserted_revision: str | None = None) -> SourceBinding`; raises `SourceBindingError` with a stable code only.
 
-- [ ] **Step 1: Write real disposable-repository tests**
+- [x] **Step 1: Write real disposable-repository tests**
 
 Build each fixture repository under `tmp_path` with fixed Git commands and commit signing disabled only inside the disposable test repository:
 
@@ -537,7 +537,7 @@ def _repository(tmp_path: Path) -> Path:
 
 Cover clean named branch, modified tracked file, untracked file, detached HEAD, invalid assertion, mismatched assertion, non-repository, empty/failed Git output, and subprocess timeout. Assert errors contain only one of: `source_repository_unavailable`, `source_revision_invalid`, `source_tree_dirty`, `source_head_detached`, or `source_revision_mismatch`.
 
-- [ ] **Step 2: Run provenance tests and confirm RED**
+- [x] **Step 2: Run provenance tests and confirm RED**
 
 Run:
 
@@ -547,7 +547,7 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection/test_provenance.py
 
 Expected: collection fails because `provenance.py` does not exist.
 
-- [ ] **Step 3: Implement fixed-argv Git probes**
+- [x] **Step 3: Implement fixed-argv Git probes**
 
 Use only fixed executable/argument lists and a five-second timeout:
 
@@ -581,7 +581,7 @@ Require the resolved top level to equal the supplied root after
 assertion. Never include command output, branch value, revision value, or path
 in an error.
 
-- [ ] **Step 4: Run focused provenance quality gates**
+- [x] **Step 4: Run focused provenance quality gates**
 
 Run:
 
@@ -593,7 +593,7 @@ uv run mypy tools/evaluation_projection/provenance.py tests/tools/evaluation_pro
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Commit the provenance gate**
+- [x] **Step 5: Commit the provenance gate**
 
 ```bash
 git add tools/evaluation_projection/provenance.py tests/tools/evaluation_projection/test_provenance.py
@@ -612,7 +612,7 @@ git commit -S -m "feat(evaluation): bind projections to clean source"
 - Consumes: `write_projection_bytes(destination: Path, payload: bytes, *, overwrite: bool = False) -> None`.
 - Produces: a complete regular file or `AtomicOutputError(code: str, installed: bool = False)`; never returns partial success.
 
-- [ ] **Step 1: Write failure-injection tests**
+- [x] **Step 1: Write failure-injection tests**
 
 Cover new output, default refusal, explicit overwrite, destination symlink, parent symlink, missing parent, non-directory parent, write failure, no-overwrite race, replacement failure, temporary cleanup, supported parent-directory sync failure, and unsupported parent-directory sync.
 
@@ -650,7 +650,7 @@ best-effort success and preserve the complete new file. A supported I/O failure
 such as `EIO` must retain the `output_directory_sync_failed` result above with
 `installed=True`.
 
-- [ ] **Step 2: Run atomic-output tests and confirm RED**
+- [x] **Step 2: Run atomic-output tests and confirm RED**
 
 Run:
 
@@ -660,7 +660,7 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection/test_atomic_output.p
 
 Expected: collection fails because `atomic_output.py` does not exist.
 
-- [ ] **Step 3: Implement same-directory private temporary output**
+- [x] **Step 3: Implement same-directory private temporary output**
 
 Use `tempfile.mkstemp()` in the existing parent, write bytes, flush, and `fsync`:
 
@@ -691,7 +691,7 @@ finally:
 
 Before creating the temporary file, require an existing directory parent whose strict resolved path equals its normalized absolute path; this rejects a symlink parent or symlinked ancestor. Reject any destination that exists or is a symlink unless overwrite is explicit. With overwrite, require an existing destination to be a non-symlink regular file. Translate `FileExistsError` races to `output_exists` and pre-install I/O failures to `output_install_failed`. `_fsync_directory()` may suppress only `EINVAL`, `ENOTSUP`, or the platform-equivalent `EOPNOTSUPP` when the directory operation is unsupported; every other directory-sync error becomes `output_directory_sync_failed` with `installed=True`. Do not create parents or echo paths.
 
-- [ ] **Step 4: Run atomic-output quality gates**
+- [x] **Step 4: Run atomic-output quality gates**
 
 Run:
 
@@ -703,7 +703,7 @@ uv run mypy tools/evaluation_projection/atomic_output.py tests/tools/evaluation_
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Commit the output boundary**
+- [x] **Step 5: Commit the output boundary**
 
 ```bash
 git add tools/evaluation_projection/atomic_output.py tests/tools/evaluation_projection/test_atomic_output.py
@@ -725,7 +725,7 @@ git commit -S -m "feat(evaluation): install projection output atomically"
 - Consumes: `main(argv: Sequence[str] | None = None, *, repository_root: Path | None = None) -> int`.
 - Produces: one canonical suite on stdout or one explicitly installed file; stable exits `0`, `2`, `3`, `4`, `5`, and `6`.
 
-- [ ] **Step 1: Write CLI failure-order and output tests**
+- [x] **Step 1: Write CLI failure-order and output tests**
 
 Use dependency injection or monkeypatching to prove provenance runs before the harness:
 
@@ -743,7 +743,7 @@ def test_dirty_source_rejects_before_harness(
 
 Cover stdout-only success, file-only success, explicit source assertion, mismatch, expected canonical rejection inside a successful suite, privacy/evidence rejection, output exists, output failure, post-install directory-sync failure, and argparse usage exit `2`. Assert no stderr message contains input values, paths, exception text, Git output, or synthetic content.
 
-- [ ] **Step 2: Write import and distribution-boundary tests**
+- [x] **Step 2: Write import and distribution-boundary tests**
 
 Parse every `src/**/*.py` with `ast` and reject imports whose root module is `tools`. Parse `pyproject.toml` with `tomllib` and assert package discovery includes only `src*` and `frontend`. Block MLflow imports during a fresh adapter import:
 
@@ -762,7 +762,7 @@ def test_projection_imports_without_mlflow(monkeypatch: pytest.MonkeyPatch) -> N
 
 Also parse `tools/evaluation_projection/**/*.py` and reject network/client imports (`httpx`, `requests`, `socket`, `urllib`) and environment/config reads (`os.environ`, `os.getenv`, `dotenv`). In the CLI success test, monkeypatch `socket.socket` to raise if constructed; the fixed Git subprocess and projection must still complete. Invoke the wrapper from an unrelated temporary working directory to prove its repository bootstrap is independent of the caller's current directory. Test invalid CLI syntax through that wrapper subprocess and assert process exit `2` without requiring `main()` to catch argparse's `SystemExit`.
 
-- [ ] **Step 3: Run CLI/boundary tests and confirm RED**
+- [x] **Step 3: Run CLI/boundary tests and confirm RED**
 
 Run:
 
@@ -772,7 +772,7 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection/test_cli.py tests/to
 
 Expected: collection fails because `cli.py` and the wrapper do not exist.
 
-- [ ] **Step 4: Implement the thin CLI**
+- [x] **Step 4: Implement the thin CLI**
 
 Create a parser with only `--source-revision`, `--output`, and `--overwrite`.
 When `repository_root` is not injected, resolve it deterministically as
@@ -808,7 +808,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 5: Run CLI, boundary, and full focused projection tests**
+- [x] **Step 5: Run CLI, boundary, and full focused projection tests**
 
 Run:
 
@@ -820,11 +820,11 @@ uv run mypy tools/evaluation_projection scripts/project_graph_outcome_evidence.p
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 6: Perform one disposable CLI smoke**
+- [x] **Step 6: Perform one disposable CLI smoke**
 
 From a clean named-branch worktree, run stdout mode twice and compare hashes; then run file mode into a newly created external temporary directory. Verify byte equality between stdout and file output, then remove only the disposable directory. Record the exact source commit and output SHA-256 in the implementation handoff, not in public documentation.
 
-- [ ] **Step 7: Commit the maintainer surface**
+- [x] **Step 7: Commit the maintainer surface**
 
 ```bash
 git add tools/evaluation_projection/cli.py tools/evaluation_projection/__init__.py scripts/project_graph_outcome_evidence.py tests/tools/evaluation_projection/test_cli.py tests/tools/evaluation_projection/test_import_boundary.py
@@ -846,7 +846,7 @@ git commit -S -m "feat(evaluation): add deterministic projection command"
 - Consumes: the final PR A command and exact schema/exit contracts.
 - Produces: current operator guidance, discoverable documentation, one Unreleased capability entry, and terminal exact-head evidence.
 
-- [ ] **Step 1: Write the maintainer runbook**
+- [x] **Step 1: Write the maintainer runbook**
 
 Use standard Matryca frontmatter:
 
@@ -866,7 +866,7 @@ stale_after: 2026-11-24
 
 Document: authority classes; prerequisites; stdout and explicit-file commands; source assertion; overwrite behavior; stable exit table; privacy boundary; reconstruction and safe deletion; failure handling; limitations; exact statement that PR A contains no MLflow integration, service, import, or dependency; PR B entry gate. Do not include local absolute paths, hostnames, user names, raw output, generated projection IDs, or a README claim.
 
-- [ ] **Step 2: Add the Unreleased changelog entry**
+- [x] **Step 2: Add the Unreleased changelog entry**
 
 Under `## [Unreleased]` → `### Added`, add exactly one concise bullet:
 
@@ -877,7 +877,7 @@ Under `## [Unreleased]` → `### Added`, add exactly one concise bullet:
   tracking dependency, network activity, real-vault execution, or product path.
 ```
 
-- [ ] **Step 3: Synchronize and curate the documentation inventory**
+- [x] **Step 3: Synchronize and curate the documentation inventory**
 
 Run:
 
@@ -888,7 +888,7 @@ uv run python scripts/docs_knowledge_check.py inventory-md
 
 Review the new runbook and plan entries. Set type, title, description, classification, full audience, owner `quality`, action `keep`, and accurate evidence-gated notes. Regenerate `inventory.md` after manual curation.
 
-- [ ] **Step 4: Run documentation and focused source gates**
+- [x] **Step 4: Run documentation and focused source gates**
 
 Run:
 
@@ -903,6 +903,29 @@ uv run pytest -q --no-cov tests/tools/evaluation_projection tests/test_graph_out
 ```
 
 Expected: all commands exit `0` with zero documentation findings and zero test failures.
+
+#### Task 7 Steps 1-4 verification record
+
+- `make docs-check` completed with zero OKF v0.2 and Matryca quality findings.
+- `make docs-audit` reported 204 discovered and inventoried documents, with no
+  missing or stale inventory entries.
+- `make agents-check` completed successfully.
+- `uv run ruff format --check tools/evaluation_projection
+  scripts/project_graph_outcome_evidence.py tests/tools/evaluation_projection`
+  reported 16 files already formatted.
+- `uv run ruff check tools/evaluation_projection
+  scripts/project_graph_outcome_evidence.py tests/tools/evaluation_projection`
+  completed successfully.
+- `uv run mypy tools/evaluation_projection
+  scripts/project_graph_outcome_evidence.py tests/tools/evaluation_projection`
+  reported no issues in 16 source files.
+- `uv run pytest -q --no-cov tests/tools/evaluation_projection
+  tests/test_graph_outcome_harness.py tests/test_graph_outcome_protocol.py
+  tests/test_run_graph_outcome_harness.py` completed with 183 passing tests.
+
+Task 7 Steps 5-7, wheel inspection, full CI, final review, push, and
+publication are intentionally not recorded as complete here; they require
+their own terminal evidence and authorization.
 
 - [ ] **Step 5: Commit documentation and inventory**
 
