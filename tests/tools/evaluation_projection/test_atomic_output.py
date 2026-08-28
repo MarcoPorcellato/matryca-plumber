@@ -526,6 +526,39 @@ def test_missing_stat_follow_symlink_capability_is_a_stable_install_error(
     assert _temporary_files(tmp_path) == ()
 
 
+def test_rejected_directory_open_is_a_stable_preinstall_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "projection.json"
+    real_open = os.open
+
+    def reject_directory_open(
+        path: _PathInput,
+        flags: int,
+        mode: int = 0o777,
+        *,
+        dir_fd: int | None = None,
+    ) -> int:
+        if dir_fd is None and flags & os.O_DIRECTORY and flags & os.O_NOFOLLOW:
+            raise NotImplementedError("directory open is unsupported")
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    with monkeypatch.context() as platform:
+        platform.setattr(os, "open", reject_directory_open)
+        platform.setattr(
+            os,
+            "supports_dir_fd",
+            frozenset((*os.supports_dir_fd, reject_directory_open)),
+        )
+
+        error = _error_code(write_projection_bytes, output, b"new\n")
+
+    assert error.code == "output_install_failed"
+    assert not error.installed
+    assert not output.exists()
+    assert tuple(tmp_path.iterdir()) == ()
+
+
 def test_rejected_stat_descriptor_keywords_are_a_stable_install_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

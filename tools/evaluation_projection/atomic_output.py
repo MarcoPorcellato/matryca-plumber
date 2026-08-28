@@ -76,7 +76,7 @@ def _require_real_parent(destination: Path) -> tuple[Path, tuple[int, int]]:
 def _open_verified_directory(path: Path, expected_identity: tuple[int, int]) -> int:
     try:
         descriptor = os.open(path, _directory_flags())
-    except OSError:
+    except (OSError, TypeError, NotImplementedError):
         raise AtomicOutputError("output_install_failed") from None
     try:
         if _identity(os.fstat(descriptor)) != expected_identity:
