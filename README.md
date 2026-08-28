@@ -43,9 +43,8 @@ Human-owned memory. Agent-native access. Governed evolution.
 > alongside provider-free evidence tooling. It is qualified separately from `v2.0.0`:
 > see the [release qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 
-**Local-first agentic memory and maintenance for Logseq OG.** Matryca Plumber gives
-humans and agents one safe, structured interface to a Markdown knowledge graph—without
-turning an opaque database or a model provider into the owner of that knowledge.
+**Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
+Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
