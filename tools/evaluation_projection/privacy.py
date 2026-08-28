@@ -9,55 +9,116 @@ from pathlib import Path
 
 _ALLOWED_KEYS = frozenset(
     {
-        "artifacts", "cleanup_verified", "context_bytes", "context_tokens",
-        "cost_microunits", "digest", "dimension", "dimensions",
-        "elapsed_milliseconds", "executed_tool_ids", "failed_check_ids",
-        "failure_codes", "final_canonical_fingerprint",
-        "final_derived_fingerprint", "initial_canonical_fingerprint",
-        "initial_derived_fingerprint", "kind", "metrics", "mutation_calls",
-        "no_progress_cycles", "passed_check_ids", "peak_rss_bytes",
-        "policy_mode", "projection_id", "projections",
-        "protocol_schema_version", "receipt_id", "record_count",
-        "rejected_tool_calls", "report_id", "retries", "retrieval_calls",
-        "roots_distinct", "roots_outside_repository", "scenario",
-        "schema_version", "source_revision", "status", "suite_id",
-        "task_bundle_digest", "terminal_status", "tool_calls", "turns",
+        "artifacts",
+        "cleanup_verified",
+        "context_bytes",
+        "context_tokens",
+        "cost_microunits",
+        "digest",
+        "dimension",
+        "dimensions",
+        "elapsed_milliseconds",
+        "executed_tool_ids",
+        "failed_check_ids",
+        "failure_codes",
+        "final_canonical_fingerprint",
+        "final_derived_fingerprint",
+        "initial_canonical_fingerprint",
+        "initial_derived_fingerprint",
+        "kind",
+        "metrics",
+        "mutation_calls",
+        "no_progress_cycles",
+        "passed_check_ids",
+        "peak_rss_bytes",
+        "policy_mode",
+        "projection_id",
+        "projections",
+        "protocol_schema_version",
+        "receipt_id",
+        "record_count",
+        "rejected_tool_calls",
+        "report_id",
+        "retries",
+        "retrieval_calls",
+        "roots_distinct",
+        "roots_outside_repository",
+        "scenario",
+        "schema_version",
+        "source_revision",
+        "status",
+        "suite_id",
+        "task_bundle_digest",
+        "terminal_status",
+        "tool_calls",
+        "turns",
         "validation_status",
     }
 )
 _FORBIDDEN_KEYS = frozenset(
     {
-        "answer", "annotation", "api_key", "authorization", "content",
-        "cookie", "database_id", "endpoint", "environment", "hostname",
-        "log", "model_output", "page_name", "password", "path", "prompt",
-        "query", "raw_output", "run_id", "secret", "stack_trace",
-        "timestamp", "token", "url", "username",
+        "answer",
+        "annotation",
+        "api_key",
+        "authorization",
+        "content",
+        "cookie",
+        "database_id",
+        "endpoint",
+        "environment",
+        "hostname",
+        "log",
+        "model_output",
+        "page_name",
+        "password",
+        "path",
+        "prompt",
+        "query",
+        "raw_output",
+        "run_id",
+        "secret",
+        "stack_trace",
+        "timestamp",
+        "token",
+        "url",
+        "username",
     }
 )
 _ABSOLUTE_POSIX = re.compile(r"^/")
 _WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
 _EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _URI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
-_CREDENTIAL = re.compile(
-    r"(?i)(authorization|bearer|api[_-]?key|password|secret|token)\s*[:= ]"
-)
+_CREDENTIAL = re.compile(r"(?i)(authorization|bearer|api[_-]?key|password|secret|token)\s*[:= ]")
 _DIGEST_KEYS = frozenset(
     {
-        "digest", "final_canonical_fingerprint", "final_derived_fingerprint",
-        "initial_canonical_fingerprint", "initial_derived_fingerprint",
-        "projection_id", "receipt_id", "report_id", "suite_id",
+        "digest",
+        "final_canonical_fingerprint",
+        "final_derived_fingerprint",
+        "initial_canonical_fingerprint",
+        "initial_derived_fingerprint",
+        "projection_id",
+        "receipt_id",
+        "report_id",
+        "suite_id",
         "task_bundle_digest",
     }
 )
-_BOOLEAN_KEYS = frozenset(
-    {"cleanup_verified", "roots_distinct", "roots_outside_repository"}
-)
+_BOOLEAN_KEYS = frozenset({"cleanup_verified", "roots_distinct", "roots_outside_repository"})
 _INTEGER_KEYS = frozenset(
     {
-        "context_bytes", "context_tokens", "cost_microunits",
-        "elapsed_milliseconds", "mutation_calls", "no_progress_cycles",
-        "peak_rss_bytes", "record_count", "rejected_tool_calls", "retries",
-        "retrieval_calls", "tool_calls", "turns",
+        "context_bytes",
+        "context_tokens",
+        "cost_microunits",
+        "elapsed_milliseconds",
+        "mutation_calls",
+        "no_progress_cycles",
+        "peak_rss_bytes",
+        "record_count",
+        "rejected_tool_calls",
+        "retries",
+        "retrieval_calls",
+        "tool_calls",
+        "turns",
     }
 )
 _HEX_40 = re.compile(r"^[0-9a-fA-F]{40}$")

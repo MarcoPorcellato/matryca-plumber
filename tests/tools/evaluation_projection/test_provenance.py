@@ -82,19 +82,13 @@ def test_rejects_detached_head(tmp_path: Path) -> None:
 def test_rejects_invalid_asserted_revision(tmp_path: Path, assertion: str) -> None:
     repo = _repository(tmp_path)
 
-    assert (
-        _error_code(resolve_source_binding, repo, assertion)
-        == "source_revision_invalid"
-    )
+    assert _error_code(resolve_source_binding, repo, assertion) == "source_revision_invalid"
 
 
 def test_rejects_mismatched_asserted_revision(tmp_path: Path) -> None:
     repo = _repository(tmp_path)
 
-    assert (
-        _error_code(resolve_source_binding, repo, "0" * 40)
-        == "source_revision_mismatch"
-    )
+    assert _error_code(resolve_source_binding, repo, "0" * 40) == "source_revision_mismatch"
 
 
 def test_rejects_non_repository(tmp_path: Path) -> None:
@@ -110,9 +104,7 @@ def test_rejects_empty_git_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     def empty_output(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(["git"], 0, stdout="\n", stderr="")
 
-    monkeypatch.setattr(
-        "tools.evaluation_projection.provenance.subprocess.run", empty_output
-    )
+    monkeypatch.setattr("tools.evaluation_projection.provenance.subprocess.run", empty_output)
 
     assert _error_code(resolve_source_binding, repo) == "source_repository_unavailable"
 
@@ -123,9 +115,7 @@ def test_rejects_failed_git_probe(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     def failed_probe(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, ["git", "rev-parse"])
 
-    monkeypatch.setattr(
-        "tools.evaluation_projection.provenance.subprocess.run", failed_probe
-    )
+    monkeypatch.setattr("tools.evaluation_projection.provenance.subprocess.run", failed_probe)
 
     assert _error_code(resolve_source_binding, repo) == "source_repository_unavailable"
 
@@ -136,8 +126,6 @@ def test_rejects_git_probe_timeout(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     def timeout(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.TimeoutExpired(["git", "rev-parse"], 5)
 
-    monkeypatch.setattr(
-        "tools.evaluation_projection.provenance.subprocess.run", timeout
-    )
+    monkeypatch.setattr("tools.evaluation_projection.provenance.subprocess.run", timeout)
 
     assert _error_code(resolve_source_binding, repo) == "source_repository_unavailable"

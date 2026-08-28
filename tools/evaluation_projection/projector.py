@@ -67,9 +67,7 @@ def _require_receipt_identity(run: EpisodeRun) -> None:
         raise ProjectionEvidenceError("receipt_bytes_mismatch")
 
 
-def project_episode(
-    run: EpisodeRun, *, source_revision: str
-) -> GraphOutcomeEvaluationProjection:
+def project_episode(run: EpisodeRun, *, source_revision: str) -> GraphOutcomeEvaluationProjection:
     """Project one exact canonical episode only after evidence replay."""
     if type(run) is not EpisodeRun:
         raise ProjectionEvidenceError("episode_type_unsupported")
@@ -145,9 +143,7 @@ def project_suite(
     episodes: tuple[EpisodeRun, ...], *, source_revision: str
 ) -> GraphOutcomeEvaluationSuite:
     """Project exactly the closed default scenario suite."""
-    projections = tuple(
-        project_episode(run, source_revision=source_revision) for run in episodes
-    )
+    projections = tuple(project_episode(run, source_revision=source_revision) for run in episodes)
     return build_suite(
         GraphOutcomeSuitePayload(
             source_revision=source_revision,
