@@ -1,6 +1,6 @@
 NUM_WORKERS ?= 4
 
-.PHONY: help install format lint security-check typecheck test test-full test-fast test-fast-parallel test-integration test-resilience check clean version-check agents-check public-metrics-check docs-check build-system-prompt check-system-prompt provision-local reindex-graph release-build ccp-plan ccp-verify ccp-savings-check
+.PHONY: help install format lint security-check typecheck test test-full test-fast test-fast-parallel test-integration test-resilience check clean version-check agents-check public-metrics-check docs-check build-system-prompt check-system-prompt provision-local reindex-graph release-build ccp-plan ccp-doctor ccp-dry-run ccp-verify ccp-savings-check
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -49,7 +49,13 @@ docs-audit: ## Informational legacy coverage/classification report
 	uv run python scripts/docs_knowledge_check.py audit-legacy
 
 ccp-plan: ## Validate and print the read-only multi-runtime CCP plan
-	commit-ci-preflight plan --config .commit-ci-preflight.toml --json
+	commit-ci-preflight plan --config .commit-ci-preflight.toml --matrix-plan-profile current-v2 --json
+
+ccp-doctor: ## Probe the configured runtime without executing project checks
+	commit-ci-preflight doctor --config .commit-ci-preflight.toml --matrix-plan-profile current-v2 --json
+
+ccp-dry-run: ## Render the current-v2 container argv and mounts without executing them
+	commit-ci-preflight dry-run --config .commit-ci-preflight.toml --repository . --matrix-plan-profile current-v2 --json
 
 ccp-verify: ## Verify the local receipt against policy and the exact HEAD
 	commit-ci-preflight verify --receipt .ccp/receipt.json --policy .commit-ci-policy.toml --expected-commit "$$(git rev-parse HEAD)" --json

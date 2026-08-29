@@ -1,5 +1,36 @@
 # Documentation update log
 
+## 2026-08-29
+
+- **Official CCP guidance reconciliation:** bound the public operator guidance
+  to upstream documentation commit
+  `6ff736b1e2a1dfde8778330efdd4b82c845d45e7`, made the Matrix
+  `current-v2` profile explicit across the safe `plan`, `doctor`, and `dry-run`
+  targets, and recorded that dry-run output is a planning surface rather than a
+  replay bundle. The separately measured `matrix-v2-legacy-v1` digest is not an
+  accepted policy migration, and single-runtime receipt-v2 policy `1.1` is not
+  projected onto the three-runtime Matrix contract.
+
+- **Hybrid local CI authority split:** reverified the signed, durable public
+  receipt-verifier pin at `3fccc197e5055a2759ee7afe51b91133938ec904`
+  separately from the newer qualified local coordinator at source
+  `27adf8d0820b3cd96f9c5e149de9b580ae41f639`, tree
+  `d8e0364d1313fde0898a44517ae6d233d9e10763`, and executable
+  `sha256:c8021e2322e172686c0a0c07d2b0260eafb5812d085d2306dbbde3fe4e964bd4`.
+  The prior `sha256:7cde4c2888721d72fbb8c86b4fdcc75f992050979c5175a5bf10b0cecfa7c6f8`
+  executable remains the immediate rollback. The local installation does not
+  transfer verifier compatibility, change hosted-CI authority, or authorize a
+  hosted skip; any public pin upgrade remains behind its compatibility gate.
+
+## 2026-08-26
+
+- **Hybrid local CI source boundary:** accepted the qualified CCP matrix source
+  at `3fccc197e5055a2759ee7afe51b91133938ec904`, regenerated the three-runtime
+  policy from its rendered plan, and added the existing Python 3.12 source
+  security gate to local parity. This closes Task 6 Step 0 only: hosted CI
+  remains authoritative; coordinator diagnosis, official receipt qualification,
+  parity, fallback, routing, ruleset, and savings milestones remain separate.
+
 ## 2026-08-25
 
 - **Source static-analysis baseline:** added a fast source-only security gate to

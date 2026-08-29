@@ -6,7 +6,7 @@ status: draft
 classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: quality
-last_verified: 2026-08-24
+last_verified: 2026-08-29
 stale_after: 2026-11-22
 ---
 
@@ -25,15 +25,27 @@ and [implementation plan](../superpowers/plans/2026-08-24-ccp-hybrid-ci-adoption
 define the later activation gates. This runbook never turns a local PASS into
 merge, release, or publication authority.
 
-## Frozen bootstrap contract
+## Current matrix contract
 
 | Boundary | Value |
 | --- | --- |
-| CCP source | `866db18a571f55ed3d9b481d6c9c9c3bd5e98d55` |
-| Matrix configuration digest | `sha256:c1c620a8f037d5368368eac8276c38e915b7663eafa4a1499b9e3a9b14166670` |
-| Node.js 22 runtime digest | `sha256:c7df43272e7f276cdda9f505f693fd9d236aea8b4d5ecdc77109d9b799ae92f6` |
-| Python 3.12 runtime digest | `sha256:fa83b8b1f3ab79cd6abbbf2682dc5b57cb86ef977aaa19794303353a1b3a5fad` |
-| Python 3.13 runtime digest | `sha256:d9618eb286702885635073a77eaa36629aa49c94b2103c7609691cdc1377c576` |
+| Public receipt-verifier source | `3fccc197e5055a2759ee7afe51b91133938ec904` |
+| Public verifier source tree | `9e478c1489a9926772e8ab8bea21bd57470494b6` |
+| Public verifier qualification | five required checks PASS and independent verifier PASS; qualification receipt `sha256:2b6aec06b8b6cf6e07736c8e713dd05c03d439640c608cc52af124e93de290e7` (`sha256:0aa7ef0e9442b329a4ac71b6a3002d9331bef0f793cc9ab88d2f6a24fee3c0c5`) |
+| Public verifier executable evidence | `commit-ci-preflight 0.1.0` — `sha256:b8d26013800c99ba806506a0539a9ddc781bfab52f95c8f1dbdff1b65c2fcd4c` |
+| Latest official CCP documentation | `main@6ff736b1e2a1dfde8778330efdd4b82c845d45e7`, tree `8722c504d8fdf9196e8a71f615af501bc7de58e4`; GitHub verification `valid`, PR #72 merged, receipt status terminal `SUCCESS`; documentation, public-adoption, and test changes only after the runtime-equivalent PR #70 tree |
+| Active local coordinator source | `27adf8d0820b3cd96f9c5e149de9b580ae41f639` — operational only; not the public verifier pin |
+| Active local coordinator tree | `d8e0364d1313fde0898a44517ae6d233d9e10763` |
+| Active installed executable | `commit-ci-preflight 0.1.0` — `sha256:c8021e2322e172686c0a0c07d2b0260eafb5812d085d2306dbbde3fe4e964bd4` |
+| Active rollback executable | `sha256:7cde4c2888721d72fbb8c86b4fdcc75f992050979c5175a5bf10b0cecfa7c6f8` |
+| Earlier rollback executable | `sha256:b8d26013800c99ba806506a0539a9ddc781bfab52f95c8f1dbdff1b65c2fcd4c` |
+| Oldest retained rollback executable | `sha256:3c8621b8e834356ada379f3ad9bd916a7a884b2c4f4da7ffb606744ab79b4fa8` |
+| Selected Matrix plan profile | `current-v2` — explicit across `plan`, `doctor`, and `dry-run` |
+| Matrix configuration digest | `sha256:6f418ac6b90664e9ebbec4a5c7e28af946f0430250fcaf28b6a1f62196b4a635` |
+| Non-selected legacy comparison | `matrix-v2-legacy-v1` produced `sha256:a583c176ccef26dbfbc1171d7715fdd5285fc30527d27f7b2c801ad170798f87`; this is a distinct policy/cache boundary, not accepted evidence |
+| Node.js 22 runtime digest | `sha256:d42b8cca0aebe5ba215b961b9066666a12fd0ccb4bee2e53e5a85396899754d7` |
+| Python 3.12 runtime digest | `sha256:0b022ab9c98c197c7a40c301d49ae6b0f871eb4153fab52b0ffb89ba9eb4a97b` |
+| Python 3.13 runtime digest | `sha256:ff84d7597c7384b29ad598163b4c47323a27dc4b7b2f2ece91fb209c8abba327` |
 | Receipt path | `.ccp/receipt.json` |
 | Evidence branch | `ccp-evidence/<exact-40-hex-source-sha>` |
 | Remote status | `commit-ci-preflight/receipt` |
@@ -41,25 +53,63 @@ merge, release, or publication authority.
 Any config, policy, image, required-check, source, or digest change creates a
 new qualification boundary. Never edit policy to match a completed receipt.
 
-## Known upstream preflight gap
+The trusted GitHub observer remains pinned to the signed, durable public
+verifier source above. The newer active local coordinator has its own exact
+qualification evidence, but that operational upgrade does not silently replace
+the public verifier, transfer receipt compatibility, or authorize hosted skips.
+Changing the workflow pin still requires the compatibility acceptance gate
+below.
 
-At the pinned CCP source, `plan` and `run` understand matrix schema `2.0`, but
-`doctor` and `dry-run` still load only the single-runtime configuration path.
-They reject a matrix check's `runtime_id`. This was reproduced during PR A
-bootstrap and confirmed in the exact pinned source.
+## Accepted source boundary
 
-Consequences:
+Task 6 Step 0 accepts source `3fccc197e5055a2759ee7afe51b91133938ec904` as
+the reviewed public receipt-verifier boundary. Its qualification executable and
+rollback evidence are recorded above. Matrix `plan`, `doctor`, and `dry-run`
+support the three configured `runtime_id` values and render the declared source
+and cache mounts. The resulting plan is the sole source of the policy digests
+in this document. The source qualification remains bound to its recorded clean
+source tree and terminal test receipt; it does not transfer to the active local
+coordinator or any later source revision.
 
-- `make ccp-plan` is the only repository-provided matrix preflight target;
-- there are deliberately no `ccp-doctor` or `ccp-dry-run` Make targets;
-- an official heavy matrix run is **blocked** until reviewed CCP source exposes
-  equivalent matrix-aware runtime diagnosis and rendered-mount inspection, or
-  the design accepts a separately proven replacement;
-- a v1 diagnostic result must never be relabelled as matrix-v2 evidence.
+This acceptance is not an official matrix run, receipt, routing activation, or
+hosted-skip authorization. Repository Make targets expose only the non-heavy
+`ccp-plan`, `ccp-doctor`, and `ccp-dry-run` surfaces plus `ccp-verify` and
+`ccp-savings-check`; there is deliberately no `ccp-run` target. A future heavy
+operation must follow the explicit authorization and fresh-admission sequence
+below.
 
 This limitation does not weaken hosted CI. Unlabelled pull requests publish no
 receipt status. A labelled observation fails closed when no valid receipt
 exists, while the unconditional hosted workflow continues independently.
+
+## Official guidance reconciliation
+
+The current operator contract was checked against the official CCP
+[adoption guide](https://github.com/MarcoPorcellato/commit-ci-preflight/blob/6ff736b1e2a1dfde8778330efdd4b82c845d45e7/docs/ADOPTION_GUIDE.md),
+[local-run contract](https://github.com/MarcoPorcellato/commit-ci-preflight/blob/6ff736b1e2a1dfde8778330efdd4b82c845d45e7/docs/LOCAL_RUN.md),
+[Matrix profile ADR](https://github.com/MarcoPorcellato/commit-ci-preflight/blob/6ff736b1e2a1dfde8778330efdd4b82c845d45e7/docs/adr/0005-matrix-v2-legacy-plan-profile.md),
+and [PR #71 case study](https://github.com/MarcoPorcellato/commit-ci-preflight/blob/6ff736b1e2a1dfde8778330efdd4b82c845d45e7/docs/CASE_STUDY_PR71.md).
+
+Matryca selects `current-v2` explicitly. The legacy profile exists only when a
+current producer must reproduce historical Matrix digests accepted by an old
+trusted verifier. It is never inferred from policy or evidence. The measured
+legacy digest differs from Matryca's accepted policy, so selecting it would
+require a separate compatibility, cache, receipt, and policy migration; this
+runbook does not authorize that migration.
+
+`dry-run` renders a planning and mount-review surface. It creates no replay
+bundle and its lifecycle-managed cache paths must not be copied into a direct
+container invocation. Any diagnostic reproduction must own and validate its
+writable paths independently and remains diagnostic rather than qualification
+evidence.
+
+The official trusted receipt-v2 policy `1.1` reconstructs one single-runtime
+plan from a trusted configuration and does not apply to the Matrix-only legacy
+profile. Matryca's three-runtime policy remains schema `2.0`; migrating to a
+future multi-runtime trusted-plan contract requires an explicit architecture
+decision and complete requalification. Receipt verification proves integrity
+and policy, not producer identity, signatures, arbitrary hosted parity, or an
+unexecuted native platform.
 
 ## CCP source compatibility acceptance gate
 
@@ -83,8 +133,9 @@ proves all of the following against the same exact clean source:
   receipt status or hosted skip before later authorization.
 
 Any unsupported command, schema drift, digest mismatch, ambiguous mount,
-unexpected skip, or incomplete negative case rejects the candidate. Existing
-receipts and pins remain historical evidence under their original contract.
+unexpected skip, or incomplete negative case rejects a future candidate.
+The previous source pin and its bootstrap findings remain historical evidence
+under their original contract.
 
 ## Read-only operator checkpoint
 
@@ -100,6 +151,8 @@ commit-ci-preflight admission status --json
 docker context show
 docker ps -q
 make ccp-plan
+make ccp-doctor
+make ccp-dry-run
 make ccp-savings-check
 ```
 
@@ -112,6 +165,8 @@ Stop unless all facts are unambiguous:
 - the Docker-compatible runtime is responsive and there are no unaccounted
   containers;
 - the printed outer and per-runtime digests equal trusted policy;
+- the explicit profile is `current-v2`, and dry-run output is reviewed but not
+  executed as a replay command;
 - the known matrix preflight gap has been resolved under a reviewed source.
 
 `unknown`, `deny`, unsafe layout, a held or queued admission slot, stale source,
@@ -126,6 +181,7 @@ The following is a future sequence, not authorization to run it now:
 commit-ci-preflight run \
   --config .commit-ci-preflight.toml \
   --repository . \
+  --matrix-plan-profile current-v2 \
   --generation <next-monotonic-generation> \
   --admission-timeout-seconds 21600 \
   --json
@@ -217,7 +273,7 @@ digested provider export.
 Hosted Linux work may be conditionally skipped only after all of these are
 terminal and separately reviewed:
 
-- matrix-aware preflight gap resolved;
+- the accepted source boundary is still current and independently rechecked;
 - exact-head local/hosted parity across the required change classes;
 - missing, malformed, stale, corrupt-digest, wrong-SHA, wrong-policy, and
   incomplete receipts fail closed;
