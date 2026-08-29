@@ -535,7 +535,7 @@ def test_rejected_directory_open_is_a_stable_preinstall_error(
     def reject_directory_open(
         path: _PathInput,
         flags: int,
-        mode: int = 0o777,
+        mode: int = 0o600,
         *,
         dir_fd: int | None = None,
     ) -> int:
