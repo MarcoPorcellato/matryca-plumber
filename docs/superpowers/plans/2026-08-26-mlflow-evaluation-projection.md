@@ -923,22 +923,25 @@ Expected: all commands exit `0` with zero documentation findings and zero test f
   tests/test_graph_outcome_harness.py tests/test_graph_outcome_protocol.py
   tests/test_run_graph_outcome_harness.py` completed with 183 passing tests.
 
-Task 7 remains in progress until the evidence-finalization commit receives its
-own exact-head qualification. The following completed steps are bound only to
-the clean signed parent identified in their verification record.
+Task 7 remains in progress pending unchecked Step 8, which must qualify the
+exact clean signed head containing this Step 8 correction. The resolved SHA and
+terminal result belong in the external SDD ledger, handoff, or pull-request
+check rather than another tracked-plan commit. The following completed steps
+are bound only to the clean signed parent identified in their verification
+record.
 
-- [x] **Step 5: Commit documentation and inventory**
+- [x] **Step 5: Commit documentation and inventory (completed on parent `cd47a8bf62cba93620afc03425f5120adf8ea261`)**
 
 ```bash
 git add CHANGELOG.md docs/quality/GRAPH_OUTCOME_EVALUATION_PROJECTION_RUNBOOK.md docs/knowledge/inventory.json docs/knowledge/inventory.md docs/superpowers/plans/2026-08-26-mlflow-evaluation-projection.md
 git commit -S -m "docs(evaluation): document projection operations"
 ```
 
-- [x] **Step 6: Build and inspect one wheel in a disposable directory**
+- [x] **Step 6: Build and inspect one wheel in a disposable directory (completed on parent `cd47a8bf62cba93620afc03425f5120adf8ea261`)**
 
 Build from the exact clean commit created in Step 5 into a new external disposable directory. Inspect the wheel ZIP member list and prove that no member begins with `tools/` and no package metadata declares MLflow. Preserve only the bounded terminal result in the handoff; remove the disposable build directory after inspection.
 
-- [x] **Step 7: Run exact-head repository qualification**
+- [x] **Step 7: Run exact-head repository qualification (completed on parent `cd47a8bf62cba93620afc03425f5120adf8ea261`)**
 
 On the clean signed commit from Step 5:
 
@@ -986,3 +989,13 @@ only. This documentation-only bookkeeping update is required to preserve that
 terminal evidence in the plan, but it is a new commit boundary. It must receive
 fresh exact-head qualification before branch completion; no parent-bound result
 extends to it.
+
+- [ ] **Step 8: Qualify the evidence-finalization commit**
+
+Run fresh full repository qualification, branch-scope and signature audits, and
+clean-status verification on the exact clean signed head containing this Step 8
+correction. Record the resolved SHA and terminal result in the external SDD
+ledger, handoff, or pull-request check, not another tracked-plan commit, so an
+evidence-only commit does not move the qualification head indefinitely. Do not
+treat the parent-bound wheel, CI, or audit evidence as qualification of this
+new commit boundary.
