@@ -923,22 +923,22 @@ Expected: all commands exit `0` with zero documentation findings and zero test f
   tests/test_graph_outcome_harness.py tests/test_graph_outcome_protocol.py
   tests/test_run_graph_outcome_harness.py` completed with 183 passing tests.
 
-Task 7 Steps 5-7, wheel inspection, full CI, final review, push, and
-publication are intentionally not recorded as complete here; they require
-their own terminal evidence and authorization.
+Task 7 remains in progress until the evidence-finalization commit receives its
+own exact-head qualification. The following completed steps are bound only to
+the clean signed parent identified in their verification record.
 
-- [ ] **Step 5: Commit documentation and inventory**
+- [x] **Step 5: Commit documentation and inventory**
 
 ```bash
 git add CHANGELOG.md docs/quality/GRAPH_OUTCOME_EVALUATION_PROJECTION_RUNBOOK.md docs/knowledge/inventory.json docs/knowledge/inventory.md docs/superpowers/plans/2026-08-26-mlflow-evaluation-projection.md
 git commit -S -m "docs(evaluation): document projection operations"
 ```
 
-- [ ] **Step 6: Build and inspect one wheel in a disposable directory**
+- [x] **Step 6: Build and inspect one wheel in a disposable directory**
 
 Build from the exact clean commit created in Step 5 into a new external disposable directory. Inspect the wheel ZIP member list and prove that no member begins with `tools/` and no package metadata declares MLflow. Preserve only the bounded terminal result in the handoff; remove the disposable build directory after inspection.
 
-- [ ] **Step 7: Run exact-head repository qualification**
+- [x] **Step 7: Run exact-head repository qualification**
 
 On the clean signed commit from Step 5:
 
@@ -959,3 +959,30 @@ Then verify every commit signature, compare the complete branch against its exac
 - the worktree is clean and the branch remains unpushed until separately authorized.
 
 If any gate fails, preserve the exact failure, fix only within its owning task, rerun the narrowest failing test first, and rerun this exact-head qualification. Do not create or publish a PR from partial, skipped, dirty, or mismatched evidence.
+
+#### Task 7 Steps 5-7 parent-bound verification record
+
+The following evidence applies only to clean signed parent
+`cd47a8bf62cba93620afc03425f5120adf8ea261`:
+
+- The documentation and inventory commit is signed.
+- One disposable wheel inspection produced SHA-256
+  `70bc1ca78dd5e0d852ff2b836996788c3920be957b4c6cdc2dd8820d31accc32` with
+  237 members; no member begins with `tools/`, no package metadata declares
+  MLflow, and the disposable build was removed.
+- The guarded exact-head `make ci` invocation used the qualified coordinator
+  producer SHA-256
+  `b8d26013800c99ba806506a0539a9ddc781bfab52f95c8f1dbdff1b65c2fcd4c` and
+  completed with outer exit 0, 2,092 passed, 5 skipped, and 84.50% coverage.
+- Post-run coordination recorded a free slot, queue count 0, no containers,
+  and resource admission `admit`.
+- Branch-scope, signature, dependency, import-boundary, and README audits were
+  clean.
+
+#### Ledger ruling — unavoidable evidence finalization
+
+The qualification above applies to parent `cd47a8bf62cba93620afc03425f5120adf8ea261`
+only. This documentation-only bookkeeping update is required to preserve that
+terminal evidence in the plan, but it is a new commit boundary. It must receive
+fresh exact-head qualification before branch completion; no parent-bound result
+extends to it.
