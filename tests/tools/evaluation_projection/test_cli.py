@@ -244,6 +244,40 @@ def test_evidence_and_privacy_rejections_are_content_free(
     assert "synthetic" not in captured.err
 
 
+def test_invalid_arguments_are_content_free_and_keep_exit_two(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    secret = "Authorization: Bearer private-token"
+
+    assert cli.main(["--unknown-option", secret]) == 2
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "evaluation_projection: invalid_arguments\n"
+    assert secret not in captured.err
+    assert "usage:" not in captured.err
+
+
+def test_unexpected_pre_output_failure_is_content_free_and_keeps_exit_four(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    secret = "api_key=private-token /private/example"
+    monkeypatch.setattr(cli, "resolve_source_binding", lambda *_: _binding(tmp_path))
+
+    def fail_harness() -> SimpleNamespace:
+        raise RuntimeError(secret)
+
+    monkeypatch.setattr(cli, "run_default_scenarios", fail_harness)
+
+    assert cli.main([], repository_root=tmp_path) == 4
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "evaluation_projection: evidence_rejected\n"
+    assert secret not in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_existing_output_is_preserved_and_reported(
     capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
@@ -293,6 +327,28 @@ def test_output_failures_have_stable_exit_six(
     assert captured.err == f"evaluation_projection: {expected_code}\n"
 
 
+def test_unrecognized_atomic_output_code_is_content_free(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    secret = "credential=private-token /private/example"
+    monkeypatch.setattr(cli, "resolve_source_binding", lambda *_: _binding(tmp_path))
+    monkeypatch.setattr(cli, "run_default_scenarios", _default_run)
+    monkeypatch.setattr(cli, "project_suite", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(cli, "canonical_suite_bytes", lambda _value: b"canonical\n")
+
+    def reject_output(*_: object, **__: object) -> None:
+        raise AtomicOutputError(secret)
+
+    monkeypatch.setattr(cli, "write_projection_bytes", reject_output)
+
+    assert cli.main(["--output", str(tmp_path / "suite.json")], repository_root=tmp_path) == 6
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "evaluation_projection: output_failed\n"
+    assert secret not in captured.err
+
+
 def test_success_uses_fixed_git_harness_and_projection_without_network(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
@@ -310,13 +366,6 @@ def test_success_uses_fixed_git_harness_and_projection_without_network(
     assert captured.out == ""
     assert captured.err == ""
     assert destination.read_bytes().endswith(b"\n")
-
-
-def test_argparse_keeps_usage_exit_two() -> None:
-    with pytest.raises(SystemExit) as raised:
-        cli.main(["--unknown-option"])
-
-    assert raised.value.code == 2
 
 
 def _repository(tmp_path: Path) -> Path:

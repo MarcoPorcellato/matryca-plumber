@@ -115,4 +115,4 @@ def test_wrapper_bootstraps_from_an_unrelated_working_directory(tmp_path: Path) 
     )
 
     assert completed.returncode == 2
-    assert "usage:" in completed.stderr
+    assert completed.stderr == "evaluation_projection: invalid_arguments\n"

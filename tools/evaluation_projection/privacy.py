@@ -89,6 +89,7 @@ _WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
 _EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _URI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 _CREDENTIAL = re.compile(r"(?i)(authorization|bearer|api[_-]?key|password|secret|token)\s*[:= ]")
+_TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 _DIGEST_KEYS = frozenset(
     {
         "digest",
@@ -156,6 +157,7 @@ def _assert_string_private(value: str, field: str | None) -> None:
         or _EMAIL.match(value)
         or _URI.match(value)
         or _CREDENTIAL.search(value)
+        or _TIMESTAMP.match(value)
     ):
         raise ProjectionPrivacyError("privacy_value_forbidden")
     if _HEX_64.fullmatch(value) and field not in _DIGEST_KEYS:

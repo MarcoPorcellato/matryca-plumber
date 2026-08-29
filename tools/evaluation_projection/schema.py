@@ -147,6 +147,10 @@ class GraphOutcomeProjectionPayload(_ClosedModel):
             object.__setattr__(
                 self, field, _normalized_identifiers(getattr(self, field), field=field)
             )
+        if self.validation_status == "passed" and self.failure_codes:
+            raise ValueError("passed_validation_has_failure_codes")
+        if self.validation_status == "rejected" and len(self.failure_codes) != 1:
+            raise ValueError("rejected_validation_requires_one_failure_code")
         dimensions = tuple(sorted(self.dimensions, key=lambda item: item.dimension))
         if {item.dimension for item in dimensions} != _REQUIRED_DIMENSIONS or len(
             dimensions

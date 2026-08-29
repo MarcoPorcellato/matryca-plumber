@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import cast
 
 import pytest
 from pydantic import ValidationError
+from src.memory.graph_outcome_harness import run_default_scenarios
 from src.memory.graph_outcome_protocol import DimensionName, OutcomeArtifactKind
+from tools.evaluation_projection.projector import project_suite
 from tools.evaluation_projection.schema import (
     GraphOutcomeEvaluationProjection,
     GraphOutcomeProjectionPayload,
@@ -24,8 +27,19 @@ from tools.evaluation_projection.schema import (
 
 _REVISION = "a" * 40
 _DIGEST = "1" * 64
-_PROJECTION_GOLDEN = "952ffcce8a866082fe925917763cfc6b84dc29c03b3b37f0cc5023db76b9c451"
-_SUITE_GOLDEN = "09d7c2ac860dcde31406cb172b989a91ad31e689d039eeadc8c2ea08ae55fa54"
+_PROJECTION_GOLDEN = "49f92238dc425e3b293366a6b84142a52a18a61180d27a188c4ddc64f2e57f0d"
+_SUITE_GOLDEN = "52166d20e262e8dab0685b4e76e7a194fed007e05eae6cc8048b316b87822dd0"
+_HARNESS_SOURCE_REVISION = "0123456789abcdef0123456789abcdef01234567"
+_HARNESS_SUITE_ID = "3d6186c597e68906c7c83d1e06b5be3deb9dd193e40b96a7cd9c435399dd2d67"
+_HARNESS_PROJECTION_IDS = (
+    "28daa895639e513dd5d6dc22977297fb1f92ec817dc2de335e8d08c245e8ad87",
+    "41f6ae9ad422942514085e701e916f6937e334754f2b19091d1d038520511aad",
+    "9aefc30d2418d64155d5629832f73b5ae829d3b1a551587d7443963e40eb7db3",
+    "e4940005bd41845e2440f1b7607ab2ecdd37461423511395967230505b2f0650",
+)
+_HARNESS_SUITE_GOLDEN = (
+    Path(__file__).with_name("fixtures") / "default_harness_suite.canonical.json"
+)
 _SCENARIOS: tuple[ProjectionScenario, ...] = (
     "corrupt-derived-state",
     "stale-unverified-mutation",
@@ -67,7 +81,7 @@ def _payload(
         receipt_id="3" * 64,
         terminal_status="completed",
         validation_status="passed",
-        failure_codes=("first-failure", "second-failure"),
+        failure_codes=(),
         executed_tool_ids=("search-blocks", "safe-sync-write"),
         dimensions=tuple(
             ProjectionDimension(
@@ -157,6 +171,17 @@ def test_projection_and_suite_have_stable_canonical_identities() -> None:
     assert canonical_suite_bytes(suite).endswith(b"\n")
 
 
+def test_default_harness_suite_has_hand_reviewed_canonical_bytes() -> None:
+    suite = project_suite(
+        run_default_scenarios().episodes,
+        source_revision=_HARNESS_SOURCE_REVISION,
+    )
+
+    assert tuple(item.projection_id for item in suite.projections) == _HARNESS_PROJECTION_IDS
+    assert suite.suite_id == _HARNESS_SUITE_ID
+    assert canonical_suite_bytes(suite) == _HARNESS_SUITE_GOLDEN.read_bytes()
+
+
 def test_reordered_closed_collections_are_byte_identical() -> None:
     original = build_projection(_payload())
     reordered = build_projection(_reordered_payload())
@@ -188,9 +213,10 @@ def test_closed_models_reject_unknown_fields_and_invalid_hashes() -> None:
         lambda payload: _replace_payload(payload, report_id="9" * 64),
         lambda payload: _replace_payload(payload, receipt_id="a" * 64),
         lambda payload: _replace_payload(payload, terminal_status="abstained"),
-        lambda payload: _replace_payload(payload, validation_status="rejected"),
         lambda payload: _replace_payload(
-            payload, failure_codes=("changed-failure", "second-failure")
+            payload,
+            validation_status="rejected",
+            failure_codes=("rejected-failure",),
         ),
         lambda payload: _replace_payload(
             payload, executed_tool_ids=("changed-tool", "safe-sync-write")
@@ -324,6 +350,25 @@ def test_projection_payload_rejects_closed_contract_violations(change: dict[str,
                 )
             }
         _replace_payload(_payload(), **change)
+
+
+@pytest.mark.parametrize(
+    ("validation_status", "failure_codes"),
+    (
+        ("passed", ("unexpected-failure",)),
+        ("rejected", ()),
+        ("rejected", ("first-failure", "second-failure")),
+    ),
+)
+def test_projection_payload_rejects_impossible_validation_failure_combinations(
+    validation_status: str, failure_codes: tuple[str, ...]
+) -> None:
+    with pytest.raises(ValueError):
+        _replace_payload(
+            _payload(),
+            validation_status=validation_status,
+            failure_codes=failure_codes,
+        )
 
 
 def test_suite_rejects_invalid_membership_and_provenance() -> None:

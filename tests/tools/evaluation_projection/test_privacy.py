@@ -10,23 +10,45 @@ from tools.evaluation_projection.privacy import (
 
 
 @pytest.mark.parametrize(
-    "payload",
+    ("payload", "expected_code", "private_value"),
     [
-        {"content": "private note"},
-        {"nested": {"prompt": "secret prompt"}},
-        {"nested": [{"path": "/private/tmp/graph"}]},
-        {"nested": {"value": "file:///Users/example/graph.md"}},
-        {"nested": {"value": "person@example.com"}},
-        {"nested": {"value": "Authorization: Bearer secret"}},
-        {"nested": {"timestamp": "2026-08-26T10:00:00Z"}},
+        ({"content": "private note"}, "privacy_key_forbidden", "private note"),
+        (
+            {"metrics": {"context_bytes": "/private/tmp/graph"}},
+            "privacy_value_forbidden",
+            "/private/tmp/graph",
+        ),
+        (
+            {"metrics": {"context_bytes": "file:///Users/example/graph.md"}},
+            "privacy_value_forbidden",
+            "file:///Users/example/graph.md",
+        ),
+        (
+            {"metrics": {"context_bytes": "person@example.com"}},
+            "privacy_value_forbidden",
+            "person@example.com",
+        ),
+        (
+            {"metrics": {"context_bytes": "Authorization: Bearer secret"}},
+            "privacy_value_forbidden",
+            "Authorization: Bearer secret",
+        ),
+        (
+            {"metrics": {"context_bytes": "2026-08-26T10:00:00Z"}},
+            "privacy_value_forbidden",
+            "2026-08-26T10:00:00Z",
+        ),
     ],
 )
-def test_guard_rejects_nested_forbidden_content_without_echo(payload: object) -> None:
+def test_guard_rejects_nested_forbidden_content_without_echo(
+    payload: object, expected_code: str, private_value: str
+) -> None:
     """Reject keys and values that can carry private evaluation content."""
     with pytest.raises(ProjectionPrivacyError) as caught:
         assert_projection_private(payload)
 
-    assert str(caught.value) in {"privacy_key_forbidden", "privacy_value_forbidden"}
+    assert str(caught.value) == expected_code
+    assert private_value not in str(caught.value)
     assert "secret" not in str(caught.value)
     assert "/private/" not in str(caught.value)
 

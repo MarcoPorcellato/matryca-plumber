@@ -3793,7 +3793,7 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Approved PR A plan; Tasks 1-6 are terminal at signed commits, while Task 7 retains only documentation and focused-gate evidence. PR B publisher design, implementation, dependency changes, and publication remain separate gates.",
+      "notes": "Approved PR A plan; Steps 5-7 are qualified only at parent cd47a8bf62cba93620afc03425f5120adf8ea261, while fresh exact-head Step 8 remains pending. PR B publisher design, implementation, dependency changes, and publication remain separate gates.",
       "missing": false
     },
     {
