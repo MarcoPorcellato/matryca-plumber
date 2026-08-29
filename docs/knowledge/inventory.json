@@ -1382,6 +1382,27 @@
       "missing": false
     },
     {
+      "path": "docs/quality/GRAPH_OUTCOME_EVALUATION_PROJECTION_RUNBOOK.md",
+      "type": "Runbook",
+      "title": "Graph-outcome evaluation projection runbook",
+      "description": "Maintainer procedure for generating, verifying, retaining, reconstructing, and deleting deterministic content-free graph-outcome projection suites.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Current PR A maintainer procedure for deterministic content-free projection generation; PR B publisher work remains a separate entry gate.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/GRAPH_OUTCOME_SYNTHETIC_HARNESS.md",
       "type": "Audit",
       "title": "Synthetic graph-outcome harness runner",
@@ -3755,6 +3776,27 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-08-26-mlflow-evaluation-projection.md",
+      "type": "Roadmap",
+      "title": "MLflow Evaluation Projection PR A Implementation Plan",
+      "description": "Test-first execution plan for the deterministic, content-free graph-outcome evidence projection without MLflow integration.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved PR A plan; Steps 5-7 are qualified only at parent cd47a8bf62cba93620afc03425f5120adf8ea261, while fresh exact-head Step 8 remains pending. PR B publisher design, implementation, dependency changes, and publication remain separate gates.",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -3794,6 +3836,27 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Approved architecture; implementation, routing activation, and public savings claims remain evidence-gated.",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-08-26-mlflow-evaluation-projection-design.md",
+      "type": "Specification",
+      "title": "MLflow evaluation projection design",
+      "description": "Architecture and privacy contract for a deterministic graph-outcome evidence projection and a separately gated optional MLflow publisher.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved architecture becomes implementation authority only after maintainer review; PR A is pure and PR B remains separately gated.",
       "missing": false
     },
     {

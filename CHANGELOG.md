@@ -2,6 +2,11 @@
 
 ### Added
 
+- **Deterministic graph-outcome evaluation projection** — add a maintainer-only,
+  source-bound, privacy-checked JSON projection of the four synthetic outcome
+  scenarios with canonical identities and atomic explicit output; it adds no
+  tracking dependency, network activity, real-vault execution, or product path.
+
 - **Hybrid local CI bootstrap** — add a pinned three-runtime Commit CI
   Preflight matrix and policy, an opt-in exact-head receipt observer, a
   fail-closed source-upgrade and operator runbook, and an immutable generated
