@@ -9,6 +9,7 @@
 
 ### Changed
 
+- **Exact-artifact release promotion** — build each wheel and sdist once, verify and attest their SHA-256-bound bytes, and publish the same downloaded distributions to GitHub Releases and PyPI under fail-closed tag, destination, and retry controls.
 - **Hosted qualification authority** — consolidate public pull-request checks on parallel GitHub-hosted Python 3.12, Python 3.13, frontend, dependency-review, and macOS/Windows Shadow lanes behind the stable `Ironclad Gatekeeper` context; retire the redundant local receipt path and pin every active Action dependency to reviewed immutable commits.
 
 ### Fixed

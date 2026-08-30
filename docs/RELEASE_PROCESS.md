@@ -42,6 +42,15 @@ For the current maintenance track, follow the
 [v2.0.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 It is deliberately a candidate plan, not a publication record.
 
+### Publication prerequisites
+
+A `v*` tag ruleset and a registered maintainer GPG key are external
+prerequisites. The tag must be annotated, GitHub-verified, and reachable from
+protected `main`. The release workflow imports the committed public release key
+into an isolated keyring, confirms fingerprint
+`FDF72C53A848EBA83AEFA0294F2221BBB930513B`, and cryptographically verifies
+the tag before publication can continue.
+
 ### 1. Prepare (Cursor or manual)
 
 - [ ] Move everything from `[Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` in `CHANGELOG.md`
@@ -67,7 +76,7 @@ You should see exactly the section that will appear on GitHub.
 ```bash
 git add CHANGELOG.md pyproject.toml uv.lock
 git commit -m "chore: release X.Y.Z"
-git tag vX.Y.Z
+git tag -s -a vX.Y.Z -m "Release X.Y.Z"
 git push origin main
 git push origin vX.Y.Z
 ```
@@ -76,10 +85,20 @@ git push origin vX.Y.Z
 
 On tag push, [`.github/workflows/release.yml`](../.github/workflows/release.yml):
 
-1. Builds the Sovereign UI frontend
-2. Builds the frontend in a clean tracked-source snapshot, then builds an sdist and derives the wheel from that sdist with `make release-build`
-3. Creates a GitHub Release with notes from `scripts/extract_changelog.py`
-4. Publishes to PyPI (trusted publishing)
+1. `verify` checks the signed annotated tag, GitHub verification, protected-main
+   reachability, the isolated-keyring fingerprint, and the required CI context.
+2. `destination-preflight` stops if GitHub Releases or PyPI already contains the
+   version.
+3. `build-release` builds exactly one wheel and one sdist, writes a two-line
+   SHA-256 manifest, attests both distributions, and uploads that release bundle.
+4. `publish-release` downloads the bundle, verifies the exact two-file set and
+   manifest, verifies the attestations against the downloaded subjects, then
+   promotes only those downloaded bytes to GitHub Releases and PyPI.
+
+The workflow is fail-closed on existing destinations: do not rerun a release
+after GitHub or PyPI already contains the version. Partial publication requires
+a separate recovery decision. Package publication still does not replace
+risk-selected Gate B or post-release evidence.
 
 ---
 
@@ -88,7 +107,7 @@ On tag push, [`.github/workflows/release.yml`](../.github/workflows/release.yml)
 | Problem | Fix |
 |---------|-----|
 | Release workflow fails on “extract changelog” | Ensure `## [X.Y.Z]` exists in `CHANGELOG.md` and matches the tag (`v1.6.2` → section `[1.6.2]`). |
-| PyPI version already exists | Bump patch version; never re-use a published version. |
+| GitHub Release or PyPI version already exists | Stop; do not rerun. A partial publication needs a separate recovery decision, while a completed version is never re-used. |
 | Notes on GitHub look wrong | Re-run locally: `python scripts/extract_changelog.py vX.Y.Z` and compare to the file. |
 
 ---

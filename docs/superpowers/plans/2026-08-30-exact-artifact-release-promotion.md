@@ -428,7 +428,7 @@ No checkout, build, dependency sync, or artifact mutation occurs in `publish-rel
 - [ ] **Step 6: Run the targeted and package tests**
 
 ```bash
-rtk uv run pytest -q tests/test_release_workflow_contract.py tests/test_build_release_artifacts.py tests/test_extract_changelog.py
+rtk uv run pytest -q --no-cov tests/test_release_workflow_contract.py tests/test_build_release_artifacts.py tests/test_extract_changelog.py
 ```
 
 Expected: PASS.
@@ -506,7 +506,7 @@ rtk git commit -S -m "docs(release): define exact-artifact promotion"
 - [ ] **Step 1: Run direct local verification without CCP**
 
 ```bash
-rtk uv run pytest -q tests/test_release_workflow_contract.py tests/test_build_release_artifacts.py tests/test_extract_changelog.py
+rtk uv run pytest -q --no-cov tests/test_release_workflow_contract.py tests/test_build_release_artifacts.py tests/test_extract_changelog.py
 rtk make release-build
 rtk make agents-check
 rtk make docs-check
