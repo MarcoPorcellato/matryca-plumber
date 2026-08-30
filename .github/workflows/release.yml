@@ -8,16 +8,48 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     name: Verify before publish
     runs-on: ubuntu-latest
     permissions:
+      checks: read
       contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify signed tag and protected-main reachability
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG_REF="repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}"
+          TAG_OBJECT_SHA="$(gh api "$TAG_REF" --jq '.object.sha')"
+          TAG_OBJECT_TYPE="$(gh api "$TAG_REF" --jq '.object.type')"
+          test "$TAG_OBJECT_TYPE" = tag
+          test "$(git rev-parse "${GITHUB_REF_NAME}^{tag}")" = "$TAG_OBJECT_SHA"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT_SHA}" --jq '.verification.verified')" = true
+          EXPECTED_RELEASE_FINGERPRINT="FDF72C53A848EBA83AEFA0294F2221BBB930513B"
+          export GNUPGHOME="${RUNNER_TEMP}/matryca-release-gpg"
+          install -d -m 0700 "$GNUPGHOME"
+          gpg --batch --import .github/release-signing-key.asc
+          test "$(gpg --batch --with-colons --fingerprint "$EXPECTED_RELEASE_FINGERPRINT" | awk -F: '$1 == "fpr" { print $10; exit }')" = "$EXPECTED_RELEASE_FINGERPRINT"
+          git verify-tag --raw "$GITHUB_REF_NAME"
+          test "$(git rev-list -n 1 "$GITHUB_REF_NAME")" = "$GITHUB_SHA"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          REQUIRED_CHECK_COUNT="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?check_name=Ironclad%20Gatekeeper&filter=latest" \
+            --jq ".check_runs | map(select(.name == \"Ironclad Gatekeeper\" and .app.id == 15368 and .head_sha == \"${GITHUB_SHA}\" and .status == \"completed\" and .conclusion == \"success\")) | length")"
+          test "$REQUIRED_CHECK_COUNT" -ge 1
 
       - name: Setup Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -52,9 +84,32 @@ jobs:
       - name: Run CI gate
         run: make ci
 
+  destination-preflight:
+    name: Require empty release destinations
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Require empty release destinations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          GITHUB_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}")"
+          PYPI_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            "https://pypi.org/pypi/matryca-plumber/${VERSION}/json")"
+          test "$GITHUB_STATUS" = 404
+          test "$PYPI_STATUS" = 404
+
   release:
     name: Publish release
-    needs: verify
+    needs: destination-preflight
     runs-on: ubuntu-latest
     permissions:
       id-token: write
