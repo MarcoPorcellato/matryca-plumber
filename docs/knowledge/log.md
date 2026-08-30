@@ -2,6 +2,15 @@
 
 ## 2026-08-30
 
+- **Exact-artifact release promotion:** documented the protected-main signed-tag
+  boundary, isolated-keyring verification of the committed release key, and the
+  fail-closed four-job release chain. Each run builds one wheel and one sdist,
+  verifies the two-line SHA-256 manifest and downloaded file set, attests and
+  verifies the downloaded subjects, and promotes only those bytes. Existing
+  GitHub Release or PyPI destinations stop reruns; partial publication remains
+  a separate recovery decision, while Gate B and post-release evidence stay
+  independent.
+
 - **Hosted qualification authority:** established standard GitHub-hosted runners
   as the public pull-request authority behind the protected `Ironclad Gatekeeper`
   context, with Python 3.12, Python 3.13, frontend, dependency-review, and
