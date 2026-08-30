@@ -7,16 +7,9 @@
   scenarios with canonical identities and atomic explicit output; it adds no
   tracking dependency, network activity, real-vault execution, or product path.
 
-- **Hybrid local CI bootstrap** — add a pinned three-runtime Commit CI
-  Preflight matrix and policy, an opt-in exact-head receipt observer, a
-  fail-closed source-upgrade and operator runbook, and an immutable generated
-  savings ledger; ordinary PRs avoid expected receipt failures, hosted CI
-  remains authoritative. The accepted matrix-aware source boundary now includes
-  the existing Python 3.12 source-security check. Read-only operator targets now
-  expose the official `plan` → `doctor` → `dry-run` sequence with an explicit
-  `current-v2` profile; legacy-profile migration, official heavy local
-  qualification, parity, routing, rulesets, and savings evidence remain
-  separately gated.
+### Changed
+
+- **Hosted qualification authority** — consolidate public pull-request checks on parallel GitHub-hosted Python 3.12, Python 3.13, frontend, dependency-review, and macOS/Windows Shadow lanes behind the stable `Ironclad Gatekeeper` context; retire the redundant local receipt path and pin every active Action dependency to reviewed immutable commits.
 
 ### Fixed
 

@@ -1,5 +1,16 @@
 # Documentation update log
 
+## 2026-08-30
+
+- **Hosted qualification authority:** established standard GitHub-hosted runners
+  as the public pull-request authority behind the protected `Ironclad Gatekeeper`
+  context, with Python 3.12, Python 3.13, frontend, dependency-review, and
+  macOS/Windows Shadow lanes. This supersedes the earlier hybrid local route as
+  active routing without rewriting its 2026-08-24 through 2026-08-29 chronology.
+  Local receipt routing is retired from the active tree. Package, Gate B,
+  benchmark, and publication evidence remain independent; CodeQL ruleset
+  enforcement remains a separate observed-context mutation.
+
 ## 2026-08-29
 
 - **Official CCP guidance reconciliation:** bound the public operator guidance
@@ -50,12 +61,12 @@
   at the reviewed CCP pin, so official heavy local qualification and any hosted
   skip remain blocked while full hosted CI stays authoritative.
 
-- **Hybrid local CI design:** approved a fail-closed, observation-first
-  [Commit CI Preflight adoption design](../superpowers/specs/2026-08-24-ccp-hybrid-ci-adoption-design.md)
-  and preserved its [pre-activation GitHub Actions baseline](../quality/CCP_GITHUB_ACTIONS_SAVINGS_BASELINE_2026-08-24.md).
-  Hosted CI remains authoritative until exact-head parity, negative cases,
+- **Hybrid local CI design:** approved a fail-closed, observation-first Commit
+  CI Preflight adoption design and preserved its pre-activation GitHub Actions
+  baseline. Both historical documents were later retired from the active tree;
+  hosted CI remained authoritative until exact-head parity, negative cases,
   fallback qualification, routing observation, and separate ruleset approval
-  are terminal.
+  were terminal.
 
 ## 2026-08-23
 

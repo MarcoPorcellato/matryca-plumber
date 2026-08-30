@@ -61,9 +61,14 @@ checks and fresh hosted GitHub Actions are the accepted evidence.
 - Rewriting historical Git commits or deleting existing evidence branches.
 - Claiming that hosted CI proves an unexecuted platform or operational soak.
 
-## Verified current state
+## Historical pre-Delivery A baseline
 
-| Item | Exact state on 2026-08-30 |
+The following records the verified state before Delivery A changed the hosted
+qualification route. It is preserved for migration traceability and does not
+describe the current tree; the current authority is recorded in the
+[GitHub Actions qualification authority decision](../../decisions/2026-08-30-github-actions-qualification-authority.md).
+
+| Item | Historical state verified before Delivery A on 2026-08-30 |
 | --- | --- |
 | Design base | `origin/main@5fe19f5a1e9ce9afa8006eef642ecaf77d7c99c8` |
 | Required status | `Ironclad Gatekeeper` |
