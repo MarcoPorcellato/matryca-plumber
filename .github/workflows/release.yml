@@ -173,3 +173,62 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
+
+  publish-release:
+    name: Publish verified release
+    needs: build-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      attestations: read
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Download verified release bundle
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-bundle
+
+      - name: Verify downloaded distribution digests
+        run: |
+          set -euo pipefail
+          test "$(find dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 2
+          test "$(find dist -maxdepth 1 -type f -name '*.whl' | wc -l | tr -d ' ')" = 1
+          test "$(find dist -maxdepth 1 -type f -name '*.tar.gz' | wc -l | tr -d ' ')" = 1
+          test "$(wc -l < release-manifest/SHA256SUMS | tr -d ' ')" = 2
+          cd dist
+          sha256sum --check ../release-manifest/SHA256SUMS
+
+      - name: Verify downloaded provenance attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify dist/*.whl \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/release.yml"
+          gh attestation verify dist/*.tar.gz \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/release.yml"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_args=()
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
+          gh release create \
+            --verify-tag \
+            "${GITHUB_REF_NAME}" \
+            dist/*.whl \
+            dist/*.tar.gz \
+            --notes-file release-manifest/release_notes.md \
+            "${release_args[@]}"
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: dist/
