@@ -109,19 +109,23 @@ jobs:
           test "$GITHUB_STATUS" = 404
           test "$PYPI_STATUS" = 404
 
-  release:
-    name: Publish release
+  build-release:
+    name: Build and attest release distributions
     needs: destination-preflight
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
+      attestations: write
+      contents: read
       id-token: write
-      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
-      - name: Install uv and Python
+      - name: Install uv and Python 3.12
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
@@ -137,28 +141,35 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build verified release archives from a clean source snapshot
+      - name: Build release distributions
         run: make release-build
 
-      - name: Extract release notes from CHANGELOG
+      - name: Create distribution digest manifest
         run: |
-          uv run python scripts/extract_changelog.py "${GITHUB_REF_NAME}" > release_notes.md
-          echo "--- Release notes preview ---"
-          head -n 40 release_notes.md
+          mkdir -p release-manifest
+          uv run python scripts/extract_changelog.py "$GITHUB_REF_NAME" > release-manifest/release_notes.md
+          (
+            cd dist
+            sha256sum -- *.whl *.tar.gz
+          ) > release-manifest/SHA256SUMS
+          test "$(wc -l < release-manifest/SHA256SUMS | tr -d ' ')" = 2
 
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          release_args=()
-          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
-            release_args+=(--prerelease)
-          fi
-          gh release create \
-            "${GITHUB_REF_NAME}" \
-            dist/* \
-            --notes-file release_notes.md \
-            "${release_args[@]}"
+      - name: Attest release distributions
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: |
+            dist/*.whl
+            dist/*.tar.gz
 
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-bundle
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            release-manifest/SHA256SUMS
+            release-manifest/release_notes.md
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
