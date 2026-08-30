@@ -98,12 +98,14 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
+          TAG_PATH="$(python3 -c 'from urllib.parse import quote; import sys; print(quote(sys.argv[1], safe=""))' "$GITHUB_REF_NAME")"
+          VERSION_PATH="$(python3 -c 'from urllib.parse import quote; import sys; print(quote(sys.argv[1], safe=""))' "$VERSION")"
           GITHUB_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
             --header "Authorization: Bearer ${GH_TOKEN}" \
             --header 'Accept: application/vnd.github+json' \
-            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}")"
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/${TAG_PATH}")"
           PYPI_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-            "https://pypi.org/pypi/matryca-plumber/${VERSION}/json")"
+            "https://pypi.org/pypi/matryca-plumber/${VERSION_PATH}/json")"
           test "$GITHUB_STATUS" = 404
           test "$PYPI_STATUS" = 404
 

@@ -61,6 +61,19 @@ def test_tag_identity_and_empty_destinations_are_blocking() -> None:
     assert 'test "$PYPI_STATUS" = 404' in preflight
 
 
+def test_destination_preflight_encodes_dynamic_path_components() -> None:
+    jobs = _load_release()["jobs"]
+    preflight = _step(jobs["destination-preflight"], "Require empty release destinations")[
+        "run"
+    ]
+    assert "from urllib.parse import quote" in preflight
+    assert 'quote(sys.argv[1], safe="")' in preflight
+    assert 'releases/tags/${TAG_PATH}' in preflight
+    assert 'matryca-plumber/${VERSION_PATH}/json' in preflight
+    assert 'releases/tags/${GITHUB_REF_NAME}' not in preflight
+    assert 'matryca-plumber/${VERSION}/json' not in preflight
+
+
 def test_build_writes_manifest_attests_and_uploads_one_day_artifact() -> None:
     build = _load_release()["jobs"]["build-release"]
     assert build["permissions"] == {
