@@ -3879,6 +3879,26 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/specs/2026-08-30-github-actions-authority-design.md",
+      "type": "Specification",
+      "title": "GitHub Actions Qualification Authority Design",
+      "description": "Direct hosted CI and exact-artifact release architecture for the public Matryca Plumber repository.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
