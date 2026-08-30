@@ -99,4 +99,7 @@ def test_local_receipt_control_plane_is_absent() -> None:
     makefile = MAKEFILE.read_text(encoding="utf-8")
     assert "ccp-" not in makefile
     assert "commit-ci-preflight" not in makefile
-    assert all("pull_request_target" not in path.read_text(encoding="utf-8") for path in WORKFLOWS.glob("*.yml"))
+    assert all(
+        "pull_request_target" not in path.read_text(encoding="utf-8")
+        for path in WORKFLOWS.glob("*.yml")
+    )
