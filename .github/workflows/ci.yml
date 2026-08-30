@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request: {}
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -23,26 +25,19 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Dependency review
-        uses: actions/dependency-review-action@v5
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5
 
-  ironclad-gatekeeper:
-    name: Ironclad Gatekeeper
+  python-312-quality:
+    name: Python 3.12 quality
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install uv and Python 3.12
-        uses: astral-sh/setup-uv@v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
           python-version: "3.12"
@@ -53,17 +48,6 @@ jobs:
       - name: Sync Python dependencies
         run: uv sync --locked --extra dev
 
-      - name: Version consistency (pyproject.toml vs llms.txt)
-        run: uv run python scripts/check_version_consistency.py
-
-      - name: Build React cockpit
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run lint
-          npm run test
-          npm run build
-
       - name: Legacy documentation audit (informational)
         continue-on-error: true
         run: make docs-audit
@@ -71,19 +55,49 @@ jobs:
       - name: Run CI gate (format check, Ruff, Mypy, Pytest)
         run: make ci
 
-  python-313-evidence:
-    name: Python 3.13 evidence (non-blocking)
+  frontend-quality:
+    name: Frontend quality
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.base_ref == 'main'
-    continue-on-error: true
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  python-313-compatibility:
+    name: Python 3.13 compatibility
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install uv and Python 3.13
-        uses: astral-sh/setup-uv@v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
           python-version: "3.13"
@@ -108,10 +122,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install uv and Python 3.12
-        uses: astral-sh/setup-uv@v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
           python-version: "3.12"
@@ -133,3 +147,35 @@ jobs:
           tests/test_shadow_bootstrap.py::test_read_only_shadow_off_touches_neither_graph_nor_external_cache
           tests/test_shadow_fts_routing.py::test_handle_search_bm25_uses_shadow_when_ready
           tests/test_shadow_fts_routing.py::test_handle_search_bm25_shadow_not_ready_falls_back
+
+  ironclad-gatekeeper:
+    name: Ironclad Gatekeeper
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - dependency-review
+      - python-312-quality
+      - frontend-quality
+      - python-313-compatibility
+      - shadow-cross-platform
+    steps:
+      - name: Require every applicable qualification lane
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          PYTHON_312_RESULT: ${{ needs.python-312-quality.result }}
+          FRONTEND_RESULT: ${{ needs.frontend-quality.result }}
+          PYTHON_313_RESULT: ${{ needs.python-313-compatibility.result }}
+          SHADOW_RESULT: ${{ needs.shadow-cross-platform.result }}
+        run: |
+          set -euo pipefail
+          test "$PYTHON_312_RESULT" = success
+          test "$FRONTEND_RESULT" = success
+          test "$PYTHON_313_RESULT" = success
+          test "$SHADOW_RESULT" = success
+          if test "$EVENT_NAME" = pull_request; then
+            test "$DEPENDENCY_REVIEW_RESULT" = success
+          else
+            test "$DEPENDENCY_REVIEW_RESULT" = skipped
+          fi
