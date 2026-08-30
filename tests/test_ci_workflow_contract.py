@@ -63,8 +63,8 @@ def test_ironclad_gatekeeper_aggregates_every_blocking_lane() -> None:
     assert set(gate["needs"]) == REQUIRED_NEEDS
     assert gate["if"] == "always()"
     assert "continue-on-error" not in gate
-    assert "needs.python-313-compatibility.result" in gate["steps"][0]["env"].values()
-    assert "needs.shadow-cross-platform.result" in gate["steps"][0]["env"].values()
+    assert "${{ needs.python-313-compatibility.result }}" in gate["steps"][0]["env"].values()
+    assert "${{ needs.shadow-cross-platform.result }}" in gate["steps"][0]["env"].values()
 
 
 def test_python_313_and_shadow_contract_are_blocking() -> None:
