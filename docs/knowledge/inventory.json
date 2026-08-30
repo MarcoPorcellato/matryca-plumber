@@ -3816,6 +3816,46 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-08-30-exact-artifact-release-promotion.md",
+      "type": "Roadmap",
+      "title": "Exact-Artifact Release Promotion Implementation Plan",
+      "description": "Test-first delivery plan for maintainer-key tag verification, build-once distributions, exact file-set and digest validation, provenance attestation, and fail-closed promotion to GitHub Releases and PyPI.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Delivery B execution plan; environment, tag-ruleset, push, merge, tag, and publication mutations remain separately authorized."
+    },
+    {
+      "path": "docs/superpowers/plans/2026-08-30-hosted-ci-authority.md",
+      "type": "Roadmap",
+      "title": "Hosted CI Authority Implementation Plan",
+      "description": "Test-first delivery plan for parallel GitHub-hosted qualification, stable Ironclad aggregation, immutable Action pins, and retirement of the obsolete local receipt route.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Delivery A execution plan; remote push, PR, ruleset mutation, and merge remain separately authorized."
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -3896,7 +3936,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
