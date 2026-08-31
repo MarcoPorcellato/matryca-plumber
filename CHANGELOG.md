@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [2.0.1-rc.3] - 2026-08-31
+
+`v2.0.1-rc.3` is the fresh publication candidate after the signed
+`v2.0.1-rc.2` tag reached a terminal failed workflow before either GitHub Releases
+or PyPI was written. RC3 includes the complete RC2 change set below plus the release
+repository-binding correction. RC2 remains an immutable failed-publication record,
+not a published package or transferable qualification result.
+
 ### Fixed
 
 - **Release repository binding** — bind GitHub Release creation explicitly to the

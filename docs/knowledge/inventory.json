@@ -1755,8 +1755,28 @@
     {
       "path": "docs/quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md",
       "type": "Roadmap",
-      "title": "v2.0.1-rc.2 proposed qualification plan",
-      "description": "Proposed Tier 3 qualification contract for the next v2.0.1 release candidate; no candidate source, artifact, or result is selected.",
+      "title": "v2.0.1-rc.2 terminal failed-publication disposition",
+      "description": "Historical disposition for the signed v2.0.1-rc.2 tag and workflow that verified and built artifacts but published neither destination.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/artifacts/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "Immutable failed-publication history; no GitHub Release, PyPI package, Gate B result, or transferable qualification credit exists.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md",
+      "type": "Roadmap",
+      "title": "v2.0.1-rc.3 proposed qualification plan",
+      "description": "Proposed Tier 3 qualification contract for the v2.0.1-rc.3 recovery candidate; no candidate source, tag, artifact, workflow run, or result is selected.",
       "classification": "active",
       "audience": [
         "maintainer",
@@ -1769,7 +1789,7 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active proposed RC2 contract; records no publication or result.",
+      "notes": "Active proposed RC3 contract; records no selected candidate source, tag, workflow run, public artifact, Gate B result, or stable decision.",
       "missing": false
     },
     {

@@ -1,7 +1,7 @@
 ---
 type: Document
 ---
-# Agent onboarding (`llms.txt`) — v2.0 stable, v2.0.1rc2 preparation, and RC1 history
+# Agent onboarding (`llms.txt`) — v2.0 stable, v2.0.1rc3 preparation, and RC1/RC2 history
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
@@ -16,15 +16,17 @@ their exact resolved parser. The published `v2.0.1-rc.1` artifact adds bounded c
 journal-day retrieval; it does not change Shadow defaults or write authority, but its
 public wheel resolved parser 1.8.0 during the independent 2026-08-24 package check and
 therefore retained incomplete Tier 2 dependency gates. That result is historical and
-does not qualify a later source revision. `v2.0.1-rc.2` / `2.0.1rc2` is instead a
-prepared Tier 3 candidate path; no RC2 source, tag, public release, package artifact,
-Gate B result, or stable-promotion decision exists. Agents must keep `v2.0.0` as the
-default and may install `2.0.1rc2` only after its public RC2 release exists, solely as
-an evaluation candidate. Current operator behavior belongs to the [canonical Shadow operator
+does not qualify a later source revision. `v2.0.1-rc.2` is immutable terminal
+failed-publication history: no GitHub Release or PyPI package exists. The prepared Tier
+3 candidate path is `v2.0.1-rc.3` / `2.0.1rc3`; no RC3 source, tag, workflow run,
+public release, package artifact, Gate B result, or stable-promotion decision exists.
+Agents must keep `v2.0.0` as the default and may install `2.0.1rc3` only after its
+public RC3 release exists, solely as an evaluation candidate. Current operator behavior belongs to the [canonical Shadow operator
 contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the
 [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md), the
 [historical RC1 qualification plan](../quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md),
-and the [proposed RC2 qualification plan](../quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md).
+the [RC2 failed-publication record](../releases/v2.0.1-rc.2-FAILED-PUBLICATION.md),
+and the [proposed RC3 qualification plan](../quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md).
 
 ---
 

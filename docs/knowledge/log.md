@@ -16,6 +16,13 @@
   decision is recorded. A future RC2 publication starts, but does not complete, the
   exact-artifact dual-profile 72-hour Gate B and later separate stable-decision path.
 
+- **v2.0.1-rc.3 qualification preparation:** Reclassified RC2 as immutable terminal
+  failed-publication history and linked its failed record. Recorded the active Tier 3
+  RC3 preparation base, `.env` fsync and robot path-isolation controls, explicit
+  checkout-free release repository binding, and workflow-contract coverage. RC3 source,
+  tag, workflow run, artifacts, and qualification results remain unselected; Gate B and
+  stable promotion remain separate and unauthorized.
+
 - **Historical tag verification correction:** preserved the publication-time
   `unknown_key` observation for `v2.0.1-rc.1` and recorded GitHub's later `valid`
   verification after public-key registration. The annotated tag object, release

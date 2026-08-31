@@ -50,12 +50,13 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > the [release record](docs/releases/v2.0.1-rc.1-GITHUB.md) and
 > [historical qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 
-> **Prepared RC2 qualification path:** `v2.0.1-rc.2` / `2.0.1rc2` is the
-> proposed Tier 3 candidate for the next maintenance release. It has no selected
-> candidate source, tag, public release, package artifact, Gate B result, or stable
-> promotion. Install `2.0.1rc2` only if its public RC2 release is later published;
-> that installation remains an evaluation step, not a qualification or stable-release
-> claim. See the [proposed RC2 qualification plan](docs/quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md).
+> **RC2 terminal history; RC3 candidate:** `v2.0.1-rc.2` failed before GitHub Release
+> creation and PyPI publication; its signed tag and workflow evidence are immutable,
+> but are not a public artifact, Gate B result, or stable-promotion credit. The active
+> Tier 3 path is `v2.0.1-rc.3` / `2.0.1rc3`, with no selected candidate source, tag,
+> public release, package artifact, Gate B result, or stable promotion. See the
+> [RC2 failed-publication record](docs/releases/v2.0.1-rc.2-FAILED-PUBLICATION.md)
+> and [proposed RC3 qualification plan](docs/quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md).
 
 **Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
 Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
@@ -108,14 +109,15 @@ changing the stable recommendation:
 uv tool install matryca-plumber==2.0.1rc1
 ```
 
-`2.0.1rc2` is prepared but not publicly released. Only after its public RC2 release
-exists may evaluators install it explicitly:
+`2.0.1rc2` was not publicly released and must not be installed. `2.0.1rc3` is
+being prepared and is not publicly released. Only after its public RC3 release exists may
+evaluators install it explicitly:
 
 ```bash
-uv tool install matryca-plumber==2.0.1rc2
+uv tool install matryca-plumber==2.0.1rc3
 ```
 
-Neither this conditional installation path nor any future RC2 publication is a claim
+Neither this conditional installation path nor a future RC3 publication is a claim
 that Gate B or stable `v2.0.1` has passed or been published.
 
 ## What v2.0.0 changes
@@ -132,7 +134,7 @@ ownership and mutation boundaries explicit:
   back to Markdown-backed BM25 reads.
 - **Qualified parser baseline and supported range:** v2.0.0 was qualified with
   `logseq-matryca-parser` 1.7.1; package metadata accepts `>=1.7.1,<2.0.0`, so a
-  fresh install can resolve a newer compatible parser. The proposed v2.0.1 RC2
+  fresh install can resolve a newer compatible parser. The proposed v2.0.1 RC3
   qualification records and tests the exact resolved version instead of silently
   treating every installation as the historical baseline.
 
@@ -140,7 +142,7 @@ Biological memory, native Logseq DB Safe-Sync writes, content-aware Tana merge, 
 proactive adaptive runtime remain future work; they are not silently included in the
 v2.0.0 contract.
 
-## What the proposed v2.0.1 RC2 candidate adds
+## What the proposed v2.0.1 RC3 candidate adds
 
 `journal_day` is a narrow read target for one canonical ISO-dated Logseq journal. It
 keeps the same ownership model as v2: Markdown is authoritative, the response carries
@@ -153,8 +155,9 @@ needs one day of context without widening retrieval to the surrounding graph.
 The proposed candidate does not change the default-on Shadow contract, Read Only
 boundaries, write plane, or any experimental graph-native projection. Its evidence
 tooling remains provider-free and is not a benchmark, a real-agent evaluation, or a
-release result. The RC2 plan remains preparation only: no tag, public artifact, Gate B
-result, or stable-promotion decision exists.
+release result. The RC3 plan remains preparation only: no tag, public artifact, Gate B
+result, or stable-promotion decision exists. RC2 is terminal failed-publication
+history and cannot qualify RC3.
 
 ## Why Matryca Plumber
 
@@ -353,7 +356,7 @@ and large-export behavior.
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
 | Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
 | Review v2.0.1-rc.1 evidence | [Historical prerelease record](docs/releases/v2.0.1-rc.1-GITHUB.md) and [artifact-bound qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md) |
-| Track the proposed v2.0.1-rc.2 path | [Tier 3 RC2 qualification plan](docs/quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md) |
+| Track the proposed v2.0.1-rc.3 path | [Tier 3 RC3 qualification plan](docs/quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |
 | Follow the current repository reconciliation | [GitHub and repository reconciliation](docs/quality/GITHUB_REPOSITORY_RECONCILIATION_2026-08-18.md) |
