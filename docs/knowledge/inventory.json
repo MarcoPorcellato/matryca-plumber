@@ -1754,21 +1754,23 @@
     },
     {
       "path": "docs/quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md",
-      "type": "Audit",
+      "type": "Roadmap",
       "title": "v2.0.1-rc.2 proposed qualification plan",
-      "description": "---",
-      "classification": "historical",
+      "description": "Proposed Tier 3 qualification contract for the next v2.0.1 release candidate; no candidate source, artifact, or result is selected.",
+      "classification": "active",
       "audience": [
         "maintainer",
-        "contributor"
+        "contributor",
+        "operator"
       ],
       "surface_class": "concept-candidate",
       "canonical_for": null,
-      "owner": "quality",
-      "destination": "docs/knowledge/quality/",
-      "action": "archive",
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "Active proposed RC2 contract; records no publication or result.",
+      "missing": false
     },
     {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
@@ -3869,7 +3871,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
