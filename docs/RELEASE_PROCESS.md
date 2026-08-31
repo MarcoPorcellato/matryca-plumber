@@ -55,6 +55,16 @@ for that exact prerelease. They do not classify or qualify a later `main`. Every
 maintenance candidate or stable decision must select a fresh exact source and artifact,
 classify its complete delta, and record the applicable gates before publication.
 
+The active [v2.0.1-rc.2 proposed qualification plan](quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
+classifies the next candidate as Tier 3 for operator `.env` parent-directory durability
+and maintenance-robot Git path-isolation integrity. Its preparation base is not a
+candidate: the signed squash-merge source, signed tag, and public release bundle remain
+unselected until their separate authority gates occur. Targeted controls do not replace
+fresh exact-artifact dual-profile Gate B or a later separate stable decision.
+A post-replacement parent-directory fsync `OSError` remains non-fatal and does not roll
+back the shipped `.env` replacement, but that attempt cannot claim directory-entry
+durability; the RC2 plan requires focused success and tolerated-failure evidence.
+
 ### Publication prerequisites
 
 A `v*` tag ruleset and a registered maintainer GPG key are external

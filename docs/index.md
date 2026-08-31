@@ -3,7 +3,7 @@ type: Documentation Index
 title: Matryca Plumber documentation
 description: Stable entry point for maintained Matryca Plumber documentation.
 status: active
-last_verified: 2026-08-23
+last_verified: 2026-08-31
 okf_version: "0.2"
 ---
 
@@ -19,5 +19,6 @@ okf_version: "0.2"
 - [Public quality evidence index](quality/EVIDENCE_INDEX.md)
 - [Release qualification gate map](quality/RELEASE_QUALIFICATION_GATE_MAP.md)
 - [Risk-based release qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md)
+- [Proposed v2.0.1-rc.2 qualification plan](quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
 - [Historical v2.0.1-rc.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)
 - [Documentation log](log.md)

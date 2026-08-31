@@ -1753,6 +1753,26 @@
       "missing": false
     },
     {
+      "path": "docs/quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md",
+      "type": "Roadmap",
+      "title": "v2.0.1-rc.2 proposed qualification plan",
+      "description": "Proposed Tier 3 qualification contract for the next v2.0.1 release candidate; no candidate source, artifact, or result is selected.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active proposed RC2 contract; records no publication or result.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
       "type": "Roadmap",
       "title": "v2.0.1-rc.1 historical qualification plan",
@@ -3833,6 +3853,26 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Delivery A execution plan; remote push, PR, ruleset mutation, and merge remain separately authorized.",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/plans/2026-08-31-v2.0.1-rc.2-release-preparation.md",
+      "type": "Roadmap",
+      "title": "v2.0.1-rc.2 Release Preparation Implementation Plan",
+      "description": "Execution plan for preparing v2.0.1-rc.2 metadata, documentation, regression evidence, and pull-request qualification without creating a tag or release.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active preparation plan; publication, exact-artifact Gate B, and stable promotion remain separate gates.",
       "missing": false
     },
     {
