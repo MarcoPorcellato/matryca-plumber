@@ -57,6 +57,15 @@ and follow-up observation; urgency never converts partial evidence into a pass.
 The canonical rationale and escalation rules are in the
 [risk-based release qualification decision](RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md).
 
+## Active candidate-plan registry
+
+| Candidate plan | Risk tier | Coordination | State | Boundary |
+| --- | --- | --- | --- | --- |
+| [v2.0.1-rc.2 proposed qualification plan](V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md) | Tier 3: operator `.env` parent-directory fsync durability and maintenance-robot Git commit-path isolation | Milestone [#22](https://github.com/MarcoPorcellato/matryca-plumber/milestone/22); issue [#548](https://github.com/MarcoPorcellato/matryca-plumber/issues/548) | `proposed` | Preparation begins from `1cb4ca9ddd9d40d91e2c033ba8b816880323889a`; exact signed squash-merge source, tag, public bundle, Gate B results, and stable decision are not yet selected or passed. Targeted controls do not replace fresh dual-profile Gate B. |
+
+Historical RC1 plans remain bound to their own artifacts. This registry does not
+represent publication, qualification, or stable-promotion results.
+
 ## Resource admission and interruption boundary
 
 Expensive benchmark, soak, and recovery work requires an explicit resource
