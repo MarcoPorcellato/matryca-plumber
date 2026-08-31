@@ -40,10 +40,15 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > [release record](docs/releases/v2.0.0-GITHUB.md) and [changelog](CHANGELOG.md)
 > for the exact scope and upgrade notes.
 
-> **Maintenance candidate:** `v2.0.1-rc.1` is the next patch candidate. It adds a
-> bounded, canonical `journal_day` read without invoking Shadow or mutating a graph,
-> alongside provider-free evidence tooling. It is qualified separately from `v2.0.0`:
-> see the [release qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
+> **Published maintenance prerelease:** `v2.0.1-rc.1` remains available for opt-in
+> evaluation as an exact historical artifact. It adds a
+> bounded, canonical `journal_day` handler that reads Markdown directly without
+> querying Shadow or mutating a graph,
+> alongside provider-free evidence tooling. Stable `v2.0.0` remains the default
+> recommendation. The current development branch has advanced beyond that prerelease,
+> so any later candidate or stable release requires its own exact-source qualification. See
+> the [release record](docs/releases/v2.0.1-rc.1-GITHUB.md) and
+> [historical qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 
 **Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
 Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
@@ -89,14 +94,15 @@ To install the stable release explicitly:
 uv tool install matryca-plumber==2.0.0
 ```
 
-Once the candidate is published, evaluators may install it explicitly without
-changing the stable recommendation:
+Evaluators may install the published candidate explicitly without changing the stable
+recommendation:
 
 ```bash
 uv tool install matryca-plumber==2.0.1rc1
 ```
 
-The candidate is not a claim that the final patch has been published or qualified.
+The prerelease publication is not a claim that stable `v2.0.1` has been published or
+that every candidate qualification gate has passed.
 
 ## What v2.0.0 changes
 
@@ -110,7 +116,11 @@ ownership and mutation boundaries explicit:
 - **Markdown remains authoritative:** Shadow never replaces Logseq Markdown, OCC, or
   the parser-aware write plane. Unavailable, stale, or unhealthy Shadow state falls
   back to Markdown-backed BM25 reads.
-- **Stable parser baseline:** the release uses `logseq-matryca-parser` 1.7.1.
+- **Qualified parser baseline and supported range:** v2.0.0 was qualified with
+  `logseq-matryca-parser` 1.7.1; package metadata accepts `>=1.7.1,<2.0.0`, so a
+  fresh install can resolve a newer compatible parser. The v2.0.1 candidate
+  qualification records and tests the exact resolved version instead of silently
+  treating every installation as the historical baseline.
 
 Biological memory, native Logseq DB Safe-Sync writes, content-aware Tana merge, and
 proactive adaptive runtime remain future work; they are not silently included in the
@@ -121,9 +131,10 @@ v2.0.0 contract.
 `journal_day` is a narrow read target for one canonical ISO-dated Logseq journal. It
 keeps the same ownership model as v2: Markdown is authoritative, the response carries
 bounded provenance and a source digest, malformed dates and pagination requests fail
-closed, and the read neither initializes nor depends on a Shadow cache. The feature is
-useful when an operator or agent needs one day of context without widening retrieval to
-the surrounding graph.
+closed, and the handler neither initializes nor queries a Shadow cache. Ordinary CLI
+or MCP process startup may still prepare the configured Shadow profile before dispatch;
+that separate bootstrap is unchanged. The feature is useful when an operator or agent
+needs one day of context without widening retrieval to the surrounding graph.
 
 The candidate does not change the default-on Shadow contract, Read Only boundaries,
 write plane, or any experimental graph-native projection. Its evidence tooling remains
@@ -325,6 +336,7 @@ and large-export behavior.
 | Contribute | [First contribution](docs/FIRST_CONTRIBUTION.md) and [contributor guide](CONTRIBUTING.md) |
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
 | Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
+| Review v2.0.1-rc.1 evidence | [Historical prerelease record](docs/releases/v2.0.1-rc.1-GITHUB.md) and [artifact-bound qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |
 | Follow the current repository reconciliation | [GitHub and repository reconciliation](docs/quality/GITHUB_REPOSITORY_RECONCILIATION_2026-08-18.md) |

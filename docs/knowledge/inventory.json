@@ -1657,6 +1657,26 @@
       "classification": "historical"
     },
     {
+      "path": "docs/quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md",
+      "type": "Decision",
+      "title": "Risk-based release qualification decision",
+      "description": "Records why Matryca Plumber selects fresh release gates by change risk instead of requiring a 72-hour soak for every artifact.",
+      "classification": "canonical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": "release.risk-based-qualification",
+      "owner": "release",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Canonical applicability decision; evidence retention and version-specific execution remain owned by their linked documents.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/SHADOW_DB_EXACT_BETA_72H_SOAK_2026-07-30.md",
       "type": "Audit",
       "title": "Shadow DB exact-beta 72-hour soak — terminal evidence record",
@@ -1735,21 +1755,21 @@
     {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
       "type": "Roadmap",
-      "title": "v2.0.1 release qualification plan",
-      "description": "Candidate-first, artifact-bound release plan for the bounded journal-day maintenance patch.",
-      "classification": "canonical",
+      "title": "v2.0.1-rc.1 historical qualification plan",
+      "description": "Historical, exact-artifact qualification plan for the published bounded journal-day prerelease.",
+      "classification": "historical",
       "audience": [
         "maintainer",
         "contributor",
         "operator"
       ],
       "surface_class": "artifact",
-      "canonical_for": "release.v2.0.1-qualification",
+      "canonical_for": null,
       "owner": "release",
       "destination": "docs/artifacts/quality/",
-      "action": "artifact",
+      "action": "archive",
       "supersedes": [],
-      "notes": "Preparation and qualification contract only; it contains no publication or terminal-evidence claim.",
+      "notes": "Historical RC1 plan only; incomplete Tier 2 gates and publication facts do not classify or qualify later source revisions.",
       "missing": false
     },
     {
@@ -3499,6 +3519,26 @@
       "notes": "All beta publication gates passed with the accepted evidence boundary recorded in the readiness decision.",
       "missing": false,
       "classification": "active"
+    },
+    {
+      "path": "docs/releases/v2.0.1-rc.1-GITHUB.md",
+      "type": "Release Note",
+      "title": "GitHub prerelease — v2.0.1-rc.1",
+      "description": "Immutable historical publication facts and qualification boundary for the v2.0.1-rc.1 artifact.",
+      "classification": "historical",
+      "audience": [
+        "operator",
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "Historical prerelease record only; it does not claim stable promotion, completion of the remaining Tier 2 gates, or qualification of later source revisions.",
+      "missing": false
     },
     {
       "path": "docs/resilience-llm-json-triz.md",

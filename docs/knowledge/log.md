@@ -1,5 +1,13 @@
 # Documentation update log
 
+## 2026-08-31
+
+- **Historical tag verification correction:** preserved the publication-time
+  `unknown_key` observation for `v2.0.1-rc.1` and recorded GitHub's later `valid`
+  verification after public-key registration. The annotated tag object, release
+  commit, published artifacts, and incomplete Tier 2 qualification boundary remain
+  unchanged.
+
 ## 2026-08-30
 
 - **Exact-artifact release promotion:** documented the protected-main signed-tag
@@ -77,18 +85,37 @@
   fallback qualification, routing observation, and separate ruleset approval
   were terminal.
 
+- **Risk-based release qualification:** separated immutable exact-artifact evidence
+  boundaries from gate applicability. Every release still needs fresh source, CI,
+  package, and publication proof; a 72-hour Gate B campaign is reserved for durable,
+  systemic, or otherwise high-risk changes and remains mandatory when that tier is
+  selected.
+
+- **v2.0.1 prerelease state:** recorded the historical public `v2.0.1-rc.1` tag, release commit,
+  workflow, and wheel digest without promoting the prerelease to stable or claiming
+  pending targeted qualification as complete. The record is artifact-bound and does
+  not qualify later repository revisions.
+
+- **v2.0.1 package and parser boundary:** recorded an independent public-wheel install
+  with matching digest, zero installed-file mismatches, and parser 1.8.0 resolution.
+  That exact artifact retained incomplete Tier 2 minimum/current dependency and
+  bounded dual-profile gates; a later source requires fresh classification, and a
+  72-hour campaign remains mandatory whenever its delta reaches Tier 3.
+
 ## 2026-08-23
 
 - **v2.0.1 candidate qualification:** established a public, candidate-first plan
   for bounded journal-day retrieval. It separates preparation, tag publication,
-  independent package binding, fresh dual-profile Gate B qualification, and any
+  independent package binding, fresh dual-profile operational qualification, and any
   later stable-promotion decision; no `v2.0.0` evidence is transferred to the
   new artifact.
 
 - **Read-surface documentation:** aligned the README, roadmap, release mechanics,
   agent onboarding, agent guide, and architecture maps with the canonical
   `journal_day` read contract: one ISO-dated journal, confined Markdown access,
-  digest-bound bounded pagination, and no Shadow initialization or graph mutation.
+  source-digest-reported stateless pagination, no Shadow calls from the handler, and
+  no graph mutation. Ordinary runtime-profile bootstrap remains a separate startup
+  concern.
 
 ## 2026-08-19
 

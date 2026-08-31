@@ -1,9 +1,9 @@
 ---
 type: qualification-gate-map
 title: Release qualification gate map
-description: Independent local, CI, package, operational, security, and publication gates.
-last_verified: 2026-08-19
-stale_after: 2026-11-17
+description: Risk-selected local, CI, package, operational, security, and publication gates with independent evidence boundaries.
+last_verified: 2026-08-24
+stale_after: 2027-02-20
 status: draft
 classification: active
 owner: release
@@ -30,6 +30,32 @@ and review of the applicable limitations.
 | Security | `.github/workflows/codeql.yml`; dependency review in CI; `SECURITY.md`; relevant security tests | Security evidence/review | A scan or test result is not a complete threat-model review, disclosure decision, or external security approval. |
 | Release publication | `.github/workflows/release.yml` on a `v*` tag: `verify`, `destination-preflight`, `build-release`, and `publish-release`; a two-line SHA-256 manifest and provenance attestations for the downloaded wheel and sdist | Exact-artifact external publication gate | Publication depends on GitHub/PyPI and maintainer authority; existing destinations fail closed, partial publication needs a separate recovery decision, and local or pre-publication success cannot claim publication. |
 | Post-release observation | Release-specific observation window and fresh release/readiness record | External operational observation | Must be tied to the published version and exact artifacts; historical observations do not qualify a later release. |
+
+## Risk-selected applicability
+
+Every release starts with a written classification of the delta from the last
+qualified public artifact. The classification selects gates; it never weakens the
+binding of a result to exact source, artifacts, commands, platforms, and terminal
+receipts.
+
+Classify behavior introduced or materially affected by the delta. Merely traversing
+an unchanged subsystem does not by itself raise the tier, but that subsystem belongs in
+the bounded control smoke; any new side effect, changed state, or unexplained
+interaction triggers escalation.
+
+| Tier | Typical delta | Minimum qualification | 72-hour Gate B |
+| --- | --- | --- | --- |
+| 0 — documentation | Documentation, governance, metadata, or generated navigation only; no shipped behavior or dependency change | Documentation gates, exact-head PR CI, and publication checks if a release is produced | Not applicable |
+| 1 — isolated read-only | Additive bounded read/API behavior that does not change Shadow, parser semantics, graph I/O, writes, defaults, service lifecycle, persistence, recovery, or concurrency | Exact source and required CI; public-package digest, install, metadata, and `RECORD` binding; targeted tests on supported CI platforms; bounded smoke in each affected runtime profile | Not required unless evidence reveals scope drift or a high-risk interaction |
+| 2 — runtime or dependency | Common-path runtime, dependency, performance, or platform change without durable-state or data-integrity semantics | Tier 1 plus affected-platform, fallback, recovery, security, and bounded canary evidence selected in the release plan | Decision required and documented; escalate when durable behavior may be affected |
+| 3 — durable or systemic | Shadow persistence, watcher, recovery, concurrency, external Read Only cache, graph I/O, parser semantics, write plane, service lifecycle, migrations, defaults, security/data-integrity boundary, or a major release | Full applicable gate map, including fresh exact-artifact dual-profile Gate B and terminal integrity review | Required; 259,200 valid seconds per required profile unless a stricter plan applies |
+
+An emergency security fix may use a smaller fail-closed pre-publication envelope only
+when delay creates greater risk. The maintainer must record the exception, limitations,
+and follow-up observation; urgency never converts partial evidence into a pass.
+
+The canonical rationale and escalation rules are in the
+[risk-based release qualification decision](RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md).
 
 ## Resource admission and interruption boundary
 

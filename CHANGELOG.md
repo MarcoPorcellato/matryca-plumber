@@ -12,6 +12,21 @@
 - **Exact-artifact release promotion** — build each wheel and sdist once, verify and attest their SHA-256-bound bytes, and publish the same downloaded distributions to GitHub Releases and PyPI under fail-closed tag, destination, and retry controls.
 - **Hosted qualification authority** — consolidate public pull-request checks on parallel GitHub-hosted Python 3.12, Python 3.13, frontend, dependency-review, and macOS/Windows Shadow lanes behind the stable `Ironclad Gatekeeper` context; retire the redundant local receipt path and pin every active Action dependency to reviewed immutable commits.
 
+### Changed
+
+- **Risk-based release qualification** — select exact-artifact operational gates from
+  the documented change-risk tier instead of requiring a 72-hour soak for every
+  release; durable-state, concurrency, recovery, parser/I/O, lifecycle, migration,
+  default, and equivalent high-risk changes still require fresh full Gate B evidence.
+- **Journal-day documentation boundary** — clarify that the handler reports a source
+  digest for stateless pagination and does not call Shadow, while ordinary CLI/MCP
+  profile startup may prepare Shadow before dispatch.
+- **Parser qualification boundary** — distinguish the v2.0.0 qualification baseline
+  (`logseq-matryca-parser` 1.7.1) from the published compatible range
+  (`>=1.7.1,<2.0.0`); the historical v2.0.1-rc.1 artifact records parser 1.8.0 from a
+  fresh public-wheel installation, while any later source or artifact requires its own
+  dependency matrix, risk classification, and stable-release decision.
+
 ### Fixed
 
 - **Operator configuration durability** — fsync the parent directory after
