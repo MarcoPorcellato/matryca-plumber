@@ -742,6 +742,7 @@ def test_dotenv_atomic_replace_tolerates_parent_fsync_failure(
 
     ui_server._apply_dotenv_updates({"SETTING": "updated"}, env_path=env_path)
 
+    assert not directory_fds
     assert env_path.read_text(encoding="utf-8") == "SETTING=updated\n"
     assert not list(tmp_path.glob("..env.*.tmp"))
 
