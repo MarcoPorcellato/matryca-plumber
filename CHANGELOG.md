@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.0.1-rc.2] - 2026-08-31
+
 ### Added
 
 - **Deterministic graph-outcome evaluation projection** — add a maintainer-only,
