@@ -60,17 +60,17 @@ the following integrity boundaries:
    may commit only its requested safe Markdown paths and must not absorb unrelated
    staged changes.
 
-Targeted evidence for these controls is required. The preparation diff includes the
-`tests/test_ui_server.py::test_dotenv_atomic_replace_fsyncs_parent_directory`, which
-checks the successful parent-fsync path, and
+Targeted evidence for these controls is required. The targeted suite includes the
+existing `tests/test_ui_server.py::test_dotenv_atomic_replace_fsyncs_parent_directory`,
+which checks the successful parent-fsync path. The preparation diff adds
 `tests/test_ui_server.py::test_dotenv_atomic_replace_tolerates_parent_fsync_failure`,
 which must prove that a post-replacement parent-fsync `OSError` is non-fatal and does
-not roll back the replaced `.env` file. It must also include
-`tests/test_git_audit.py::test_robot_git_commit_stages_only_target_file`. Inclusion in
-the preparation diff and local execution do not record exact-candidate hosted CI or
-qualification results. Targeted evidence proves only those named paths at the recorded
-source and environment. It does not replace the Tier 3 fresh exact-artifact dual-profile
-Gate B campaign.
+not roll back the replaced `.env` file. The suite also includes the existing
+`tests/test_git_audit.py::test_robot_git_commit_stages_only_target_file`. Adding the
+failure-path test and executing the suite locally do not record exact-candidate hosted
+CI or qualification results. Targeted evidence proves only those named paths at the
+recorded source and environment. It does not replace the Tier 3 fresh exact-artifact
+dual-profile Gate B campaign.
 
 ## Required qualification gates
 
@@ -82,7 +82,7 @@ it is never inferred as a pass.
 | --- | --- | --- |
 | Candidate selection | Exact signed squash-merge commit, clean source identity, selected signed annotated RC2 tag, and exact candidate-to-tag binding. | `proposed`; no source or tag selected. |
 | Hosted source authority | Required hosted CI terminal green on exact candidate head, including project release checks and no unexpected skip, review hold, or base drift. | `proposed`; local preparation checks do not prove hosted CI. |
-| Targeted integrity controls | Successful parent-fsync test; tolerated-parent-fsync-failure test; and maintenance-robot Git-isolation test above, tied to exact candidate source and supported CI environment. A parent-fsync `OSError` after replacement must remain non-fatal and non-rollback, while making no directory-entry durability claim for that attempt. | `proposed`; the preparation diff includes the tests, but no exact-candidate hosted result is recorded, and targeted evidence is not Gate B. |
+| Targeted integrity controls | Successful parent-fsync test; tolerated-parent-fsync-failure test; and maintenance-robot Git-isolation test above, tied to exact candidate source and supported CI environment. A parent-fsync `OSError` after replacement must remain non-fatal and non-rollback, while making no directory-entry durability claim for that attempt. | `proposed`; the preparation diff adds the failure-path test, the other named tests exist at the base, no exact-candidate hosted result is recorded, and targeted evidence is not Gate B. |
 | Supported-platform Shadow lanes | Terminal supported-platform Shadow evidence on exact candidate source/artifact, including required macOS and Windows lanes. | `proposed`; one platform cannot infer another. |
 | Release authenticity and bundle | GitHub verification of the signed annotated tag; exact successful public RC2 wheel and sdist; exact two-file SHA-256 manifest; and provenance attestations verified against downloaded subjects. | `proposed`; no publication or artifact exists. |
 | Installed-package and parser matrix | Isolated exact-artifact installation, metadata and `RECORD` verification, plus declared-minimum and current `logseq-matryca-parser` checks, each bound to exact resolved versions. | `proposed`; no parser result selected or passed. |
