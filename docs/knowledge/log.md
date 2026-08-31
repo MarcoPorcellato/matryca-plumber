@@ -2,6 +2,13 @@
 
 ## 2026-08-31
 
+- **v2.0.1-rc.2 qualification preparation:** recorded the proposed Tier 3 RC2
+  contract for operator `.env` parent-directory durability and maintenance-robot Git
+  path isolation. Stable `v2.0.0` remains the default; RC1 remains historical. No RC2
+  candidate source, tag, public release, package artifact, Gate B result, or stable
+  decision is recorded. A future RC2 publication starts, but does not complete, the
+  exact-artifact dual-profile 72-hour Gate B and later separate stable-decision path.
+
 - **Historical tag verification correction:** preserved the publication-time
   `unknown_key` observation for `v2.0.1-rc.1` and recorded GitHub's later `valid`
   verification after public-key registration. The annotated tag object, release

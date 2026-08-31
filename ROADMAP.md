@@ -6,36 +6,39 @@ Matryca Plumber is local data infrastructure for headless AI agents working with
 
 Architecture debate and RFC: [Discussion #19 — Core Architecture Evolution](https://github.com/MarcoPorcellato/matryca-plumber/discussions/19).
 
-*Status as of **2026-08-23** — stable `v2.0.0` is published. The historical RC1
-split outcome is preserved for failure analysis; the corrected public RC2 candidate
-completed its fresh dual-profile Gate B soaks, upgrade matrix, and seven-day
-observation window. The exact stable candidate then passed CI, artifact proof, and
-the publication workflow. See the [`v2.0.0 release record`](docs/releases/v2.0.0-GITHUB.md)
-and canonical [`stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
-The next bounded maintenance candidate is `v2.0.1-rc.1`; its separate qualification
-plan is [`docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md`](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
-Issue numbers link to GitHub.*
+*Status as of **2026-08-31** — stable `v2.0.0` is published and remains the default
+recommendation. Its completed promotion evidence is in the
+[`v2.0.0 release record`](docs/releases/v2.0.0-GITHUB.md) and canonical
+[`stable-readiness decision`](docs/quality/issue-bodies/v2-rc-stable-readiness.md).
+The published `v2.0.1-rc.1` record remains historical and artifact-bound. The next
+maintenance path is the prepared Tier 3 `v2.0.1-rc.2` / `2.0.1rc2` qualification
+plan; no RC2 candidate source, tag, public release, artifact, Gate B result, or stable
+promotion is selected or passed. Issue numbers link to GitHub.*
 
 ---
 
-## v2.0.1 — bounded journal-day retrieval and fresh qualification
+## v2.0.1 — RC2 preparation, publication, and fresh qualification
 
-`v2.0.1-rc.1` adds a single `read_graph_data(target_type="journal_day")` target for
-an ISO-dated canonical journal. It is Markdown-authoritative, digest-bound, paginated,
-and independent of Shadow initialization. The candidate also carries provider-free
-quality/evidence tools already merged on `main`; those tools do not enable adaptive
-runtime behavior, an external integration, or a new write path.
+The published `v2.0.1-rc.1` artifact remains the historical record for the bounded
+`read_graph_data(target_type="journal_day")` target. It is Markdown-authoritative,
+digest-bound, paginated, and independent of Shadow initialization. Its evidence does
+not qualify RC2 or a later stable release.
 
-| Release gate | Required state |
+`v2.0.1-rc.2` / `2.0.1rc2` is the prepared Tier 3 candidate path. Its risk tier covers
+operator `.env` parent-directory fsync durability and maintenance-robot Git
+commit-path isolation. Preparation does not select a candidate source, create a tag,
+publish an artifact, complete a Gate B campaign, or promote stable `v2.0.1`.
+
+| Sequence | Required state |
 |--------------|----------------|
-| Candidate source and changelog | Exact merged preparation commit; `2.0.1rc1` metadata and curated candidate notes |
-| Pull-request and package gates | Terminal required CI on the exact PR head; exact build/install/digest evidence |
-| Public RC | Signed `v2.0.1-rc.1` tag, GitHub prerelease, and PyPI candidate wheel |
-| Operational qualification | Fresh, dual-profile Gate B campaign against that exact public wheel; no `v2.0.0` evidence transfer |
-| Stable promotion | Separate exact-source, publication, and terminal-evidence decision for `v2.0.1` |
+| RC2 preparation | Proposed Tier 3 contract and `2.0.1rc2` preparation metadata; no candidate source, tag, release, or artifact selected |
+| RC2 publication | Future exact signed squash-merge source, signed annotated `v2.0.1-rc.2` tag, and public RC2 wheel/sdist with manifest and attestations |
+| Exact-artifact qualification | Required hosted CI, targeted integrity controls, supported-platform Shadow lanes, and installed-package/parser evidence against that exact public RC2 artifact |
+| Gate B | Fresh exact-artifact campaigns for `default-on` and `read-only-external`, each with at least 259,200 valid seconds; no historical evidence transfer |
+| Stable decision | Separate maintainer decision for `v2.0.1`, then its own signed tag and publication authority |
 
 The full decision boundary, non-goals, and restart-safe evidence sequence are in the
-[v2.0.1 release qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
+[proposed v2.0.1-rc.2 qualification plan](docs/quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md).
 
 ---
 

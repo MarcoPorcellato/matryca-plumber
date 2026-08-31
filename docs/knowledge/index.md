@@ -33,6 +33,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Release qualification gate map](../quality/RELEASE_QUALIFICATION_GATE_MAP.md) — Independent local, CI, package, operational, security, and publication gates.
 - [Risk-based release qualification decision](../quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md) — Selects fresh exact-artifact gates by change risk without transferring historical evidence.
 - [Public release and soak evidence policy](../quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md) — Retention, redaction, review, and artifact-bound claim rules for public qualification evidence.
+- [Proposed v2.0.1-rc.2 qualification plan](../quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md) — Active Tier 3 preparation contract; no RC2 source, publication, artifact, Gate B result, or stable decision is selected or passed.
 - [v2.0.1-rc.1 prerelease record](../releases/v2.0.1-rc.1-GITHUB.md) — Historical, artifact-bound publication facts and incomplete gates that do not qualify current `main`.
 - [Local resource-admission coordinator runbook](../quality/CI_RESOURCE_ADMISSION_RUNBOOK.md) — macOS `macos-v4` admission, interruption, recovery, and evidence boundaries.
 - [Source static-analysis adoption baseline](../quality/STATIC_ANALYSIS_ADOPTION_BASELINE_2026-08-25.md) — Fast source security gate, reviewed suppression boundary, staged assertion hardening, and hosted-compute limits.
