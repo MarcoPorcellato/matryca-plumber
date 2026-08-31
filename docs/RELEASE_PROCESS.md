@@ -116,7 +116,9 @@ On tag push, [`.github/workflows/release.yml`](../.github/workflows/release.yml)
    SHA-256 manifest, attests both distributions, and uploads that release bundle.
 4. `publish-release` downloads the bundle, verifies the exact two-file set and
    manifest, verifies the attestations against the downloaded subjects, then
-   promotes only those downloaded bytes to GitHub Releases and PyPI.
+   promotes only those downloaded bytes to GitHub Releases and PyPI. GitHub Release
+   creation binds `gh` explicitly to `GITHUB_REPOSITORY`; the checkout-free promotion
+   job must not rely on local Git repository discovery.
 
 The workflow is fail-closed on existing destinations: do not rerun a release
 after GitHub or PyPI already contains the version. Partial publication requires
@@ -131,6 +133,7 @@ risk-selected Gate B or post-release evidence.
 |---------|-----|
 | Release workflow fails on “extract changelog” | Ensure `## [X.Y.Z]` exists in `CHANGELOG.md` and matches the tag (`v1.6.2` → section `[1.6.2]`). |
 | GitHub Release or PyPI version already exists | Stop; do not rerun. A partial publication needs a separate recovery decision, while a completed version is never re-used. |
+| GitHub Release creation reports `not a git repository` | Do not rerun the unchanged tag workflow. Confirm that the checkout-free publish job passes `--repo "$GITHUB_REPOSITORY"` to `gh release create`, preserve the failed run and tag, then prepare a fresh candidate after the correction reaches protected `main`. |
 | Notes on GitHub look wrong | Re-run locally: `python scripts/extract_changelog.py vX.Y.Z` and compare to the file. |
 
 ---

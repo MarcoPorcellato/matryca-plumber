@@ -158,6 +158,7 @@ def _assert_publish_release_contract(publish: dict[str, Any]) -> None:
     assert release_step["env"] == {"GH_TOKEN": "${{ github.token }}"}
     release = release_step["run"]
     assert "gh release create" in release
+    assert '--repo "$GITHUB_REPOSITORY"' in release, "missing explicit repository binding"
     assert "--verify-tag" in release, "missing --verify-tag"
     assert "dist/*.whl" in release
     assert "dist/*.tar.gz" in release
@@ -171,6 +172,7 @@ def _assert_publish_release_contract(publish: dict[str, Any]) -> None:
         "  release_args+=(--prerelease)",
         "fi",
         "gh release create \\",
+        '  --repo "$GITHUB_REPOSITORY" \\',
         "  --verify-tag \\",
         '  "${GITHUB_REF_NAME}" \\',
         "  dist/*.whl \\",

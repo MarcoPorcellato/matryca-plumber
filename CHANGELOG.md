@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Release repository binding** — bind GitHub Release creation explicitly to the
+  repository so the checkout-free exact-artifact promotion job cannot fail during
+  repository discovery after its wheel and sdist have already been verified.
+
 ## [2.0.1-rc.2] - 2026-08-31
 
 ### Added
