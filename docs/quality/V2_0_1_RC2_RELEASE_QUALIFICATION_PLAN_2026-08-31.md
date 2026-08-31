@@ -51,17 +51,25 @@ source, or its future artifacts.
 **Classification: Tier 3 — durable or systemic.** The RC2 delta includes both of
 the following integrity boundaries:
 
-1. Operator `.env` replacement must fsync its parent directory after `os.replace`,
-   so a completed configuration replacement has a durable directory entry.
+1. Operator `.env` replacement attempts a parent-directory fsync after `os.replace`.
+   A successful parent fsync supports a directory-entry durability claim only for that
+   recorded attempt. The shipped best-effort behavior catches a parent-fsync `OSError`
+   after replacement: the replacement remains committed, is not rolled back, and makes
+   no directory-entry durability claim for that attempt.
 2. The maintenance robot must preserve Git commit-path isolation: a robot commit
    may commit only its requested safe Markdown paths and must not absorb unrelated
    staged changes.
 
-Targeted evidence for these controls is required, including
-`tests/test_ui_server.py::test_dotenv_atomic_replace_fsyncs_parent_directory` and
-`tests/test_git_audit.py::test_robot_git_commit_stages_only_target_file`. It proves
-only those named paths at the recorded source and environment. It does not replace
-the Tier 3 fresh exact-artifact dual-profile Gate B campaign.
+Targeted evidence for these controls is required. It must include the existing
+`tests/test_ui_server.py::test_dotenv_atomic_replace_fsyncs_parent_directory`, which
+checks the successful parent-fsync path, and the future
+`tests/test_ui_server.py::test_dotenv_atomic_replace_tolerates_parent_fsync_failure`,
+which must prove that a post-replacement parent-fsync `OSError` is non-fatal and does
+not roll back the replaced `.env` file. It must also include
+`tests/test_git_audit.py::test_robot_git_commit_stages_only_target_file`. The future
+test is required but is not recorded as implemented or passing by this plan. Targeted
+evidence proves only those named paths at the recorded source and environment. It does
+not replace the Tier 3 fresh exact-artifact dual-profile Gate B campaign.
 
 ## Required qualification gates
 
@@ -73,7 +81,7 @@ it is never inferred as a pass.
 | --- | --- | --- |
 | Candidate selection | Exact signed squash-merge commit, clean source identity, selected signed annotated RC2 tag, and exact candidate-to-tag binding. | `proposed`; no source or tag selected. |
 | Hosted source authority | Required hosted CI terminal green on exact candidate head, including project release checks and no unexpected skip, review hold, or base drift. | `proposed`; local preparation checks do not prove hosted CI. |
-| Targeted integrity controls | The parent-directory fsync and maintenance robot Git-isolation tests above, tied to exact candidate source and supported CI environment. | `proposed`; targeted evidence is not Gate B. |
+| Targeted integrity controls | Existing successful parent-fsync test; future tolerated-parent-fsync-failure test; and maintenance-robot Git-isolation test above, tied to exact candidate source and supported CI environment. A parent-fsync `OSError` after replacement must remain non-fatal and non-rollback, while making no directory-entry durability claim for that attempt. | `proposed`; future test is not yet recorded as passing, and targeted evidence is not Gate B. |
 | Supported-platform Shadow lanes | Terminal supported-platform Shadow evidence on exact candidate source/artifact, including required macOS and Windows lanes. | `proposed`; one platform cannot infer another. |
 | Release authenticity and bundle | GitHub verification of the signed annotated tag; exact successful public RC2 wheel and sdist; exact two-file SHA-256 manifest; and provenance attestations verified against downloaded subjects. | `proposed`; no publication or artifact exists. |
 | Installed-package and parser matrix | Isolated exact-artifact installation, metadata and `RECORD` verification, plus declared-minimum and current `logseq-matryca-parser` checks, each bound to exact resolved versions. | `proposed`; no parser result selected or passed. |
@@ -96,6 +104,11 @@ targeted control failure, unexplained Shadow interaction, unexpected graph mutat
 or unavailable required platform. Preserve the failed or partial evidence. Do not
 retry a campaign, credit interrupted time, or transfer RC1, historical RC2, or other
 artifact evidence without a newly authorized exact-artifact attempt.
+
+A post-replacement parent-fsync `OSError` has a narrower boundary: it is non-fatal to
+the shipped `.env` replacement and never authorizes rollback, but the affected attempt
+cannot claim directory-entry durability. Preserve that limitation with the attempt
+evidence; do not infer a successful parent fsync from replacement success alone.
 
 Only a later separate stable decision may interpret terminal RC2 evidence. This plan
 does not select that source, publish RC2, run Gate B, or authorize `v2.0.1`.

@@ -61,6 +61,9 @@ and maintenance-robot Git path-isolation integrity. Its preparation base is not 
 candidate: the signed squash-merge source, signed tag, and public release bundle remain
 unselected until their separate authority gates occur. Targeted controls do not replace
 fresh exact-artifact dual-profile Gate B or a later separate stable decision.
+A post-replacement parent-directory fsync `OSError` remains non-fatal and does not roll
+back the shipped `.env` replacement, but that attempt cannot claim directory-entry
+durability; the RC2 plan requires focused success and tolerated-failure evidence.
 
 ### Publication prerequisites
 
