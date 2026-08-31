@@ -2,6 +2,13 @@
 
 ## 2026-08-31
 
+- **v2.0.1-rc.2 failed publication and repository binding:** preserved the valid
+  signed tag, exact release run, successful source/build/manifest/attestation stages,
+  and empty GitHub Release and PyPI destinations. The checkout-free publish job failed
+  before publication because GitHub CLI had no explicit repository binding. The
+  corrected contract binds release creation to `GITHUB_REPOSITORY`; RC2 is not retried
+  or reclassified as published, and recovery proceeds through a fresh candidate.
+
 - **v2.0.1-rc.2 qualification preparation:** recorded the proposed Tier 3 RC2
   contract for operator `.env` parent-directory durability and maintenance-robot Git
   path isolation. Stable `v2.0.0` remains the default; RC1 remains historical. No RC2

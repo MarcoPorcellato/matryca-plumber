@@ -3561,6 +3561,26 @@
       "missing": false
     },
     {
+      "path": "docs/releases/v2.0.1-rc.2-FAILED-PUBLICATION.md",
+      "type": "Release Note",
+      "title": "Failed prerelease publication — v2.0.1-rc.2",
+      "description": "Immutable signed-tag and workflow evidence for the v2.0.1-rc.2 attempt that published neither GitHub Releases nor PyPI.",
+      "classification": "historical",
+      "audience": [
+        "operator",
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "Terminal failed-publication record only; it does not claim a public candidate artifact, Gate B qualification, or stable promotion.",
+      "missing": false
+    },
+    {
       "path": "docs/resilience-llm-json-triz.md",
       "type": "Archive",
       "title": "Resilient structured output — TRIZ applied to local LLMs",

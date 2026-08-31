@@ -221,6 +221,7 @@ jobs:
             release_args+=(--prerelease)
           fi
           gh release create \
+            --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             "${GITHUB_REF_NAME}" \
             dist/*.whl \
