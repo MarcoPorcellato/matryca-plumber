@@ -18,5 +18,6 @@ okf_version: "0.2"
 - [Repository governance and AAIF readiness](quality/REPOSITORY_GOVERNANCE_AND_AAIF_READINESS_PROGRAMME_2026-08-19.md)
 - [Public quality evidence index](quality/EVIDENCE_INDEX.md)
 - [Release qualification gate map](quality/RELEASE_QUALIFICATION_GATE_MAP.md)
-- [v2.0.1 release qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)
+- [Risk-based release qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md)
+- [Historical v2.0.1-rc.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)
 - [Documentation log](log.md)

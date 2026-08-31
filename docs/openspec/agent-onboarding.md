@@ -1,7 +1,7 @@
 ---
 type: Document
 ---
-# Agent onboarding (`llms.txt`) — v2.0.1rc1 candidate
+# Agent onboarding (`llms.txt`) — v2.0 stable and v2.0.1rc1 evidence
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
@@ -9,10 +9,14 @@ type: Document
 
 External LLM hosts must reach Matryca Plumber through a **published versioned PyPI
 wheel**, not a cloned development tree. The stable `v2.0.0` distribution contract uses
-default-on external Shadow with an explicit false opt-out, parser 1.7.1, and the
-fail-closed fallback and Read Only rules described below. The `v2.0.1-rc.1` candidate
-adds only bounded canonical journal-day retrieval; it does not change Shadow defaults
-or write authority. Current operator behavior belongs to the [canonical Shadow operator
+default-on external Shadow with an explicit false opt-out and the fail-closed fallback
+and Read Only rules described below. It was qualified with parser 1.7.1, while package
+metadata accepts `logseq-matryca-parser>=1.7.1,<2.0.0`; fresh installations must record
+their exact resolved parser. The published `v2.0.1-rc.1` artifact adds bounded canonical
+journal-day retrieval; it does not change Shadow defaults or write authority, but its
+public wheel resolved parser 1.8.0 during the independent 2026-08-24 package check and
+therefore retained incomplete Tier 2 dependency gates. That result is historical and
+does not qualify a later source revision. Current operator behavior belongs to the [canonical Shadow operator
 contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the
 [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md) and the
 [candidate qualification plan](../quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
@@ -43,8 +47,9 @@ Both files must stay **byte-identical**; edit one and mirror the other in the sa
 Use `read_graph_data` with `target_type="journal_day"` and an ISO date such as
 `2026-08-23`. The target returns one canonical journal with a bounded trust envelope
 and source digest. A structured query may carry a pagination cursor and maximum
-character budget. It never initializes Shadow and never mutates the graph; invalid,
-missing, empty, or out-of-range requests return explicit bounded statuses.
+character budget. The handler does not query or initialize Shadow and never mutates
+the graph; ordinary CLI/MCP profile bootstrap may prepare Shadow before dispatch.
+Invalid, missing, empty, or out-of-range requests return explicit bounded statuses.
 
 ### Anti-patterns (documented in `llms.txt`)
 

@@ -4,8 +4,8 @@ title: Public release and soak evidence policy
 description: Retention, redaction, review, and claim-boundary rules for public release and operational qualification evidence.
 resource: docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md
 tags: [quality, evidence, release, soak, provenance]
-last_verified: 2026-08-19
-stale_after: 2026-11-17
+last_verified: 2026-08-24
+stale_after: 2027-02-20
 status: draft
 classification: active
 canonical_for: quality.public-release-and-soak-evidence-policy
@@ -72,9 +72,17 @@ records the interruption. Resume creates a linked attempt in the same chain
 only after the runbook's integrity checks pass. Setup, preflight, downtime, and
 invalid elapsed time never contribute to qualified runtime.
 
-Historical records remain available with their original dates and bindings. A
-new release creates new evidence; it does not relabel, overwrite, or inherit an
+Historical records remain available with their original dates and bindings. Every
+new release creates fresh source, CI, package, and publication evidence. It creates
+fresh operational or soak evidence only when the release's documented risk
+classification selects those gates. It never relabels, overwrites, or inherits an
 earlier record.
+
+This distinction is deliberate: **evidence transferability** answers whether an old
+result can prove a new artifact (it cannot), while **gate applicability** answers
+which new results the current change risk requires. Artifact binding does not make a
+72-hour soak mandatory for every documentation-only or isolated read-only release.
+See the [risk-based qualification decision](RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md).
 
 ## 4. Retention and review
 
@@ -110,6 +118,7 @@ anchors for that exact version. RC2 Gate B evidence remains retained as
 historical, exact-artifact evidence. It supports the history of v2.0.0
 qualification but does not qualify later source changes or another artifact.
 
-Future release work must create a new release record, package bindings, and
-operational evidence chain. This policy does not authorize a release, change a
-gate, or certify external interoperability or review.
+Future release work must create a new release record and package bindings, then
+collect the operational evidence selected by its documented risk tier. This policy
+does not authorize a release, certify external interoperability or review, or allow
+historical evidence to be rebound to new bytes.

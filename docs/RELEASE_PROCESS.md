@@ -26,21 +26,34 @@ health, and fallback are owned by the canonical
 release mechanics and maintainer authority gates. The fail-closed decision record is
 [`quality/issue-bodies/v2-rc-stable-readiness.md`](quality/issue-bodies/v2-rc-stable-readiness.md):
 
+- classify the release delta before selecting operational gates, using the
+  [risk-based qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md);
 - do not tag or publish a release candidate until its exact preparation commit
   has passed the full release gate;
-- bind every Gate B campaign to the exact installed public candidate wheel and its
-  runner, profiles, digest, checkpoints, and valid elapsed time;
+- when the selected risk tier requires Gate B, bind the campaign to the exact
+  installed public candidate wheel and its runner, profiles, digest, checkpoints,
+  and valid elapsed time;
 - do not transfer RC, stable, benchmark, or observation evidence to changed source
   bytes or a later artifact, even for a patch release;
 - do not tag or publish a stable v2 patch until its candidate-specific qualification
   plan records every applicable gate as terminal or explicitly dispositioned.
 
+Evidence non-transferability and gate applicability are separate decisions. Every
+release needs fresh source, CI, package, and publication evidence. A fresh 72-hour
+soak is required only when the classified delta reaches the durable-state,
+concurrency, recovery, parser/I/O, lifecycle, migration, default, or equivalent
+high-risk boundary. Lower-risk changes use the smaller exact-artifact gate set
+defined by the gate map; they never inherit an earlier soak and never claim a new
+durability result.
+
 Release preparation, tag creation, publication, and the final stable decision
 remain separate maintainer authority gates.
 
-For the current maintenance track, follow the
-[v2.0.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
-It is deliberately a candidate plan, not a publication record.
+The [v2.0.1-rc.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)
+and [release record](releases/v2.0.1-rc.1-GITHUB.md) are immutable historical records
+for that exact prerelease. They do not classify or qualify a later `main`. Every new
+maintenance candidate or stable decision must select a fresh exact source and artifact,
+classify its complete delta, and record the applicable gates before publication.
 
 ### Publication prerequisites
 

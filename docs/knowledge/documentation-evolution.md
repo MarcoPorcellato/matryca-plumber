@@ -5,9 +5,9 @@ description: How Matryca Plumber documentation evolved into an OKF v0.2-compatib
 resource: docs/knowledge/
 tags: [documentation, okf, governance, maintenance, provenance]
 generated: { by: human:marco-porcellato, at: '2026-08-06T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-07T00:00:00Z' }
-last_verified: 2026-08-07
-stale_after: 2027-02-03
+verified: { by: human:marco-porcellato, at: '2026-08-24T00:00:00Z' }
+last_verified: 2026-08-24
+stale_after: 2027-02-20
 status: stable
 classification: canonical
 canonical_for: documentation.governance
@@ -159,7 +159,14 @@ Review the new `inventory.json` entry. Heuristics are discovery defaults, not au
 | 2026-07 to 2026-08 | Expanded architecture knowledge for Shadow DB, deterministic retrieval caching, and LLM-free cluster recognition |
 | 2026-08-06 | Adopted the pinned OKF v0.2 contract, separated official lifecycle from Matryca classification, added trust/freshness metadata, enabled canonical roles and anchors, and documented the source/projection boundary |
 | 2026-08-07 | Established one navigable v2 operator path and an explicit authority role for each maintained documentation surface |
+| 2026-08-24 | Separated exact-artifact evidence retention from risk-selected release-gate applicability, preserving immutable history while avoiding disproportionate operational qualification for low-risk changes |
 
 ## Future evolution
 
-The next registry-side step is to enable an explicit `matryca-plumber` source profile in Matryca Knowledge and report official OKF compatibility separately from Matryca quality. The transitional `last_verified` field can be retired after the registry’s freshness gate reads native `verified[].at` events. Any broader relocation of legacy documents remains a separate, reviewed migration rather than an automatic consequence of this profile.
+Future registry-side improvements remain owned by Matryca Knowledge and require their
+own exact-commit evidence. Any reviewed projection must continue to report official
+OKF compatibility separately from Matryca quality, expose projection lag, and preserve
+this repository as the editing origin. The transitional `last_verified` field can be
+retired only after the registry freshness gate reads native `verified[].at` events.
+Any broader relocation of legacy documents remains a separate, reviewed migration
+rather than an automatic consequence of this profile.
