@@ -704,6 +704,48 @@ def test_dotenv_atomic_replace_fsyncs_parent_directory(
     ]
 
 
+def test_dotenv_atomic_replace_tolerates_parent_fsync_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.cli import ui_server
+
+    env_path = tmp_path / ".env"
+    env_path.write_text("SETTING=original\n", encoding="utf-8")
+    directory_fds: set[int] = set()
+    real_open = os.open
+    real_close = os.close
+    real_fsync = os.fsync
+
+    def track_open(
+        path: str | os.PathLike[str],
+        flags: int,
+        mode: int = 0o600,
+    ) -> int:
+        fd = real_open(path, flags, mode)
+        if Path(path) == tmp_path:
+            directory_fds.add(fd)
+        return fd
+
+    def fail_parent_fsync(fd: int) -> None:
+        if fd in directory_fds:
+            raise OSError("parent directory fsync failed")
+        real_fsync(fd)
+
+    def track_close(fd: int) -> None:
+        directory_fds.discard(fd)
+        real_close(fd)
+
+    monkeypatch.setattr("src.cli.ui_server.os.open", track_open)
+    monkeypatch.setattr("src.cli.ui_server.os.fsync", fail_parent_fsync)
+    monkeypatch.setattr("src.cli.ui_server.os.close", track_close)
+
+    ui_server._apply_dotenv_updates({"SETTING": "updated"}, env_path=env_path)
+
+    assert env_path.read_text(encoding="utf-8") == "SETTING=updated\n"
+    assert not list(tmp_path.glob("..env.*.tmp"))
+
+
 @pytest.mark.parametrize("endpoint", ["/api/config", "/api/config/graph-path"])
 def test_config_updates_return_typed_dotenv_conflict(
     endpoint: str,
