@@ -3857,21 +3857,22 @@
     },
     {
       "path": "docs/superpowers/plans/2026-08-31-v2.0.1-rc.2-release-preparation.md",
-      "type": "Archive",
+      "type": "Roadmap",
       "title": "v2.0.1-rc.2 Release Preparation Implementation Plan",
-      "description": "> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.",
+      "description": "Execution plan for preparing v2.0.1-rc.2 metadata, documentation, regression evidence, and pull-request qualification without creating a tag or release.",
       "classification": "active",
       "audience": [
         "maintainer",
-        "contributor"
+        "contributor",
+        "operator"
       ],
       "surface_class": "concept-candidate",
       "canonical_for": null,
-      "owner": "core-runtime",
+      "owner": "release",
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "",
+      "notes": "Active preparation plan; publication, exact-artifact Gate B, and stable promotion remain separate gates.",
       "missing": false
     },
     {
