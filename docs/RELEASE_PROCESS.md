@@ -55,15 +55,18 @@ for that exact prerelease. They do not classify or qualify a later `main`. Every
 maintenance candidate or stable decision must select a fresh exact source and artifact,
 classify its complete delta, and record the applicable gates before publication.
 
-The active [v2.0.1-rc.2 proposed qualification plan](quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
-classifies the next candidate as Tier 3 for operator `.env` parent-directory durability
-and maintenance-robot Git path-isolation integrity. Its preparation base is not a
-candidate: the signed squash-merge source, signed tag, and public release bundle remain
-unselected until their separate authority gates occur. Targeted controls do not replace
-fresh exact-artifact dual-profile Gate B or a later separate stable decision.
+The [v2.0.1-rc.2 attempt](releases/v2.0.1-rc.2-FAILED-PUBLICATION.md) is immutable
+terminal failed-publication history: its signed tag and workflow passed source,
+destination-preflight, build, attestation, and bundle-verification stages, but it
+published neither destination. The active [v2.0.1-rc.3 proposed qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
+classifies the next candidate as Tier 3 for operator `.env` parent-directory durability,
+maintenance-robot Git path-isolation integrity, and explicit repository binding for
+checkout-free GitHub Release creation. Its preparation base is not a candidate: source,
+tag, workflow run, and public release bundle remain unselected. Targeted controls do not
+replace fresh exact-artifact dual-profile Gate B or a later separate stable decision.
 A post-replacement parent-directory fsync `OSError` remains non-fatal and does not roll
 back the shipped `.env` replacement, but that attempt cannot claim directory-entry
-durability; the RC2 plan requires focused success and tolerated-failure evidence.
+durability; the RC3 plan requires focused success and tolerated-failure evidence.
 
 ### Publication prerequisites
 

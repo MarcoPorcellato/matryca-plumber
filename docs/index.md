@@ -19,7 +19,7 @@ okf_version: "0.2"
 - [Public quality evidence index](quality/EVIDENCE_INDEX.md)
 - [Release qualification gate map](quality/RELEASE_QUALIFICATION_GATE_MAP.md)
 - [Risk-based release qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md)
-- [Proposed v2.0.1-rc.2 qualification plan](quality/V2_0_1_RC2_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
+- [Proposed v2.0.1-rc.3 qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
 - [Failed v2.0.1-rc.2 publication record](releases/v2.0.1-rc.2-FAILED-PUBLICATION.md)
 - [Historical v2.0.1-rc.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)
 - [Documentation log](log.md)
