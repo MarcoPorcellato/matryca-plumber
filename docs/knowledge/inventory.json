@@ -3635,7 +3635,8 @@
       "destination": "docs/knowledge/roadmaps/active/",
       "action": "migrate",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md",
@@ -3931,6 +3932,25 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Active preparation plan; publication, exact-artifact Gate B, and stable promotion remain separate gates.",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/plans/2026-09-01-logseq-db-read-only-compatibility.md",
+      "type": "Archive",
+      "title": "Logseq DB Read-Only Compatibility Implementation Plan",
+      "description": "> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "",
       "missing": false
     },
     {

@@ -1,26 +1,44 @@
 ---
 type: Roadmap
 title: Tine and Logseq ecosystem integration strategy
-description: Evidence-backed strategy for Tine interoperability and one dual-mode Logseq companion that maximizes Matryca Plumber adoption with minimum implementation.
+description: Evidence-backed strategy for Tine interoperability and Matryca Trama as the single dual-mode Logseq companion for Matryca Plumber.
 resource: docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md
 tags: [tine, logseq-og, logseq-db, plugin, integration, adoption]
 status: draft
 classification: active
-last_verified: 2026-08-12
-stale_after: 2027-02-08
+last_verified: 2026-09-01
+stale_after: 2027-02-28
 audience: [maintainer, contributor, operator, agent]
 owner: integrations
 authority: roadmap
 source_repository: MarcoPorcellato/matryca-plumber
 source_ref: origin/main
-source_commit: 4f82e12e737335f54fabfb7979b1b83026148663
+source_commit: 3208bedfaeef0708034089057702cd21fa5dec52
 ---
 
 # Tine and Logseq ecosystem integration strategy
 
 **Date:** 2026-08-12
 **Decision status:** proposed, evidence-backed roadmap; no compatibility or release claim
-**Scope:** Tine collaboration, Logseq OG companion, Logseq DB integration, and the smallest Matryca Plumber changes with the highest expected impact
+**Scope:** Tine collaboration, Matryca Trama as the Logseq OG/DB companion, and the smallest Matryca Plumber changes with the highest expected impact
+
+## 2026-09-01 execution update
+
+The current execution authority is the [Logseq DB read-only compatibility implementation plan](../superpowers/plans/2026-09-01-logseq-db-read-only-compatibility.md). It narrows the first experimental compatibility claim to three operations:
+
+1. identify the active Logseq DB graph;
+2. read one page;
+3. read one complete, ordered block subtree.
+
+The work uses short-lived branches cut from current `main`, with one independently reviewable pull request merged before its dependent branch begins. The existing filesystem `GraphReadPort` remains the Logseq OG and Shadow boundary. A separate session-bound `GraphSessionReadPort` may be introduced only after the executable capability spike proves stable graph identity and complete subtree semantics through an official Logseq host surface.
+
+The previously unnamed companion now has one authoritative identity: [Matryca Trama](https://github.com/MarcoPorcellato/matryca-trama). Trama owns the companion application, official Logseq OG/DB adapters, host-session lifecycle, normalized page/subtree acquisition, and shared contract fixtures. Plumber remains the memory/search engine and owns the consumer-side session router and agent-facing CLI/MCP surfaces. Every unqualified use of “companion” below means Matryca Trama; it does not authorize another plugin or companion implementation inside Plumber.
+
+[Matryca Brain issue #430](https://github.com/MarcoPorcellato/Matryca-per-Delineat/issues/430) and [Trama ADR-0002](https://github.com/MarcoPorcellato/matryca-trama/blob/main/docs/decisions/ADR-0002-TRAMA_BRAIN_PRODUCT_BOUNDARY.md) establish a second boundary: Trama and Brain remain separate products, repositories, runtimes, caches, and release cadences. The initial Trama/Plumber Logseq read path must work without Brain. A later optional Brain connection requires its own versioned public contract and must never import Brain-private source into Trama.
+
+Events and convergence, DB-source Shadow acceleration, and every DB write remain deferred gates. Direct access to Logseq's internal database remains prohibited. The transport decision is intentionally unresolved until [issue #491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491) records reproducible evidence for the tested Logseq build, SDK or built-in surface, fixture, and results.
+
+Current evidence anchors are Logseq documentation commit `08f855f24d66e4509b7ea808554c13b4649e6ee1`, Logseq `test/db@5a23230a56832a6aab4a556d9894955120d26ece`, nightly target `dde0aba2d441c962d28989b0af894cc261da3898`, Matryca Plumber `main@3208bedfaeef0708034089057702cd21fa5dec52`, Matryca Trama `main@cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5`, and Matryca Brain `main@e69a97a8c702a773c9a3ce8307b5a667ed2be1dd`. Every implementation branch must revalidate these drift-prone anchors rather than treating them as permanent compatibility claims.
 
 ## Executive decision
 
@@ -29,12 +47,13 @@ Matryca Plumber should pursue **one ecosystem strategy with two complementary pa
 1. **Tine:** begin as a qualified external, read-only intelligence layer over the same
    Logseq-format graph. Collaborate through a design proposal and shared compatibility
    evidence, not through an ordinary Tine plugin or an unsolicited code patch.
-2. **Logseq:** build **one Matryca-maintained dual-mode companion plugin**, not separate
+2. **Logseq:** build **Matryca Trama as the one dual-mode companion**, not separate
    OG and DB plugins. In OG mode it is a thin discovery, pairing, status, and context
    surface over Matryca's existing Markdown runtime. In DB mode it becomes Matryca's
-   in-app read adapter and, only after separate concurrency qualification, the mutation
-   authority. Marketplace distribution would make it an official Matryca integration,
-   not a Logseq-owned plugin.
+   in-app read adapter. Any later mutation must use a separately qualified,
+   host-authoritative Logseq surface; Trama does not become write authority merely by
+   being the companion. Marketplace distribution would make it an official Matryca
+   integration, not a Logseq-owned plugin.
 
 The first product claim should be deliberately narrow:
 
@@ -49,26 +68,24 @@ database, or generalizing the entire codebase before one vertical slice proves d
 
 ## Operational status
 
-As of 2026-08-12, the maintainer-first Tine contact is complete: the proposal is
+As of 2026-09-01, the maintainer-first Tine contact and first response cycle are complete: the proposal is
 public in [Tine Discussion #334](https://github.com/martinkoutecky/tine/discussions/334).
-The discussion asks for read-only coexistence first, Tine-closed mutation second, and
-no concurrent-write claim without deterministic two-process evidence. Tine maintainer
-feedback is pending and will govern any upstream-facing coordination primitive.
+The maintainer confirmed that Direct Files already provides the basic read-only coexistence case and that Matryca-side mutations while Tine is closed need no new Tine protocol. Tine #337 later closed as completed after Concord/external-file synchronization work. That is version-bound upstream evidence, not a concurrent-write guarantee.
 
 Work that does not require an upstream Tine change may proceed independently: publish
-this roadmap, qualify the T0 read-only contract, freeze the Logseq companion protocol,
-verify official Logseq OG/DB capabilities, and scaffold the Matryca-maintained Logseq
-companion. No Tine code, plugin, CLI, MCP, or write-path change is implied by that work.
+this roadmap, qualify the T0 read-only contract, freeze the shared Trama/Plumber protocol,
+verify official Logseq OG/DB capabilities, and scaffold Matryca Trama. No Tine code, plugin, CLI, MCP, or write-path change is implied by that work.
 
 ### Go and no-go summary
 
 | Direction | Decision | Reason |
 | --- | --- | --- |
-| Tine + Matryca Strict Read Only | **GO to qualification** | Both can use the same Logseq-format files while Matryca keeps derived state outside the graph. |
-| Matryca writes while Tine is closed | **GO after compatibility tests** | The independent writers are serialized operationally, and Tine can validate the resulting graph when reopened. |
+| Tine v0.6.98 Direct Files + Matryca Strict Read Only | **GO to versioned qualification** | Discussion #334 confirms no special adapter is needed; Matryca must prove zero graph writes and bind evidence to exact Tine mode/version. |
+| Matryca writes while Tine is closed | **GO only after versioned compatibility tests** | The independent writers are serialized operationally, and Tine can validate the resulting graph when reopened. |
 | Concurrent Tine and Matryca writes | **NO-GO today** | The two applications do not share locks, revision tokens, dirty-editor state, or a transaction coordinator. |
+| Closed Tine #337 | **Evidence, not authority** | Concord addresses the reported stale/external-file flows, but issue closure does not qualify arbitrary external writers or Matryca concurrency. |
 | Ordinary Tine plugin as the Matryca runtime | **NO-GO** | Tine API 0.2 intentionally denies filesystem, process, network, arbitrary-graph, and custom-UI authority. |
-| One Logseq companion for OG and DB | **GO to contract spike** | The official marketplace exposes `supportsDB` and `supportsDBOnly`; one package avoids split discovery and duplicated UX. |
+| Matryca Trama for Logseq OG and DB | **GO to contract spike** | Trama already owns the companion and adapter boundary; one package avoids split discovery and duplicated UX. |
 | Logseq DB read-only bridge | **Conditional GO** | Official plugin APIs expose graph-mode detection, page/block reads, queries, and DB change hooks. Exact semantics still require a spike. |
 | Logseq DB writes | **NO-GO until CAS evidence** | A read-before-write check is insufficient unless the official host provides atomic conditional mutation or equivalent conflict semantics. |
 | Direct access to Logseq `db.sqlite` | **Permanent NO-GO** | It bypasses the official application contract, validation, undo/redo, and future schema compatibility. |
@@ -101,6 +118,19 @@ modified during the study.
 | Logseq DB application | [`d3d6afa37b646dda90928c2a5f8a1e27dbcc5814`](https://github.com/logseq/logseq/tree/d3d6afa37b646dda90928c2a5f8a1e27dbcc5814) | [DB status](https://github.com/logseq/logseq/blob/d3d6afa37b646dda90928c2a5f8a1e27dbcc5814/README.md#database-version), [plugin type contracts](https://github.com/logseq/logseq/blob/d3d6afa37b646dda90928c2a5f8a1e27dbcc5814/libs/src/LSPlugin.ts) |
 | Logseq DB documentation | [`08f855f24d66e4509b7ea808554c13b4649e6ee1`](https://github.com/logseq/docs/tree/08f855f24d66e4509b7ea808554c13b4649e6ee1) | [DB features and MCP](https://github.com/logseq/docs/blob/08f855f24d66e4509b7ea808554c13b4649e6ee1/db-version.md), [differences from file graphs](https://github.com/logseq/docs/blob/08f855f24d66e4509b7ea808554c13b4649e6ee1/db-version-changes.md) |
 | Logseq marketplace | [`ddd03508f56e11b4efe08f7c006282ddec647276`](https://github.com/logseq/marketplace/tree/ddd03508f56e11b4efe08f7c006282ddec647276) | [submission contract](https://github.com/logseq/marketplace/blob/ddd03508f56e11b4efe08f7c006282ddec647276/README.md) |
+
+### 2026-09-01 ownership and Tine supplement
+
+| Surface | Current anchor | Meaning |
+| --- | --- | --- |
+| Matryca Plumber | [`3208bedfaeef0708034089057702cd21fa5dec52`](https://github.com/MarcoPorcellato/matryca-plumber/tree/3208bedfaeef0708034089057702cd21fa5dec52) | Engine and consumer-side session boundary |
+| Matryca Trama | [`cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5`](https://github.com/MarcoPorcellato/matryca-trama/tree/cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5) | Document-first companion foundation; no runtime or release claim |
+| Trama contract/adapters | [#2](https://github.com/MarcoPorcellato/matryca-trama/issues/2), [#4](https://github.com/MarcoPorcellato/matryca-trama/issues/4) | Shared contracts first, then initially read-only OG/DB adapters |
+| Matryca Brain | [`main@e69a97a8c702a773c9a3ce8307b5a667ed2be1dd`](https://github.com/MarcoPorcellato/Matryca-per-Delineat/tree/e69a97a8c702a773c9a3ce8307b5a667ed2be1dd), [#430](https://github.com/MarcoPorcellato/Matryca-per-Delineat/issues/430) | Optional future destination; separate product and runtime, not an initial dependency |
+| Tine | [`master@3f3a7afe49c488ba5444c4882fff727d7c0099c0`](https://github.com/martinkoutecky/tine/tree/3f3a7afe49c488ba5444c4882fff727d7c0099c0), [v0.6.98](https://github.com/martinkoutecky/tine/releases/tag/v0.6.98) | Current source/release observation for later versioned qualification |
+| Tine external-file umbrella | [#337](https://github.com/martinkoutecky/tine/issues/337) | Closed completed; focused current-version regressions may reopen it |
+| Tine automation surfaces | [#108](https://github.com/martinkoutecky/tine/issues/108), [#109](https://github.com/martinkoutecky/tine/issues/109) | Open future CLI/MCP design tracks |
+| Tine Git integration | [#33](https://github.com/martinkoutecky/tine/issues/33) | Sync/backup direction, not host-authoritative graph mutation |
 
 All upstream claims must be rechecked before implementation because Tine's plugin API
 is experimental and Logseq DB is explicitly in beta with possible data loss.
@@ -180,7 +210,7 @@ self-write marker. Consequently, compatibility must be described in levels:
 
 | Level | Contract | Current position |
 | --- | --- | --- |
-| T0 | Matryca Strict Read Only; Tine may edit; Matryca may update only its external cache | Candidate for immediate qualification |
+| T0 | Matryca Strict Read Only; Tine may edit; Matryca may update only its external cache | Candidate for versioned qualification against Tine v0.6.98 Direct Files |
 | T1 | Tine closed; Matryca may perform reviewed, OCC-protected mutations | Candidate after round-trip and reopen tests |
 | T2 | Both may mutate different pages | Unsupported until deterministic convergence tests pass |
 | T3 | Both may target the same page | Unsupported until one writer provably rejects or a shared coordinator exists |
@@ -208,14 +238,17 @@ for broad compatibility or smuggle authority through another surface.
 
 | Tine issue | Upstream direction | Matryca contribution |
 | --- | --- | --- |
+| [#337 — external-file synchronization](https://github.com/martinkoutecky/tine/issues/337) | Closed completed after Concord and external-file safety work | Treat closure as version-bound evidence. Reopen only with an exact current-version failure; do not infer concurrent-writer safety. |
 | [#108 — stable CLI](https://github.com/martinkoutecky/tine/issues/108) | Use-case-first automation; writes must share Tine locking, base revision, conflict, and atomic save | Supply concrete agent/search use cases, versioned output fixtures, and a read-only external consumer. Later prefer Tine CLI for host-authoritative mutations. |
 | [#109 — MCP](https://github.com/martinkoutecky/tine/issues/109) | Semantic pages/blocks/properties/tasks; begin read-only; decide transport, graph selection, permissions, privacy, schemas | Offer Matryca's existing agent-facing operations and bounded-output experience as design evidence. Do not replace Tine's native MCP or define its internals accidentally. |
+| [#33 — Git integration](https://github.com/martinkoutecky/tine/issues/33) | Commit/push-oriented sync and backups | Useful parallel workflow, but not a revisioned host-authoritative graph-write contract. |
 | [#201 — official Wiki](https://github.com/martinkoutecky/tine/issues/201) | Tutorial, reference, and durable product memory maintained from issues, decisions, tests, and releases | Demonstrate a reviewed source-to-Logseq knowledge workflow and block-level retrieval over the documentation corpus. Repository documentation remains authoritative; Matryca's graph is a derived working memory, not an auto-publishing source. |
 
-The strongest collaboration artifact is not code. It is a small shared compatibility
-corpus and state-transition matrix that both maintainers can review.
+The strongest possible collaboration artifact is not code. It is a small shared compatibility corpus and state-transition matrix. Do not post it to closed #337 or open a new Tine issue without either a maintainer request or an exact current-version reproduction.
 
 ### Proposed Tine qualification matrix
+
+The active lane is TINE-Q0/Q1 only. TINE-Q2 and later gates are deferred research and do not authorize Matryca writes while Tine may be active.
 
 | Gate | Scenario | Pass condition |
 | --- | --- | --- |
@@ -239,7 +272,7 @@ qualification corpus must therefore use Markdown fixtures; Org must appear as an
 explicit unsupported capability until a separate parser, round-trip, and safety study
 proves otherwise.
 
-### Maintainer-first collaboration proposal
+### Maintainer-first collaboration proposal — completed historical artifact
 
 Tine is a single-maintainer project whose contribution policy is "propose, don't
 patch" for application code
@@ -273,7 +306,9 @@ an external-writer lease?
 No implementation or API expansion is requested at this stage.
 ```
 
-## One dual-mode Logseq companion
+The maintainer's response in Discussion #334 narrowed the result: Direct Files already covers basic reads, Tine-closed Matryca writes require no new protocol, #337 supplied the immediate external-file safety context and is now closed, and future Tine-hosted automation belongs to #108/#109. The current action is to wait for any further maintainer request while running only independent, read-only, exact-version qualification.
+
+## Matryca Trama: one dual-mode Logseq companion
 
 ### Why one plugin
 
@@ -335,9 +370,9 @@ The initial DB surface should include only:
 - graph identity and capability handshake;
 - one page read;
 - one block-subtree read;
-- bounded search or query only after its result shape is frozen;
-- change notification that carries IDs/cursors and causes a bounded re-read;
-- no Shadow ingestion and no mutation.
+- no events, broad search, Shadow ingestion, or mutation.
+
+Events, bounded search/query expansion, and long-running convergence are later gates after page and complete-subtree parity pass.
 
 ### Official DB MCP: valuable second adapter
 
@@ -367,16 +402,16 @@ adapter without changing its agent-facing tools.
 
 ```mermaid
 flowchart LR
-  Agent["Agent host"] --> MP["Matryca MCP and CLI"]
-  MP --> Router["Graph session router"]
+  Agent["Agent host"] --> MP["Matryca Plumber MCP and CLI"]
+  MP --> Router["Plumber graph session router"]
 
   subgraph OG["Logseq OG or Tine"]
     Files[("Markdown graph")]
-    OgCompanion["Dual-mode companion: OG UX"]
+    OgCompanion["Matryca Trama: OG UX"]
   end
 
   subgraph DB["Logseq DB"]
-    DbCompanion["Dual-mode companion: DB adapter"]
+    DbCompanion["Matryca Trama: DB adapter"]
     OfficialApi["Official plugin API"]
     DbStore[("Logseq-owned DB")]
     DbCompanion --> OfficialApi --> DbStore
@@ -393,22 +428,26 @@ flowchart LR
 
 ### Ownership rules
 
-The companion owns:
+Matryca Trama owns:
 
 - active Logseq graph and `og`/`db` mode detection;
-- DB reads, events, and eventual mutations through official APIs;
+- initial DB reads through official APIs; events and mutations remain deferred;
 - mapping host entities to versioned vendor-neutral DTOs;
 - graph-switch detection and session invalidation;
 - the in-Logseq status and context UX.
 
-Matryca owns:
+Matryca Plumber owns:
 
-- pairing, scopes, revocation, limits, and audit-safe diagnostics;
+- the service side of pairing, scopes, revocation, limits, and audit-safe diagnostics;
 - graph-session routing above current filesystem repositories;
 - stable CLI and MCP behavior;
 - OG parsing, OCC, locks, atomic writes, and Shadow behavior unchanged;
 - DB capability gates and bounded error mapping;
 - any later DB-source cache as a separate adapter and qualification campaign.
+
+Trama Phase 1 #2 owns the shared graph/session, DTO, capability, provenance, version, bound, and error vocabulary. Both repositories keep independent implementations, caches, release cadences, and CI, and both must run the same cross-repository fixtures before claiming compatibility.
+
+Matryca Brain remains outside this initial bridge. For OG graphs, Markdown files remain the source authority. For DB graphs, the official Logseq host surface remains the source authority; neither Trama, Plumber, nor Brain may reinterpret a Markdown export or mirror as authoritative. A later Brain connection must cross public versioned ports, keep caches and releases independent, negotiate least-authority access explicitly, and fail closed on version skew. Brain-private source must never be imported into Trama.
 
 ## Minimum versioned bridge contract
 
@@ -417,9 +456,9 @@ unknown kinds, excessive payloads, foreign graph bindings, and stale sessions.
 
 ```json
 {
-  "protocol": "matryca.logseq-companion",
+  "protocol": "matryca.trama.logseq-read",
   "version": 1,
-  "kind": "hello|request|response|event",
+  "kind": "hello|request|response",
   "request_id": "optional-uuid",
   "graph": {
     "binding_id": "opaque",
@@ -434,8 +473,7 @@ Required v1 capabilities:
 
 ```json
 {
-  "capabilities": ["page.read", "block.subtree.read", "graph.events"],
-  "event_cursor": "opaque-or-null"
+  "capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"]
 }
 ```
 
@@ -457,21 +495,11 @@ BlockDTO
   properties: JSON object
   revision: opaque string or null
 
-GraphChangedEvent
-  cursor: opaque string
-  change_id: opaque string
-  entity_kind: page | block | graph
-  entity_ids: bounded list of opaque strings
-  revision: opaque string or null
-  origin_mutation_id: opaque string or null
 ```
 
-Events carry identifiers, not entire graph content. A cursor gap, duplicate beyond the
-deduplication window, unknown cursor, graph switch, or changed session epoch forces a
-bounded resynchronization. Revisions remain opaque; Matryca must not synthesize them
-from titles or interpret them as timestamps.
+Events are not part of the initial contract. A later version must define identifiers, cursors, gaps, duplicates, reconnect, graph-switch invalidation, and bounded resynchronization before any convergence claim. Revisions remain opaque; Matryca must not synthesize them from titles or interpret them as timestamps.
 
-The future mutation contract should be designed now but remain disabled:
+The future mutation contract is not part of v1. The following requirements remain non-authorizing research for a later accepted plan:
 
 ```text
 MutationRequest
@@ -503,7 +531,7 @@ reuse are in scope.
 The companion bridge must:
 
 - use a new credential audience; never reuse `MATRYCA_UI_TOKEN`;
-- begin with `graph.read` and `graph.events`; make `graph.mutate` a separate opt-in;
+- begin with `graph.read`; introduce event and mutation scopes only in later separately reviewed contracts;
 - pair through a short-lived single-use code and nonce displayed by Matryca;
 - exchange the code through authenticated connection setup or `POST`, never an
   unauthenticated token-returning `GET`;
@@ -534,16 +562,16 @@ programme. Impact describes expected ecosystem leverage, not measured adoption.
 
 | Priority | Slice | Expected impact | Effort | Why now |
 | ---: | --- | --- | --- | --- |
-| 1 | Publish Tine coexistence levels and qualification runbook | High | XS | Creates an honest collaboration artifact and immediate read-only pilot without runtime risk. |
-| 2 | Freeze `matryca.logseq-companion/v1` envelopes, limits, negative fixtures, and capability vocabulary | Very high | S | Prevents the plugin, Matryca bridge, and future MCP adapter from inventing incompatible contracts. |
-| 3 | Add a separate paired loopback bridge with read/event scopes and content-free health | Very high | M | Unlocks one marketplace-distributed Matryca companion while isolating it from broad UI authority. |
-| 4 | Release one dual-mode companion shell: mode detection, pairing, health, open/search-current-context commands | Very high | M | Maximizes discoverability and gives OG users value before DB backend completeness. |
-| 5 | Add a small `GraphSession` selector and DB read adapter for one page and one subtree | Very high | M | Proves the architecture without changing every filesystem signature or touching Shadow. |
-| 6 | Add DB event cursor, deduplication, graph-switch invalidation, and bounded re-read | High | M | Makes long-running read results converge safely. |
-| 7 | Create a Tine/OG differential compatibility corpus and deterministic race harness | High | M | Converts coexistence from an assumption into shared evidence. |
-| 8 | Add optional Logseq DB MCP read adapter behind capability detection | Medium-high | M | May reduce plugin dependence as official MCP coverage matures. |
-| 9 | Qualify one DB mutation, preferably append, with idempotency and host conflict evidence | Very high | L | Enables Safe-Sync only after the read path and security boundary are stable. |
-| 10 | Design DB snapshot/event ingestion into an external Shadow cache | Very high | XL | Valuable for speed, but requires a new source-revision and reconciliation programme. |
+| 1 | Publish the Trama/Plumber ownership and read-only execution plan | Very high | XS | Prevents a second companion and gives both repositories one dependency order. |
+| 2 | Freeze the Trama-owned shared read v1 envelopes, limits, negative fixtures, and capability vocabulary | Very high | S | Prevents Trama, Plumber, and a future MCP adapter from inventing incompatible contracts. |
+| 3 | Execute the Trama official-host capability spike for graph identity, one page, and one complete subtree | Very high | S | Selects the transport or records NO-GO before production code. |
+| 4 | Add a separate paired loopback bridge with read-only scope and content-free health when SDK transport is selected | Very high | M | Connects the single Trama companion while isolating it from broad UI authority. |
+| 5 | Release the Trama dual-mode read-only shell and selected adapter | Very high | M | Gives one named companion OG/DB discovery without events, Shadow, or writes. |
+| 6 | Add Plumber `GraphSessionReadPort` plus one page and one complete subtree consumer vertical | Very high | M | Proves integration without changing every filesystem signature or touching Shadow. |
+| 7 | Publish a Tine v0.6.98 Direct Files reader/no-write matrix only | Medium | XS | Records coexistence without a new Tine adapter or concurrent-write claim. |
+| 8 | Add DB event cursor, deduplication, graph-switch invalidation, and bounded re-read | High | M | Deferred until the initial read vertical passes. |
+| 9 | Evaluate optional Logseq DB MCP, host-authoritative writes, and Tine CLI/MCP only through separate evidence gates | High | L | These surfaces must not expand the first compatibility claim. |
+| 10 | Design DB snapshot/event ingestion into an external Shadow cache | Very high | XL | Valuable but deferred; it requires a new source-revision and reconciliation programme. |
 
 ### What not to generalize yet
 
@@ -554,8 +582,7 @@ programme. Impact describes expected ecosystem leverage, not measured adoption.
 - Do not add a general plugin framework inside Matryca.
 - Do not duplicate Logseq's model, query engine, or UI.
 
-The first end-to-end proof is enough: pair → detect mode → read active page/subtree →
-search through Matryca → return bounded results → invalidate on graph switch.
+The first end-to-end proof is enough: pair when required → identify the graph and mode → read one page → read one complete subtree → return bounded results → fail closed on graph switch.
 
 ## Delivery phases and gates
 
@@ -564,7 +591,8 @@ search through Matryca → return bounded results → invalidate on graph switch
 Deliverables:
 
 - this strategy accepted or amended;
-- Tine proposal opened in [Discussion #334](https://github.com/martinkoutecky/tine/discussions/334); maintainer response and any upstream primitive remain pending;
+- Tine Discussion #334 response incorporated; no upstream primitive requested for basic Direct Files reads;
+- Matryca Trama ownership, Phase 1 shared contracts, and Phase 3 read-only adapter sequence recorded;
 - generated, provenance-recorded compatibility fixtures;
 - bridge v1 schema, limits, negative corpus, and threat model;
 - official Logseq SDK/MCP spike with exact version receipts.
@@ -572,12 +600,12 @@ Deliverables:
 Exit gate: all uncertain SDK, origin, credential-storage, revision, and marketplace
 claims are resolved or explicitly deferred. No runtime compatibility claim yet.
 
-### Phase B — paired companion shell
+### Phase B — paired Matryca Trama shell
 
 Deliverables:
 
 - narrow loopback bridge;
-- single-use pairing, read/event scopes, revoke/unpair;
+- single-use pairing, read-only scope, revoke/unpair;
 - dual-mode plugin package with `effect: false`;
 - health, graph-match, Strict Read Only, and Shadow status;
 - OG open/search-current-context commands.
@@ -627,7 +655,7 @@ atomic conflict rejection cannot be proven, the product remains read-only.
 
 Independent follow-ups:
 
-- Tine cross-process race campaign and possible host-owned coordination proposal;
+- Tine v0.6.98 Direct Files reader/no-write qualification; focused regression proposal only after an exact failure;
 - optional Tine CLI/MCP adapter when #108/#109 produce stable contracts;
 - optional Logseq built-in MCP adapter;
 - DB-source Shadow bootstrap, generation, freshness, rebuild, and reconciliation;
@@ -653,7 +681,7 @@ Independent follow-ups:
 
 ## Adoption plan and success metrics
 
-The companion is the adoption surface; Matryca remains the product engine. The launch
+Matryca Trama is the adoption surface; Matryca Plumber remains the memory/search and agent engine. The launch
 message should lead with user outcomes:
 
 - install once for both Logseq generations;
@@ -664,12 +692,13 @@ message should lead with user outcomes:
 
 Suggested launch sequence:
 
-1. private Tine and Logseq OG read-only pilots;
-2. public companion shell for OG with DB compatibility marked experimental;
-3. DB read beta after SDK and event gates;
+1. private Trama/Plumber Logseq OG and DB read-only pilots;
+2. public Trama shell for OG with DB compatibility marked experimental;
+3. DB read beta after graph identity, page, and complete-subtree gates;
 4. marketplace submission;
-5. public interoperability report with exact commits and limitations;
-6. mutation beta only after conflict evidence.
+5. public interoperability report with exact Trama/Plumber commits and limitations;
+6. optional Tine Direct Files reader/no-write report;
+7. events, Shadow acceleration, and mutation only through later accepted gates.
 
 Content-free, opt-in measures:
 
@@ -677,16 +706,14 @@ Content-free, opt-in measures:
 | --- | --- |
 | Discovery | marketplace views, installs, documentation visits |
 | Activation | pairing success and median time to bridge-ready |
-| Reliability | connected read success, reconnects, event gaps, explicit capability failures |
-| Performance | p50/p95 direct read, search, and event-convergence latency |
-| Safety | unauthorized requests rejected, conflicts detected, duplicate mutations prevented |
+| Reliability | connected read success, graph-switch rejection, and explicit capability failures |
+| Performance | p50/p95 graph identification, page read, and complete-subtree read |
+| Safety | unauthorized requests, foreign bindings, malformed payloads, and incomplete subtrees rejected |
 | Retention | privacy-preserving 7-day and 30-day active companion counts |
 | Value | share of active users invoking current-page/block search and agent MCP workflows |
 | Trust | Strict Read Only retention, mutation opt-in, revoke/unpair rate, support incidents |
 
-Initial performance targets such as p95 event convergence below 500 ms or direct reads
-below 100 ms are hypotheses. Freeze them only after the SDK spike establishes realistic
-local baselines.
+Initial direct-read performance targets are hypotheses. Freeze them only after the official-host capability spike establishes realistic local baselines.
 
 ## Risks and mitigations
 
@@ -701,8 +728,9 @@ local baselines.
 | Shadow serves stale DB content | Do not use Shadow until a DB-specific generation/freshness contract exists |
 | Excessive initial sync | Start with active page/subtree; bounded pagination; later snapshot design with progress and cancellation |
 | Privacy leakage | Local-first disclosure, explicit endpoint inventory, content-free diagnostics, no content telemetry |
-| Tine AGPL / Matryca Apache boundary | Keep process and protocol boundaries; use generated fixtures; maintain provenance; obtain legal review for code combination |
-| Maintainer burden | Proposal-first Tine contact, one Logseq plugin, small PRs, stable contracts, evidence before features |
+| Tine AGPL / Trama PolyForm / Plumber Apache boundaries | Keep process and protocol boundaries; use generated fixtures; maintain provenance; obtain legal review for code combination |
+| Trama and Brain collapse into one runtime or entitlement | Keep separate repositories, public ports, independent releases and caches; require a later Brain #430 design before connection |
+| Maintainer burden | Proposal-first Tine contact, one Trama companion, small PRs, stable contracts, evidence before features |
 | Mobile assumptions | Make no mobile declaration until exact host/plugin tests pass |
 
 This is architectural risk analysis, not legal advice.
@@ -720,20 +748,23 @@ This is architectural risk analysis, not legal advice.
 - Claiming Tine concurrent-write, Logseq DB, mobile, or Shadow compatibility without
   exact-version qualification.
 - Collecting graph content or stable user/graph identity for adoption analytics.
+- Requiring Matryca Brain for Trama Community or the initial Logseq DB read path.
+- Importing Brain-private source into Trama or sharing Brain/Trama caches implicitly.
 
 ## Recommended public issue decomposition
 
 Open issues only after this roadmap is accepted and current duplicates are checked:
 
-1. **RFC: versioned Logseq companion protocol and security boundary**
-2. **Companion bridge: pairing, scopes, revocation, and health**
-3. **Matryca-maintained dual-mode Logseq companion shell**
-4. **Logseq DB read adapter: page and subtree vertical slice**
-5. **Logseq DB event cursor and bounded resynchronization**
-6. **Tine read-only coexistence qualification corpus**
-7. **Optional Logseq DB MCP adapter discovery spike**
-8. **Logseq DB mutation precondition research**
-9. **Logseq DB external Shadow source architecture**
+1. **Trama #2: versioned Logseq read contract, fixtures, and security vocabulary**
+2. **Trama #4: official-host capability spike and read-only OG/DB adapter**
+3. **Plumber #493/#17: consumer bridge, session binding, and fail-closed errors**
+4. **Plumber #17: page and complete-subtree read verticals**
+5. **Plumber #492: reconcile legacy companion tracking with Trama ownership**
+6. **Plumber #494: Tine v0.6.98 Direct Files reader/no-write qualification**
+7. **Later: Logseq DB events and bounded resynchronization**
+8. **Later: optional Logseq DB MCP adapter discovery**
+9. **Later: host-authoritative mutation preconditions and external Shadow architecture**
+10. **Later: optional Trama–Brain public connection contract under Brain #430**
 
 Each issue should state exact upstream commits, exclusions, threat boundary, tests,
 success evidence, and what it does **not** authorize.
@@ -743,12 +774,13 @@ success evidence, and what it does **not** authorize.
 The highest-leverage next move is not a broad backend abstraction. It is a sequence of
 three small, compounding investments:
 
-1. publish and run the Tine read-only coexistence qualification;
-2. freeze a secure, versioned companion protocol;
-3. ship one dual-mode Logseq companion with OG value first and one DB read vertical
-   slice second.
+1. publish the Trama/Plumber ownership and dependency plan;
+2. freeze and probe the Trama-owned read contract for graph identification, one page, and one complete subtree;
+3. consume that exact contract through Plumber's separate `GraphSessionReadPort`; run the Tine v0.6.98 reader/no-write lane independently.
 
-That sequence can make Matryca Plumber visible to Tine users, current Logseq OG users,
+Matryca Brain remains a later optional destination. It does not block this sequence and receives no implementation dependency until Brain #430 produces a separately accepted public connection contract.
+
+That sequence can make Matryca Trama and Plumber visible to Tine users, current Logseq OG users,
 and emerging Logseq DB users while preserving the project's defining advantage:
 human-owned, block-granular knowledge with fast derived reads and explicit write
 authority.
@@ -757,6 +789,8 @@ authority.
 
 ### Tine
 
+- [Current master observation](https://github.com/martinkoutecky/tine/tree/3f3a7afe49c488ba5444c4882fff727d7c0099c0)
+- [Latest observed release v0.6.98](https://github.com/martinkoutecky/tine/releases/tag/v0.6.98)
 - [Repository at the reviewed commit](https://github.com/martinkoutecky/tine/tree/61ba2b4f255e54a0349ebc9af91958d72624277a)
 - [Contribution model](https://github.com/martinkoutecky/tine/blob/61ba2b4f255e54a0349ebc9af91958d72624277a/CONTRIBUTING.md)
 - [ADR 0004: Logseq OG parity](https://github.com/martinkoutecky/tine/blob/61ba2b4f255e54a0349ebc9af91958d72624277a/docs/adr/0004-operate-on-the-logseq-format-og-parity.md)
@@ -766,6 +800,8 @@ authority.
 - [Porting policy](https://github.com/martinkoutecky/tine/blob/61ba2b4f255e54a0349ebc9af91958d72624277a/docs/plugins/porting-logseq-obsidian.md)
 - [Issue #108: stable CLI](https://github.com/martinkoutecky/tine/issues/108)
 - [Issue #109: MCP](https://github.com/martinkoutecky/tine/issues/109)
+- [Issue #337: completed external-file synchronization umbrella](https://github.com/martinkoutecky/tine/issues/337)
+- [Issue #33: Git integration](https://github.com/martinkoutecky/tine/issues/33)
 - [Issue #201: durable Wiki/product memory](https://github.com/martinkoutecky/tine/issues/201)
 - [Discussion #334: Matryca interoperability proposal](https://github.com/martinkoutecky/tine/discussions/334)
 
@@ -786,3 +822,19 @@ authority.
 - [Shadow DB read architecture](../knowledge/architecture/shadow-db.md)
 - [v2 preparation roadmap](ROADMAP_V2_PREPARATION.md)
 - [Security sandbox](../openspec/security-sandbox.md)
+
+### Matryca Trama
+
+- [Public repository](https://github.com/MarcoPorcellato/matryca-trama)
+- [Foundation commit](https://github.com/MarcoPorcellato/matryca-trama/tree/cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5)
+- [Architecture](https://github.com/MarcoPorcellato/matryca-trama/blob/cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5/docs/ARCHITECTURE.md)
+- [Roadmap](https://github.com/MarcoPorcellato/matryca-trama/blob/cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5/docs/ROADMAP.md)
+- [Shared contracts issue #2](https://github.com/MarcoPorcellato/matryca-trama/issues/2)
+- [Logseq adapters issue #4](https://github.com/MarcoPorcellato/matryca-trama/issues/4)
+
+### Matryca Brain
+
+- [Current verified main observation](https://github.com/MarcoPorcellato/Matryca-per-Delineat/tree/e69a97a8c702a773c9a3ce8307b5a667ed2be1dd)
+- [Issue #430: Trama–Brain product and entitlement boundary](https://github.com/MarcoPorcellato/Matryca-per-Delineat/issues/430)
+- [Trama and Brain portfolio strategy](https://github.com/MarcoPorcellato/Matryca-per-Delineat/blob/e69a97a8c702a773c9a3ce8307b5a667ed2be1dd/docs/MATRYCA_TRAMA_BRAIN_PORTFOLIO_STRATEGY.md)
+- [Plumber integration contract](https://github.com/MarcoPorcellato/Matryca-per-Delineat/blob/e69a97a8c702a773c9a3ce8307b5a667ed2be1dd/docs/openspec/PLUMBER_INTEGRATION_CONTRACT.md)
