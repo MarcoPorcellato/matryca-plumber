@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Version-bound Gate B qualification** — require each durable soak campaign to
+  declare and verify its exact installed candidate version instead of retaining a
+  runner-local version from an earlier release candidate.
+
 ## [2.0.1-rc.3] - 2026-08-31
 
 `v2.0.1-rc.3` is the fresh publication candidate after the signed

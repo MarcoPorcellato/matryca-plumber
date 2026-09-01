@@ -4,8 +4,8 @@ type: Document
 # Gate B public-RC soak runbook
 
 This runbook starts the two independent, fail-closed soak profiles required by
-the `v2.0.0` Gate B decision. Each campaign runs against one exact installed
-public candidate wheel, never a source checkout.
+a Gate B release decision. Each campaign runs against one exact installed public
+candidate wheel, never a source checkout.
 
 ## RC2 terminal result
 
@@ -23,8 +23,9 @@ stable artifact or complete the other v2.0.0 promotion gates.
 ## Post-RC read-path requalification boundary
 
 Each public-RC campaign records evidence only for its exact installed wheel. The
-historical rc.1 results below apply only to `2.0.0rc1`; the current campaign must
-start from zero and bind both profiles to the exact public `2.0.0rc2` wheel. Issue
+historical rc.1 and rc.2 results apply only to their respective `2.0.0` candidate
+wheels; every later campaign must start from zero and bind both profiles to its own
+exact public wheel. Issue
 [#389](https://github.com/MarcoPorcellato/matryca-plumber/issues/389) changes the FTS
 and subtree paths exercised by both profiles by adding requested-row freshness checks
 and explicit Markdown/BM25 fallback reasons. Do not rewrite or transfer the RC result
@@ -139,9 +140,10 @@ SQLite state manually; preserve the failed attempt and correct the harness.
    exact wheel.
 3. Freeze the committed qualification runner outside the repository, vault,
    working copies, cache roots, and evidence roots; record its commit and digest.
-4. Pass the verified wheel path and published SHA-256 to each profile. The
-   collector verifies the installed package RECORD, records the exact wheel
-   binding, and refuses to start the soak if either identity differs.
+4. Pass the exact PEP 440 distribution version, verified wheel path, and published
+   SHA-256 to each profile. The collector verifies the installed package RECORD,
+   records the exact package and wheel binding, and refuses to start the soak if any
+   identity differs.
 5. Copy the private source vault once per profile. Never point either collector
    at the live vault.
 
@@ -153,6 +155,7 @@ Use the profile-specific paths in this template:
 <candidate-python> <frozen-runner>/scripts/qualify_gate_b_soak.py \
   --profile <default-on|read-only-external> \
   --output <evidence-root> \
+  --candidate-package <distribution-version> \
   --candidate-python <candidate-python> \
   --candidate-wheel <verified-public-wheel> \
   --expected-wheel-sha256 <published-wheel-sha256> \
