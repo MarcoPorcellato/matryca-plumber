@@ -3620,6 +3620,24 @@
       "classification": "active"
     },
     {
+      "path": "docs/roadmaps/AGENT_HARNESS_PATTERN_ADOPTION_STUDY_2026-09-01.md",
+      "type": "Roadmap",
+      "title": "Evidence-led agent harness pattern adoption study",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "planning",
+      "destination": "docs/knowledge/roadmaps/active/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/roadmaps/ROADMAP_IRONCLAD_SHIELD.md",
       "type": "Roadmap",
       "title": "Phase 8 — Ironclad Shield (checklist)",
