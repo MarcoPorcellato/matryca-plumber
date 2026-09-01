@@ -24,6 +24,7 @@ from beta_evidence.core import (
     _canonical_hash,
     _is_within,
     _record_gate,
+    _require_matching_gate_input,
 )
 from beta_evidence.soak import collect_soak
 from beta_evidence.wheel import _copy_vault_without_cache, _verify_candidate_python
@@ -33,7 +34,6 @@ Profile = Literal["default-on", "read-only-external"]
 _PROFILE_FILE = "gate-b-profile.json"
 _PROFILE_SCHEMA_VERSION = 1
 _PROFILES: tuple[Profile, ...] = ("default-on", "read-only-external")
-_RC_PACKAGE = "2.0.0rc2"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 _DEFAULT_ON_PROBE = r"""
@@ -380,6 +380,7 @@ def _bind_manifest(output: Path, profile: Profile, cache_root: Path, working: Pa
 def _bind_public_rc_wheel(
     output: Path,
     *,
+    candidate_package: str,
     candidate_python: Path,
     candidate_wheel: Path,
     expected_wheel_sha256: str,
@@ -398,9 +399,12 @@ def _bind_public_rc_wheel(
     wheel_sha256 = _sha256(wheel.read_bytes())
     if wheel_sha256 != expected_wheel_sha256:
         raise EvidenceError("wheel_sha256_mismatch")
-    provenance = _verify_candidate_python(python, _RC_PACKAGE)
+    provenance = _verify_candidate_python(python, candidate_package)
     binding = _candidate_wheel_binding_digest(wheel_sha256, provenance)
-    input_hash = _canonical_hash({"candidate_package": _RC_PACKAGE, "wheel_sha256": wheel_sha256})
+    input_hash = _canonical_hash(
+        {"candidate_package": candidate_package, "wheel_sha256": wheel_sha256}
+    )
+    _require_matching_gate_input(output, gate_id="wheel", input_hash=input_hash)
     _record_gate(
         output,
         GateRecord(
@@ -408,14 +412,14 @@ def _bind_public_rc_wheel(
             input_hash,
             "PASS",
             {
-                "candidate_package": _RC_PACKAGE,
+                "candidate_package": candidate_package,
                 "wheel_sha256": wheel_sha256,
                 "candidate_provenance_digest": provenance,
                 "candidate_wheel_binding_digest": binding,
                 "installed_record_verified": True,
             },
         ),
-        metadata={"candidate_package": _RC_PACKAGE},
+        metadata={"candidate_package": candidate_package},
     )
     return provenance
 
@@ -502,6 +506,7 @@ def run_gate_b_soak(
     *,
     profile: Profile,
     output: Path,
+    candidate_package: str,
     candidate_python: Path,
     candidate_wheel: Path,
     expected_wheel_sha256: str,
@@ -533,6 +538,7 @@ def run_gate_b_soak(
         raise EvidenceError("candidate_artifact_unsafe")
     candidate_provenance = _bind_public_rc_wheel(
         resolved_output,
+        candidate_package=candidate_package,
         candidate_python=candidate_python,
         candidate_wheel=resolved_wheel,
         expected_wheel_sha256=expected_wheel_sha256,
@@ -540,7 +546,7 @@ def run_gate_b_soak(
     _load_or_create_profile(resolved_output, profile, cache)
 
     def candidate_verifier(python: Path) -> str:
-        observed = _verify_candidate_python(python, _RC_PACKAGE)
+        observed = _verify_candidate_python(python, candidate_package)
         if observed != candidate_provenance:
             raise EvidenceError("soak_candidate_provenance_mismatch")
         return observed
@@ -581,6 +587,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=_PROFILES, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--candidate-package", required=True)
     parser.add_argument("--candidate-python", type=Path, required=True)
     parser.add_argument("--candidate-wheel", type=Path, required=True)
     parser.add_argument("--expected-wheel-sha256", required=True)
@@ -601,6 +608,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         run_gate_b_soak(
             profile=cast(Profile, args.profile),
             output=args.output,
+            candidate_package=args.candidate_package,
             candidate_python=args.candidate_python,
             candidate_wheel=args.candidate_wheel,
             expected_wheel_sha256=args.expected_wheel_sha256,

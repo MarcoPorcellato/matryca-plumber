@@ -5,8 +5,10 @@ import importlib.util
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 
 import pytest
 
@@ -243,7 +245,7 @@ def test_public_rc_wheel_binding_records_exact_installed_identity(
 ) -> None:
     module = _module()
     output = tmp_path / "evidence"
-    wheel = tmp_path / "matryca_plumber-2.0.0rc2-py3-none-any.whl"
+    wheel = tmp_path / "matryca_plumber-2.0.1rc3-py3-none-any.whl"
     wheel.write_bytes(b"public rc wheel")
     expected_sha256 = module._sha256(wheel.read_bytes())
     provenance = "b" * 64
@@ -257,15 +259,17 @@ def test_public_rc_wheel_binding_records_exact_installed_identity(
     assert (
         module._bind_public_rc_wheel(
             output,
+            candidate_package="2.0.1rc3",
             candidate_python=Path(sys.executable),
             candidate_wheel=wheel,
             expected_wheel_sha256=expected_sha256,
         )
         == provenance
     )
-    assert observed == [(Path(sys.executable).absolute(), "2.0.0rc2")]
+    assert observed == [(Path(sys.executable).absolute(), "2.0.1rc3")]
     checkpoint = json.loads((output / "checkpoint.json").read_text(encoding="utf-8"))
     details = checkpoint["gates"]["wheel"]["details"]
+    assert details["candidate_package"] == "2.0.1rc3"
     assert details["wheel_sha256"] == expected_sha256
     assert details["candidate_provenance_digest"] == provenance
     assert details["installed_record_verified"] is True
@@ -278,10 +282,98 @@ def test_public_rc_wheel_binding_rejects_digest_mismatch(tmp_path: Path) -> None
     with pytest.raises(module.EvidenceError, match="wheel_sha256_mismatch"):
         module._bind_public_rc_wheel(
             tmp_path / "evidence",
+            candidate_package="2.0.1rc3",
             candidate_python=Path(sys.executable),
             candidate_wheel=wheel,
             expected_wheel_sha256="a" * 64,
         )
+
+
+def test_public_rc_wheel_binding_rejects_candidate_version_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    output = tmp_path / "evidence"
+    wheel = tmp_path / "matryca_plumber-2.0.1rc3-py3-none-any.whl"
+    wheel.write_bytes(b"public rc wheel")
+    expected_sha256 = module._sha256(wheel.read_bytes())
+    monkeypatch.setattr(module, "_verify_candidate_python", lambda *_args: "b" * 64)
+
+    module._bind_public_rc_wheel(
+        output,
+        candidate_package="2.0.1rc3",
+        candidate_python=Path(sys.executable),
+        candidate_wheel=wheel,
+        expected_wheel_sha256=expected_sha256,
+    )
+
+    with pytest.raises(module.EvidenceError, match="gate_resume_mismatch"):
+        module._bind_public_rc_wheel(
+            output,
+            candidate_package="2.0.1rc4",
+            candidate_python=Path(sys.executable),
+            candidate_wheel=wheel,
+            expected_wheel_sha256=expected_sha256,
+        )
+
+
+def test_cli_candidate_package_reaches_initial_and_resume_verifiers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _module()
+    source = _graph(tmp_path)
+    source_realpath = tmp_path / "source-realpath.txt"
+    source_realpath.write_text(f"{source.resolve()}\n", encoding="utf-8")
+    wheel = tmp_path / "matryca_plumber-2.0.1rc3-py3-none-any.whl"
+    wheel.write_bytes(b"public rc wheel")
+    observed: list[tuple[str, str]] = []
+    provenance = "b" * 64
+
+    def bind(_output: Path, *, candidate_package: str, **_kwargs: object) -> str:
+        observed.append(("initial", candidate_package))
+        return provenance
+
+    def verify(_python: Path, candidate_package: str) -> str:
+        observed.append(("resume", candidate_package))
+        return provenance
+
+    def collect(_output: Path, **kwargs: object) -> object:
+        candidate_verifier = cast(Callable[[Path], str], kwargs["candidate_verifier"])
+        assert candidate_verifier(Path(sys.executable)) == provenance
+        return object()
+
+    monkeypatch.setattr(module, "_bind_public_rc_wheel", bind)
+    monkeypatch.setattr(module, "_verify_candidate_python", verify)
+    monkeypatch.setattr(module, "collect_soak", collect)
+
+    assert (
+        module.main(
+            [
+                "--profile",
+                "default-on",
+                "--output",
+                str(tmp_path / "evidence"),
+                "--candidate-package",
+                "2.0.1rc3",
+                "--candidate-python",
+                sys.executable,
+                "--candidate-wheel",
+                str(wheel),
+                "--expected-wheel-sha256",
+                module._sha256(wheel.read_bytes()),
+                "--source-vault",
+                str(source),
+                "--expected-source-realpath-file",
+                str(source_realpath),
+                "--working-root",
+                str(tmp_path / "working"),
+                "--cache-root",
+                str(tmp_path / "cache"),
+            ]
+        )
+        == 0
+    )
+    assert observed == [("initial", "2.0.1rc3"), ("resume", "2.0.1rc3")]
 
 
 def test_main_reports_privacy_safe_failure(
@@ -294,6 +386,8 @@ def test_main_reports_privacy_safe_failure(
             "default-on",
             "--output",
             str(tmp_path / "evidence"),
+            "--candidate-package",
+            "2.0.1rc3",
             "--candidate-python",
             str(tmp_path / "missing-python"),
             "--candidate-wheel",
