@@ -9,6 +9,12 @@
   explicitly defers runtime behaviour, canonical writes, probabilistic claims,
   Logseq DB expansion, and any external-standard assertion.
 
+- **Epistemic Claim Layer v0 preservation:** added the reviewed v0 design and
+  test-first implementation plan. The work is intentionally deferred behind the
+  Logseq DB read-only priority; it records deterministic schema/reducer work,
+  the mandatory recovery-contract gate before any ledger writer, read-only
+  explanation boundaries, and qualification evidence required to restart safely.
+
 ## 2026-08-31
 
 - **v2.0.1-rc.2 failed publication and repository binding:** preserved the valid

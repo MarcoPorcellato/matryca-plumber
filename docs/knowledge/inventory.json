@@ -3954,6 +3954,25 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-09-02-epistemic-claim-layer-v0.md",
+      "type": "Archive",
+      "title": "Epistemic Claim Layer v0 Implementation Plan",
+      "description": "Test-first staged delivery plan for a derived, replayable epistemic claim layer.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "memory-research",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -4010,6 +4029,25 @@
       "surface_class": "concept-candidate",
       "canonical_for": null,
       "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-02-epistemic-claim-layer-v0-design.md",
+      "type": "Specification",
+      "title": "Epistemic Claim Layer v0 design",
+      "description": "Versioned design for a derived, replayable, provenance-bound claim projection that remains separate from canonical Markdown, P0 evidence, and Shadow DB.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "memory-research",
       "destination": null,
       "action": "keep",
       "supersedes": [],
