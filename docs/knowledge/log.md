@@ -1,5 +1,14 @@
 # Documentation update log
 
+## 2026-09-02
+
+- **Epistemic-memory research direction:** added the maintained public research
+  anchor for a possible derived Epistemic Claim Layer. It separates canonical
+  graph authority, immutable provenance, claims, assessment, status, time, and
+  revision; records relevant prior art and externalization conditions; and
+  explicitly defers runtime behaviour, canonical writes, probabilistic claims,
+  Logseq DB expansion, and any external-standard assertion.
+
 ## 2026-08-31
 
 - **v2.0.1-rc.2 failed publication and repository binding:** preserved the valid
