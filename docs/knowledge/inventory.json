@@ -4017,6 +4017,24 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/specs/2026-09-02-logseq-db-transport-refinement-design.md",
+      "type": "Archive",
+      "title": "Logseq DB Transport Refinement Design",
+      "description": "**Status:** proposed architecture refinement; no runtime compatibility claim",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
       "type": "Archive",
       "title": "Matryca Plumber v1.8 — Edge Computing & Performance Update",
