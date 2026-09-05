@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Changed
+
+- **Logseq gateway authority** — establish Plumber as the sole future Logseq
+  gateway and public `plumber.*` contract owner; Parser remains OG-internal,
+  while Trama and Brain remain contract consumers. This documentation change
+  enables no Logseq DB runtime capability. Refs #562.
+
 ### Fixed
 
 - **Version-bound Gate B qualification** — require each durable soak campaign to

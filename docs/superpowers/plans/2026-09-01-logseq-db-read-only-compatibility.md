@@ -1,4 +1,23 @@
-# Logseq DB Read-Only Compatibility Implementation Plan
+# Historical Logseq DB Read-Only Compatibility Implementation Plan
+
+> **Historical/non-authorizing — superseded as execution authority on 2026-09-05.** This document
+> is retained unchanged below as historical planning and evidence context. It
+> does not authorize a Trama host adapter or `trama.logseq.read/v1` authority,
+> production contract, Trama-side session port, or a Logseq DB runtime claim. Current
+> authority is the accepted [Plumber Logseq gateway decision](../../decisions/2026-09-05-plumber-logseq-gateway-authority.md).
+
+## Current superseding model
+
+Plumber is the sole Logseq gateway and owner of all public `plumber.*`
+contracts. The admitted directions are `Logseq OG -> Parser -> Plumber ->
+Trama/Brain` and `Logseq DB official host surface -> Plumber -> Trama/Brain`.
+GraphReadPort remains filesystem/Shadow-only. A future public
+`GraphSessionReadPort` is Plumber-owned and remains feature-off until an exact
+official-host and contract qualification passes. Trama and Brain are consumers
+only and do not import Parser. No direct internal-database access or mutation
+is authorized.
+
+---
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
