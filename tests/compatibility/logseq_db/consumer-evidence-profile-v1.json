@@ -1,0 +1,109 @@
+{
+  "profile_id": "plumber.logseq.db.consumer-evidence/v1",
+  "purpose": "Outer Plumber admission policy for evidence that references, but does not redefine, the Trama read contract.",
+  "trama_contract_reference": {
+    "contract_id": "trama.logseq.read/v1",
+    "accepted_contract_major": 1
+  },
+  "trama_authority_pin": {
+    "commit": "9905e8a36acb83a17a33b702a5fa620d6bfed185",
+    "paths": {
+      "packages/contracts/src/trama_contracts/models.py": "cd665decd41ccb2061b5355bc2ec20273fcc005e",
+      "docs/contracts/LOGSEQ_READ_CONTRACT_V1.md": "b59f92270338705b365346a2998a8174a559f0cd",
+      "docs/spikes/evidence/python-read-contract-v1/862c5c89157f28c1985cde6145fc2c8af04a70b4.md": "20730f3e922b524c43a4c46e7d38374c68e2229d"
+    },
+    "digest_type": "Git blob SHA-1",
+    "role": "Historical static contract-authority metadata only; never future host or provenance evidence."
+  },
+  "required_operations": [
+    "graph.identify",
+    "page.read",
+    "block.subtree.read.complete"
+  ],
+  "allowed_qualification_states": ["supported", "deferred", "rejected", "unverified"],
+  "admission": {
+    "scope": "read-only",
+    "direct_database_access": false,
+    "forbidden_operations": [
+      "graph_fallback",
+      "graph_switching",
+      "mutation",
+      "sync",
+      "import",
+      "export",
+      "direct_internal_database_access"
+    ],
+    "limits": {
+      "max_items": {"maximum": 1000},
+      "max_depth": {"maximum": 128},
+      "timeout_seconds": {"maximum": 300}
+    },
+    "maximum_array_items": 8,
+    "maximum_string_length": 96,
+    "safe_identifier_pattern": "^[a-z][a-z0-9._:-]{0,95}$",
+    "forbidden_text_fragments": [
+      "password",
+      "secret",
+      "token",
+      "credential",
+      "authorization",
+      "bearer"
+    ],
+    "forbidden_text_prefixes": ["file:", "path:", "home:", "users:"],
+    "required_session_lifecycle": "stable",
+    "required_source_fields": [
+      "contract_id",
+      "accepted_contract_major",
+      "source_reference"
+    ],
+    "required_provenance_fields": [
+      "source_mode",
+      "authority",
+      "source_reference",
+      "producer",
+      "exercised_capabilities",
+      "evidence_digest"
+    ],
+    "accepted_source_modes": ["db_native"],
+    "accepted_authorities": ["logseq_db_native"]
+  },
+  "supported_requirements": [
+    "selected_host_identity",
+    "artifact_build_digest",
+    "future_trama_commit",
+    "future_probe_commit",
+    "fixture_digest",
+    "one_success_evidence_record_per_required_operation",
+    "db_native_provenance",
+    "exact_graph_binding",
+    "complete_ordered_parentage_for_subtree",
+    "zero_forbidden_state_change"
+  ],
+  "transport_identity": {
+    "cli": "cli_artifact",
+    "sdk": "sdk_version",
+    "mcp_stdio": "mcp_server_identity"
+  },
+  "reason_codes": {
+    "qualification_state": "qualification-state-not-supported",
+    "contract": "contract-reference-invalid",
+    "source": "source-reference-unpinned",
+    "scope": "scope-not-read-only",
+    "direct_database": "direct-database-access",
+    "limits": "limits-invalid",
+    "uncertainty": "uncertainty-invalid",
+    "session": "session-invalid",
+    "forbidden_operation": "forbidden-operation-observed",
+    "host": "host-identity-invalid",
+    "artifact_digest": "artifact-digest-invalid",
+    "future_commit": "future-commit-invalid",
+    "fixture_digest": "fixture-digest-invalid",
+    "operation_set": "operation-set-invalid",
+    "operation_evidence": "operation-evidence-invalid",
+    "result_digest": "result-digest-mismatch",
+    "subtree": "subtree-incomplete",
+    "transport": "transport-identity-invalid"
+  },
+  "envelope_reference": "Each operation evidence record references Trama's authoritative request/result envelopes; this profile does not redeclare wire fields.",
+  "digest_note": "fixture_digest binds synthetic_fixture_basis. Each operation result_sha256 aliases that operation provenance.evidence_digest and binds its synthetic_result_basis; no aggregate result truth is introduced."
+}

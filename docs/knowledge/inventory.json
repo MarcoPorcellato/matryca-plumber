@@ -1497,6 +1497,25 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_CAPABILITY_BASELINE_2026-09-05.md",
+      "type": "Audit",
+      "title": "Logseq DB Capability Baseline — 2026-09-05",
+      "description": "This is Plumber's consumer evidence-policy baseline.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "",
+      "missing": false
+    },
+    {
       "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",
       "type": "Runbook",
       "title": "Logseq DB Read-Only Compatibility Persistent Goal",
