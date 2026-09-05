@@ -12,9 +12,16 @@ owner: core-runtime
 
 ## Status
 
-`plumber.graph.read/v1` is a **proposed, feature-off** public contract. This
-artifact defines static interoperability inputs only. It creates no runtime
-adapter, endpoint, CLI command, MCP tool, graph session, or Logseq DB support.
+`plumber.graph.read/v1` remains a **proposed, feature-off** public contract for
+page and complete-subtree delivery. This artifact defines static
+interoperability inputs only. It creates no endpoint, CLI command, MCP tool,
+or Logseq DB support.
+
+Issue #566 adds one internal, in-process OG `graph.identify` vertical slice:
+an explicit source is parsed through Plumber's private Parser adapter and then
+served through a Plumber-owned session port. It returns opaque graph and source
+revision bindings only. It serves no page or subtree payload and creates no
+external consumer compatibility claim.
 
 The canonical artifact is repository-owned and transport-neutral:
 
@@ -77,12 +84,14 @@ emit events.
 
 ## Admission boundary
 
-The artifact is a prerequisite for a future Plumber-owned
-`GraphSessionReadPort`, not that port's implementation. Existing `GraphReadPort`
-remains the filesystem/Shadow repository port. A future producer and consumer
-must separately qualify the exact source profile, graph binding, session
-lifecycle, bounded reads, source revision, failure behavior, and consumer
-compatibility before any runtime wiring is introduced.
+The artifact remains the prerequisite for page and subtree implementations of
+Plumber-owned `GraphSessionReadPort`. Issue #566 uses only its identity
+vocabulary in an internal OG service; its runtime DTO is not a serialized
+fixture-schema envelope. Existing `GraphReadPort` remains the
+filesystem/Shadow repository port. A future producer and consumer must
+separately qualify the exact source profile, graph binding, session lifecycle,
+bounded reads, source revision, failure behavior, and consumer compatibility
+before any page/subtree runtime wiring is introduced.
 
 For Logseq OG, Plumber may select Parser behind its internal boundary. Parser
 types never become public contract types. For Logseq DB, only a separately

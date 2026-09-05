@@ -400,7 +400,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/decisions/2026-08-30-github-actions-qualification-authority.md",
