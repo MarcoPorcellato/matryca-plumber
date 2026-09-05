@@ -1,0 +1,21 @@
+{
+  "fixture_kind": "operation-result",
+  "id": "closed-session-rejected-v1",
+  "contract_id": "plumber.graph.topology/v1",
+  "schema_version": 1,
+  "producer_profile_id": "producer.synthetic.v1",
+  "consumer_profile_id": "consumer.synthetic.v1",
+  "session": {
+    "contract_id": "plumber.graph.read/v1",
+    "schema_version": 1,
+    "id": "session.synthetic.v1",
+    "state": "closed"
+  },
+  "graph_id": "graph.synthetic.v1",
+  "source_revision": "revision.synthetic.v1",
+  "operation": "graph.topology.snapshot.complete",
+  "request": { "session_id": "session.synthetic.v1", "graph_id": "graph.synthetic.v1" },
+  "outcome": "rejected",
+  "reason": "session-not-active",
+  "result": {}
+}

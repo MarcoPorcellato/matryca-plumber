@@ -1,0 +1,9 @@
+{
+  "fixture_kind": "profile",
+  "contract_id": "plumber.graph.topology/v1",
+  "schema_version": 1,
+  "profile_id": "producer.synthetic.v1",
+  "role": "producer",
+  "capabilities": ["graph.topology.snapshot.complete"],
+  "limits": { "max_nodes": 1024, "max_edges": 4096 }
+}

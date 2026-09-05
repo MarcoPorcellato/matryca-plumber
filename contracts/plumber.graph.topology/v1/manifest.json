@@ -1,0 +1,36 @@
+{
+  "contract_id": "plumber.graph.topology/v1",
+  "schema_version": 1,
+  "status": "proposed",
+  "artifact_kind": "static-contract-fixture-catalogue",
+  "schema_path": "schema.json",
+  "producer_profile_path": "fixtures/producer-profile-v1.json",
+  "consumer_profile_path": "fixtures/consumer-profile-v1.json",
+  "fixtures": [
+    {
+      "id": "topology-complete-pass-v1",
+      "fixture_path": "fixtures/topology-complete-pass-v1.json",
+      "expected_outcome": "pass"
+    },
+    {
+      "id": "foreign-graph-rejected-v1",
+      "fixture_path": "fixtures/foreign-graph-rejected-v1.json",
+      "expected_outcome": "rejected"
+    },
+    {
+      "id": "closed-session-rejected-v1",
+      "fixture_path": "fixtures/closed-session-rejected-v1.json",
+      "expected_outcome": "rejected"
+    },
+    {
+      "id": "incomplete-topology-rejected-v1",
+      "fixture_path": "fixtures/incomplete-topology-rejected-v1.json",
+      "expected_outcome": "rejected"
+    },
+    {
+      "id": "unsupported-capability-v1",
+      "fixture_path": "fixtures/unsupported-capability-v1.json",
+      "expected_outcome": "unsupported"
+    }
+  ]
+}

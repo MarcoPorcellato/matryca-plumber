@@ -404,6 +404,24 @@
       "missing": false
     },
     {
+      "path": "docs/contracts/plumber-graph-topology-v1.md",
+      "type": "Archive",
+      "title": "`plumber.graph.topology/v1` static contract artifact",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/decisions/2026-08-30-github-actions-qualification-authority.md",
       "type": "Decision",
       "title": "GitHub Actions qualification authority",
