@@ -11,22 +11,24 @@ owner: core-runtime
 # Plumber public contract catalogue
 
 This catalogue reserves the public contract namespace owned by Matryca Plumber.
-It is a documentation authority only. It introduces no wire schema, endpoint,
-runtime adapter, compatibility claim, or Logseq DB support.
+It introduces no runtime adapter, endpoint, compatibility claim, or Logseq DB
+support. `plumber.graph.read/v1` additionally has a static, transport-neutral
+schema and synthetic fixture artifact; it remains feature-off.
 
 | Contract family | Intended responsibility | Status |
 | --- | --- | --- |
-| `plumber.graph.read/v1` | Session-bound page and complete ordered subtree reads. | Reserved; feature-off. |
+| [`plumber.graph.read/v1`](plumber-graph-read-v1.md) | Session-bound page and complete ordered subtree reads. | Static artifact; feature-off. |
 | `plumber.graph.topology/v1` | Derived graph topology for consumers. | Reserved; feature-off. |
 | `plumber.control/v1` | Bounded operator configuration and gardening commands. | Reserved; feature-off. |
 | `plumber.host.navigate/v1` | Explicit host navigation request, never implicit UI control. | Reserved; feature-off. |
 | `plumber.graph.mutate/v1` | Future host-authoritative mutation only. | Deferred. |
 
-The future contract source of truth is a Plumber-owned, transport-neutral
-artifact containing schemas, synthetic content-free fixtures, provenance and
-capability metadata, and a compatibility test kit. A contract becomes usable
-only after its exact artifact, producer profile, and consumer profile pass the
-recorded admission gate.
+`plumber.graph.read/v1` source of truth is its Plumber-owned,
+transport-neutral artifact containing a schema, synthetic content-free fixtures,
+producer and consumer profiles, and a deterministic compatibility test kit. Its
+fixture attestation does not make the contract usable. A runtime contract becomes
+usable only after its exact artifact, producer profile, and consumer profile pass
+the recorded admission gate.
 
 Consumers include Matryca Trama and Matryca Brain. They do not import Parser or
 access Logseq directly. Parser remains an internal implementation selected by

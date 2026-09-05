@@ -384,6 +384,25 @@
       "missing": false
     },
     {
+      "path": "docs/contracts/plumber-graph-read-v1.md",
+      "type": "Specification",
+      "title": "`plumber.graph.read/v1` static contract artifact",
+      "description": "Canonical static schema, synthetic fixtures, and deterministic admission boundary for plumber.graph.read/v1.",
+      "classification": "canonical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "repository-entrypoint",
+      "canonical_for": "contracts.plumber.graph.read.v1",
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/decisions/2026-08-30-github-actions-qualification-authority.md",
       "type": "Decision",
       "title": "GitHub Actions qualification authority",

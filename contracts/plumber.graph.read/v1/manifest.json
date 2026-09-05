@@ -1,0 +1,41 @@
+{
+  "contract_id": "plumber.graph.read/v1",
+  "schema_version": 1,
+  "status": "proposed",
+  "artifact_kind": "static-contract-fixture-catalogue",
+  "schema_path": "schema.json",
+  "producer_profile_path": "fixtures/producer-profile-v1.json",
+  "consumer_profile_path": "fixtures/consumer-profile-v1.json",
+  "fixtures": [
+    {
+      "id": "identify-pass-v1",
+      "fixture_path": "fixtures/identify-pass-v1.json",
+      "expected_outcome": "pass"
+    },
+    {
+      "id": "page-read-pass-v1",
+      "fixture_path": "fixtures/page-read-pass-v1.json",
+      "expected_outcome": "pass"
+    },
+    {
+      "id": "ordered-subtree-pass-v1",
+      "fixture_path": "fixtures/ordered-subtree-pass-v1.json",
+      "expected_outcome": "pass"
+    },
+    {
+      "id": "foreign-graph-rejected-v1",
+      "fixture_path": "fixtures/foreign-graph-rejected-v1.json",
+      "expected_outcome": "rejected"
+    },
+    {
+      "id": "incomplete-subtree-rejected-v1",
+      "fixture_path": "fixtures/incomplete-subtree-rejected-v1.json",
+      "expected_outcome": "rejected"
+    },
+    {
+      "id": "unsupported-capability-v1",
+      "fixture_path": "fixtures/unsupported-capability-v1.json",
+      "expected_outcome": "unsupported"
+    }
+  ]
+}

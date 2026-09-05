@@ -1,0 +1,15 @@
+{
+  "fixture_kind": "operation-result",
+  "id": "incomplete-subtree-rejected-v1",
+  "contract_id": "plumber.graph.read/v1",
+  "schema_version": 1,
+  "producer_profile_id": "producer.synthetic.v1",
+  "consumer_profile_id": "consumer.synthetic.v1",
+  "graph_id": "graph.synthetic.v1",
+  "session": { "id": "session.synthetic.v1", "state": "rejected" },
+  "source_revision": "revision.synthetic.v1",
+  "operation": "block.subtree.read.complete",
+  "outcome": "rejected",
+  "reason": "subtree-incomplete",
+  "result": { "root_block_id": "block.root", "complete": false, "ordered_nodes": [] }
+}

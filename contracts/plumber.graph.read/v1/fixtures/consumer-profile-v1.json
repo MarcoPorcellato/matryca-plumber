@@ -1,0 +1,12 @@
+{
+  "fixture_kind": "profile",
+  "contract_id": "plumber.graph.read/v1",
+  "schema_version": 1,
+  "profile_id": "consumer.synthetic.v1",
+  "role": "consumer",
+  "capabilities": [
+    "graph.identify",
+    "page.read",
+    "block.subtree.read.complete"
+  ]
+}
