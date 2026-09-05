@@ -42,7 +42,7 @@ UI owner, while Plumber retains its bounded Operator Console. No LENS source or 
 | OG Markdown parsing | Parser, selected by Plumber | Parser owns parsing; legacy/experimental LENS remains compatible only during its deprecation window. |
 | OG and Shadow repository reads | Plumber `GraphReadPort` | `GraphReadPort remains filesystem/Shadow-only`; it is not a session or DB port. |
 | Logseq DB host access | Plumber | A future adapter may use only a qualified **Logseq DB official host surface**. |
-| Consumer graph reads | Plumber `GraphSessionReadPort` | Public application boundary; no runtime interface is introduced by this decision. |
+| Consumer graph reads | Plumber `GraphSessionReadPort` | Internal OG identity-only runtime exists; page/subtree and external transport remain feature-off. |
 | Graph and control contracts | Plumber | `plumber.graph.read/v1`, `plumber.graph.topology/v1`, `plumber.control/v1`, and `plumber.host.navigate/v1`. |
 | Product intelligence and graph UI | Trama | Consumer implementation over published Plumber contracts. |
 | Optional analysis consumer | Brain | Consumer implementation over published Plumber contracts. |
@@ -63,9 +63,10 @@ UI owner, while Plumber retains its bounded Operator Console. No LENS source or 
 This decision defines ownership, not a shipped runtime capability. The public
 contract artifact must be transport-neutral and contain versioned schemas,
 synthetic fixtures, and a compatibility test kit before a consumer is wired.
-`GraphSessionReadPort` is feature-off until the artifact and the selected
-source profile qualify graph identity, session lifecycle, bounded page and
-complete ordered subtree reads, source revision, failure semantics, and
+The internal OG identity-only `GraphSessionReadPort` uses only an explicit
+Parser source, opaque identity, session binding, and source revision. Page and
+complete ordered subtree reads remain feature-off until the artifact and the
+selected source profile qualify bounded payloads, failure semantics, and
 consumer compatibility.
 
 For OG, Plumber may call Parser behind its internal boundary. For DB, Plumber
