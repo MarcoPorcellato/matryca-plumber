@@ -1,19 +1,19 @@
 ---
 type: execution-goal
-title: Logseq DB Read-Only Compatibility Persistent Goal
-description: Restart-safe goal for delivering evidence-backed experimental Logseq DB reads without weakening Matryca Plumber's existing graph safety.
+title: Historical Logseq DB Read-Only Compatibility Persistent Goal
+description: Historical, non-authorizing record superseded by the Plumber Logseq gateway decision.
 resource: docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md
 tags: [logseq-db, interoperability, read-only, trama, quality, roadmap]
 timestamp: 2026-09-05T00:00:00Z
-status: draft
-decision_status: approved
-classification: active
+status: deprecated
+decision_status: superseded
+classification: historical
 last_verified: 2026-09-05
 stale_after: 2027-03-04
 audience: [maintainer, contributor, agent]
 owner: integrations
-authority: execution-goal
-execution_mode: gated
+authority: historical-record
+execution_mode: non-authorizing
 source_repository: MarcoPorcellato/matryca-plumber
 source_ref: origin/main
 source_commit: 12ca79cb14f9bbdf196ec409a48025afb6503ca1
@@ -31,7 +31,15 @@ related:
   - ../roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md
 ---
 
-# Logseq DB Read-Only Compatibility Persistent Goal
+# Historical Logseq DB Read-Only Compatibility Persistent Goal
+
+> **Historical/non-authorizing.** This persistent goal is retained as a dated
+> planning record and is superseded for execution by the accepted
+> [Plumber Logseq gateway authority](../decisions/2026-09-05-plumber-logseq-gateway-authority.md).
+> It does not authorize a Trama host adapter and does not authorize
+> `trama.logseq.read/v1` authority. `GraphReadPort remains
+> filesystem/Shadow-only`; any future session boundary is Plumber-owned and
+> feature-off until its separate qualification passes.
 
 Deliver one evidence-backed terminal outcome for experimental Logseq DB
 read-only compatibility according to the canonical implementation plan at
@@ -64,12 +72,13 @@ Logseq OG, Shadow DB, Strict Read Only, CLI, and MCP behavior must remain
 unchanged. Events, DB-source Shadow acceleration, all DB writes, and Matryca
 Brain integration remain separate programmes.
 
-Matryca Trama owns official Logseq host adapters and normalization into
-`trama.logseq.read/v1`. Matryca Plumber owns the transport-neutral consumer
-session boundary and agent-facing routes. Keep the filesystem `GraphReadPort`
-unchanged; a DB graph must never fall back to Markdown. Introduce
-`GraphSessionReadPort` only after the capability spike proves graph identity
-and complete subtree semantics.
+The superseded model recorded here assigned Trama a host-adapter and
+`trama.logseq.read/v1` role. The accepted gateway decision rejects that model:
+Plumber owns the future public contract and any official-host adapter, while
+Trama and Brain are consumers. `GraphReadPort remains filesystem/Shadow-only`;
+a DB graph must never fall back to Markdown. Any future
+`GraphSessionReadPort` is Plumber-owned and feature-off until its separate
+qualification proves graph identity and complete subtree semantics.
 
 Reduce `get_graph_read_port` only in the separate characterization-first Clean
 Architecture lane defined by the plan. The current selector has a CRITICAL
@@ -110,10 +119,8 @@ only. On 2026-09-05, documentation inventory generation, `docs-check`,
 passed; the last check classified the change as low risk with no affected
 runtime process.
 
-Task 3 is now constrained to a Plumber consumer-evidence policy. It references
-Trama's `trama.logseq.read/v1` authority and must not copy a wire schema, widen
-Trama's current OG-only consumer, or claim DB support before the exact host
-spike. The first implementation slice may contain only `unverified` and
-negative fixtures. The next gated action is the signed local planning commit;
-push, pull request, issue mutation, merge, download, and Logseq execution remain
-separate authorization boundaries.
+The historical Task 3 consumer-evidence instruction has no current contract
+authority. It does not authorize a Trama host adapter or
+`trama.logseq.read/v1` authority, and it must not be used to copy a wire schema,
+widen a consumer, or claim DB support. Any new slice begins from the accepted
+Plumber gateway decision and may contain only separately qualified evidence.

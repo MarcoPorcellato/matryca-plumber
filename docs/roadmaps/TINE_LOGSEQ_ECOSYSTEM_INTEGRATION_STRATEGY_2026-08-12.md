@@ -1,16 +1,16 @@
 ---
 type: Roadmap
-title: Tine and Logseq ecosystem integration strategy
-description: Evidence-backed strategy for Tine interoperability and Matryca Trama as the single dual-mode Logseq companion for Matryca Plumber.
+title: Historical Tine and Logseq ecosystem integration strategy
+description: Historical, non-authorizing research and sequencing record superseded by the Plumber Logseq gateway decision.
 resource: docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md
 tags: [tine, logseq-og, logseq-db, plugin, integration, adoption]
-status: draft
-classification: active
+status: deprecated
+classification: historical
 last_verified: 2026-09-05
 stale_after: 2027-02-28
 audience: [maintainer, contributor, operator, agent]
 owner: integrations
-authority: roadmap
+authority: historical-record
 source_repository: MarcoPorcellato/matryca-plumber
 source_ref: origin/main
 source_commit: 12ca79cb14f9bbdf196ec409a48025afb6503ca1
@@ -22,7 +22,15 @@ source_commit: 12ca79cb14f9bbdf196ec409a48025afb6503ca1
 **Decision status:** proposed, evidence-backed roadmap; no compatibility or release claim
 **Scope:** Tine collaboration, Matryca Trama as the Logseq OG/DB companion, and the smallest Matryca Plumber changes with the highest expected impact
 
-## 2026-09-05 evidence and sequencing update
+> **Historical/non-authorizing.** This strategy is retained for historical
+> research and sequencing context. It is superseded for execution by the
+> accepted [Plumber Logseq gateway authority](../decisions/2026-09-05-plumber-logseq-gateway-authority.md).
+> It does not authorize a Trama host adapter and does not authorize
+> `trama.logseq.read/v1` authority. `GraphReadPort remains
+> filesystem/Shadow-only`; Plumber alone may qualify a future official-host
+> adapter and public session contract.
+
+## Historical 2026-09-05 evidence and sequencing update
 
 The first executable Logseq DB investigation is now **CLI-first**. Current
 official CLI documentation exposes explicit graph selection, graph metadata,
@@ -57,20 +65,20 @@ release targets `dde0aba2d441c962d28989b0af894cc261da3898`, but its tag is
 mutable. Evidence must bind the downloaded asset digest and embedded runtime
 revision rather than relying on the tag.
 
-Trama has advanced from planning to a Python-first foundation and a qualified
-synthetic OG implementation of `trama.logseq.read/v1`. That is reusable
-contract evidence, not a Logseq DB host claim. Plumber's filesystem
-`GraphReadPort` remains OG/Shadow-only. A separate session-bound consumer port
-will be considered only after the host spike passes.
+The historical record notes a Trama Python-first foundation and synthetic OG
+`trama.logseq.read/v1` material. It is not a current contract authority or a
+Logseq DB host claim. `GraphReadPort remains filesystem/Shadow-only`; any
+future public session port is Plumber-owned and feature-off pending separate
+qualification.
 
 The existing `get_graph_read_port` selector may be reduced through a separate
 characterization-first Clean Architecture lane. Its public signature, Shadow
 fallback, wheel-probe behavior, and filesystem-only ownership remain frozen;
 the refactor is not a prerequisite for DB compatibility.
 
-## 2026-09-01 execution update
+## Historical 2026-09-01 execution update
 
-The current execution authority is the [Logseq DB read-only compatibility implementation plan](../superpowers/plans/2026-09-01-logseq-db-read-only-compatibility.md). It narrows the first experimental compatibility claim to three operations:
+The former execution authority was the [Logseq DB read-only compatibility implementation plan](../superpowers/plans/2026-09-01-logseq-db-read-only-compatibility.md). That plan is historical and non-authorizing; the accepted Plumber gateway decision above is current authority. It recorded three exploratory operations:
 
 1. identify the active Logseq DB graph;
 2. read one page;
@@ -78,7 +86,7 @@ The current execution authority is the [Logseq DB read-only compatibility implem
 
 The work uses short-lived branches cut from current `main`, with one independently reviewable pull request merged before its dependent branch begins. The existing filesystem `GraphReadPort` remains the Logseq OG and Shadow boundary. A separate session-bound `GraphSessionReadPort` may be introduced only after the executable capability spike proves stable graph identity and complete subtree semantics through an official Logseq host surface.
 
-The previously unnamed companion now has one authoritative identity: [Matryca Trama](https://github.com/MarcoPorcellato/matryca-trama). Trama owns the companion application, official Logseq OG/DB adapters, host-session lifecycle, normalized page/subtree acquisition, and shared contract fixtures. Plumber remains the memory/search engine and owns the consumer-side session router and agent-facing CLI/MCP surfaces. Every unqualified use of “companion” below means Matryca Trama; it does not authorize another plugin or companion implementation inside Plumber.
+The superseded text below treated [Matryca Trama](https://github.com/MarcoPorcellato/matryca-trama) as the official Logseq adapter and contract authority. That model is not current: Plumber is the sole Logseq gateway, owns any future official-host adapter and public contract, and Trama and Brain remain consumers. Every historical use of “companion” below is non-authorizing.
 
 [Matryca Brain issue #430](https://github.com/MarcoPorcellato/Matryca-per-Delineat/issues/430) and [Trama ADR-0002](https://github.com/MarcoPorcellato/matryca-trama/blob/main/docs/decisions/ADR-0002-TRAMA_BRAIN_PRODUCT_BOUNDARY.md) establish a second boundary: Trama and Brain remain separate products, repositories, runtimes, caches, and release cadences. The initial Trama/Plumber Logseq read path must work without Brain. A later optional Brain connection requires its own versioned public contract and must never import Brain-private source into Trama.
 
@@ -134,7 +142,7 @@ verify official Logseq OG/DB capabilities, and scaffold Matryca Trama. No Tine c
 | Concurrent Tine and Matryca writes | **NO-GO today** | The two applications do not share locks, revision tokens, dirty-editor state, or a transaction coordinator. |
 | Closed Tine #337 | **Evidence, not authority** | Concord addresses the reported stale/external-file flows, but issue closure does not qualify arbitrary external writers or Matryca concurrency. |
 | Ordinary Tine plugin as the Matryca runtime | **NO-GO** | Tine API 0.2 intentionally denies filesystem, process, network, arbitrary-graph, and custom-UI authority. |
-| Matryca Trama for Logseq OG and DB | **GO to contract spike** | Trama already owns the companion and adapter boundary; one package avoids split discovery and duplicated UX. |
+| Matryca Trama for Logseq OG and DB | **Historical proposal — non-authorizing** | Superseded by the Plumber gateway decision; Trama is a future consumer, not the Logseq adapter authority. |
 | Logseq DB read-only bridge | **Conditional GO** | Official plugin APIs expose graph-mode detection, page/block reads, queries, and DB change hooks. Exact semantics still require a spike. |
 | Logseq DB writes | **NO-GO until CAS evidence** | A read-before-write check is insufficient unless the official host provides atomic conditional mutation or equivalent conflict semantics. |
 | Direct access to Logseq `db.sqlite` | **Permanent NO-GO** | It bypasses the official application contract, validation, undo/redo, and future schema compatibility. |

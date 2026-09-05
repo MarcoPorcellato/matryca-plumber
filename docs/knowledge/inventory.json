@@ -364,6 +364,26 @@
       "classification": "active"
     },
     {
+      "path": "docs/contracts/README.md",
+      "type": "Specification",
+      "title": "Plumber public contract catalogue",
+      "description": "Ownership and admission rules for versioned Matryca Plumber contracts.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Reserved Plumber-owned contract catalogue; no runtime capability is introduced.",
+      "missing": false
+    },
+    {
       "path": "docs/decisions/2026-08-30-github-actions-qualification-authority.md",
       "type": "Decision",
       "title": "GitHub Actions qualification authority",
@@ -381,6 +401,26 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Current hosted public pull-request qualification authority.",
+      "missing": false
+    },
+    {
+      "path": "docs/decisions/2026-09-05-plumber-logseq-gateway-authority.md",
+      "type": "Decision",
+      "title": "Plumber Logseq gateway authority",
+      "description": "Cross-repository authority and dependency direction for Logseq graph access.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Accepted authority for Plumber-owned Logseq access and public contracts.",
       "missing": false
     },
     {
@@ -1499,8 +1539,8 @@
     {
       "path": "docs/quality/LOGSEQ_DB_CAPABILITY_BASELINE_2026-09-05.md",
       "type": "Audit",
-      "title": "Logseq DB Capability Baseline — 2026-09-05",
-      "description": "This is Plumber's consumer evidence-policy baseline.",
+      "title": "Historical Logseq DB Capability Baseline — 2026-09-05",
+      "description": "Historical, non-authorizing evidence superseded by the Plumber Logseq gateway authority.",
       "classification": "historical",
       "audience": [
         "maintainer",
@@ -1512,15 +1552,15 @@
       "destination": "docs/knowledge/quality/",
       "action": "archive",
       "supersedes": [],
-      "notes": "",
+      "notes": "Historical evidence only; superseded by the Plumber Logseq gateway authority.",
       "missing": false
     },
     {
       "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",
       "type": "Runbook",
-      "title": "Logseq DB Read-Only Compatibility Persistent Goal",
-      "description": "Compact restart-safe execution goal bound to the canonical Logseq DB read-only compatibility plan.",
-      "classification": "active",
+      "title": "Historical Logseq DB Read-Only Compatibility Persistent Goal",
+      "description": "Historical, non-authorizing record superseded by the Plumber Logseq gateway authority.",
+      "classification": "historical",
       "audience": [
         "maintainer",
         "agent"
@@ -1529,9 +1569,9 @@
       "canonical_for": null,
       "owner": "integrations",
       "destination": "docs/artifacts/quality/",
-      "action": "artifact",
+      "action": "archive",
       "supersedes": [],
-      "notes": "Active restart and orchestration handoff; all scope and authority remain in the linked canonical plan.",
+      "notes": "Historical record only; superseded by the Plumber Logseq gateway authority.",
       "missing": false
     },
     {
@@ -3850,9 +3890,9 @@
     {
       "path": "docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md",
       "type": "Roadmap",
-      "title": "Tine and Logseq ecosystem integration strategy",
-      "description": "Evidence-backed strategy for safe Tine interoperability and a Matryca-maintained dual-mode Logseq companion with a minimum-effort, maximum-impact delivery sequence.",
-      "classification": "active",
+      "title": "Historical Tine and Logseq ecosystem integration strategy",
+      "description": "Historical, non-authorizing research and sequencing record superseded by the Plumber Logseq gateway authority.",
+      "classification": "historical",
       "audience": [
         "maintainer",
         "contributor",
@@ -3862,10 +3902,10 @@
       "surface_class": "concept-candidate",
       "canonical_for": null,
       "owner": "integrations",
-      "destination": "docs/knowledge/roadmaps/active/",
-      "action": "migrate",
+      "destination": "docs/knowledge/roadmaps/",
+      "action": "archive",
       "supersedes": [],
-      "notes": "",
+      "notes": "Historical record only; superseded by the Plumber Logseq gateway authority.",
       "missing": false
     },
     {
@@ -3975,9 +4015,9 @@
     {
       "path": "docs/superpowers/plans/2026-09-01-logseq-db-read-only-compatibility.md",
       "type": "Archive",
-      "title": "Logseq DB Read-Only Compatibility Implementation Plan",
-      "description": "> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.",
-      "classification": "active",
+      "title": "Historical Logseq DB Read-Only Compatibility Implementation Plan",
+      "description": "Historical, non-authorizing plan superseded by the Plumber Logseq gateway authority.",
+      "classification": "historical",
       "audience": [
         "maintainer",
         "contributor"
@@ -3986,9 +4026,9 @@
       "canonical_for": null,
       "owner": "core-runtime",
       "destination": null,
-      "action": "keep",
+      "action": "archive",
       "supersedes": [],
-      "notes": "",
+      "notes": "Historical plan only; superseded by the Plumber Logseq gateway authority.",
       "missing": false
     },
     {

@@ -13,6 +13,20 @@ defaults and operator behavior are owned by the
 qualification status is owned by the
 [fail-closed readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
+## Cross-repository gateway authority
+
+The accepted [Plumber Logseq gateway decision](../decisions/2026-09-05-plumber-logseq-gateway-authority.md)
+governs future integration with Matryca Trama and Matryca Brain. Plumber is the
+sole gateway between either consumer and Logseq: OG follows `Parser ->
+Plumber`, while any DB path starts from a qualified official host surface and
+then enters Plumber. Consumers do not import Parser or access Logseq directly.
+
+This roadmap does not ship a DB backend. `GraphReadPort` remains the existing
+filesystem/Shadow port. A separate Plumber-owned `GraphSessionReadPort` and
+versioned `plumber.*` contract artifact remain feature-off until their exact
+qualification gates pass. Direct internal-database access or mutation remains
+prohibited.
+
 **Current release status (2026-08-18):** stable `v2.0.0` is published after the
 public `v2.0.0-rc.2` artifact completed the dual-profile Gate B qualification, the
 four-baseline upgrade matrix, and the minimum seven-day RC observation window.

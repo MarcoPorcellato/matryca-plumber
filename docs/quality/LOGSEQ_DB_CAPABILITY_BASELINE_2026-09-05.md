@@ -1,11 +1,18 @@
-# Logseq DB Capability Baseline — 2026-09-05
+# Historical Logseq DB Capability Baseline — 2026-09-05
+
+> **Historical/non-authorizing.** This baseline is retained as evidence of the
+> prior consumer-policy design and is superseded for execution by the accepted
+> [Plumber Logseq gateway authority](../decisions/2026-09-05-plumber-logseq-gateway-authority.md).
+> It does not authorize a Trama host adapter or `trama.logseq.read/v1` authority.
+> `GraphReadPort remains filesystem/Shadow-only`; no runtime or DB capability is
+> introduced by this historical evidence.
 
 ## Status
 
-This is Plumber's consumer evidence-policy baseline. Trama's synthetic OG
-qualification is recorded as fact at `main@9905e8a36acb83a17a33b702a5fa620d6bfed185`;
-it establishes the `trama.logseq.read/v1` DTO authority and read-only operation
-shape.
+This is Plumber's historical consumer evidence-policy baseline. Trama's
+synthetic OG qualification is recorded as evidence at
+`main@9905e8a36acb83a17a33b702a5fa620d6bfed185`; it does not establish current
+DTO authority or a read-only operation shape.
 
 No Logseq DB execution was performed. DB-host semantics, page/subtree parity,
 graph binding, lifecycle, transport, credential storage, event ordering,
@@ -48,8 +55,8 @@ digest, a stable non-foreign session, bounded sanitized fields, and zero forbidd
 change. Transport identity is conditional: CLI evidence needs its CLI artifact,
 SDK evidence its SDK version, and MCP stdio evidence its server identity.
 
-The pinned authority is Trama commit `9905e8a36acb83a17a33b702a5fa620d6bfed185`.
-The exact public authority paths are `packages/contracts/src/trama_contracts/models.py`
+The historical source pin is Trama commit `9905e8a36acb83a17a33b702a5fa620d6bfed185`.
+The exact historical source paths are `packages/contracts/src/trama_contracts/models.py`
 (Git blob SHA-1 `cd665decd41ccb2061b5355bc2ec20273fcc005e`),
 `docs/contracts/LOGSEQ_READ_CONTRACT_V1.md` (Git blob SHA-1
 `b59f92270338705b365346a2998a8174a559f0cd`), and
