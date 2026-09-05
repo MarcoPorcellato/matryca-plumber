@@ -4,19 +4,19 @@
 
 **Goal:** Deliver an evidence-backed experimental Logseq DB read path for graph identification, one page read, and one complete block-subtree read, using Matryca Trama as the named companion and adapter product while preserving Matryca Plumber's existing Logseq OG, Shadow DB, Strict Read Only, MCP, and CLI behavior.
 
-**Architecture:** A pinned capability spike in Matryca Trama selects one supported Logseq host surface before production code is written. Trama owns the user-facing companion, official Logseq OG/DB adapters, and host-object normalization into a small versioned shared contract. Matryca Plumber consumes that contract through a new session-bound `GraphSessionReadPort`; its existing filesystem `GraphReadPort` remains the OG/Shadow contract. Matryca Brain remains an optional future destination behind separate public ports and is not a dependency of this read path. Events, DB-source Shadow acceleration, all DB writes, and Trama–Brain connection remain separate gated programmes.
+**Architecture:** A pinned CLI-first capability spike in Matryca Trama selects one supported Logseq host surface before production adapter code is written. Trama owns the user-facing companion, official Logseq OG/DB adapters, and host-object normalization into the versioned `trama.logseq.read/v1` contract. Matryca Plumber consumes that contract through a new session-bound `GraphSessionReadPort`; its existing filesystem `GraphReadPort` remains the OG/Shadow contract. A separate characterization-first Clean Architecture lane may reduce `get_graph_read_port`, but it must not become a DB prerequisite or widen the filesystem port. Matryca Brain remains optional and outside this read path. Events, DB-source Shadow acceleration, all DB writes, and Trama–Brain connection remain separate gated programmes.
 
-**Tech Stack:** Matryca Trama's TypeScript/Logseq adapter surface, Python 3.12+, pytest, Pydantic-free Plumber boundaries, official Logseq JS Plugin SDK and/or built-in MCP/CLI probes, JSON fixtures, GitHub Actions, Matryca documentation profile v1.0 over OKF v0.2.
+**Tech Stack:** Matryca Trama Python 3.12+ packages, pytest, Pydantic-free Plumber boundaries, official Logseq CLI first, official Logseq JS Plugin SDK second, MCP stdio only as a third probe, JSON fixtures, GitHub Actions, Matryca documentation profile v1.0 over OKF v0.2.
 
 **Spec:** [`docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md`](../../roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md)
 
 ## Global Constraints
 
-- Start from public `main@3208bedfaeef0708034089057702cd21fa5dec52`; revalidate GitHub `main` before every branch.
+- Start from public `main@12ca79cb14f9bbdf196ec409a48025afb6503ca1`; revalidate GitHub `main` before every branch.
 - Use short-lived branches from current `main`; every PR targets `main`, carries one reviewable concern, and merges before a dependent branch is cut.
 - Never commit directly to `main` and never use a long-lived integration branch.
 - Never open, query, copy, export as an implementation shortcut, or mutate Logseq internal `db.sqlite`.
-- Use only a pinned and reproduced official Logseq plugin SDK, built-in MCP, CLI, or other supported host surface.
+- Probe supported host surfaces in this order: exact bundled CLI, official plugin SDK, MCP stdio. MCP HTTP is a current NO-GO while upstream issue #1101 remains open.
 - Initial product scope is exactly: graph identification, page read, complete ordered block-subtree read.
 - The companion product is [Matryca Trama](https://github.com/MarcoPorcellato/matryca-trama). Do not create a second Logseq companion or plugin inside Matryca Plumber.
 - Trama owns Logseq-host lifecycle, OG/DB adapters, companion UX, and the host side of shared contracts. Plumber owns memory/search services, agent-facing CLI/MCP behavior, and the consumer-side session router.
@@ -28,6 +28,7 @@
 - Existing OG Markdown parsing continues through `logseq-matryca-parser`; DB objects are normalized from official host DTOs and never passed through filesystem/parser assumptions.
 - Source authority is mode-specific: Markdown files remain authoritative for OG graphs; the official Logseq host surface remains authoritative for DB graphs. Trama, Plumber, and Brain must never reinterpret a DB graph as an authoritative Markdown mirror.
 - Keep the current filesystem `GraphReadPort` unchanged for OG and Shadow behavior. Do not widen its `Path` boundary to accept Logseq DB sessions.
+- Do not make `get_graph_read_port` responsible for DB mode or session routing. Any reduction of that selector uses a separate branch, characterization tests, and unchanged fallback semantics.
 - Introduce a distinct session-bound `GraphSessionReadPort` only after the capability spike proves exact graph identity and complete subtree semantics.
 - Shadow remains a disposable derived cache for supported sources, never Logseq DB's system of record.
 - Unsupported version, missing capability, disconnect, graph switch, foreign binding, stale session, malformed payload, excessive payload, and incomplete subtree must fail closed.
@@ -40,21 +41,23 @@
 
 ---
 
-## Verified Current Anchors — 2026-09-01
+## Verified Current Anchors — 2026-09-05
 
 | Surface | Exact anchor | Meaning |
 | --- | --- | --- |
-| Matryca Plumber public main | `3208bedfaeef0708034089057702cd21fa5dec52` | Current planning base |
-| Matryca Trama public main | `cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5` | Named companion; document-first foundation, no runtime claim |
+| Matryca Plumber public main | `12ca79cb14f9bbdf196ec409a48025afb6503ca1` | Current planning base; this refresh starts from that exact commit |
+| Matryca Trama public main | `9905e8a36acb83a17a33b702a5fa620d6bfed185` | Named companion with Python-first foundation and qualified synthetic OG contract; no DB-host claim |
 | Trama shared contracts | [#2](https://github.com/MarcoPorcellato/matryca-trama/issues/2) | Versioned Parser/Plumber contract track |
 | Trama Logseq adapters | [#4](https://github.com/MarcoPorcellato/matryca-trama/issues/4) | OG and initially read-only DB adapter track |
 | Matryca Brain public main | `e69a97a8c702a773c9a3ce8307b5a667ed2be1dd` | Current verified Brain source observation; no dependency is introduced |
 | Trama–Brain product boundary | [Brain #430](https://github.com/MarcoPorcellato/Matryca-per-Delineat/issues/430), [Trama ADR-0002](https://github.com/MarcoPorcellato/matryca-trama/blob/main/docs/decisions/ADR-0002-TRAMA_BRAIN_PRODUCT_BOUNDARY.md) | Separate products and repositories; optional future public contract |
 | Existing strategy | `docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md` | Design authority |
-| Logseq documentation | `08f855f24d66e4509b7ea808554c13b4649e6ee1` | Current DB and MCP documentation reviewed for this plan |
-| Logseq `test/db` | `5a23230a56832a6aab4a556d9894955120d26ece` | Stable-beta source candidate for probes |
-| Logseq nightly target | `dde0aba2d441c962d28989b0af894cc261da3898` | Nightly published 2026-08-26 |
-| Parser source in Matryca Knowledge | `e374014bf3787d3ba64d1f3284d8e11db316d437` | Current ecosystem source anchor; runtime remains pinned by this repository |
+| Logseq application source | `d2ab7726ab74402c14fdbc33041a89ac55c899ae` | Current official `logseq/logseq` `master` observed through GitHub API |
+| Logseq documentation | `08f855f24d66e4509b7ea808554c13b4649e6ee1` | Current official `logseq/docs` `master` observed through GitHub API |
+| Logseq `db-test` | `f65c01b8f6101a0263ce6a8723fbbb89bc3a3a79` | Current official test repository anchor; not an application release |
+| Logseq nightly release | target `dde0aba2d441c962d28989b0af894cc261da3898`; current mutable tag `f7362f07b0cecd1c3ef6e0983c1446868658fb00` | Published 2026-08-26; compatibility evidence binds downloaded asset digest and embedded revision, never the mutable tag alone |
+| Logseq macOS arm64 nightly artifact | DMG `ff81dd7513efa080a7f9bd122fca99d82f455a5c6745f154671b7530b8f8379b`; ZIP `f3cbaff017f2063a68583d9ca885aa1e52f1e324df98ea4fcb24c75fee2c244d` | Candidate artifact digests; reverify before acquisition or execution |
+| Parser public main and release | `65e8e64f7f0227bcae8235069fbc3da834652744`; `v1.8.2` | Current parser source and release; Plumber's lock still pins `1.7.1`, so dependency refresh is a separate lane |
 | Interoperability epic | [#490](https://github.com/MarcoPorcellato/matryca-plumber/issues/490) | Parent programme |
 | Capability spike | [#491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491) | First runtime-evidence gate |
 | Legacy Plumber companion tracking | [#492](https://github.com/MarcoPorcellato/matryca-plumber/issues/492) | Reconcile with Trama ownership; not authority for a second companion |
@@ -74,7 +77,11 @@ Current runtime evidence:
 - Current page dispatch still reads through filesystem/parser behavior, while subtree dispatch uses the filesystem `GraphReadPort`; neither is a Logseq DB session boundary.
 - No `GraphSession`, Logseq DB adapter, event cursor, or DB-source Shadow adapter exists.
 - Official Logseq documentation still marks DB as beta.
-- Official built-in MCP currently documents top-level block operations but not complete child-block operations or general property-value coverage. It therefore cannot be assumed to satisfy Matryca's complete subtree contract.
+- Official CLI documentation now exposes explicit graph selection, graph metadata, page/block tree reads, and structured output. It also owns a shared `db-worker-node` lifecycle and may replace a revision-mismatched server, so a nominal read command can have process-level side effects that the spike must constrain and record.
+- Official plugin SDK exposes graph identity, DB-mode detection, page reads, and child-inclusive block/page reads. Exact completeness, order, and version behavior remain unproven until the pinned spike runs.
+- MCP HTTP remains blocked by open upstream issue #1101. MCP stdio is only a third candidate and receives no production claim without the same identity and subtree proof.
+- Upstream issues #832 and #833 were closed as completed on 2026-08-31. Closure is not exact-artifact qualification; the spike must reproduce the relevant read semantics against the selected artifact.
+- `get_graph_read_port` remains a filesystem selector with two direct production callers (`handle_read_subtree` and the wheel probe). Code-graph orientation rates its transitive blast radius CRITICAL; any simplification stays isolated from DB work.
 
 ## Status Vocabulary
 
@@ -99,11 +106,9 @@ Current runtime evidence:
 
 Independent documentation or research can run in parallel only when files do not overlap. Production adapter work remains sequential because transport selection, protocol, session routing, and page/subtree reads form one dependency chain.
 
-## Local Main Recovery Before Implementation — COMPLETE
+## Historical Local Main Recovery — COMPLETE
 
-The current primary checkout is not safe for new work: local `main@701b923d567baa04e89846d973b7828a48fc1b30` is ahead 19, behind 19, has two modified tracked files, and contains an untracked `.worktrees/` directory. The commit is already retained by local branch `feat/pocket-alpha1a-contracts`, but the uncommitted bytes still require preservation.
-
-This recovery is a local operator step, not a product PR:
+The 2026-09-01 recovery below is retained as historical operator evidence, not current checkout state:
 
 - [x] Recorded complete primary-checkout status, branch refs, worktree registrations, and the two dirty diffs.
 - [x] Created `recovery/main-dirty-20260901-701b923` from the divergent local `main`.
@@ -115,9 +120,15 @@ This recovery is a local operator step, not a product PR:
 
 Do not use `git reset --hard`, `git clean`, stash, or worktree deletion for this recovery.
 
+**Current planning state (2026-09-05):** the primary checkout is clean at
+`3208bedfaeef0708034089057702cd21fa5dec52`, three commits behind
+`origin/main@12ca79cb14f9bbdf196ec409a48025afb6503ca1`. Do not move or edit that
+checkout as part of this refresh. Use a clean isolated worktree from the exact
+remote anchor and revalidate it before every delivery branch.
+
 ---
 
-### Task 1: Publish Current Programme Anchors
+### Task 1: Publish Current Programme Anchors — COMPLETE
 
 **PR scope:** Documentation only. Update the accepted strategy with current upstream pins, the confirmed read-only target, the trunk-based sequence, and this plan link.
 
@@ -131,7 +142,7 @@ Do not use `git reset --hard`, `git clean`, stash, or worktree deletion for this
 - Consumes: existing strategy and verified public/upstream anchors.
 - Produces: one public execution authority linking Plumber #490/#491/#492/#493/#17/#25 with Trama #2/#4 and the non-blocking Tine lane.
 
-- [ ] **Step 1: Add a dated current-state addendum to the strategy**
+- [x] **Step 1: Add a dated current-state addendum to the strategy**
 
 Record these exact decisions:
 
@@ -153,15 +164,15 @@ Ownership and parallel lanes:
 - Tine concurrency remains unclaimed; #108/#109 are future host-authoritative candidates
 ```
 
-- [ ] **Step 2: Add exact upstream anchors and drift rule**
+- [x] **Step 2: Add exact upstream anchors and drift rule**
 
 Require every executable probe to record Logseq source, SDK/package lock, documentation commit, app build, Trama commit, Plumber commit, graph fixture digest, probe source commit, and raw-result digest. A later upstream version requires a new evidence row; it must not overwrite the old row. Tine qualification additionally records exact release, source commit, Direct Files mode, platform, and proof of zero Matryca graph writes.
 
-- [ ] **Step 3: Link this plan from the strategy**
+- [x] **Step 3: Link this plan from the strategy**
 
 The strategy remains design authority; this file owns execution order and PR boundaries.
 
-- [ ] **Step 4: Regenerate documentation inventory**
+- [x] **Step 4: Regenerate documentation inventory**
 
 Run:
 
@@ -172,7 +183,7 @@ make docs-inventory-md
 
 Expected: the new plan has one curated inventory entry and generated Markdown matches JSON.
 
-- [ ] **Step 5: Run documentation gates**
+- [x] **Step 5: Run documentation gates**
 
 Run:
 
@@ -183,7 +194,7 @@ make docs-audit
 
 Expected: `docs-check` PASS; `docs-audit` completes as informational evidence.
 
-- [ ] **Step 6: Commit the documentation slice**
+- [x] **Step 6: Commit the documentation slice**
 
 ```bash
 git add docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md \
@@ -194,9 +205,14 @@ git commit -S -m "docs(logseq): plan DB read-only compatibility"
 
 Stop before push or PR unless separately authorized.
 
+Merged by Plumber PR #555 as commit
+`1673bc0167d5b45e8ce09567f75d86f2f50a302e` on 2026-09-01. The exact
+commands above describe the original slice; current execution starts from the
+refreshed anchors in this document.
+
 ---
 
-### Task 2: Establish Matryca Trama Execution Authority
+### Task 2: Establish Matryca Trama Execution Authority — COMPLETE
 
 **Repository:** `MarcoPorcellato/matryca-trama`
 
@@ -219,81 +235,133 @@ Stop before push or PR unless separately authorized.
 - Exact source/test paths and the Trama toolchain are fixed by the new Trama plan; this Plumber plan does not invent them across a repository boundary.
 - Matryca Knowledge does not yet index Trama as a managed source. After the Trama planning PR merges, onboard its public documentation through a separate Knowledge-governance change; live Trama source remains authoritative until then.
 
-- [ ] Verify Trama `main` and its clean implementation worktree.
-- [ ] Update architecture and roadmap without claiming a runtime.
-- [ ] Write the exact Trama contract/adapter implementation plan with TDD steps and short PR boundaries.
-- [ ] Run Trama's foundation validator and hosted CI.
-- [ ] Merge this documentation PR before either repository implements the shared contract.
+- [x] Verify Trama `main` and its clean implementation worktree.
+- [x] Update architecture and roadmap without claiming a runtime.
+- [x] Write the exact Trama contract/adapter implementation plan with TDD steps and short PR boundaries.
+- [x] Run Trama's foundation validator and hosted CI.
+- [x] Merge this documentation PR before either repository implements the shared contract.
+
+Completion evidence: Trama PR #10 established read-contract authority at
+`fc51bdaf256f6dba24a1ff46f89e8cb458011b19`; PR #11 froze
+`trama.logseq.read/v1` at `0dbda438859753e68a55c297398d66c00a54cc25`;
+PR #12 established the Python-first architecture at
+`2ac930b5d7ee8f3a420c8fd334e8ba9631a44974`; and PR #13 added the
+qualified synthetic OG contract at
+`9905e8a36acb83a17a33b702a5fa620d6bfed185`. These commits do not prove a
+Logseq DB host adapter.
 
 ---
 
-### Task 3: Freeze Plumber Consumer Capability Evidence Schema
+### Task 3: Freeze Plumber Consumer Evidence Policy
 
 **Repository:** `MarcoPorcellato/matryca-plumber`
 
-**PR scope:** Consumer acceptance and evidence contract only; no shared-protocol ownership and no live adapter.
+**PR scope:** Consumer admission policy and evidence fixtures only; no shared-protocol ownership, copied wire schema, source change, or live adapter.
 
 **Files:**
-- Create: `tests/compatibility/logseq_db/capability-schema-v1.json`
-- Create: `tests/compatibility/logseq_db/fixtures/supported-minimal.json`
+- Create: `tests/compatibility/logseq_db/consumer-evidence-profile-v1.json`
+- Create: `tests/compatibility/logseq_db/fixtures/unverified-db-baseline.json`
 - Create: `tests/compatibility/logseq_db/fixtures/rejected-incomplete-subtree.json`
 - Create: `tests/compatibility/logseq_db/fixtures/rejected-direct-database.json`
-- Create: `tests/test_logseq_db_capability_contract.py`
-- Create: `docs/quality/LOGSEQ_DB_CAPABILITY_BASELINE_2026-09-01.md`
+- Create: `tests/test_logseq_db_consumer_evidence.py`
+- Create: `docs/quality/LOGSEQ_DB_CAPABILITY_BASELINE_2026-09-05.md`
 - Modify: `docs/knowledge/inventory.json`
 - Modify generated: `docs/knowledge/inventory.md`
 
 **Interfaces:**
-- Consumes: #491 acceptance criteria, exact anchors above, and the accepted Trama Phase 1 contract plan.
-- Produces: Plumber's `logseq-db-capability/v1` consumer evidence profile. It must validate the shared Trama contract rather than fork it.
+- Consumes: #491 acceptance criteria, exact anchors above, and Trama's
+  `trama.logseq.read/v1` DTO authority at
+  `main@9905e8a36acb83a17a33b702a5fa620d6bfed185`.
+- Produces: Plumber's versioned consumer evidence policy. This outer profile
+  decides whether evidence is admissible; it must reference the Trama contract
+  and never duplicate, serialize, or fork its request/result semantics.
+- Preserves: Trama ownership of host acquisition, DTO semantics, serialization,
+  and DB-native result fixtures. Trama's current consumer remains OG-only and
+  must not be widened in this task.
+- Keeps two namespaces distinct: Trama runtime outcomes (`success`,
+  `unsupported`, `incompatible`, `invalid_request`, `not_found`,
+  `authority_failure`, `provenance_failure`) and Plumber evidence
+  `qualification_state` values. Neither substitutes for the other.
 
-- [ ] **Step 1: Write failing schema-contract tests**
+- [ ] **Step 1: Write failing consumer-policy tests**
 
-Tests must reject missing values for:
+Tests must reject:
 
 ```python
-REQUIRED_IDENTITY = {
-    "logseq_source_commit",
-    "logseq_build_id",
-    "documentation_commit",
-    "sdk_version",
-    "probe_commit",
-    "fixture_sha256",
-    "result_sha256",
+TRAMA_CONTRACT_REFERENCE = {
+    "contract_id": "trama.logseq.read/v1",
+    "accepted_contract_major": 1,
 }
 REQUIRED_CAPABILITIES = {
     "graph.identify",
     "page.read",
     "block.subtree.read.complete",
 }
-ALLOWED_STATUS = {"supported", "read-only", "deferred", "rejected", "unverified"}
+ALLOWED_QUALIFICATION_STATES = {
+    "supported",
+    "deferred",
+    "rejected",
+    "unverified",
+}
 ```
 
-Also reject a capability result that reports direct internal-database access or calls a top-level-only block result complete.
+The policy must reject an unknown contract major; an unpinned Trama source or
+evidence reference; non-read-only scope; graph fallback or graph switching;
+mutation, sync, import, or export; direct internal-database access; a foreign or
+stale session; missing bounded limits or uncertainty; and any top-level-only or
+otherwise incomplete subtree represented as complete.
+
+The profile references the Trama request envelope (`contract_id`, accepted
+major, operation, request ID, graph selector, and page/block reference) and
+result envelope (`contract_id`, version, operation, request ID, outcome,
+payload, graph binding, producer, capabilities, and provenance) without
+redeclaring their wire representation. Provenance checks use Trama's exact
+fields: `source_mode`, `authority`, `source_reference`, `producer`,
+`exercised_capabilities`, and `evidence_digest`.
+
+For a future `qualification_state: "supported"`, require exact selected-host
+identity, artifact/build digest, Trama/probe commit, fixture digest, result
+evidence digest, all three successful operations, `db_native` provenance, exact
+graph binding, complete ordered parentage, and zero forbidden state change.
+Transport identity is conditional: require the CLI artifact for CLI evidence,
+the SDK version only for SDK evidence, and the MCP server identity only for MCP
+stdio evidence. Task 3 itself may create only `unverified` and negative fixtures.
 
 - [ ] **Step 2: Run focused tests and observe failure**
 
 ```bash
-uv run pytest tests/test_logseq_db_capability_contract.py -q
+uv run pytest tests/test_logseq_db_consumer_evidence.py -q
 ```
 
-Expected: FAIL because schema and fixtures do not yet exist.
+Expected: FAIL because the evidence profile and fixtures do not yet exist.
 
-- [ ] **Step 3: Add minimal JSON Schema and fixtures**
+- [ ] **Step 3: Add the minimal consumer evidence profile and fixtures**
 
-Require bounded evidence arrays, explicit `status`, `source`, `limits`, and `uncertainty`, plus `direct_database_access: false`.
+Require bounded evidence arrays, explicit `qualification_state`, `scope`,
+`source`, `limits`, `uncertainty`, and `direct_database_access: false`. Keep
+selected-host hashes and lifecycle observations in this outer evidence profile;
+do not add them to `trama.logseq.read/v1`. Treat `result_sha256` as the stored
+digest of the Trama `evidence_digest`, not as a second independent truth field.
+
+Create a separate Logseq DB evidence catalog/profile. Do not alter
+`tests/compatibility/manifest.json`, whose current authority covers the existing
+compatibility corpus.
 
 - [ ] **Step 4: Run focused tests**
 
 ```bash
-uv run pytest tests/test_logseq_db_capability_contract.py -q
+uv run pytest tests/test_logseq_db_consumer_evidence.py -q
 ```
 
 Expected: PASS.
 
 - [ ] **Step 5: Add baseline report**
 
-Record only documentation-confirmed capabilities as facts. Mark page/subtree parity, graph binding, plugin origin, credential storage, event ordering, cursor semantics, and conflict semantics `unverified` until executed.
+Record Trama's synthetic OG qualification as fact. Mark DB-host semantics,
+page/subtree parity, graph binding, lifecycle, transport, credential storage,
+event ordering, cursor semantics, and conflict semantics `unverified` until
+executed. State explicitly that this baseline proves consumer-policy rejection,
+not Logseq DB support.
 
 - [ ] **Step 6: Run repository gates and commit**
 
@@ -302,8 +370,8 @@ make docs-inventory-sync
 make docs-inventory-md
 make docs-check
 /usr/bin/make ci
-git add tests/compatibility/logseq_db tests/test_logseq_db_capability_contract.py \
-  docs/quality/LOGSEQ_DB_CAPABILITY_BASELINE_2026-09-01.md \
+git add tests/compatibility/logseq_db tests/test_logseq_db_consumer_evidence.py \
+  docs/quality/LOGSEQ_DB_CAPABILITY_BASELINE_2026-09-05.md \
   docs/knowledge/inventory.json docs/knowledge/inventory.md
 git commit -S -m "test(logseq): freeze DB capability evidence"
 ```
@@ -320,15 +388,25 @@ Stop before push or PR unless separately authorized.
 
 **Interfaces:**
 - Consumes: the Trama Phase 1 contract, Plumber's consumer evidence profile, and a dedicated non-sensitive DB test graph.
-- Produces: signed/digested Trama evidence for official plugin SDK, built-in MCP, and CLI surfaces where callable.
+- Produces: signed/digested Trama evidence for the exact bundled CLI first, official plugin SDK second if needed, and MCP stdio third if needed.
 
-**Blocking proof:** No production adapter task may start until the spike proves both (a) stable graph identity across the session and graph-switch lifecycle and (b) that the selected host operation returns a complete, ordered descendant tree rather than top-level blocks or a partial page projection.
+**Blocking proof:** No production adapter task may start until the spike proves
+both (a) stable graph identity across the app-open/app-closed session lifecycle
+without switching the current graph and (b) that the selected host operation
+returns a complete, ordered descendant tree rather than top-level blocks or a
+partial page projection.
 
-- [ ] **Step 1: Pin all JavaScript dependencies and upstream identity**
+- [ ] **Step 1: Pin the executable artifact and upstream identity**
 
-Use an exact `@logseq/libs` version or exact Git commit resolved from the tested Logseq build. No ranges, ambient global package dependency, or probe source inside Plumber.
+Record the downloaded artifact name and SHA-256, embedded `logseq --version`
+revision, release target commit, current tag object, Logseq source and docs
+commits, Trama commit, probe commit, fixture digest, platform, and raw-result
+digest. A mutable nightly tag is discovery metadata only. Use the CLI bundled
+with the selected application artifact; never combine an app with an unrelated
+global CLI. If the SDK lane is reached, pin the exact `@logseq/libs` package or
+source commit compatible with that build. No ranges or ambient global package.
 
-- [ ] **Step 2: Implement three read-only probes**
+- [ ] **Step 2: Implement the CLI-first read-only probe**
 
 The probe emits only bounded structural results:
 
@@ -348,34 +426,64 @@ type RequiredProbeResult = {
 
 The committed fixture uses synthetic text only. Raw private graph content never enters Git.
 
-- [ ] **Step 3: Add fail-closed probe assertions**
+Invoke only documented structured-output commands with an explicit `--graph`
+for every graph-bound read. The initial command family is `graph list`, `graph
+info`, and `show --page|--uuid|--id` as required to prove the three operations.
+Never invoke `graph switch`, `graph create`, `graph remove`, import, export,
+backup, sync, login, logout, mutation, arbitrary Datascript query, or direct
+SQLite access.
 
-Reject OG mode, incomplete child traversal, duplicated IDs, broken parent references, non-contiguous sibling order, foreign graph identity, unsupported build, and any attempt to resolve `db.sqlite`.
+- [ ] **Step 3: Add fail-closed identity, lifecycle, and structure assertions**
 
-- [ ] **Step 4: Run static and synthetic probe tests**
+Reject OG mode, incomplete child traversal, duplicated IDs, broken parent
+references, non-contiguous sibling order, foreign graph identity, unsupported
+build, unexpected stderr, unbounded output, timeout, revision mismatch, server
+replacement, current-graph change, graph-content fingerprint change, and any
+attempt to resolve `db.sqlite`.
+
+- [ ] **Step 4: Prove read-only process behavior with the app closed and open**
+
+Use one disposable synthetic DB graph. Before each probe, record graph identity,
+content fingerprint, CLI config fingerprint, and `server list`. Run the same
+bounded reads once with the desktop app closed and once with it open. After each
+probe, repeat all fingerprints and server inspection. Do not automatically
+stop, restart, clean, or replace a server; a revision mismatch or ownership
+conflict is a terminal negative result for that artifact.
+
+- [ ] **Step 5: Run static and synthetic probe tests**
 
 Run the exact install, test, and build commands frozen by the accepted Trama implementation plan, then validate the resulting evidence with Plumber's consumer contract.
 
 Expected: all PASS without a real user graph.
 
-- [ ] **Step 5: Run bounded real-app probe once per selected official surface**
+- [ ] **Step 6: Run the bounded exact-artifact probe**
 
-Use a dedicated disposable DB graph built from the committed synthetic fixture. Preserve exact app build, SDK/package lock, command, result digest, and negative outcomes. Do not classify a surface `supported` unless graph identity, page read, and complete subtree read all pass.
+Use the dedicated disposable DB graph built from the committed synthetic
+fixture. Preserve bounded raw logs outside public source and publish only
+sanitized structural evidence. Do not classify a surface `supported` unless
+graph identity, page read, complete subtree read, app-open/app-closed parity,
+and zero forbidden state change all pass.
 
-- [ ] **Step 6: Make adapter decision**
+- [ ] **Step 7: Escalate transport only when evidence requires it**
 
 Apply this rule:
 
 ```text
-If built-in MCP proves complete subtree and graph/session binding:
-    select built-in MCP as primary transport.
-Else if official plugin SDK proves them:
-    select companion SDK transport.
+If the exact bundled CLI proves the full contract and bounded lifecycle:
+    select CLI transport.
+Else if the official plugin SDK proves the full contract in the companion:
+    select plugin SDK transport.
+Else if MCP stdio proves the full contract with isolated lifecycle:
+    select MCP stdio transport.
 Else:
     declare NO-GO; publish capability evidence; implement no adapter.
 ```
 
-- [ ] **Step 7: Run gates and commit exact evidence**
+MCP HTTP is not an escalation target while upstream issue #1101 is open. Closed
+issues #832 and #833 remain regression inputs, not proof that the selected
+artifact is safe.
+
+- [ ] **Step 8: Run gates and commit exact evidence**
 
 Run Trama's exact focused and full gates. Commit the probe and sanitized evidence in Trama; update Plumber's baseline only in a separate short documentation PR pinned to the exact Trama commit and result digest.
 
@@ -387,15 +495,26 @@ Plumber #491 closes only when both exact hosted check sets are green and the cap
 
 No production branch starts before Tasks 3 and 4 merge.
 
-### Outcome A — Built-in MCP qualifies
+### Outcome A — Exact bundled CLI qualifies
 
-Create a focused follow-up implementation plan for an authenticated streamable-HTTP adapter. The plan must bind token audience, graph selection, complete subtree semantics, response bounds, and unavailable-capability errors. Matryca Trama remains the named companion product, but a Trama-specific transport must not be required when the built-in MCP already satisfies the read contract.
+Create a focused Trama CLI-adapter plan. It must bind executable and application
+revision, explicit graph selection, structured decoding, complete subtree
+semantics, timeouts, response bounds, stderr, server ownership, revision
+mismatch, disconnect, and unavailable-capability errors. It must never change
+the current graph or automatically replace a server.
 
 ### Outcome B — Plugin SDK qualifies
 
 Continue through Trama #2/#4 and reconcile Plumber #492/#493: shared protocol fixtures, split pairing/security responsibilities, one Trama dual-mode companion shell, then Plumber session routing. Do not create a companion package inside Plumber.
 
-### Outcome C — Neither qualifies
+### Outcome C — MCP stdio qualifies
+
+Create a focused per-process stdio adapter plan with exact graph binding,
+authentication if required by the selected build, complete subtree semantics,
+bounded output, timeout, cancellation, child-process cleanup, and protocol-error
+handling. Do not reuse the HTTP server or claim multi-session support.
+
+### Outcome D — No candidate qualifies
 
 Publish the negative result, keep #17 blocked, and do not implement a partial adapter. Re-run #491 only against a newer exact Logseq baseline after upstream capabilities materially change.
 
@@ -416,6 +535,51 @@ These are dependency and outcome boundaries, not authorization to create branche
 | 11 | Trama + Plumber, separate PRs | Publish experimental compatibility guides and one exact-version support matrix | Trama #4; Plumber #490 | Both hosted CI sets and one clean-install qualification PASS |
 
 Each row receives its own detailed implementation plan after D1 fixes transport and exact interfaces. This avoids inventing source paths or APIs before evidence selects them.
+
+## Parallel Clean Architecture Lane: Reduce `get_graph_read_port`
+
+This lane records the approved cleanup without coupling it to Logseq DB
+compatibility. It may run before or after the capability spike only when no
+integration slice overlaps its files. It never blocks D1 and never adds DB
+selection to the filesystem port.
+
+**Current evidence:** `get_graph_read_port` is short but combines Shadow-health
+policy, concrete adapter construction, and a discarded root canonicalization.
+Its two production callers are `handle_read_subtree` and the installed-wheel
+probe. Code-graph orientation reports a CRITICAL transitive blast radius across
+20 modules, so signature, fallback, and wheel-probe behavior are frozen until
+characterization passes.
+
+### Refactor PR A: Characterize existing selection
+
+**Files:**
+- Modify: `tests/test_graph_repository.py`
+- Modify only as needed: `tests/test_shadow_read_port.py`
+- Modify only as needed: `tests/test_shadow_hardening_axis3_routing.py`
+- Modify only as needed: `tests/test_beta_readiness_evidence.py`
+
+- [ ] Prove disabled or unhealthy Shadow returns `MarkdownGraphRepository`.
+- [ ] Prove healthy Shadow returns `ShadowGraphRepository` without creating Shadow artifacts.
+- [ ] Prove health changes after selection retain query-time fail-closed fallback.
+- [ ] Prove `handle_read_subtree` retains current behavior and the wheel evidence schema retains its existing duplicate-fallback contract. Add a narrowly controlled `wheel_probe_main` execution test only if it can remain deterministic and isolated.
+- [ ] Run the focused tests, `tests/test_graph_layer_boundary.py`, and full `make check` without changing production source.
+
+### Refactor PR B: Extract one pure selection decision
+
+**Files:**
+- Modify: `src/agent/markdown_graph_repository.py`
+- Modify: characterization tests from PR A only when required by the unchanged public contract.
+
+- [ ] Run exact-head GitNexus impact before source edits; stop and report if direct callers or affected safety processes changed.
+- [ ] Add the smallest private pure selector, such as `_port_for_shadow_readiness(is_ready: bool) -> GraphReadPort`.
+- [ ] Keep `get_graph_read_port(graph_root: Path | None = None) -> GraphReadPort` as the compatibility façade that computes readiness and delegates.
+- [ ] Retain the `resolved_graph_root` call by default. Remove it only under a dedicated test that proves exact exception and call-order compatibility; PR A's general characterization alone is insufficient.
+- [ ] Do not add a factory hierarchy, configuration object, DB condition, session type, transport, event behavior, or write behavior.
+- [ ] Run focused tests, `tests/test_graph_layer_boundary.py`, full `make check`, GitNexus `detect_changes()` against `main`, and a second exact-candidate impact review.
+
+Moving the selector to another module is default NO-GO unless the two-PR result
+proves a concrete ownership or dependency-direction defect. A file move alone
+would add abstraction without reducing responsibility.
 
 ## Initial Compatibility Exit Gate
 
@@ -483,6 +647,11 @@ This lane does not share Logseq DB adapter code. Shared outputs are compatibilit
 
 ## Restart and Handoff Contract
 
+The compact restart-safe execution pointer is
+[`docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md`](../../quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md).
+This plan remains the only milestone and completion authority; the persistent
+goal must never redefine its scope or gates.
+
 At every PR boundary record:
 
 - repository and worktree absolute path;
@@ -497,11 +666,12 @@ Temporary worktree paths are not durable evidence. Preserve approved work in a l
 
 ## Completion Checklist
 
-- [x] Primary `main` is clean and matches GitHub `main` without losing prior work.
-- [ ] Task 1 plan/current-anchor PR is merged.
-- [ ] Trama is publicly named as the only companion product; Plumber #492 is reconciled without creating a second companion.
-- [ ] Trama Phase 1 contract execution authority is merged under Trama #2.
-- [ ] Plumber's consumer capability evidence schema is merged.
+- [x] Historical primary recovery preserved prior work; current delivery worktree starts clean from verified GitHub `main`.
+- [x] Task 1 plan/current-anchor PR is merged.
+- [x] Trama is publicly named as the only companion product; no second companion is created in Plumber.
+- [x] Trama Phase 1 contract execution authority and `trama.logseq.read/v1` are merged under Trama #2.
+- [x] Trama Python-first foundation and synthetic OG contract qualification are merged without a DB-host claim.
+- [ ] Plumber's consumer evidence policy is merged without copying Trama's contract schema.
 - [ ] Trama's capability probe and Plumber #491 reach supported adapter selection or a public NO-GO.
 - [ ] D1 transport decision is recorded.
 - [ ] Contract and security PRs appropriate to selected transport are merged.
@@ -515,3 +685,5 @@ Temporary worktree paths are not durable evidence. Preserve approved work in a l
 - [ ] DB writes remain unclaimed and separately tracked under #25.
 - [ ] Tine coexistence remains read-only, version-bound, non-blocking, and separate from the Logseq DB adapter.
 - [ ] Matryca Brain remains optional, separately released, and outside the initial read path; any future connection remains tracked under Brain #430.
+- [ ] `get_graph_read_port` characterization is merged in a separate PR without production changes.
+- [ ] Any approved `get_graph_read_port` reduction preserves its signature, filesystem-only ownership, Shadow fallback, and wheel-probe behavior.

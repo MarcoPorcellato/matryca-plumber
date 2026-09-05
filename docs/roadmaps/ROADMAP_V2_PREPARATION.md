@@ -20,7 +20,13 @@ See the [stable release record](../releases/v2.0.0-GITHUB.md),
 [terminal Gate B evidence](../quality/GATE_B_RC2_TERMINAL_EVIDENCE_2026-08-13.md),
 and [final readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
-Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`) for fast hierarchical reads (FTS5 + recursive CTEs), a **`GraphRepository`** port for coexistent Markdown and Logseq DB backends, and **Safe-Sync** write rules. **Logseq Markdown on disk remains the system of record** — shadow is a read cache, not a replacement vault.
+Matryca Plumber **v2.0.0** adds a daemon-owned **Shadow DB** (`shadow.sqlite`)
+for fast hierarchical reads (FTS5 + recursive CTEs) and a filesystem
+**`GraphReadPort`** shared by the Logseq OG Markdown and derived Shadow
+adapters. **Logseq Markdown on disk remains the system of record** — Shadow is
+a read cache, not a replacement vault. Logseq DB is not a shipped backend:
+read-only support is a separate evidence-gated programme, and DB writes remain
+deferred under [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25).
 
 **Start here if you are new:** this document → Epic #20 → phase tracking issues → slice PRs.
 
@@ -40,7 +46,7 @@ For live release qualification state, use the
 | **Repository port** | `GraphReadPort`, `MarkdownGraphRepository`, `ShadowGraphRepository`, subtree CTE routing ([#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17), [#253](https://github.com/MarcoPorcellato/matryca-plumber/issues/253), [#255](https://github.com/MarcoPorcellato/matryca-plumber/issues/255)) | — | — |
 | **Read path** | Published beta: `master_catalog.json` + in-memory BM25 by default; opt-in graph-local Shadow FTS5/CTE ([#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177)) | RC implementation slices #354–#366; see the [current runtime and operator contract](../knowledge/architecture/shadow-db.md) | See [current RC and stable qualification status](../quality/issue-bodies/v2-rc-stable-readiness.md) |
 | **Write path (OG)** | OCC + `.md` + `page_rmw_lock` | — | — |
-| **Write path (Logseq DB)** | — | — | official CLI/API bridge ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)) |
+| **Write path (Logseq DB)** | — | — | Future supported host-authoritative bridge, pending #25 conflict/atomicity/recovery evidence; no current capability |
 | **Operator health** | Sovereign UI `/api/state.shadow_db` ([#185](https://github.com/MarcoPorcellato/matryca-plumber/issues/185)) | — | — |
 
 Child roadmaps: [`ROADMAP_V2_SHADOW_DB.md`](ROADMAP_V2_SHADOW_DB.md) · [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md) · [`../openspec/biological-memory.md`](../openspec/biological-memory.md).
@@ -66,7 +72,7 @@ flowchart LR
 | **1** | GraphRepository ports | `GraphReadPort` + `MarkdownGraphRepository`; `graph_dispatch` delegates at least one read method; parity tests; **default behavior unchanged** | [#17](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) · Phase 1 ([#175](https://github.com/MarcoPorcellato/matryca-plumber/issues/175)) **done** (subtree + port) |
 | **2** | Shadow incremental sync | Bootstrap, reconciliation, runtime gating ([#176](https://github.com/MarcoPorcellato/matryca-plumber/issues/176), [#248](https://github.com/MarcoPorcellato/matryca-plumber/issues/248)) | [#24](https://github.com/MarcoPorcellato/matryca-plumber/issues/24) · **done** (closed at `v2.0.0-alpha`) |
 | **3** | Read routing (alpha) | `MATRYCA_SHADOW_DB_ENABLED=false` default; FTS5/CTE behind flag; BM25/AST fallback when lag or disabled; Sovereign UI health row | [#177](https://github.com/MarcoPorcellato/matryca-plumber/issues/177) · **done** |
-| **4** | Memory + Logseq DB Safe-Sync (`v2.1+`) | `MATRYCA_MEMORY_GRAPH_ENABLED`; `search_graph(method=recall)`; Logseq DB write via official CLI only | [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) · [#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139) · Phase 4 issue |
+| **4** | Memory + future Logseq DB Safe-Sync (`v2.1+`) | `MATRYCA_MEMORY_GRAPH_ENABLED`; `search_graph(method=recall)`; no DB write support until a supported host-authoritative surface proves conflict, atomicity, and recovery semantics | [#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) · [#139](https://github.com/MarcoPorcellato/matryca-plumber/issues/139) · Phase 4 issue |
 
 ### Phase 0 — v1 prerequisites (blockers)
 
@@ -124,11 +130,14 @@ see `llms.txt` §2.5–§2.6.
 
 **Verify:** `uv run pytest tests/test_shadow_fts_routing.py tests/test_shadow_read_port.py tests/test_shadow_state_api.py tests/test_shadow_bootstrap.py tests/test_ui_server.py -q`
 
-### Phase 4 — Biological memory + Safe-Sync DB
+### Phase 4 — Biological memory + future Safe-Sync DB
 
 - Memory tables in schema — [`ROADMAP_V2_BIOLOGICAL_MEMORY.md`](ROADMAP_V2_BIOLOGICAL_MEMORY.md).
 - `search_graph(method=recall)` — hybrid recall (semantic + graph walk + recency).
-- Logseq DB writes: **official CLI/API only** — never mutate Logseq internal SQLite ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)).
+- Logseq DB writes: **not implemented or qualified**. Any future path must use a
+  supported host-authoritative surface and prove revision, conflict, atomicity,
+  timeout reconciliation, recovery, and undo/redo semantics. Never mutate
+  Logseq internal SQLite ([#25](https://github.com/MarcoPorcellato/matryca-plumber/issues/25)).
 
 ---
 
@@ -163,10 +172,10 @@ in the [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md).
 
 | Path | Rule |
 |------|------|
-| **READ** | Shadow DB syncs read-only from Markdown (Classic) or Markdown Mirror (Logseq DB) |
+| **READ** | Current Shadow DB syncs read-only from Logseq OG Markdown only. Logseq DB read compatibility is a separate session-bound programme and has no Shadow ingestion claim. |
 | **CACHE** | Current derived-cache and Read Only behavior: [v2 operator contract](../knowledge/architecture/shadow-db.md) |
 | **WRITE (Logseq OG)** | Append to `.md` + OCC — **shipped v1.9.5** |
-| **WRITE (Logseq DB)** | Official CLI/API only — **v2 Phase 4** |
+| **WRITE (Logseq DB)** | Not implemented; future host-authoritative design only after #25 evidence gates |
 
 Full spec: [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) · [`../openspec/llm-os-instructions.md`](../openspec/llm-os-instructions.md).
 
