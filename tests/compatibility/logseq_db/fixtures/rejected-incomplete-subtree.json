@@ -1,0 +1,86 @@
+{
+  "qualification_state": "rejected",
+  "scope": "read-only",
+  "direct_database_access": false,
+  "source": {
+    "contract_id": "trama.logseq.read/v1",
+    "accepted_contract_major": 1,
+    "source_reference": "9905e8a36acb83a17a33b702a5fa620d6bfed185"
+  },
+  "limits": {"max_items": 100, "max_depth": 32, "timeout_seconds": 10},
+  "uncertainty": [],
+  "session": {"identity": "synthetic-session-1", "lifecycle": "stable", "foreign": false, "stale": false},
+  "host": {
+    "identity": "synthetic-session-1",
+    "selected": true,
+    "artifact_build_digest": "b7dcd226f419aae34964aaf8520e747f6cfc57171442f4b59b35a5f7ca5b63b5",
+    "trama_commit": "a64f8ea18f0e527fb782f2e8c6f5c95231910f6c",
+    "probe_commit": "3119d672ee61545694bd2c3a55471e36ac5b1495"
+  },
+  "synthetic_commit_bases": {
+    "trama_commit": "task-3 synthetic commit v2: rejected-incomplete-subtree:trama",
+    "probe_commit": "task-3 synthetic commit v2: rejected-incomplete-subtree:probe"
+  },
+  "synthetic_artifact_basis": "task-3 synthetic artifact v2: rejected-incomplete-subtree",
+  "synthetic_fixture_basis": "task-3 synthetic fixture v2: rejected-incomplete-subtree",
+  "fixture_digest": "4ea5d23c6ca3840e68e055d512b8ecbc9d9eee7df6f59d2e66d0322c7c16bef9",
+  "graph_binding": "graph:synthetic-incomplete-1",
+  "operation_evidence": [
+    {
+      "operation": "graph.identify",
+      "outcome": "success",
+      "result_producer": "synthetic-result-producer",
+      "result_capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"],
+      "graph_binding": "graph:synthetic-incomplete-1",
+      "trama_result_provenance": {
+        "source_mode": "db_native",
+        "authority": "logseq_db_native",
+        "source_reference": "profile:synthetic-incomplete-db-read",
+        "producer": "synthetic-result-producer",
+        "exercised_capabilities": ["graph.identify"],
+        "evidence_digest": "9b824060369af13003162b209fd796458c6dba0355ccf108d691106c6d4014ab"
+      },
+      "result_sha256": "9b824060369af13003162b209fd796458c6dba0355ccf108d691106c6d4014ab",
+      "synthetic_result_basis": "task-3 synthetic result v2: rejected-incomplete-subtree:graph.identify"
+    },
+    {
+      "operation": "page.read",
+      "outcome": "success",
+      "result_producer": "synthetic-result-producer",
+      "result_capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"],
+      "graph_binding": "graph:synthetic-incomplete-1",
+      "trama_result_provenance": {
+        "source_mode": "db_native",
+        "authority": "logseq_db_native",
+        "source_reference": "profile:synthetic-incomplete-db-read",
+        "producer": "synthetic-result-producer",
+        "exercised_capabilities": ["page.read"],
+        "evidence_digest": "53e27abb0b1b2c384a2b894cf2b0cd4f7fee8cb4f1e90ae2c470ee176ba838ab"
+      },
+      "result_sha256": "53e27abb0b1b2c384a2b894cf2b0cd4f7fee8cb4f1e90ae2c470ee176ba838ab",
+      "synthetic_result_basis": "task-3 synthetic result v2: rejected-incomplete-subtree:page.read"
+    },
+    {
+      "operation": "block.subtree.read.complete",
+      "outcome": "success",
+      "result_producer": "synthetic-result-producer",
+      "result_capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"],
+      "graph_binding": "graph:synthetic-incomplete-1",
+      "trama_result_provenance": {
+        "source_mode": "db_native",
+        "authority": "logseq_db_native",
+        "source_reference": "profile:synthetic-incomplete-db-read",
+        "producer": "synthetic-result-producer",
+        "exercised_capabilities": ["block.subtree.read.complete"],
+        "evidence_digest": "6a26bdd88cc9c62b699fa9242d27cda0ab8475322562dad073b557ab15813f32"
+      },
+      "result_sha256": "6a26bdd88cc9c62b699fa9242d27cda0ab8475322562dad073b557ab15813f32",
+      "synthetic_result_basis": "task-3 synthetic result v2: rejected-incomplete-subtree:block.subtree.read.complete",
+      "subtree_observation": {"complete": false, "ordered_parentage": false, "top_level_only": true}
+    }
+  ],
+  "transport": {"kind": "cli", "cli_artifact": "synthetic-cli-task-3"},
+  "forbidden_actions": [],
+  "forbidden_state_change": false,
+  "rejection_reason": "subtree-incomplete"
+}

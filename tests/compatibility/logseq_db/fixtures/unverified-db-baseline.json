@@ -1,0 +1,15 @@
+{
+  "qualification_state": "unverified",
+  "scope": "read-only",
+  "direct_database_access": false,
+  "source": {
+    "contract_id": "trama.logseq.read/v1",
+    "accepted_contract_major": 1,
+    "source_reference": "9905e8a36acb83a17a33b702a5fa620d6bfed185"
+  },
+  "limits": {"max_items": 100, "max_depth": 32, "timeout_seconds": 10},
+  "uncertainty": ["db_host_semantics_unexecuted", "graph_lifecycle_parity_unestablished"],
+  "synthetic_fixture_basis": "task-3 synthetic fixture v2: unverified-db-baseline",
+  "fixture_digest": "53166b7477d04ed4f6d2bacbd1891128cf8547bdccecce63ee8f196ad7d359ea",
+  "operation_evidence": []
+}

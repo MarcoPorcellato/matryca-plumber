@@ -1,0 +1,86 @@
+{
+  "qualification_state": "rejected",
+  "scope": "read-only",
+  "direct_database_access": true,
+  "source": {
+    "contract_id": "trama.logseq.read/v1",
+    "accepted_contract_major": 1,
+    "source_reference": "9905e8a36acb83a17a33b702a5fa620d6bfed185"
+  },
+  "limits": {"max_items": 100, "max_depth": 32, "timeout_seconds": 10},
+  "uncertainty": [],
+  "session": {"identity": "synthetic-session-2", "lifecycle": "stable", "foreign": false, "stale": false},
+  "host": {
+    "identity": "synthetic-session-2",
+    "selected": true,
+    "artifact_build_digest": "85241083815687459adee913800f2e2a150600e56b4f1ff4c1ce4dbb8b80ad7c",
+    "trama_commit": "04a711efd664b915b8287db452a33332c822d07b",
+    "probe_commit": "9ad4d8c797d0ed510af681e3d6f0855876c3f7bc"
+  },
+  "synthetic_commit_bases": {
+    "trama_commit": "task-3 synthetic commit v2: rejected-direct-database:trama",
+    "probe_commit": "task-3 synthetic commit v2: rejected-direct-database:probe"
+  },
+  "synthetic_artifact_basis": "task-3 synthetic artifact v2: rejected-direct-database",
+  "synthetic_fixture_basis": "task-3 synthetic fixture v2: rejected-direct-database",
+  "fixture_digest": "f278d73d1396985c366bc9ef6160388885798753999e29ea6c086308b96761c7",
+  "graph_binding": "graph:synthetic-direct-2",
+  "operation_evidence": [
+    {
+      "operation": "graph.identify",
+      "outcome": "success",
+      "result_producer": "synthetic-result-producer",
+      "result_capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"],
+      "graph_binding": "graph:synthetic-direct-2",
+      "trama_result_provenance": {
+        "source_mode": "db_native",
+        "authority": "logseq_db_native",
+        "source_reference": "profile:synthetic-direct-db-read",
+        "producer": "synthetic-result-producer",
+        "exercised_capabilities": ["graph.identify"],
+        "evidence_digest": "2283fe2d40bfa2337956cfef2e642cd522d283cd8c1fa1ab1a9020db2a9ff063"
+      },
+      "result_sha256": "2283fe2d40bfa2337956cfef2e642cd522d283cd8c1fa1ab1a9020db2a9ff063",
+      "synthetic_result_basis": "task-3 synthetic result v2: rejected-direct-database:graph.identify"
+    },
+    {
+      "operation": "page.read",
+      "outcome": "success",
+      "result_producer": "synthetic-result-producer",
+      "result_capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"],
+      "graph_binding": "graph:synthetic-direct-2",
+      "trama_result_provenance": {
+        "source_mode": "db_native",
+        "authority": "logseq_db_native",
+        "source_reference": "profile:synthetic-direct-db-read",
+        "producer": "synthetic-result-producer",
+        "exercised_capabilities": ["page.read"],
+        "evidence_digest": "cd6e650af33ba91f2a5893545b66e5a5a3dccaf7a9a48708ab026c9aefb00541"
+      },
+      "result_sha256": "cd6e650af33ba91f2a5893545b66e5a5a3dccaf7a9a48708ab026c9aefb00541",
+      "synthetic_result_basis": "task-3 synthetic result v2: rejected-direct-database:page.read"
+    },
+    {
+      "operation": "block.subtree.read.complete",
+      "outcome": "success",
+      "result_producer": "synthetic-result-producer",
+      "result_capabilities": ["graph.identify", "page.read", "block.subtree.read.complete"],
+      "graph_binding": "graph:synthetic-direct-2",
+      "trama_result_provenance": {
+        "source_mode": "db_native",
+        "authority": "logseq_db_native",
+        "source_reference": "profile:synthetic-direct-db-read",
+        "producer": "synthetic-result-producer",
+        "exercised_capabilities": ["block.subtree.read.complete"],
+        "evidence_digest": "2e175740ac07cc09404891f713b2c9c42779f4a863cc9b8cd9ad10630073247b"
+      },
+      "result_sha256": "2e175740ac07cc09404891f713b2c9c42779f4a863cc9b8cd9ad10630073247b",
+      "synthetic_result_basis": "task-3 synthetic result v2: rejected-direct-database:block.subtree.read.complete",
+      "subtree_observation": {"complete": true, "ordered_parentage": true, "top_level_only": false}
+    }
+  ],
+  "transport": {"kind": "cli", "cli_artifact": "synthetic-cli-task-3"},
+  "forbidden_actions": [],
+  "forbidden_state_change": false,
+  "rejection_reason": "direct-database-access"
+}
