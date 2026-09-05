@@ -64,10 +64,11 @@ This decision defines ownership, not a shipped runtime capability. The public
 contract artifact must be transport-neutral and contain versioned schemas,
 synthetic fixtures, and a compatibility test kit before a consumer is wired.
 The internal OG identity-only `GraphSessionReadPort` uses only an explicit
-Parser source, opaque identity, session binding, and source revision. Page and
-complete ordered subtree reads remain feature-off until the artifact and the
-selected source profile qualify bounded payloads, failure semantics, and
-consumer compatibility.
+Parser source, one byte-bounded UTF-8 snapshot, opaque identity, session
+binding, source revision, and Plumber-owned close/monotonic-expiry lifecycle.
+Page and complete ordered subtree reads remain feature-off until the artifact
+and the selected source profile qualify bounded payloads, failure semantics,
+and consumer compatibility.
 
 For OG, Plumber may call Parser behind its internal boundary. For DB, Plumber
 may add an adapter only after an exact official host capability qualifies; no

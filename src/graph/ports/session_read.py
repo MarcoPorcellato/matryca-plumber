@@ -23,5 +23,9 @@ class GraphSessionReadPort(Protocol):
         """Return identity only when the caller presents the active graph binding."""
         ...
 
+    def close(self) -> None:
+        """Close this Plumber-owned session; repeated close calls are harmless."""
+        ...
+
 
 __all__ = ["GraphSessionReadPort", "OgGraphIdentityPort"]

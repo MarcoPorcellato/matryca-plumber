@@ -16,6 +16,8 @@ It introduces no endpoint, compatibility claim, or Logseq DB support.
 and synthetic fixture artifact. Its page and subtree capabilities remain
 feature-off; an internal OG identity-only session slice is not a transport or
 consumer-compatibility surface.
+That internal slice admits one explicit UTF-8 snapshot up to 1 MiB, then hashes
+and parses those same bytes; it has no page or subtree delivery capability.
 
 | Contract family | Intended responsibility | Status |
 | --- | --- | --- |

@@ -23,6 +23,17 @@ served through a Plumber-owned session port. It returns opaque graph and source
 revision bindings only. It serves no page or subtree payload and creates no
 external consumer compatibility claim.
 
+Issue #568 hardens that internal slice. Its private adapter validates and reads
+one explicit source snapshot with a 1,048,576-byte (1 MiB) ceiling before
+Parser invocation, binds pre/post `lstat` and descriptor `fstat` device, inode,
+and size identities, and rejects symlink, non-regular, or replacement races.
+It hashes the exact admitted bytes, decodes UTF-8 explicitly, and calls
+Parser's in-memory `parse()` on that same snapshot. Read, decode, size, and
+Parser failures are bounded Plumber errors with no path or graph-content
+disclosure. The
+Plumber-owned reader also supports idempotent close and an optional injected
+monotonic deadline; closed and expired sessions reject every operation.
+
 The canonical artifact is repository-owned and transport-neutral:
 
 - [schema](../../contracts/plumber.graph.read/v1/schema.json)
