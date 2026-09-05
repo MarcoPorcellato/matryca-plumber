@@ -1,0 +1,15 @@
+{
+  "fixture_kind": "operation-result",
+  "id": "foreign-graph-rejected-v1",
+  "contract_id": "plumber.graph.read/v1",
+  "schema_version": 1,
+  "producer_profile_id": "producer.synthetic.v1",
+  "consumer_profile_id": "consumer.synthetic.v1",
+  "graph_id": "graph.synthetic.v1",
+  "session": { "id": "session.synthetic.v1", "state": "rejected" },
+  "source_revision": "revision.synthetic.v1",
+  "operation": "graph.identify",
+  "outcome": "rejected",
+  "reason": "graph-binding-rejected",
+  "result": { "graph_id": "graph.foreign.v1" }
+}

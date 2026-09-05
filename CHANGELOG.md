@@ -2,6 +2,10 @@
 
 ### Changed
 
+- **Canonical graph-read contract artifact** — add the static, content-free
+  `plumber.graph.read/v1` schema, producer/consumer fixtures, and deterministic
+  fixture-attestation TCK. It enables no runtime adapter, Logseq DB capability,
+  MCP/CLI surface, Parser public DTO, or graph mutation. Closes #564.
 - **Logseq gateway authority** — establish Plumber as the sole future Logseq
   gateway and public `plumber.*` contract owner; Parser remains OG-internal,
   while Trama and Brain remain contract consumers. This documentation change
