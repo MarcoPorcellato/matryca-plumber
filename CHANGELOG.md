@@ -4,10 +4,12 @@
 
 - **Internal OG graph identity slice** — add a Plumber-owned, in-process
   identity-only session port and service, composed through one internal
-  `logseq-matryca-parser` 1.7.1 adapter. It returns opaque graph and source
-  bindings only; it adds no content payload, UI, endpoint, CLI/MCP surface,
-  Shadow/DB routing, fallback, mutation, event, or consumer-compatibility
-  claim. Closes #566.
+  `logseq-matryca-parser` 1.7.1 adapter. It hashes and parses one identical,
+  UTF-8, 1 MiB-bounded descriptor-bound regular-file snapshot; symlink and
+  replacement races, session close, and monotonic expiry fail closed. It returns
+  opaque graph and source bindings only; it adds no content payload, UI,
+  endpoint, CLI/MCP surface, Shadow/DB routing, fallback, mutation, event, or
+  consumer-compatibility claim. Closes #566, #568.
 - **Canonical graph-read contract artifact** — add the static, content-free
   `plumber.graph.read/v1` schema, producer/consumer fixtures, and deterministic
   fixture-attestation TCK. It enables no runtime adapter, Logseq DB capability,

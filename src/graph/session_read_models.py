@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
+from math import isfinite
 from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -28,6 +29,7 @@ class GraphSessionState(StrEnum):
 
     ACTIVE = "active"
     CLOSED = "closed"
+    EXPIRED = "expired"
 
 
 class _OpaqueIdentityModel(BaseModel):
@@ -61,15 +63,30 @@ class GraphSession(_OpaqueIdentityModel):
     mode: Literal["og"] = "og"
     capabilities: frozenset[GraphReadCapability]
     state: GraphSessionState = GraphSessionState.ACTIVE
+    expires_at_monotonic: float | None = None
+
+    @field_validator("expires_at_monotonic")
+    @classmethod
+    def _validate_expiry(cls, value: float | None) -> float | None:
+        if value is not None and not isfinite(value):
+            raise ValueError("must be a finite monotonic deadline")
+        return value
 
     @classmethod
-    def from_source(cls, *, session_id: str, source: GraphSourceIdentity) -> GraphSession:
+    def from_source(
+        cls,
+        *,
+        session_id: str,
+        source: GraphSourceIdentity,
+        expires_at_monotonic: float | None = None,
+    ) -> GraphSession:
         """Create the only session shape admitted by the OG identity slice."""
         return cls(
             id=session_id,
             graph_id=source.graph_id,
             source_revision=source.source_revision,
             capabilities=frozenset({GraphReadCapability.GRAPH_IDENTIFY}),
+            expires_at_monotonic=expires_at_monotonic,
         )
 
 
