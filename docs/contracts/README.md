@@ -18,11 +18,14 @@ feature-off; an internal OG identity-only session slice is not a transport or
 consumer-compatibility surface.
 That internal slice admits one explicit UTF-8 snapshot up to 1 MiB, then hashes
 and parses those same bytes; it has no page or subtree delivery capability.
+`plumber.graph.topology/v1` additionally has a static, transport-neutral schema
+and synthetic fixture artifact. It is complete-only and read-session-bound; it
+creates no graph scan, Parser adapter, consumer wiring, or transport surface.
 
 | Contract family | Intended responsibility | Status |
 | --- | --- | --- |
 | [`plumber.graph.read/v1`](plumber-graph-read-v1.md) | Session-bound identity, page, and complete ordered subtree reads. | Static artifact; identity-only internal OG slice. |
-| `plumber.graph.topology/v1` | Derived graph topology for consumers. | Reserved; feature-off. |
+| [`plumber.graph.topology/v1`](plumber-graph-topology-v1.md) | Complete, derived structural topology for consumers. | Static artifact; feature-off. |
 | `plumber.control/v1` | Bounded operator configuration and gardening commands. | Reserved; feature-off. |
 | `plumber.host.navigate/v1` | Explicit host navigation request, never implicit UI control. | Reserved; feature-off. |
 | `plumber.graph.mutate/v1` | Future host-authoritative mutation only. | Deferred. |
@@ -34,6 +37,12 @@ fixture attestation does not make the contract usable. The internal OG identity
 slice reuses only contract vocabulary and does not qualify consumer transport.
 A runtime contract becomes usable only after its exact artifact, producer
 profile, and consumer profile pass the recorded admission gate.
+
+`plumber.graph.topology/v1` binds a complete structural projection to the
+opaque session, graph, and source revision vocabulary of `plumber.graph.read/v1`.
+It has no partial-success response, textual payload, host locator, or durable
+identifier claim. Its static fixture attestation does not qualify OG, DB,
+Parser, Shadow, Trama, Brain, or a consumer transport.
 
 Consumers include Matryca Trama and Matryca Brain. They do not import Parser or
 access Logseq directly. Parser remains an internal implementation selected by

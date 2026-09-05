@@ -2,6 +2,13 @@
 
 ### Changed
 
+- **Canonical graph-topology contract artifact** — add the static,
+  content-free, complete-only `plumber.graph.topology/v1` schema,
+  producer/consumer fixtures, and deterministic fixture-attestation TCK. It is
+  bound to `plumber.graph.read/v1` session, graph, and source-revision
+  vocabulary; it enables no runtime scan, Parser/DB/Shadow adapter, UI,
+  endpoint, CLI/MCP surface, consumer wiring, mutation, or event delivery.
+  Closes #571.
 - **Internal OG graph identity slice** — add a Plumber-owned, in-process
   identity-only session port and service, composed through one internal
   `logseq-matryca-parser` 1.7.1 adapter. It hashes and parses one identical,
