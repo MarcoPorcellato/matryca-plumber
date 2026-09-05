@@ -6,14 +6,14 @@ resource: docs/roadmaps/TINE_LOGSEQ_ECOSYSTEM_INTEGRATION_STRATEGY_2026-08-12.md
 tags: [tine, logseq-og, logseq-db, plugin, integration, adoption]
 status: draft
 classification: active
-last_verified: 2026-09-01
+last_verified: 2026-09-05
 stale_after: 2027-02-28
 audience: [maintainer, contributor, operator, agent]
 owner: integrations
 authority: roadmap
 source_repository: MarcoPorcellato/matryca-plumber
 source_ref: origin/main
-source_commit: 3208bedfaeef0708034089057702cd21fa5dec52
+source_commit: 12ca79cb14f9bbdf196ec409a48025afb6503ca1
 ---
 
 # Tine and Logseq ecosystem integration strategy
@@ -21,6 +21,52 @@ source_commit: 3208bedfaeef0708034089057702cd21fa5dec52
 **Date:** 2026-08-12
 **Decision status:** proposed, evidence-backed roadmap; no compatibility or release claim
 **Scope:** Tine collaboration, Matryca Trama as the Logseq OG/DB companion, and the smallest Matryca Plumber changes with the highest expected impact
+
+## 2026-09-05 evidence and sequencing update
+
+The first executable Logseq DB investigation is now **CLI-first**. Current
+official CLI documentation exposes explicit graph selection, graph metadata,
+structured output, page lookup, and page/block tree reads. It also owns a
+shared `db-worker-node` lifecycle and may replace a revision-mismatched server.
+The spike must therefore prove both data semantics and process-level read-only
+safety; a command named as a read is not assumed side-effect free.
+
+Transport order is fixed until evidence changes it:
+
+1. the exact CLI bundled with the selected Logseq application artifact;
+2. the official plugin SDK inside Matryca Trama;
+3. MCP stdio with one isolated process per session;
+4. public NO-GO when none proves the complete contract.
+
+MCP HTTP is excluded while
+[Logseq DB issue #1101](https://github.com/logseq/db-test/issues/1101) remains
+open. Every CLI probe uses explicit `--graph`; never `graph switch`. It runs on
+one disposable synthetic DB graph with the app both closed and open, captures
+pre/post graph identity, content and CLI-config fingerprints, bounds output and
+timeouts, and stops on revision mismatch or server replacement. It never runs
+arbitrary queries, sync, download, import/export, mutation, or direct SQLite
+access.
+
+Current anchors are Plumber
+`12ca79cb14f9bbdf196ec409a48025afb6503ca1`, Trama
+`9905e8a36acb83a17a33b702a5fa620d6bfed185`, Logseq source
+`d2ab7726ab74402c14fdbc33041a89ac55c899ae`, Logseq docs
+`08f855f24d66e4509b7ea808554c13b4649e6ee1`, and Logseq `db-test`
+`f65c01b8f6101a0263ce6a8723fbbb89bc3a3a79`. The 2026-08-26 nightly
+release targets `dde0aba2d441c962d28989b0af894cc261da3898`, but its tag is
+mutable. Evidence must bind the downloaded asset digest and embedded runtime
+revision rather than relying on the tag.
+
+Trama has advanced from planning to a Python-first foundation and a qualified
+synthetic OG implementation of `trama.logseq.read/v1`. That is reusable
+contract evidence, not a Logseq DB host claim. Plumber's filesystem
+`GraphReadPort` remains OG/Shadow-only. A separate session-bound consumer port
+will be considered only after the host spike passes.
+
+The existing `get_graph_read_port` selector may be reduced through a separate
+characterization-first Clean Architecture lane. Its public signature, Shadow
+fallback, wheel-probe behavior, and filesystem-only ownership remain frozen;
+the refactor is not a prerequisite for DB compatibility.
 
 ## 2026-09-01 execution update
 
@@ -38,7 +84,10 @@ The previously unnamed companion now has one authoritative identity: [Matryca Tr
 
 Events and convergence, DB-source Shadow acceleration, and every DB write remain deferred gates. Direct access to Logseq's internal database remains prohibited. The transport decision is intentionally unresolved until [issue #491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491) records reproducible evidence for the tested Logseq build, SDK or built-in surface, fixture, and results.
 
-Current evidence anchors are Logseq documentation commit `08f855f24d66e4509b7ea808554c13b4649e6ee1`, Logseq `test/db@5a23230a56832a6aab4a556d9894955120d26ece`, nightly target `dde0aba2d441c962d28989b0af894cc261da3898`, Matryca Plumber `main@3208bedfaeef0708034089057702cd21fa5dec52`, Matryca Trama `main@cd9ec408ed9d4ece39d3eeaef506f4b172ab77d5`, and Matryca Brain `main@e69a97a8c702a773c9a3ce8307b5a667ed2be1dd`. Every implementation branch must revalidate these drift-prone anchors rather than treating them as permanent compatibility claims.
+The anchors recorded in this 2026-09-01 subsection are preserved as historical
+planning evidence and are superseded for execution by the 2026-09-05 update
+above. Every implementation branch must revalidate drift-prone anchors rather
+than treating any dated observation as a permanent compatibility claim.
 
 ## Executive decision
 

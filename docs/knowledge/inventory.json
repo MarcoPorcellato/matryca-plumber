@@ -1497,6 +1497,25 @@
       "classification": "active"
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",
+      "type": "Runbook",
+      "title": "Logseq DB Read-Only Compatibility Persistent Goal",
+      "description": "Compact restart-safe execution goal bound to the canonical Logseq DB read-only compatibility plan.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "integrations",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Active restart and orchestration handoff; all scope and authority remain in the linked canonical plan.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
       "type": "Guide",
       "title": "Public release and soak evidence policy",
