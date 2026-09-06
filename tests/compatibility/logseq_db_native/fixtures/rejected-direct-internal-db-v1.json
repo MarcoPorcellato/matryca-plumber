@@ -1,0 +1,12 @@
+{
+  "fixture_id": "rejected-direct-internal-db-v1",
+  "classification": "rejected_candidate",
+  "reason_code": "internal_db_forbidden",
+  "evidence_status": "synthetic_only",
+  "operation_results": {
+    "graph_identification": "blocked",
+    "page_read": "blocked",
+    "complete_ordered_block_subtree_read": "blocked"
+  },
+  "reason": "Direct internal database access is outside the admitted official-host surface."
+}

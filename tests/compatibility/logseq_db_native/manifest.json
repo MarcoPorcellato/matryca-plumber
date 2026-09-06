@@ -1,0 +1,78 @@
+{
+  "profile_id": "plumber.logseq.db.native.capability-discovery/v1",
+  "status": "test_only/unbound",
+  "tracking_issue": "https://github.com/MarcoPorcellato/matryca-plumber/issues/491",
+  "gateway": "matryca-plumber",
+  "transport_order": ["bundled_cli", "plugin_sdk", "mcp_stdio"],
+  "blocked_transports": ["mcp_http"],
+  "upstream_http_issue": "https://github.com/logseq/db-test/issues/1101",
+  "terminal_outcomes": ["supported", "capability_no_go", "upstream_blocked"],
+  "required_operations": [
+    "graph_identification",
+    "page_read",
+    "complete_ordered_block_subtree_read"
+  ],
+  "artifact": {
+    "repository": "logseq/logseq",
+    "release": "nightly",
+    "version": "unqualified",
+    "platform": "macos-arm64",
+    "sha256": null
+  },
+  "source": {
+    "repository": "logseq/logseq",
+    "source_ref": "unbound-until-runtime-reverification",
+    "source_sha": "unbound-until-runtime-reverification"
+  },
+  "fixture_set": {
+    "status": "synthetic_only",
+    "supported_fixture": null,
+    "fixtures": [
+      "fixtures/rejected-missing-required-operation-v1.json",
+      "fixtures/rejected-http-transport-v1.json",
+      "fixtures/rejected-direct-internal-db-v1.json",
+      "fixtures/rejected-missing-artifact-identity-v1.json"
+    ]
+  },
+  "probe": {
+    "status": "not_executed",
+    "command": null,
+    "result": null
+  },
+  "bindings": {
+    "host_release": null,
+    "host_version": null,
+    "artifact_digest": null,
+    "embedded_revision": null,
+    "platform": "macos-arm64",
+    "probe_commit": null,
+    "fixture_digest": null,
+    "graph": null,
+    "source_revision": null,
+    "session_identity": null
+  },
+  "subtree_requirements": [
+    "stable_ids",
+    "parentage",
+    "sibling_order",
+    "content",
+    "supported_typed_properties"
+  ],
+  "bounds": {
+    "max_nodes": null,
+    "max_output_bytes": null,
+    "forbidden_state_changes": "all"
+  },
+  "forbidden_scope": [
+    "internal_sqlite",
+    "parser_db_path",
+    "markdown_fallback",
+    "graph_switch",
+    "server_replacement",
+    "writes",
+    "events",
+    "shadow",
+    "sync",
+    "import_export"
+  ]
+}
