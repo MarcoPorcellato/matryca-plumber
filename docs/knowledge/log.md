@@ -2,6 +2,15 @@
 
 ## 2026-09-06
 
+- **Logseq DB read-only gateway authority:** replaced the historical
+  Trama-owned execution model with an active Plumber-owned, evidence-first
+  design and restart-safe plan. The programme preserves the content-free
+  `plumber.graph.read/v1` and filesystem/Shadow `GraphReadPort`, defines a
+  separate bounded `plumber.graph.payload.read/v1` direction, and fixes the
+  transport order to bundled CLI, Plugin SDK, then MCP stdio. Artifact
+  admission, synthetic fixture mutation, and read-only qualification remain
+  separate gates. No DB adapter, execution, support claim, tag, or release is
+  introduced.
 - **v2.0.1-rc.4 qualification plan:** added the separate #582 candidate plan.
   It classifies the full Parser 1.9 snapshot, process timeout lifecycle,
   session-topology, static-resource, test-only DB-policy, and #580 blocked-artifact

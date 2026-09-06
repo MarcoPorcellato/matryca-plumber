@@ -1654,6 +1654,26 @@
       "missing": false
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_READ_ONLY_GATEWAY_GOAL_2026-09-06.md",
+      "type": "Runbook",
+      "title": "Logseq DB Read-Only Gateway Qualification",
+      "description": "Restart-safe execution pointer for the active evidence-first Logseq DB read-only gateway programme.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active restart authority subordinate to the accepted Plumber Logseq gateway decision and implementation plan."
+    },
+    {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
       "type": "Guide",
       "title": "Public release and soak evidence policy",
@@ -1985,7 +2005,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active proposed RC4 qualification plan; classifies Parser/graph-I/O and timeout lifecycle as Tier 3 and records no selected candidate or result."
+      "notes": "Active proposed RC4 qualification plan; classifies Parser/graph-I/O and timeout lifecycle as Tier 3 and records no selected candidate or result.",
+      "missing": false
     },
     {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
@@ -4187,6 +4208,26 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-09-06-logseq-db-read-only-gateway.md",
+      "type": "Roadmap",
+      "title": "Logseq DB read-only gateway implementation plan",
+      "description": "Evidence-first implementation plan for graph identification, page content, and one complete ordered block subtree through a Plumber-owned official Logseq host adapter.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active dependency order and completion authority for issue #491."
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -4267,6 +4308,26 @@
       "supersedes": [],
       "notes": "",
       "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-06-logseq-db-read-only-gateway-design.md",
+      "type": "Specification",
+      "title": "Logseq DB read-only gateway design",
+      "description": "Additive, evidence-gated design for a Plumber-owned Logseq DB read path without widening existing filesystem or content-free contracts.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active architecture authority subordinate to the accepted Plumber Logseq gateway decision."
     },
     {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
