@@ -1160,7 +1160,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.0,<1.0.0" },
     { name = "mcp", specifier = ">=1.28.1,<2.0.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0,<3.0.0" },
-    { name = "openai", specifier = ">=1.50.0,<3.0.0" },
+    { name = "openai", specifier = ">=1.50.0,<4.0.0" },
     { name = "packaging", specifier = ">=24.0,<27.0" },
     { name = "psutil", marker = "extra == 'edge'", specifier = ">=6.0.0,<8.0.0" },
     { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
