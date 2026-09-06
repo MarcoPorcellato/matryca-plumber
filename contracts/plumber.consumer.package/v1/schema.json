@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://matryca.ai/contracts/plumber.consumer.package/v1/schema.json",
+  "title": "Plumber consumer package v1 static profile envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fixture_kind",
+    "contract_id",
+    "schema_version",
+    "package_id",
+    "consumer_id",
+    "qualification_status",
+    "bindings"
+  ],
+  "properties": {
+    "fixture_kind": { "const": "consumer-contract-profile" },
+    "contract_id": { "const": "plumber.consumer.package/v1" },
+    "schema_version": { "const": 1 },
+    "package_id": { "$ref": "#/$defs/opaqueId" },
+    "consumer_id": { "enum": ["matryca.brain", "matryca.trama"] },
+    "qualification_status": { "const": "static-only-unqualified" },
+    "bindings": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/contractBinding" }
+    }
+  },
+  "$defs": {
+    "opaqueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_nodes", "max_edges"],
+      "properties": {
+        "max_nodes": { "const": 1024 },
+        "max_edges": { "const": 4096 }
+      }
+    },
+    "contractBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "schema_version",
+        "schema_sha256",
+        "canonical_consumer_profile_sha256",
+        "intended_capabilities"
+      ],
+      "properties": {
+        "contract_id": {
+          "enum": ["plumber.graph.read/v1", "plumber.graph.topology/v1"]
+        },
+        "schema_version": { "const": 1 },
+        "schema_sha256": { "$ref": "#/$defs/sha256" },
+        "canonical_consumer_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "intended_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/opaqueId" }
+        },
+        "limits": { "$ref": "#/$defs/limits" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "contract_id": { "const": "plumber.graph.read/v1" } },
+            "required": ["contract_id"]
+          },
+          "then": {
+            "properties": {
+              "intended_capabilities": {
+                "items": { "const": "graph.identify" }
+              }
+            },
+            "not": { "required": ["limits"] }
+          }
+        },
+        {
+          "if": {
+            "properties": { "contract_id": { "const": "plumber.graph.topology/v1" } },
+            "required": ["contract_id"]
+          },
+          "then": {
+            "required": ["limits"],
+            "properties": {
+              "intended_capabilities": {
+                "items": { "const": "graph.topology.snapshot.complete" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

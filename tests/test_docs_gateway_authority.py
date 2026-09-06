@@ -44,6 +44,8 @@ def test_gateway_authority_is_discoverable_from_decision_and_contract_indexes() 
     assert "plumber.graph.read/v1" in contract_index
     assert "plumber.graph.topology/v1" in contract_index
     assert "plumber-graph-topology-v1.md" in contract_index
+    assert "plumber.consumer.package/v1" in contract_index
+    assert "plumber-consumer-package-v1.md" in contract_index
 
 
 def test_legacy_logseq_db_authority_surfaces_cannot_authorize_trama_adapters() -> None:

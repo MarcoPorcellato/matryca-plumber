@@ -2,6 +2,11 @@
 
 ### Changed
 
+- **Immutable static consumer packages** — add content-free
+  `plumber.consumer.package/v1` profiles for Matryca Trama and Brain. They pin
+  static graph-read/topology contract and canonical consumer-profile bytes but
+  remain unqualified: no runtime topology, consumer wiring, Parser/DB/Shadow,
+  transport, mutation, event, or release capability is introduced. Closes #573.
 - **Canonical graph-topology contract artifact** — add the static,
   content-free, complete-only `plumber.graph.topology/v1` schema,
   producer/consumer fixtures, and deterministic fixture-attestation TCK. It is
