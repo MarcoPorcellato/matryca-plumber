@@ -1,5 +1,15 @@
 # Documentation update log
 
+## 2026-09-06
+
+- **Logseq DB bundled-CLI artifact gate:** preserved the first exact official
+  macOS arm64 attempt as `upstream_blocked`. GitHub, the official checksum list,
+  and the downloaded ZIP agreed on artifact SHA-256, but Apple rejected the
+  packaged application before any executable, fixture, graph, or transport was
+  used. The record keeps official CLI examples as the future synthetic-fixture
+  source while separating fixture writes from read-only qualification; it adds
+  no DB support or Plumber runtime change.
+
 ## 2026-09-02
 
 - **Epistemic-memory research direction:** added the maintained public research

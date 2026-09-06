@@ -2,6 +2,13 @@
 
 ### Added
 
+- **Exact Logseq DB host artifact evidence** — preserve the first bundled-CLI
+  qualification attempt as `upstream_blocked`: the official macOS arm64 ZIP
+  matched both GitHub and checksum-list SHA-256 evidence, but Apple rejected
+  the signed application before execution. No graph or fixture was touched and
+  no DB support, fallback transport, runtime adapter, or product change is
+  claimed. Refs #491.
+
 - **Bounded internal OG topology slice** — require `logseq-matryca-parser`
   1.9.0 and build one complete, content-free `plumber.graph.topology/v1`
   projection from Plumber-captured Markdown through Parser's public

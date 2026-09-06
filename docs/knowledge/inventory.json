@@ -1615,6 +1615,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_CLI_ARTIFACT_EVIDENCE_2026-09-06.md",
+      "type": "Audit",
+      "title": "Logseq DB bundled CLI artifact qualification evidence — 2026-09-06",
+      "description": "Exact-artifact evidence for the first bundled-CLI qualification attempt, which stopped before execution because the selected official macOS arm64 application failed code-signature verification.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Terminal upstream_blocked artifact-admission evidence; no executable, fixture, graph read, transport, or DB support claim was exercised."
+    },
+    {
       "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",
       "type": "Runbook",
       "title": "Historical Logseq DB Read-Only Compatibility Persistent Goal",
