@@ -1,0 +1,25 @@
+{
+  "fixture_kind": "consumer-contract-profile",
+  "contract_id": "plumber.consumer.package/v1",
+  "schema_version": 1,
+  "package_id": "matryca.trama.consumer.v1",
+  "consumer_id": "matryca.trama",
+  "qualification_status": "static-only-unqualified",
+  "bindings": [
+    {
+      "contract_id": "plumber.graph.read/v1",
+      "schema_version": 1,
+      "schema_sha256": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569",
+      "canonical_consumer_profile_sha256": "00e51bb51b945c521c9cf51fc7b451920bb5fc52dddacd921e2d901696703e06",
+      "intended_capabilities": ["graph.identify"]
+    },
+    {
+      "contract_id": "plumber.graph.topology/v1",
+      "schema_version": 1,
+      "schema_sha256": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a",
+      "canonical_consumer_profile_sha256": "9da9f9286f276eb18bb50c34327d75b087a891a539ef3c6424d6393f02339ea2",
+      "intended_capabilities": ["graph.topology.snapshot.complete"],
+      "limits": { "max_nodes": 1024, "max_edges": 4096 }
+    }
+  ]
+}

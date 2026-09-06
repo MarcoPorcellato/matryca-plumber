@@ -384,6 +384,26 @@
       "missing": false
     },
     {
+      "path": "docs/contracts/plumber-consumer-package-v1.md",
+      "type": "Specification",
+      "title": "`plumber.consumer.package/v1` static profile artifact",
+      "description": "Immutable static contract-intention packages for Matryca Trama and Matryca Brain.",
+      "classification": "canonical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "repository-entrypoint",
+      "canonical_for": "contracts.plumber.consumer.package.v1",
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Static-only unqualified package; no consumer runtime capability is introduced.",
+      "missing": false
+    },
+    {
       "path": "docs/contracts/plumber-graph-read-v1.md",
       "type": "Specification",
       "title": "`plumber.graph.read/v1` static contract artifact",
@@ -419,7 +439,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/decisions/2026-08-30-github-actions-qualification-authority.md",
