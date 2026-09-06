@@ -65,6 +65,13 @@
   CLI/MCP endpoint, Logseq DB capability, Trama/Brain import, UI, or LENS surface.
   Refs #579.
 
+### Security
+
+- **Frontend dependency audit remediation** — pin transitive `browserslist`
+  `4.28.7` and `nanoid` `3.3.18`, their first fixed advisory versions, through
+  manifest overrides and the lockfile without changing direct dependency ranges,
+  application source, or feature behavior. Refs #584.
+
 ## [2.0.1-rc.3] - 2026-08-31
 
 `v2.0.1-rc.3` was published as a prerelease after the signed `v2.0.1-rc.2` tag

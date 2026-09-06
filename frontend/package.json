@@ -33,5 +33,9 @@
     "typescript-eslint": "^8.66.0",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "browserslist": "4.28.7",
+    "nanoid": "3.3.18"
   }
 }
