@@ -1,0 +1,12 @@
+{
+  "fixture_id": "rejected-missing-required-operation-v1",
+  "classification": "rejected_candidate",
+  "reason_code": "missing_required_operation",
+  "evidence_status": "synthetic_only",
+  "operation_results": {
+    "graph_identification": "pass",
+    "page_read": "pass",
+    "complete_ordered_block_subtree_read": "missing"
+  },
+  "reason": "The host exposes identity and page reads but not a complete ordered subtree read."
+}

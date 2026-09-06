@@ -1,0 +1,12 @@
+{
+  "fixture_id": "rejected-missing-artifact-identity-v1",
+  "classification": "rejected_candidate",
+  "reason_code": "artifact_identity_missing",
+  "evidence_status": "synthetic_only",
+  "operation_results": {
+    "graph_identification": "blocked",
+    "page_read": "blocked",
+    "complete_ordered_block_subtree_read": "blocked"
+  },
+  "reason": "The host cannot be qualified without an immutable artifact identity and embedded revision."
+}

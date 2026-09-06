@@ -1,0 +1,12 @@
+{
+  "fixture_id": "rejected-http-transport-v1",
+  "classification": "rejected_candidate",
+  "reason_code": "http_transport_blocked",
+  "evidence_status": "synthetic_only",
+  "operation_results": {
+    "graph_identification": "blocked",
+    "page_read": "blocked",
+    "complete_ordered_block_subtree_read": "blocked"
+  },
+  "reason": "Only the blocked HTTP MCP transport is available; no admitted CLI, SDK, or stdio path exists."
+}
