@@ -12,11 +12,26 @@ owner: core-runtime
 
 ## Status
 
-`plumber.graph.topology/v1` is a **proposed, feature-off** public contract for
-complete, content-free structural graph topology. This artifact defines static
-interoperability inputs only. It creates no endpoint, CLI command, MCP tool,
-Logseq DB support, Parser runtime adapter, Shadow use, consumer wiring, or
-graph scan.
+`plumber.graph.topology/v1` is a **proposed public contract** for complete,
+content-free structural graph topology. Its checked-in artifact remains static
+interoperability input only: it creates no endpoint, CLI command, MCP tool,
+Logseq DB support, Shadow use, consumer wiring, or public transport.
+
+The internal OG implementation slice separately selects Parser 1.9 behind
+Plumber's adapter boundary. Plumber captures at most 1,024 regular Markdown
+sources / 16 MiB, hashes those exact bytes into one source revision, then calls
+`LogseqGraph.from_snapshot_pages()` once. It projects that in-memory graph to
+opaque nodes and reference edges, and rejects node or edge counts above the
+v1 1,024 / 4,096 limits. Parser strict-reference and strict-title-collision
+validation reject incomplete or ambiguous source graphs before projection. The
+projection accepts only explicitly resolved Parser wikilinks and block
+references. Parser's page-level `refs` is an aggregate of block convenience
+references plus property-derived wikilinks, tags, and block references; v1
+excludes it entirely because that aggregate loses the source semantics required
+for a structural edge. It likewise does not infer topology from Parser `tags`
+or node convenience `refs` fields. It never reopens source pages through
+Parser. This is not a consumer
+qualification, external endpoint, or Logseq DB capability.
 
 The canonical artifact is repository-owned and transport-neutral:
 
@@ -35,8 +50,9 @@ foreign graph, terminal session, or revision mismatch fails closed.
 
 This does not make `plumber.graph.read/v1` page or subtree delivery usable.
 `GraphReadPort` remains the filesystem/Shadow repository port; it is not a
-public session or topology port. The current internal OG identity slice serves
-one explicit page identity only and cannot serve graph-wide topology.
+public session or topology port. The internal OG topology slice retains the
+same Plumber-owned close and expiry lifecycle as identity reads and returns no
+page or subtree payload.
 
 ## Contract shape
 
@@ -70,10 +86,11 @@ do not claim cryptographic derivation, native-ID reuse, cross-graph
 linkability, or stability across a different source revision.
 
 Trama and Brain may consume a future qualified Plumber topology contract only.
-They do not import Parser or access Logseq directly. For OG, a future Plumber
-adapter may select Parser internally, then project Parser-owned structures into
-Plumber-owned values. It must separately qualify one coherent bounded
-graph-wide snapshot and revision; this static artifact does not qualify it.
+They do not import Parser or access Logseq directly. For OG, Plumber's internal
+adapter now selects Parser 1.9 and projects Parser-owned structures into
+Plumber-owned values from one coherent bounded source revision. The static
+artifact and internal slice still do not qualify Trama, Brain, DB support, or
+an external consumer transport.
 
 ## Canonical fixture catalogue
 

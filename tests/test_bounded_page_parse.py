@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import multiprocessing as mp
 import os
 import random
 import signal
@@ -26,11 +27,7 @@ from src.graph.bounded_page_parse import (
     reset_bounded_page_parse_worker_for_tests,
 )
 
-from tests.a_cli_01_generator import (
-    PATHOLOGICAL_PAGE_LINE_COUNT,
-    generate_control_page,
-    generate_pathological_page,
-)
+from tests.a_cli_01_generator import generate_control_page
 
 
 @pytest.fixture(autouse=True)
@@ -53,6 +50,39 @@ def _pid_alive(pid: int) -> bool:
 def _page_raw(page: Any) -> str:
     raw = getattr(page, "raw_content", None)
     return raw if isinstance(raw, str) else ""
+
+
+def _controlled_hanging_worker(
+    in_q: Any,
+    out_q: Any,
+) -> None:
+    """Test-only child that deterministically exceeds the parent's deadline."""
+    del out_q
+    if in_q.get() is not None:
+        time.sleep(30.0)
+
+
+def _install_controlled_hanging_worker(worker: BoundedPageParseWorker) -> None:
+    """Install a spawn child behind the real worker lifecycle for timeout tests.
+
+    Parser performance is intentionally not used as a timeout trigger: Parser
+    1.9 correctly completes the historic pathological fixture quickly.  This
+    controlled child keeps the production queue, deadline, terminate, discard,
+    and recycle paths under test without making a parser latency claim.
+    """
+    context = mp.get_context("spawn")
+    in_q = context.Queue(maxsize=1)
+    out_q = context.Queue(maxsize=1)
+    proc = context.Process(
+        target=_controlled_hanging_worker,
+        args=(in_q, out_q),
+        name="matryca-bounded-page-parse-test-hang",
+        daemon=True,
+    )
+    proc.start()
+    worker._in_q = in_q  # noqa: SLF001 - controlled worker-lifecycle seam
+    worker._out_q = out_q  # noqa: SLF001 - controlled worker-lifecycle seam
+    worker._proc = proc  # noqa: SLF001 - controlled worker-lifecycle seam
 
 
 def _daemon_pool_parse_probe(text: str) -> dict[str, object]:
@@ -123,12 +153,12 @@ def test_invalid_mode_rejected_without_silent_logos() -> None:
     assert result.page is None
 
 
-def test_pathological_page_times_out_and_kills_worker() -> None:
-    text = generate_pathological_page()
-    assert text.count("\n") == PATHOLOGICAL_PAGE_LINE_COUNT
+def test_controlled_hanging_child_times_out_and_kills_worker() -> None:
+    """The real worker must kill a deterministic overrun child."""
     worker = BoundedPageParseWorker()
     try:
-        result = worker.parse_text(text, mode="logos", timeout_s=3.0)
+        _install_controlled_hanging_worker(worker)
+        result = worker.parse_text("- controlled timeout\n", mode="logos", timeout_s=3.0)
         assert result.ok is False
         assert result.timed_out is True
         assert result.error == "timeout"
@@ -301,11 +331,8 @@ def test_parse_result_repr_excludes_page_and_sensitive_text() -> None:
 def test_timeout_then_healthy_parse_gets_new_pid() -> None:
     worker = BoundedPageParseWorker()
     try:
-        timed = worker.parse_text(
-            generate_pathological_page(),
-            mode="logos",
-            timeout_s=3.0,
-        )
+        _install_controlled_hanging_worker(worker)
+        timed = worker.parse_text("- controlled timeout\n", mode="logos", timeout_s=3.0)
         assert timed.timed_out is True
         assert worker.pid is None
 
@@ -375,11 +402,8 @@ def test_worker_crash_recovers_bounded() -> None:
 def test_no_stale_result_after_timeout() -> None:
     worker = BoundedPageParseWorker()
     try:
-        timed = worker.parse_text(
-            generate_pathological_page(),
-            mode="logos",
-            timeout_s=3.0,
-        )
+        _install_controlled_hanging_worker(worker)
+        timed = worker.parse_text("- controlled timeout\n", mode="logos", timeout_s=3.0)
         assert timed.timed_out is True
         next_text = "- fresh after timeout no stale MARKER-9911\n"
         nxt = worker.parse_text(next_text, mode="logos", timeout_s=15.0)

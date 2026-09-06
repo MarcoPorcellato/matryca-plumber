@@ -42,13 +42,17 @@ def _require_regular_source(metadata: os.stat_result) -> None:
         raise GraphSessionReadError("OG snapshot source rejected")
 
 
-def _read_bounded_snapshot(page_path: Path) -> bytes:
+def _read_bounded_snapshot(
+    page_path: Path,
+    *,
+    max_bytes: int = MAX_OG_IDENTITY_SNAPSHOT_BYTES,
+) -> bytes:
     """Read one stable, bounded snapshot through a descriptor bound to its lstat identity."""
     descriptor = -1
     try:
         before = page_path.lstat()
         _require_regular_source(before)
-        if before.st_size > MAX_OG_IDENTITY_SNAPSHOT_BYTES:
+        if before.st_size > max_bytes:
             raise GraphSessionReadError("OG snapshot exceeds byte ceiling")
         flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
         descriptor = os.open(page_path, flags)
@@ -58,9 +62,9 @@ def _read_bounded_snapshot(page_path: Path) -> bytes:
             _require_regular_source(descriptor_metadata)
             if _file_identity(before) != _file_identity(descriptor_metadata):
                 raise GraphSessionReadError("OG snapshot changed during read")
-            if descriptor_metadata.st_size > MAX_OG_IDENTITY_SNAPSHOT_BYTES:
+            if descriptor_metadata.st_size > max_bytes:
                 raise GraphSessionReadError("OG snapshot exceeds byte ceiling")
-            snapshot = handle.read(MAX_OG_IDENTITY_SNAPSHOT_BYTES + 1)
+            snapshot = handle.read(max_bytes + 1)
         after = page_path.lstat()
         _require_regular_source(after)
     except GraphSessionReadError:
@@ -71,10 +75,7 @@ def _read_bounded_snapshot(page_path: Path) -> bytes:
         if descriptor != -1:
             with suppress(OSError):
                 os.close(descriptor)
-    if (
-        len(snapshot) > MAX_OG_IDENTITY_SNAPSHOT_BYTES
-        or after.st_size > MAX_OG_IDENTITY_SNAPSHOT_BYTES
-    ):
+    if len(snapshot) > max_bytes or after.st_size > max_bytes:
         raise GraphSessionReadError("OG snapshot exceeds byte ceiling")
     if _file_identity(descriptor_metadata) != _file_identity(after):
         raise GraphSessionReadError("OG snapshot changed during read")

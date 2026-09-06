@@ -24,6 +24,12 @@ class GraphReadCapability(StrEnum):
     GRAPH_IDENTIFY = "graph.identify"
 
 
+class GraphTopologyCapability(StrEnum):
+    """Only graph-wide topology operation admitted by the v1 runtime slice."""
+
+    GRAPH_TOPOLOGY_SNAPSHOT_COMPLETE = "graph.topology.snapshot.complete"
+
+
 class GraphSessionState(StrEnum):
     """Lifecycle states that may be exposed by an identity-only session."""
 
@@ -61,7 +67,7 @@ class GraphSession(_OpaqueIdentityModel):
     graph_id: str
     source_revision: str
     mode: Literal["og"] = "og"
-    capabilities: frozenset[GraphReadCapability]
+    capabilities: frozenset[GraphReadCapability | GraphTopologyCapability]
     state: GraphSessionState = GraphSessionState.ACTIVE
     expires_at_monotonic: float | None = None
 
@@ -79,13 +85,14 @@ class GraphSession(_OpaqueIdentityModel):
         session_id: str,
         source: GraphSourceIdentity,
         expires_at_monotonic: float | None = None,
+        capabilities: frozenset[GraphReadCapability | GraphTopologyCapability] | None = None,
     ) -> GraphSession:
         """Create the only session shape admitted by the OG identity slice."""
         return cls(
             id=session_id,
             graph_id=source.graph_id,
             source_revision=source.source_revision,
-            capabilities=frozenset({GraphReadCapability.GRAPH_IDENTIFY}),
+            capabilities=capabilities or frozenset({GraphReadCapability.GRAPH_IDENTIFY}),
             expires_at_monotonic=expires_at_monotonic,
         )
 
@@ -120,4 +127,5 @@ __all__ = [
     "GraphSessionReadError",
     "GraphSessionState",
     "GraphSourceIdentity",
+    "GraphTopologyCapability",
 ]

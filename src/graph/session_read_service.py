@@ -13,16 +13,28 @@ from .session_read_models import (
     GraphSession,
     GraphSessionReadError,
     GraphSessionState,
+    GraphTopologyCapability,
+)
+from .session_topology_models import (
+    GraphTopologyResponse,
+    GraphTopologyResult,
 )
 
 
 class GraphSessionReadService(GraphSessionReadPort):
     """Serve one active, bound graph identity without selecting a source or transport."""
 
-    def __init__(self, session: GraphSession, *, clock: Callable[[], float] = monotonic) -> None:
+    def __init__(
+        self,
+        session: GraphSession,
+        *,
+        clock: Callable[[], float] = monotonic,
+        topology: GraphTopologyResult | None = None,
+    ) -> None:
         self._session = session
         self._clock = clock
         self._state = session.state
+        self._topology = topology
 
     def close(self) -> None:
         """Close an active session once; a terminal session stays terminal."""
@@ -43,6 +55,26 @@ class GraphSessionReadService(GraphSessionReadPort):
             graph_id=self._session.graph_id,
             source_revision=self._session.source_revision,
             result=GraphIdentityResult(graph_id=self._session.graph_id),
+        )
+
+    def topology_snapshot(self, *, session_id: str, graph_id: str) -> GraphTopologyResponse:
+        """Return one complete, content-free topology or reject an invalid session binding."""
+        if session_id != self._session.id:
+            raise GraphSessionReadError("session binding rejected")
+        self._require_active_session()
+        if graph_id != self._session.graph_id:
+            raise GraphSessionReadError("foreign graph binding rejected")
+        if (
+            GraphTopologyCapability.GRAPH_TOPOLOGY_SNAPSHOT_COMPLETE
+            not in self._session.capabilities
+            or self._topology is None
+        ):
+            raise GraphSessionReadError("graph topology capability unavailable")
+        return GraphTopologyResponse(
+            session_id=self._session.id,
+            graph_id=self._session.graph_id,
+            source_revision=self._session.source_revision,
+            result=self._topology,
         )
 
     def _require_active_session(self) -> None:

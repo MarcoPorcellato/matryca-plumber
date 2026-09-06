@@ -19,7 +19,6 @@ from src.graph.bounded_page_parse import (
     BoundedParseResult,
     ParseMode,
     content_hash16,
-    parse_page_text_bounded,
 )
 from src.graph.post_write import PageWrittenEvent
 from src.shadow.bootstrap import (
@@ -35,8 +34,6 @@ from src.shadow.health import ShadowHealthState, resolve_shadow_health
 from src.shadow.meta import META_LAST_SYNC_ERROR, get_meta
 from src.shadow.runtime_state import reset_shadow_runtime_state_for_tests
 from src.shadow.sync import _on_shadow_page_written, sync_page_into_connection, sync_page_to_shadow
-
-from tests.a_cli_01_generator import generate_pathological_page
 
 
 @pytest.fixture(autouse=True)
@@ -241,18 +238,39 @@ def test_shadow_source_contains_no_direct_stack_machine_parser_call() -> None:
     )
 
 
-def test_real_pathological_page_rolls_back_full_rebuild_with_bounded_error(
+def test_bounded_timeout_rolls_back_full_rebuild_with_bounded_error(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    warm = parse_page_text_bounded("- warm\n", mode="stack", timeout_s=15)
-    assert warm.ok
-    monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "2")
     root = _graph(tmp_path)
     _write_page(root, "Alpha.md", "- ordinary\n")
-    _write_page(root, "Pathological.md", generate_pathological_page())
+    timed_out = "- controlled timeout\n"
+    _write_page(root, "TimedOut.md", timed_out)
 
-    with pytest.raises(ShadowPageParseError):
+    from src.graph.bounded_page_parse import parse_page_text_bounded as real_parse
+
+    def _parse(
+        text: str,
+        *,
+        mode: ParseMode = "logos",
+        page_title: str = "Page",
+        tab_size: int = 2,
+        timeout_s: float | None = None,
+    ) -> BoundedParseResult:
+        if text == timed_out:
+            return _failed_parse(text)
+        return real_parse(
+            text,
+            mode=mode,
+            page_title=page_title,
+            tab_size=tab_size,
+            timeout_s=timeout_s,
+        )
+
+    with (
+        patch("src.graph.bounded_ast_graph.parse_page_text_bounded", side_effect=_parse),
+        pytest.raises(ShadowPageParseError),
+    ):
         rebuild_shadow_from_graph(root)
 
     conn = open_shadow_db(root)
@@ -262,22 +280,45 @@ def test_real_pathological_page_rolls_back_full_rebuild_with_bounded_error(
     finally:
         conn.close()
     assert "category=timeout" in error
-    assert "Pathological.md" not in error
+    assert "TimedOut.md" not in error
     assert str(root) not in error
     assert resolve_shadow_health(root) is ShadowHealthState.ERROR
 
 
-def test_real_pathological_incremental_keeps_last_good_page(
+def test_bounded_timeout_incremental_keeps_last_good_page(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     root = _graph(tmp_path)
     page = _write_page(root, "Alpha.md", "- last good content\n")
     rebuild_shadow_from_graph(root)
-    monkeypatch.setenv("MATRYCA_PAGE_PARSE_TIMEOUT_S", "2")
-    page.write_text(generate_pathological_page(), encoding="utf-8")
+    timed_out = "- controlled timeout\n"
+    page.write_text(timed_out, encoding="utf-8")
 
-    with pytest.raises(ShadowPageParseError):
+    from src.graph.bounded_page_parse import parse_page_text_bounded as real_parse
+
+    def _parse(
+        text: str,
+        *,
+        mode: ParseMode = "logos",
+        page_title: str = "Page",
+        tab_size: int = 2,
+        timeout_s: float | None = None,
+    ) -> BoundedParseResult:
+        if text == timed_out:
+            return _failed_parse(text)
+        return real_parse(
+            text,
+            mode=mode,
+            page_title=page_title,
+            tab_size=tab_size,
+            timeout_s=timeout_s,
+        )
+
+    with (
+        patch("src.graph.bounded_ast_graph.parse_page_text_bounded", side_effect=_parse),
+        pytest.raises(ShadowPageParseError),
+    ):
         sync_page_to_shadow(root, page)
 
     conn = open_shadow_db(root)

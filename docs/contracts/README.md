@@ -19,8 +19,11 @@ consumer-compatibility surface.
 That internal slice admits one explicit UTF-8 snapshot up to 1 MiB, then hashes
 and parses those same bytes; it has no page or subtree delivery capability.
 `plumber.graph.topology/v1` additionally has a static, transport-neutral schema
-and synthetic fixture artifact. It is complete-only and read-session-bound; it
-creates no graph scan, Parser adapter, consumer wiring, or transport surface.
+and synthetic fixture artifact. Its internal OG slice is complete-only and
+read-session-bound: Plumber captures one bounded graph-wide source set, selects
+Parser 1.9 internally, and projects its in-memory snapshot graph to opaque
+topology values. It creates no endpoint, CLI/MCP surface, consumer wiring, or
+Logseq DB support.
 `plumber.consumer.package/v1` additionally has static, immutable product-profile
 packages for Trama and Brain. They bind only intended contract vocabulary to
 checked-in static bytes; they create no runtime consumer support or topology
@@ -29,7 +32,7 @@ qualification.
 | Contract family | Intended responsibility | Status |
 | --- | --- | --- |
 | [`plumber.graph.read/v1`](plumber-graph-read-v1.md) | Session-bound identity, page, and complete ordered subtree reads. | Static artifact; identity-only internal OG slice. |
-| [`plumber.graph.topology/v1`](plumber-graph-topology-v1.md) | Complete, derived structural topology for consumers. | Static artifact; feature-off. |
+| [`plumber.graph.topology/v1`](plumber-graph-topology-v1.md) | Complete, derived structural topology for consumers. | Static artifact; internal OG slice; no external transport or consumer qualification. |
 | [`plumber.consumer.package/v1`](plumber-consumer-package-v1.md) | Immutable static contract-intention packages for Trama and Brain. | Static artifact; unqualified. |
 | `plumber.control/v1` | Bounded operator configuration and gardening commands. | Reserved; feature-off. |
 | `plumber.host.navigate/v1` | Explicit host navigation request, never implicit UI control. | Reserved; feature-off. |
@@ -47,7 +50,13 @@ profile, and consumer profile pass the recorded admission gate.
 opaque session, graph, and source revision vocabulary of `plumber.graph.read/v1`.
 It has no partial-success response, textual payload, host locator, or durable
 identifier claim. Its static fixture attestation does not qualify OG, DB,
-Parser, Shadow, Trama, Brain, or a consumer transport.
+Shadow, Trama, Brain, or a consumer transport. The internal OG slice separately
+admits no more than 1,024 Markdown sources / 16 MiB, constructs exactly one
+Parser `LogseqGraph.from_snapshot_pages()` result from those captured bytes, and
+rejects unresolved block references, title collisions, or node and edge counts
+above the v1 profile limits. It emits reference edges only from explicitly
+resolved Parser wikilinks and block references. It still does not qualify an
+external consumer or transport.
 
 `plumber.consumer.package/v1` records static consumer intent for Trama and
 Brain against exact schema and canonical consumer-profile hashes. Its
