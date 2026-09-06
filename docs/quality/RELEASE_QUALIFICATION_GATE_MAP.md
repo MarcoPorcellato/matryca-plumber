@@ -61,7 +61,7 @@ The canonical rationale and escalation rules are in the
 
 | Candidate plan | Risk tier | Coordination | State | Boundary |
 | --- | --- | --- | --- | --- |
-| [v2.0.1-rc.4 release preparation](V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) | Tier 2 pending exact-candidate classification: internal OG topology runtime, Parser 1.9 dependency, and installed static contract/TCK resources | Preparation base `00b56329ed9b44e6d1e0ab0a2b83afac502b5ba2`; #579 | `proposed` | Candidate source, tag, workflow run, public bundle, package installation/resource-byte checks, and stable decision remain unselected. DB capability discovery remains `test_only/unbound`; no DB support, transport, consumer wiring, UI, or LENS is introduced. A final risk classification and its selected qualification gates remain required before publication. |
+| [v2.0.1-rc.4 release qualification plan](V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) | Tier 3: Parser 1.9 snapshot/graph-I/O semantics, process timeout lifecycle, and session-bound topology; static contract/TCK packaging remains in scope | Planning anchor `118b265b5c6b29682c76453aad5fbde0de0c841f`; #579 implementation/preparation, #582 qualification | `proposed` | No candidate source, tag, workflow run, public bundle, package installation/resource-byte checks, Gate B, or stable decision is selected. DB capability discovery remains `test_only/unbound`; #580 is `upstream_blocked` artifact-admission evidence, not DB support. Tier 3 requires fresh exact-artifact dual-profile Gate B with 259,200 valid seconds per profile. |
 
 Historical RC1 and RC3 records remain bound to their own artifacts. This registry does not
 represent publication, qualification, or stable-promotion results.

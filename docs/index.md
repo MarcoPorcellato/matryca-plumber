@@ -20,6 +20,7 @@ okf_version: "0.2"
 - [Release qualification gate map](quality/RELEASE_QUALIFICATION_GATE_MAP.md)
 - [Risk-based release qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md)
 - [v2.0.1-rc.4 release preparation](quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
+- [v2.0.1-rc.4 release qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
 - [Historical v2.0.1-rc.3 publication record](releases/v2.0.1-rc.3-GITHUB.md)
 - [Failed v2.0.1-rc.2 publication record](releases/v2.0.1-rc.2-FAILED-PUBLICATION.md)
 - [Historical v2.0.1-rc.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)

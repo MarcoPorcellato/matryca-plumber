@@ -58,7 +58,8 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > public artifact, Gate B result, or stable promotion exists. See the
 > [RC2 failed-publication record](docs/releases/v2.0.1-rc.2-FAILED-PUBLICATION.md),
 > [RC3 publication record](docs/releases/v2.0.1-rc.3-GITHUB.md), and
-> [RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md).
+> [RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
+> and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md).
 
 **Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
 Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
@@ -358,7 +359,7 @@ and large-export behavior.
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
 | Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
 | Review v2.0.1-rc.1 evidence | [Historical prerelease record](docs/releases/v2.0.1-rc.1-GITHUB.md) and [artifact-bound qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md) |
-| Track the proposed v2.0.1-rc.4 path | [RC4 release preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) |
+| Track the proposed v2.0.1-rc.4 path | [RC4 release preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |
 | Follow the current repository reconciliation | [GitHub and repository reconciliation](docs/quality/GITHUB_REPOSITORY_RECONCILIATION_2026-08-18.md) |

@@ -34,6 +34,7 @@ This index provides progressive disclosure across maintained concepts and the cl
 - [Risk-based release qualification decision](../quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md) — Selects fresh exact-artifact gates by change risk without transferring historical evidence.
 - [Public release and soak evidence policy](../quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md) — Retention, redaction, review, and artifact-bound claim rules for public qualification evidence.
 - [v2.0.1-rc.4 release preparation](../quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) — Proposed package and qualification boundary; no RC4 candidate, tag, publication, artifact, Gate B result, or stable decision is selected.
+- [v2.0.1-rc.4 release qualification plan](../quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) — Proposed Tier 3 candidate envelope; no candidate, package, hosted CI, Gate B result, or stable decision is selected.
 - [Historical v2.0.1-rc.3 publication record](../releases/v2.0.1-rc.3-GITHUB.md) — Published prerelease evidence that does not qualify RC4 or stable v2.0.1.
 - [Failed v2.0.1-rc.2 publication record](../releases/v2.0.1-rc.2-FAILED-PUBLICATION.md) — Historical signed-tag and workflow evidence; no GitHub Release or PyPI package was published.
 - [v2.0.1-rc.1 prerelease record](../releases/v2.0.1-rc.1-GITHUB.md) — Historical, artifact-bound publication facts and incomplete gates that do not qualify current `main`.

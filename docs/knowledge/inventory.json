@@ -1969,6 +1969,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md",
+      "type": "Roadmap",
+      "title": "v2.0.1-rc.4 release qualification plan",
+      "description": "Proposed Tier 3 qualification envelope for RC4; no candidate source, tag, artifact, Gate B result, or stable decision is selected.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active proposed RC4 qualification plan; classifies Parser/graph-I/O and timeout lifecycle as Tier 3 and records no selected candidate or result."
+    },
+    {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
       "type": "Roadmap",
       "title": "v2.0.1-rc.1 historical qualification plan",
