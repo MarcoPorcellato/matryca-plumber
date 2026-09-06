@@ -1,13 +1,13 @@
 ---
 type: release-qualification-plan
-title: v2.0.1-rc.3 proposed qualification plan
-description: Proposed Tier 3 qualification contract for the next v2.0.1 release candidate; no candidate source, tag, artifact, workflow run, or result is selected.
+title: v2.0.1-rc.3 historical qualification plan
+description: Historical RC3 qualification-plan snapshot. RC3 was subsequently published; this plan does not describe the active candidate path.
 resource: docs/quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md
 tags: [release, qualification, provenance, risk, v2]
-last_verified: 2026-08-31
+last_verified: 2026-09-06
 stale_after: 2027-02-27
-status: proposed
-classification: active
+status: historical
+classification: archive
 audience: [maintainer, contributor, operator]
 owner: release
 authority: release-candidate-plan
@@ -18,15 +18,17 @@ related:
   - ../releases/v2.0.1-rc.2-FAILED-PUBLICATION.md
 ---
 
-# v2.0.1-rc.3 proposed qualification plan
+# v2.0.1-rc.3 historical qualification plan
 
 ## Purpose and authority boundary
 
-This is the active proposed qualification contract for `v2.0.1-rc.3` /
-`2.0.1rc3`. It selects Tier 3 gates under the canonical
+This is the historical proposed qualification contract for `v2.0.1-rc.3` /
+`2.0.1rc3`, preserved as it stood before publication. It selects Tier 3 gates under the canonical
 [risk-based qualification decision](RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md).
-It records no successful qualification, public release, package artifact, tag, or
-stable-promotion decision.
+Its original statements below describe preparation status, not current release state.
+RC3 was subsequently published; see the
+[RC3 publication record](../releases/v2.0.1-rc.3-GITHUB.md). That publication does not
+establish stable promotion or qualify RC4.
 
 Coordination remains under milestone
 [#22](https://github.com/MarcoPorcellato/matryca-plumber/milestone/22) and issue

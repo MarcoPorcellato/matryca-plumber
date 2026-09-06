@@ -1631,7 +1631,8 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Terminal upstream_blocked artifact-admission evidence; no executable, fixture, graph read, transport, or DB support claim was exercised."
+      "notes": "Terminal upstream_blocked artifact-admission evidence; no executable, fixture, graph read, transport, or DB support claim was exercised.",
+      "missing": false
     },
     {
       "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",
@@ -1946,6 +1947,25 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Active proposed RC3 contract; records no selected candidate source, tag, workflow run, public artifact, Gate B result, or stable decision.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md",
+      "type": "Audit",
+      "title": "v2.0.1-rc.4 release preparation",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "",
       "missing": false
     },
     {
@@ -3754,6 +3774,25 @@
       "action": "archive",
       "supersedes": [],
       "notes": "Terminal failed-publication record only; it does not claim a public candidate artifact, Gate B qualification, or stable promotion.",
+      "missing": false
+    },
+    {
+      "path": "docs/releases/v2.0.1-rc.3-GITHUB.md",
+      "type": "Release Note",
+      "title": "v2.0.1-rc.3 publication record",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": "",
       "missing": false
     },
     {

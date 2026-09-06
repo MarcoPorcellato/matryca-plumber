@@ -1,6 +1,11 @@
 include LICENSE
 include NOTICE
+include setup.py
 graft src
 graft frontend/dist
+graft contracts
+include scripts/run_plumber_consumer_package_v1_tck.py
+include scripts/run_plumber_graph_read_v1_tck.py
+include scripts/run_plumber_graph_topology_v1_tck.py
 prune frontend/node_modules
 global-exclude *.py[cod]

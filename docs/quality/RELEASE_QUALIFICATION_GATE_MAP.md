@@ -61,9 +61,9 @@ The canonical rationale and escalation rules are in the
 
 | Candidate plan | Risk tier | Coordination | State | Boundary |
 | --- | --- | --- | --- | --- |
-| [v2.0.1-rc.3 proposed qualification plan](V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md) | Tier 3: operator `.env` parent-directory fsync durability, maintenance-robot Git commit-path isolation, and explicit checkout-free release repository binding | Preparation base `f91ba540fdb8c01f2ca5ccb30cedf71b6136b556` | `proposed` | Candidate source, signed tag, workflow run, public bundle, Gate B results, and stable decision remain unselected or unrecorded. Required focused evidence covers successful and tolerated-failure parent fsync, robot path isolation, and a workflow-contract assertion that preserves `--repo "$GITHUB_REPOSITORY"` with `--verify-tag`. Targeted controls do not replace fresh dual-profile Gate B; 259,200 valid seconds per profile remains required and outside current authorization. |
+| [v2.0.1-rc.4 release preparation](V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) | Tier 2 pending exact-candidate classification: internal OG topology runtime, Parser 1.9 dependency, and installed static contract/TCK resources | Preparation base `00b56329ed9b44e6d1e0ab0a2b83afac502b5ba2`; #579 | `proposed` | Candidate source, tag, workflow run, public bundle, package installation/resource-byte checks, and stable decision remain unselected. DB capability discovery remains `test_only/unbound`; no DB support, transport, consumer wiring, UI, or LENS is introduced. A final risk classification and its selected qualification gates remain required before publication. |
 
-Historical RC1 plans remain bound to their own artifacts. This registry does not
+Historical RC1 and RC3 records remain bound to their own artifacts. This registry does not
 represent publication, qualification, or stable-promotion results.
 
 ## Resource admission and interruption boundary

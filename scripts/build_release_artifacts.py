@@ -22,7 +22,50 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 _FORBIDDEN_SUFFIXES = {".pyc", ".pyd", ".pyo"}
-_REQUIRED_MEMBERS = {"src/__init__.py", "frontend/dist/index.html"}
+_PUBLIC_CONTRACT_RESOURCE_MEMBERS = {
+    "src/contract_artifacts/contracts/plumber.consumer.package/v1/fixtures/matryca-brain-profile-v1.json",
+    "src/contract_artifacts/contracts/plumber.consumer.package/v1/fixtures/matryca-trama-profile-v1.json",
+    "src/contract_artifacts/contracts/plumber.consumer.package/v1/manifest.json",
+    "src/contract_artifacts/contracts/plumber.consumer.package/v1/schema.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/consumer-profile-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/foreign-graph-rejected-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/identify-pass-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/incomplete-subtree-rejected-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/ordered-subtree-pass-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/page-read-pass-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/producer-profile-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/fixtures/unsupported-capability-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/manifest.json",
+    "src/contract_artifacts/contracts/plumber.graph.read/v1/schema.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/closed-session-rejected-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/consumer-profile-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/foreign-graph-rejected-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/incomplete-topology-rejected-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/producer-profile-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/topology-complete-pass-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/fixtures/unsupported-capability-v1.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/manifest.json",
+    "src/contract_artifacts/contracts/plumber.graph.topology/v1/schema.json",
+    "src/contract_artifacts/tck/run_plumber_consumer_package_v1_tck.py",
+    "src/contract_artifacts/tck/run_plumber_graph_read_v1_tck.py",
+    "src/contract_artifacts/tck/run_plumber_graph_topology_v1_tck.py",
+}
+_SOURCE_CONTRACT_RESOURCE_MEMBERS = {
+    member.replace("src/contract_artifacts/contracts/", "contracts/").replace(
+        "src/contract_artifacts/tck/", "scripts/"
+    )
+    for member in _PUBLIC_CONTRACT_RESOURCE_MEMBERS
+}
+_REQUIRED_MEMBERS = {
+    "src/__init__.py",
+    "frontend/dist/index.html",
+    *_PUBLIC_CONTRACT_RESOURCE_MEMBERS,
+}
+_REQUIRED_SDIST_MEMBERS = {
+    "src/__init__.py",
+    "frontend/dist/index.html",
+    *_SOURCE_CONTRACT_RESOURCE_MEMBERS,
+}
 
 
 def project_version(repo_root: Path) -> str:
@@ -91,7 +134,10 @@ def verify_release_archives(output_dir: Path, expected_version: str) -> tuple[Pa
             "/".join(Path(member).parts[1:]) if archive.suffix != ".whl" else member
             for member in members
         }
-        missing = _REQUIRED_MEMBERS - normalized_members
+        required_members = (
+            _REQUIRED_MEMBERS if archive.suffix == ".whl" else _REQUIRED_SDIST_MEMBERS
+        )
+        missing = required_members - normalized_members
         if missing:
             raise ValueError(f"{archive.name}: missing required release content: {sorted(missing)}")
 
