@@ -2,6 +2,13 @@
 
 ## 2026-09-06
 
+- **v2.0.1-rc.4 qualification plan:** added the separate #582 candidate plan.
+  It classifies the full Parser 1.9 snapshot, process timeout lifecycle,
+  session-topology, static-resource, test-only DB-policy, and #580 blocked-artifact
+  delta as Tier 3. The plan requires exact-source hosted CI, installed archive/TCK
+  parity, targeted controls, and fresh 259,200-second dual-profile Gate B evidence
+  after a separately selected public RC4 artifact; it selects no candidate, tag,
+  package, qualification result, DB support, or stable promotion.
 - **Logseq DB bundled-CLI artifact gate:** preserved the first exact official
   macOS arm64 attempt as `upstream_blocked`. GitHub, the official checksum list,
   and the downloaded ZIP agreed on artifact SHA-256, but Apple rejected the
