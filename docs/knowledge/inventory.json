@@ -1930,6 +1930,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md",
+      "type": "Audit",
+      "title": "v2.0.1-rc.4 release preparation",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md",
       "type": "Roadmap",
       "title": "v2.0.1-rc.1 historical qualification plan",
@@ -3736,6 +3754,24 @@
       "supersedes": [],
       "notes": "Terminal failed-publication record only; it does not claim a public candidate artifact, Gate B qualification, or stable promotion.",
       "missing": false
+    },
+    {
+      "path": "docs/releases/v2.0.1-rc.3-GITHUB.md",
+      "type": "Release Note",
+      "title": "v2.0.1-rc.3 publication record",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/resilience-llm-json-triz.md",

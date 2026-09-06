@@ -1,5 +1,14 @@
 # Documentation update log
 
+## 2026-09-06
+
+- **v2.0.1-rc.4 release preparation:** corrected the stale RC3 unpublished claim:
+  RC3 is a published historical prerelease with recorded tag and artifact hashes.
+  Added the #579 RC4 preparation boundary for Plumber-internal OG topology and
+  installed static public contract/TCK resources. The Logseq DB profile remains
+  test-only and unbound; no DB runtime support, transport, consumer wiring, UI,
+  LENS, tag, publication, Gate B result, or stable decision is introduced.
+
 ## 2026-09-02
 
 - **Epistemic-memory research direction:** added the maintained public research

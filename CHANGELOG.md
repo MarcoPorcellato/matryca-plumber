@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.0.1-rc.4] - 2026-09-06
+
 ### Added
 
 - **Bounded internal OG topology slice** — require `logseq-matryca-parser`
@@ -47,13 +49,23 @@
   declare and verify its exact installed candidate version instead of retaining a
   runner-local version from an earlier release candidate.
 
+### Changed
+
+- **Installed static public contracts** — package the canonical, content-free
+  `plumber.consumer.package/v1`, `plumber.graph.read/v1`, and
+  `plumber.graph.topology/v1` resources with their deterministic TCK scripts.
+  This is artifact availability only: it adds no public Python adapter, transport,
+  CLI/MCP endpoint, Logseq DB capability, Trama/Brain import, UI, or LENS surface.
+  Refs #579.
+
 ## [2.0.1-rc.3] - 2026-08-31
 
-`v2.0.1-rc.3` is the fresh publication candidate after the signed
-`v2.0.1-rc.2` tag reached a terminal failed workflow before either GitHub Releases
-or PyPI was written. RC3 includes the complete RC2 change set below plus the release
-repository-binding correction. RC2 remains an immutable failed-publication record,
-not a published package or transferable qualification result.
+`v2.0.1-rc.3` was published as a prerelease after the signed `v2.0.1-rc.2` tag
+reached a terminal failed workflow before either GitHub Releases or PyPI was written.
+RC3 includes the complete RC2 change set below plus the release-repository-binding
+correction. Its publication does not transfer qualification to RC4 or stable `v2.0.1`.
+RC2 remains an immutable failed-publication record, not a published package or
+transferable qualification result.
 
 ### Fixed
 
