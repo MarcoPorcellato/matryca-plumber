@@ -1,0 +1,17 @@
+{
+  "contract_id": "plumber.consumer.package/v1",
+  "schema_version": 1,
+  "status": "proposed",
+  "artifact_kind": "static-consumer-package-catalogue",
+  "schema_path": "schema.json",
+  "packages": [
+    {
+      "consumer_id": "matryca.brain",
+      "package_path": "fixtures/matryca-brain-profile-v1.json"
+    },
+    {
+      "consumer_id": "matryca.trama",
+      "package_path": "fixtures/matryca-trama-profile-v1.json"
+    }
+  ]
+}
