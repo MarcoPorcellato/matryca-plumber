@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Added
+
+- **Bounded internal OG topology slice** — require `logseq-matryca-parser`
+  1.9.0 and build one complete, content-free `plumber.graph.topology/v1`
+  projection from Plumber-captured Markdown through Parser's public
+  `LogseqGraph.from_snapshot_pages()` factory. The slice is session-bound and
+  rejects unresolved block references, title collisions, and source, node, or
+  edge limit failures; it adds no endpoint, CLI/MCP surface, consumer wiring,
+  Logseq DB path, or qualification claim. Refs #490.
+
 ### Changed
 
 - **Immutable static consumer packages** — add content-free

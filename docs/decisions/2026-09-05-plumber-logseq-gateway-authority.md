@@ -42,7 +42,7 @@ UI owner, while Plumber retains its bounded Operator Console. No LENS source or 
 | OG Markdown parsing | Parser, selected by Plumber | Parser owns parsing; legacy/experimental LENS remains compatible only during its deprecation window. |
 | OG and Shadow repository reads | Plumber `GraphReadPort` | `GraphReadPort remains filesystem/Shadow-only`; it is not a session or DB port. |
 | Logseq DB host access | Plumber | A future adapter may use only a qualified **Logseq DB official host surface**. |
-| Consumer graph reads | Plumber `GraphSessionReadPort` | Internal OG identity-only runtime exists; page/subtree and external transport remain feature-off. |
+| Consumer graph reads | Plumber `GraphSessionReadPort` | Internal OG identity and complete opaque topology slices exist; page/subtree and external transport remain feature-off. |
 | Graph and control contracts | Plumber | `plumber.graph.read/v1`, `plumber.graph.topology/v1`, `plumber.control/v1`, and `plumber.host.navigate/v1`. |
 | Product intelligence and graph UI | Trama | Consumer implementation over published Plumber contracts. |
 | Optional analysis consumer | Brain | Consumer implementation over published Plumber contracts. |
@@ -66,6 +66,11 @@ synthetic fixtures, and a compatibility test kit before a consumer is wired.
 The internal OG identity-only `GraphSessionReadPort` uses only an explicit
 Parser source, one byte-bounded UTF-8 snapshot, opaque identity, session
 binding, source revision, and Plumber-owned close/monotonic-expiry lifecycle.
+The internal complete-topology slice captures one bounded graph-wide OG source
+set and calls Parser 1.9 `LogseqGraph.from_snapshot_pages()` once; it projects
+only opaque structural values from explicitly resolved wikilinks and block
+references. It fails closed for unresolved block references, title collisions,
+and values above its declared bounds.
 Page and complete ordered subtree reads remain feature-off until the artifact
 and the selected source profile qualify bounded payloads, failure semantics,
 and consumer compatibility.
