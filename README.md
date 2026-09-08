@@ -64,6 +64,10 @@ Matryca Plumber does not define or require a graph database, vector database, em
 **Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
 Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
 
+> **See it in action:** Watch this short overview to learn how Matryca Plumber works, how it connects to the wider Matryca ecosystem, and where it fits in shared human/agentic memory.
+
+[![Watch the Matryca Plumber overview: shared human/agentic memory](images/matryca-plumber-overview.jpg)](https://youtu.be/pl8o2580RpU)
+
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#why-matryca-plumber">Why Matryca</a> ·
