@@ -1,5 +1,15 @@
 # Documentation update log
 
+## 2026-09-12
+
+- **Bounded graph payload semantics:** froze the additive
+  `plumber.graph.payload.read/v1` policy for exact page titles, complete ordered
+  block subtrees, an explicit typed-property allowlist, fixed safety limits,
+  profile-bound entitlement, provenance, and private/public evidence
+  separation. The decision preserves content-free `plumber.graph.read/v1` and
+  the filesystem/Shadow-only `GraphReadPort`; it introduces no schema, runtime
+  route, Logseq execution, DB support claim, consumer wiring, tag, or release.
+
 ## 2026-09-06
 
 - **Logseq DB read-only gateway authority:** replaced the historical
