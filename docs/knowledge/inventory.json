@@ -483,6 +483,25 @@
       "missing": false
     },
     {
+      "path": "docs/decisions/2026-09-12-plumber-graph-payload-read-v1.md",
+      "type": "Decision",
+      "title": "Plumber graph payload read v1 semantics",
+      "description": "Bounded additive payload semantics for future session-bound page and complete ordered subtree reads.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Accepted payload-policy authority under the Plumber Logseq gateway decision; no runtime or DB support claim."
+    },
+    {
       "path": "docs/decisions/index.md",
       "type": "Archive",
       "title": "Matryca Plumber decisions",

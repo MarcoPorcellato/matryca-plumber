@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Changed
+
+- **Bounded future graph payload contract** — define the additive
+  `plumber.graph.payload.read/v1` semantics for exact page titles, complete
+  ordered block subtrees, typed public properties, fixed safety limits, and
+  profile-bound provenance without changing runtime behavior or claiming
+  Logseq DB support. Refs #491.
+
 ## [2.0.1-rc.4] - 2026-09-06
 
 ### Added

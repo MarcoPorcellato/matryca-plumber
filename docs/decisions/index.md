@@ -1,5 +1,6 @@
 # Matryca Plumber decisions
 
+- [Plumber graph payload read v1 semantics](2026-09-12-plumber-graph-payload-read-v1.md)
 - [Plumber Logseq gateway authority](2026-09-05-plumber-logseq-gateway-authority.md)
 - [GitHub Actions qualification authority](2026-08-30-github-actions-qualification-authority.md)
 - [Documentation evolution and operating model](../knowledge/documentation-evolution.md)
