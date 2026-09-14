@@ -6,14 +6,15 @@ status: active
 classification: active
 authority: docs/decisions/2026-09-05-plumber-logseq-gateway-authority.md
 owner: integration
-last_verified: 2026-09-06
+last_verified: 2026-09-15
 ---
 
 # Logseq DB Read-Only Gateway Qualification
 
-This file is the restart-safe execution pointer for the next qualification
-attempt. It is operationally subordinate to the accepted Plumber gateway
-decision and the live issue [#491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491).
+This file is the restart-safe execution pointer for the next separately
+authorized recovery-verification attempt. It is operationally subordinate to the accepted
+Plumber gateway decision and active tracking issue
+[#491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491).
 The historical plan and persistent goal remain useful evidence, but are
 **historical and non-authorizing**. They must not be used to revive the former
 Trama-owned `trama.logseq.read/v1` authority or to authorize runtime changes.
@@ -23,7 +24,8 @@ Trama-owned `trama.logseq.read/v1` authority or to authorize runtime changes.
 1. The accepted Plumber gateway decision defines ownership and forbidden paths.
 2. The active gateway design defines architecture and contract boundaries.
 3. The active implementation plan defines dependency order and completion.
-4. Issue #491 defines the current public qualification objective and checklist.
+4. Issue #491 defines the active public qualification objective and checklist;
+   the payload-semantics ADR merged by PR #590 freezes semantics only.
 5. This pointer defines restart state, attempt boundaries, and operator gates.
 6. The active artifact-evidence record defines the last terminal result.
 7. Live source, GitHub, and exact runtime receipts outrank dated anchors.
@@ -39,13 +41,14 @@ Trama and Brain are consumers, never direct Logseq readers or Parser imports.
 
 | Surface | Anchor | Meaning |
 | --- | --- | --- |
-| Plumber public main | `74884c38edb9cae445fa465969aa2c9cee5ecd1c`, tree `196df91996ebccb5f40cb37b927a4fbf55a4211a` | Signed and GitHub-verified rebaseline after RC4 qualification-plan PR #583 and frontend-security PR #585 |
-| Current issue | Plumber #491 | Open P0 capability qualification |
+| Plumber public main | `233731cde79ceb2e26da91b935ad5a4dfd02c85c`, tree `215122c0329643425de153cd42cba53fe142f812` | Current rebaseline |
+| Active tracking issue | Plumber #491 | Qualification objective; do not infer host support |
+| Accepted decision | Payload-semantics ADR merged by PR #590 | No static contract or runtime support follows |
 | Prior artifact attempt | PR #580 / main `00b56329ed9b44e6d1e0ab0a2b83afac502b5ba2` | Terminal `upstream_blocked` before execution |
 | Active authority | `docs/decisions/2026-09-05-plumber-logseq-gateway-authority.md` | Accepted ownership decision |
 | Active design | `docs/superpowers/specs/2026-09-06-logseq-db-read-only-gateway-design.md` | Additive payload and host-adapter boundary |
 | Active plan | `docs/superpowers/plans/2026-09-06-logseq-db-read-only-gateway.md` | Dependency order and definition of done |
-| Active evidence | `docs/quality/LOGSEQ_DB_CLI_ARTIFACT_EVIDENCE_2026-09-06.md` | Exact failed CLI admission record |
+| Active evidence | Private 2026-09-12 checkpoint | Exact 2026-09-08 DMG admission and later incomplete fixture attempt; raw evidence stays private |
 | Closed page-read issue | `logseq/db-test#833` | Closed 2026-08-31; closure is not artifact evidence |
 | MCP HTTP blocker | `logseq/db-test#1101` | Open; HTTP remains prohibited |
 
@@ -76,66 +79,44 @@ docs, synthetic policy fixtures, or partial operation evidence.
 
 ## Completed boundary
 
-The first exact official macOS arm64 bundled-CLI attempt is terminal
-`upstream_blocked`: published and local digests matched, but Apple signature
-and Gatekeeper admission failed before execution. No graph, fixture, transport,
-worker, lock, configuration, or user data was touched. This evidence is
-preserved in PR #580 and must never be reclassified or overwritten.
+PR #580 remains the historic `upstream_blocked` attempt: its selected official ZIP failed
+Apple signature and Gatekeeper admission before execution. Preserve that result
+unchanged. A separate 2026-09-08 official arm64 DMG passed artifact admission
+and help-only CLI discovery; exact records remain private. The CLI revision
+reported `be800f1-dirty`. This is artifact evidence only, not DB capability or
+support evidence.
 
-## Current and next boundaries
+The later synthetic-fixture attempt stopped after nested insertion returned
+only the root identifier. It is an ambiguous fixture-verification failure:
+the nested tree remains unproven and no terminal transport classification
+exists.
 
-Current boundary: finish, verify, commit, publish, and merge the three active
-authority documents from branch `docs/logseq-db-gateway-authority-20260906-v2`,
-which started at public main `118b265b5c6b29682c76453aad5fbde0de0c841f`
-and is rebaselined to exact current main
-`74884c38edb9cae445fa465969aa2c9cee5ecd1c`. PR #583 changed RC4 qualification
-documentation and tests; PR #585 changed frontend dependency security policy,
-lock data, and tests. Neither changed graph contracts or graph runtime code. No
-Logseq artifact is acquired or executed in this boundary.
+## Next bounded boundary
 
-After that merge:
+One separately authorized recovery-verification attempt may inspect only the
+exact existing synthetic root and write evidence only to a new private evidence
+directory. Allowed operations: property inventory, graph info, page show,
+root-UUID show, owner-scoped server stop, and final server list. Declare
+lifecycle effects before execution and inventory them separately from graph
+semantics before reads, after reads, and after stop. Unknown ownership or any
+undeclared lifecycle effect stops the attempt.
 
-1. freeze the additive `plumber.graph.payload.read/v1` semantics in one
-   documentation-only ADR;
-2. prepare a new bundled-CLI attempt, never a retry of #580;
-3. reverify and admit the official arm64 DMG candidate;
-4. stop with `upstream_blocked` on artifact-admission failure;
-5. only after executable admission, provision one synthetic fixture in a fresh
-   disposable root using documented official examples;
-6. freeze runtime-generated identifiers and fixture digest;
-7. run a separate read-only qualification for the three operations;
-8. preserve exact raw-result digests, provenance, session/revision binding, and
-   post-run forbidden-change evidence;
-9. classify an admitted but insufficient read surface as
-   `capability_no_go`, preserve it, and only then open the Plugin SDK lane.
+This recovery step earns no Gate C credit and cannot produce a terminal
+transport classification. It authorizes no fallback, writes, import/export,
+query, sync, login, graph switch, reprovisioning, or retry. It does not open a
+Plugin SDK or MCP lane. Gate C remains unstarted.
 
 The independent `get_graph_read_port` characterization and pure-selector lane
 may proceed without becoming a prerequisite or acquiring any DB behavior.
 
-## Approved authorization envelope
+## Current authorization boundary
 
-The maintainer-approved programme envelope permits:
-
-- read-only repository, GitHub, release, issue, source, documentation, and
-  artifact inspection;
-- code-audit refresh and impact/change analysis;
-- owned isolated worktrees, plan-defined local edits, deterministic tests, and
-  signed commits;
-- official provenance-bound artifact and SDK acquisition without global
-  installation;
-- at most one separately bounded artifact admission, synthetic-fixture
-  provisioning, and read-only qualification attempt for each transport in the
-  fixed CLI, Plugin SDK, MCP stdio order;
-- scoped #490/#491 issue maintenance;
-- short branch pushes, pull requests, hosted-CI monitoring, and sequential
-  signed squash merges after every exact gate is green;
-- `--admin` only when protected-main signature enforcement is the sole blocker;
-- deletion of only a successfully merged PR branch and cleanup of only clean,
-  merged, task-owned worktrees after checkpoint preservation.
-
-The envelope is not permission to ignore prerequisites, combine attempts,
-retry a consumed attempt, or continue after a stop condition. GPG failure stops
-signing; no unsigned substitute is permitted.
+Prior programme authorization does not broaden this recovery boundary. The
+only permitted operations are the bounded reads and owner-scoped lifecycle
+actions above against the exact existing synthetic root, with evidence written
+to a new private evidence directory. No other graph, user root, transport,
+fixture mutation, qualification, fallback, retry, publication, issue update,
+or repository mutation is authorized here.
 
 Tags, releases, PyPI, stable support claims, DB writes, events, sync,
 import/export, internal SQLite, DB-to-Markdown fallback, DB-source Shadow,
@@ -193,10 +174,9 @@ persistence/data-integrity judgment, final qualification, release/support
 claims, and all external mutations. Delegated output is orientation until
 independently verified against exact bytes, refs, and checks.
 
-## Next executable action
+## Next gate
 
-Complete Phase 0 of the active plan: curate the documentation inventory and
-knowledge log for the three new authority files, run the complete documentation
-and repository gates, commit and publish the scoped branch, obtain exact-head
-hosted CI, then conditionally signed-squash merge it. After checkpointing the
-merge, cut the payload-contract ADR branch from freshly verified `main`.
+Do not execute recovery verification from this documentation update. It needs
+its own exact authorization and fresh operator preflight. After that bounded
+attempt, preserve its result and stop; do not infer Gate C readiness or select
+a fallback transport.

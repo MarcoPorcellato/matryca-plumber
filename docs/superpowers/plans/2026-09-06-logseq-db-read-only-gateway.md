@@ -7,7 +7,7 @@ classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: integration
 verified: { by: human:marco-porcellato, at: '2026-09-06T00:00:00Z' }
-last_verified: 2026-09-06
+last_verified: 2026-09-15
 stale_after: 2027-03-05
 tracking_issue: https://github.com/MarcoPorcellato/matryca-plumber/issues/491
 related:
@@ -44,21 +44,21 @@ themselves prove runtime compatibility.
   [`2026-09-05-plumber-logseq-gateway-authority.md`](../../decisions/2026-09-05-plumber-logseq-gateway-authority.md).
 - Active design:
   [`2026-09-06-logseq-db-read-only-gateway-design.md`](../specs/2026-09-06-logseq-db-read-only-gateway-design.md).
-- Tracking work item: [Plumber #491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491),
+- Active tracking work item: [Plumber #491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491),
   under epic [#490](https://github.com/MarcoPorcellato/matryca-plumber/issues/490).
-- Verified planning base: public
-  `main@74884c38edb9cae445fa465969aa2c9cee5ecd1c`, tree
-  `196df91996ebccb5f40cb37b927a4fbf55a4211a`. The draft began at
-  `118b265b5c6b29682c76453aad5fbde0de0c841f` and was rebaselined after RC4
-  qualification-plan PR #583 and frontend-security PR #585; neither changed
-  graph contracts or graph runtime code.
+- Current public-main base: `233731cde79ceb2e26da91b935ad5a4dfd02c85c`,
+  tree `215122c0329643425de153cd42cba53fe142f812`.
+- Phase 1 payload semantics are complete through the payload-semantics ADR
+  merged by [PR #590](../../decisions/2026-09-12-plumber-graph-payload-read-v1.md). This
+  completes semantic choices only; schema/TCK, host, runtime, adapter, and
+  support qualification remain future gates.
 - RC4 baseline: the existing three static contract families and three TCKs are
   packaged and installed with byte parity. Their bytes and meaning are a
   regression boundary, not DB runtime evidence.
 - Prior CLI attempt: [PR #580](https://github.com/MarcoPorcellato/matryca-plumber/pull/580)
-  records `upstream_blocked` before execution because the admitted ZIP failed
+  records `upstream_blocked` before execution because the selected official ZIP failed
   Apple signature verification. Preserve it unchanged.
-- Current upstream status observed on 2026-09-06: Logseq db-test #833 is closed;
+- Current upstream status reverified on 2026-09-15: Logseq db-test #833 is closed;
   #1101 is open. Reverify both before relying on them.
 
 The former Trama-owned DB plan and persistent goal are historical and
@@ -105,41 +105,30 @@ A new lane begins only after the preceding lane has a complete terminal record.
 There is no within-attempt fallback. An ambiguous failure is checkpointed and
 stopped; it is not automatically one of the three terminal outcomes.
 
-## Phase 0 — Publish active execution authority
+## Phase 0 — Publish active execution authority (complete)
 
-### Task 0.1: authority-document PR
+Completed before the current public-main base: the active design, plan, and
+restart-safe goal are present in the baseline. Phase completion is historical;
+this rebaseline does not claim that documentation gates were rerun on this
+branch. No Logseq artifact was acquired or executed in Phase 0.
 
-- [ ] Add the active design, this plan, and the restart-safe goal.
-- [ ] Reconcile their authority hierarchy with the accepted gateway decision.
-- [ ] Preserve historical plans and evidence without rewriting their verdicts.
-- [ ] Regenerate and curate `docs/knowledge/inventory.json`.
-- [ ] Regenerate `docs/knowledge/inventory.md`.
-- [ ] Add a concise newest-first entry to `docs/knowledge/log.md` when required
-  by the documentation profile.
-- [ ] Run `make docs-inventory-sync`, `make docs-inventory-md`, `make
-  docs-check`, `make docs-audit`, and `make agents-check`.
-- [ ] Run full `make ci` before merge.
-- [ ] Verify exact diff, hosted CI, review state, base, and head before signed
-  squash merge.
-
-No Logseq artifact is downloaded or executed in this task.
-
-## Phase 1 — Freeze the payload boundary
+## Phase 1 — Freeze the payload boundary (complete)
 
 ### Task 1.1: payload-contract ADR
 
-Create one documentation-only PR that decides:
+The payload-semantics ADR merged by PR #590 freezes the semantics below. The static contract and
+runtime remain unimplemented and unsupported.
 
-- [ ] contract identifier `plumber.graph.payload.read/v1`;
-- [ ] page title/content representation;
-- [ ] block content, ID, parent ID, and sibling ordinal representation;
-- [ ] supported typed-property allowlist and unsupported-value behavior;
-- [ ] byte, node, depth, property-count, key, and per-value limits;
-- [ ] redaction and public-evidence policy;
-- [ ] graph, session, source-revision, artifact, and provenance fields;
-- [ ] completeness and contiguous sibling-order requirements;
-- [ ] consumer intent and entitlement rules;
-- [ ] additive relationship to content-free `plumber.graph.read/v1`.
+- [x] contract identifier `plumber.graph.payload.read/v1`;
+- [x] page title/content representation;
+- [x] block content, ID, parent ID, and sibling ordinal representation;
+- [x] supported typed-property allowlist and unsupported-value behavior;
+- [x] byte, node, depth, property-count, key, and per-value limits;
+- [x] redaction and public-evidence policy;
+- [x] graph, session, source-revision, artifact, and provenance fields;
+- [x] completeness and contiguous sibling-order requirements;
+- [x] consumer intent and entitlement rules;
+- [x] additive relationship to content-free `plumber.graph.read/v1`.
 
 The ADR defines semantics only. It adds no runtime route or support claim.
 
@@ -166,46 +155,17 @@ Only after Task S.1 is merged:
 - [ ] add no DB condition, session type, transport, or new fallback;
 - [ ] run focused tests, code-audit change detection, and full hosted CI.
 
-## Phase 2 — Bundled CLI host evidence
+## Phase 2 — Bundled CLI host evidence (artifact admitted; DB support unproven)
 
-### Task 2.1: immutable artifact dossier
+The official 2026-09-08 arm64 DMG completed artifact admission and bounded
+help-only CLI discovery. Exact artifact identity, digests, signature/Gatekeeper
+checks, and CLI output remain private. The CLI reported revision `be800f1-dirty`,
+a provenance limitation. This admission did not qualify graph, page, or
+subtree reads and creates no support claim. PR #580 remains the separate
+historic `upstream_blocked` ZIP result. Re-admission, download, or help probing
+is not part of the current recovery boundary.
 
-- [ ] Reverify the official Logseq release list and selected arm64 asset.
-- [ ] Prefer the official `Desktop app Nightly Release 20260826` DMG candidate,
-  asset ID `530968256`, only if its live identity still matches.
-- [ ] Reverify its official size, release target, checksum-list entry, and
-  previously observed SHA-256
-  `ff81dd7513efa080a7f9bd122fca99d82f455a5c6745f154671b7530b8f8379b`.
-- [ ] Bind current official source, CLI guide, DB guide, build workflow, #833,
-  and #1101 to exact commits or immutable API evidence.
-- [ ] Allocate a new attempt ID and private evidence root.
-
-Stop before download on any provenance, license, platform, or identity
-ambiguity.
-
-### Task 2.2: artifact acquisition and admission
-
-- [ ] Download only the selected official asset and checksum material.
-- [ ] Verify size and SHA-256 before opening it.
-- [ ] Mount the DMG read-only; do not copy it into a global application path.
-- [ ] Verify the application and nested code signatures strictly.
-- [ ] Verify Gatekeeper admission and notarization evidence.
-- [ ] Record bundle ID, version, architecture, Team Identifier, executable
-  digest, and embedded build/source revision where available.
-- [ ] Stop with `upstream_blocked` if admission fails. Do not execute Logseq.
-
-### Task 2.3: bounded CLI discovery
-
-Only after artifact admission:
-
-- [ ] invoke the bundled CLI only for `--version` and relevant help output;
-- [ ] bind exact executable digest, root option, graph selector, structured
-  output selector, documented example surface, and worker lifecycle;
-- [ ] reject shell wrappers, ambient graph selection, global installation, and
-  any undocumented command;
-- [ ] decide whether the CLI can safely proceed to fixture provisioning.
-
-## Phase 3 — Disposable fixture mutation
+## Phase 3 — Disposable fixture mutation and bounded recovery
 
 Fixture provisioning is mutation and receives no read-only credit.
 
@@ -225,7 +185,30 @@ Fixture provisioning is mutation and receives no read-only credit.
 Never open a user graph, default Logseq root, account, sync configuration, or
 internal database directly.
 
-## Phase 4 — Separate read-only qualification
+### Task 3.2: recovery verification of the incomplete nested fixture
+
+The 2026-09-12 fixture attempt is an ambiguous fixture-harness failure: nested
+insertion returned only the root identifier and stopped before property
+inventory, graph info, or `show` verification. It neither proves the nested
+tree exists nor classifies the host or transport. Do not alter PR #580's
+historic `upstream_blocked` result.
+
+One separately bounded recovery-verification attempt may use only the exact
+existing synthetic root and a new private evidence directory. Its allowed
+operations are property inventory, graph info, page show, root-UUID show,
+owner-scoped server stop, and final server list. Capture and compare a separate
+lifecycle inventory before reads, after reads, and after stop, alongside but
+distinct from semantic graph evidence. Declare expected lifecycle effects
+before execution. Stop on unknown ownership, undeclared effects, identity
+drift, or incomplete results.
+
+This is still Gate B recovery verification, not Gate C read-only
+qualification. It earns no Gate C credit and no terminal transport
+classification, and authorizes no fallback, writes, import/export, query,
+sync, login, graph switch, reprovisioning, or retry. No later transport lane
+opens from this boundary.
+
+## Phase 4 — Separate read-only qualification (not started)
 
 ### Task 4.1: qualify the required operation set
 
@@ -267,7 +250,7 @@ semantics.
 - [ ] If unsupported or blocked, stop before adapter implementation and open
   the next transport lane as a new attempt.
 
-## Phase 5 — Plugin SDK and MCP stdio fallback lanes
+## Phase 5 — Plugin SDK and MCP stdio fallback lanes (not authorized by Gate B recovery)
 
 Repeat Phases 2–4 independently for each permitted fallback transport.
 
