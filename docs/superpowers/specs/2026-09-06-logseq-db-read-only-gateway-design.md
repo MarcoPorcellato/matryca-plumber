@@ -8,7 +8,7 @@ classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: core-runtime
 verified: { by: human:marco-porcellato, at: '2026-09-06T00:00:00Z' }
-last_verified: 2026-09-06
+last_verified: 2026-09-15
 stale_after: 2027-03-05
 related:
   - ../../decisions/2026-09-05-plumber-logseq-gateway-authority.md
@@ -28,32 +28,31 @@ claim, or authorization to execute Logseq.
 
 It implements the accepted [Plumber Logseq gateway authority](../../decisions/2026-09-05-plumber-logseq-gateway-authority.md): Plumber owns selection of an official Logseq DB host surface and publishes `plumber.*` contracts. Matryca Trama and Matryca Brain are downstream consumers. They neither import Parser nor access a Logseq graph directly.
 
-The design is anchored to verified public `main`
-`74884c38edb9cae445fa465969aa2c9cee5ecd1c`, tree
-`196df91996ebccb5f40cb37b927a4fbf55a4211a`. The work was initially prepared
-from `118b265b5c6b29682c76453aad5fbde0de0c841f`, then rebaselined after RC4
-qualification-plan PR #583 and frontend-security PR #585 advanced `main`
-without changing graph contracts or graph runtime code. RC4 packages existing
-static contracts and compatibility test kits; it does not qualify a DB host,
-payload, adapter, consumer, or release.
+The current public-main baseline is
+`233731cde79ceb2e26da91b935ad5a4dfd02c85c`, tree
+`215122c0329643425de153cd42cba53fe142f812`. This rebaseline includes accepted
+payload semantics in the ADR merged by [PR #590](../../decisions/2026-09-12-plumber-graph-payload-read-v1.md).
+That decision completes the semantic-definition boundary only. It does not
+qualify a DB host, payload implementation, adapter, consumer, or release.
 
 ## Current upstream evidence
 
-At the 2026-09-06 planning boundary:
+At the 2026-09-15 evidence boundary:
 
 - [Logseq db-test #833](https://github.com/logseq/db-test/issues/833) is
   closed. Closure is useful upstream status, not proof that any selected
   application artifact provides a correct page read.
 - [Logseq db-test #1101](https://github.com/logseq/db-test/issues/1101) is
   open. MCP HTTP therefore remains prohibited.
-- the newest observed official macOS release candidate remains `Desktop app
-  Nightly Release 20260826`;
-- its arm64 DMG asset ID is `530968256` and its previously observed SHA-256 is
-  `ff81dd7513efa080a7f9bd122fca99d82f455a5c6745f154671b7530b8f8379b`.
+- the earlier 2026-08-26 candidate is historical evidence only;
+- a separate private 2026-09-08 arm64 DMG admission and help-only CLI discovery
+  exists, with an embedded revision reported as `be800f1-dirty`. That revision
+  is a provenance limitation and does not establish a DB read capability.
 
 Every mutable upstream fact and the complete immutable asset identity must be
-reverified before acquisition. The DMG is a new admission attempt and must not
-overwrite or reinterpret the failed ZIP attempt.
+reverified before a new acquisition. The 2026-09-08 DMG is a completed,
+separate admission attempt and must not overwrite or reinterpret the failed ZIP
+attempt.
 
 ## Goal
 
@@ -205,10 +204,12 @@ class OfficialHostBinding:
 ```
 
 For a CLI selection, every graph-bound invocation must explicitly bind the
-selected root, graph, JSON output, and timeout. The permitted initial read
+selected root, graph, JSON output, and timeout. The permitted normal read
 family is limited to host metadata and documented page/tree inspection. It
 must not invoke `query`, debug, server lifecycle, sync, graph switching,
-import/export, login, or a shell.
+import/export, login, or a shell. The only exception is the separately
+authorized, one-attempt Gate B recovery `server stop` described below; it is
+not a read, adapter behavior, or Gate C operation.
 
 ## Artifact, fixture, and read-only evidence gates
 
@@ -220,9 +221,10 @@ successful Apple code-signature verification, successful Gatekeeper admission,
 and an inspectable bundled CLI. The exact `--version` revision and relevant
 help output are bound before fixture creation.
 
-The failed 2026-09-06 nightly archive remains immutable
-`upstream_blocked` evidence. It must not be overwritten, reclassified, or used
-as CLI semantic evidence.
+The failed 2026-09-06 nightly archive remains immutable `upstream_blocked`
+evidence. The separate 2026-09-08 admission also remains private artifact
+evidence, not CLI semantic evidence. Neither record may be overwritten,
+reclassified, or combined into a support claim.
 
 ### Gate B: fixture provisioning
 
@@ -235,6 +237,30 @@ graph-data fingerprint.
 `graph create` switches the fixture graph according to the official CLI
 documentation. Consequently it must never be included in, or credited as,
 read-only qualification evidence. No user graph or user root may be opened.
+
+### Gate B recovery verification for the incomplete nested fixture
+
+The 2026-09-12 fixture attempt stopped after nested insertion returned only
+the root identifier. This is an ambiguous fixture-verification failure, not a
+fixture pass, host capability result, or transport result. The admitted
+2026-09-08 DMG and help-only CLI discovery remain exact private artifact
+evidence; artifact admission does not support a DB read claim. Preserve the
+earlier PR #580 `upstream_blocked` result unchanged.
+
+One separately authorized recovery-verification attempt may inspect only the
+exact existing synthetic root and write evidence only to a new private
+evidence directory. Its complete command set is limited to property
+inventory, graph info, page show, root-UUID show, owner-scoped server stop,
+and final server list. Record lifecycle effects as a separate inventory from
+graph-semantic state, with inventories before reads, after reads, and after
+server stop. Declare expected lifecycle transitions before the attempt; an
+undeclared transition or unknown ownership stops it.
+
+This boundary earns no Gate C credit and cannot produce a terminal transport
+classification. It authorizes no fallback, graph or fixture writes,
+import/export, query, sync, login, graph switch, reprovisioning, or retry. An
+ambiguous or incomplete result remains preserved and stopped; no next transport
+opens from this verification.
 
 ### Gate C: read-only qualification
 
@@ -262,7 +288,7 @@ claim generic zero filesystem writes.
 | --- | --- |
 | Repacked or mismatched application | Immutable asset identity, publisher digest, local digest, signature, Gatekeeper, embedded revision, and executable digest. |
 | User graph selection or ambient config | Fresh disposable root; explicit root and graph on every call; reject missing, foreign, or inferred binding. |
-| CLI lifecycle takeover | No manual server command; abort on replacement, stale-lock cleanup, orphan cleanup, unknown owner, or undeclared lifecycle action. |
+| CLI lifecycle takeover | No manual server command except the separately authorized Gate B owner-scoped recovery stop; abort on replacement, stale-lock cleanup, orphan cleanup, unknown owner, or undeclared lifecycle action. |
 | Internal-storage shortcut | No SQLite driver, file parser, Parser DB path, debug/query command, or undocumented host protocol. |
 | Incomplete or reordered subtree | Require `complete: true`, stable identifiers, canonical parentage, contiguous per-parent ordinal order, and bounded depth/node count. |
 | Source or session drift | Bind graph, source revision, artifact revision, session identity, and evidence digest on every delivered result. |
@@ -283,7 +309,8 @@ The DB-0 vocabulary remains authoritative:
 An unexpected local failure, ambiguous output, missing evidence, sandbox
 denial, timeout, or unreviewed lifecycle side effect is not a successful
 classification. Preserve the evidence and stop; do not convert it into support
-or use it to advance the transport order.
+or use it to advance the transport order. Gate B recovery verification cannot
+classify a transport or advance the transport order.
 
 ## RC4 distribution baseline
 
