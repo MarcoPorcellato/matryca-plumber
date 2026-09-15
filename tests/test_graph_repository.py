@@ -12,6 +12,24 @@ from src.agent.markdown_graph_repository import MarkdownGraphRepository, get_gra
 from src.agent.shadow_graph_repository import ShadowGraphRepository
 
 
+@pytest.mark.parametrize(
+    ("shadow_ready", "expected_type"),
+    [
+        (False, MarkdownGraphRepository),
+        (True, ShadowGraphRepository),
+    ],
+)
+def test_select_graph_read_port_returns_port_matching_shadow_readiness(
+    shadow_ready: bool,
+    expected_type: type[MarkdownGraphRepository] | type[ShadowGraphRepository],
+) -> None:
+    """Catches a selector that maps readiness to the wrong concrete read port."""
+    assert isinstance(
+        markdown_graph_repository._select_graph_read_port(shadow_ready=shadow_ready),
+        expected_type,
+    )
+
+
 def test_get_graph_read_port_returns_markdown_adapter(tmp_path: Path) -> None:
     port = get_graph_read_port(tmp_path)
     assert isinstance(port, MarkdownGraphRepository)

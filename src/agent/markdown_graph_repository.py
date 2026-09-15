@@ -21,13 +21,21 @@ class MarkdownGraphRepository:
         return await get_page_spatial_context(title, str(graph_root))
 
 
+def _select_graph_read_port(*, shadow_ready: bool) -> GraphReadPort:
+    if shadow_ready:
+        return ShadowGraphRepository()
+    return MarkdownGraphRepository()
+
+
 def get_graph_read_port(graph_root: Path | None = None) -> GraphReadPort:
     """Return the active read port for ``graph_root`` (shadow when healthy, else Markdown)."""
-    if graph_root is not None and shadow_read_port_ready(graph_root):
-        return ShadowGraphRepository()
-    if graph_root is not None:
+    if graph_root is None:
+        return _select_graph_read_port(shadow_ready=False)
+
+    shadow_ready = shadow_read_port_ready(graph_root)
+    if not shadow_ready:
         _ = resolved_graph_root(graph_root)
-    return MarkdownGraphRepository()
+    return _select_graph_read_port(shadow_ready=shadow_ready)
 
 
 __all__ = [
