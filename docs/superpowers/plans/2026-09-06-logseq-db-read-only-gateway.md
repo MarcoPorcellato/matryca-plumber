@@ -208,6 +208,23 @@ classification, and authorizes no fallback, writes, import/export, query,
 sync, login, graph switch, reprovisioning, or retry. No later transport lane
 opens from this boundary.
 
+#### 2026-09-15 schema-evidence checkpoint
+
+Exact-revision source review found that the bundled CLI build is generated from
+a Melange entrypoint absent from the checked-in source tree. The public CLI
+documentation establishes command spelling and global options, while the
+checked-in DB API wrapper and server code establish only partial lower-layer
+behavior. They do not establish the machine JSON envelopes for property
+inventory, graph information, page show, or root-subtree show.
+
+Therefore the CLI lane is `schema_blocked`, not terminally unsupported or
+upstream-blocked. A private preparation runner may preserve hash-bound inputs
+and fail closed, but is intentionally non-executing until a separate
+authorization binds an exact artifact and evidence policy. No output schema
+may be inferred from mutable upstream code, partial documentation, or a
+successful exit code. Any future observation-only recovery result remains Gate
+B evidence and must not advance this plan to Phase 4.
+
 ## Phase 4 — Separate read-only qualification (not started)
 
 ### Task 4.1: qualify the required operation set
