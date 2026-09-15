@@ -6,13 +6,79 @@ import json
 from pathlib import Path
 
 import pytest
+import src.agent.markdown_graph_repository as markdown_graph_repository
 from src.agent.graph_tool_helpers import read_subtree_markdown
 from src.agent.markdown_graph_repository import MarkdownGraphRepository, get_graph_read_port
+from src.agent.shadow_graph_repository import ShadowGraphRepository
 
 
 def test_get_graph_read_port_returns_markdown_adapter(tmp_path: Path) -> None:
     port = get_graph_read_port(tmp_path)
     assert isinstance(port, MarkdownGraphRepository)
+
+
+def test_get_graph_read_port_without_root_skips_shadow_and_root_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_call(_root: Path) -> bool:
+        raise AssertionError("a rootless selection must not inspect Shadow state")
+
+    def unexpected_resolution(_root: Path) -> Path:
+        raise AssertionError("rootless selection must not resolve a root")
+
+    monkeypatch.setattr(markdown_graph_repository, "shadow_read_port_ready", unexpected_call)
+    monkeypatch.setattr(markdown_graph_repository, "resolved_graph_root", unexpected_resolution)
+
+    assert isinstance(get_graph_read_port(), MarkdownGraphRepository)
+
+
+def test_get_graph_read_port_checks_shadow_before_markdown_root_resolution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, Path]] = []
+
+    def shadow_not_ready(root: Path) -> bool:
+        calls.append(("shadow", root))
+        return False
+
+    def resolve_root(root: Path) -> Path:
+        calls.append(("resolve", root))
+        return root
+
+    monkeypatch.setattr(markdown_graph_repository, "shadow_read_port_ready", shadow_not_ready)
+    monkeypatch.setattr(markdown_graph_repository, "resolved_graph_root", resolve_root)
+
+    assert isinstance(get_graph_read_port(tmp_path), MarkdownGraphRepository)
+    assert calls == [("shadow", tmp_path), ("resolve", tmp_path)]
+
+
+def test_get_graph_read_port_returns_shadow_without_markdown_root_resolution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_resolution(_root: Path) -> Path:
+        raise AssertionError("ready Shadow must be selected first")
+
+    monkeypatch.setattr(markdown_graph_repository, "shadow_read_port_ready", lambda _root: True)
+    monkeypatch.setattr(markdown_graph_repository, "resolved_graph_root", unexpected_resolution)
+
+    assert isinstance(get_graph_read_port(tmp_path), ShadowGraphRepository)
+
+
+def test_get_graph_read_port_propagates_markdown_root_resolution_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(markdown_graph_repository, "shadow_read_port_ready", lambda _root: False)
+
+    def reject_root(_root: Path) -> Path:
+        raise ValueError("invalid graph root")
+
+    monkeypatch.setattr(markdown_graph_repository, "resolved_graph_root", reject_root)
+
+    with pytest.raises(ValueError, match="invalid graph root"):
+        get_graph_read_port(tmp_path)
 
 
 def test_read_subtree_markdown_port_matches_direct_helper(tmp_path: Path) -> None:
