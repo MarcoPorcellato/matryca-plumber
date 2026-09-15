@@ -91,6 +91,24 @@ only the root identifier. It is an ambiguous fixture-verification failure:
 the nested tree remains unproven and no terminal transport classification
 exists.
 
+### 2026-09-15 CLI schema boundary
+
+Read-only review of the exact upstream revision reported by the privately
+admitted CLI established the documented command forms and one lifecycle result
+shape, but not the JSON envelopes required for semantic read validation. The
+exact source tree builds the shipped CLI from a generated Melange entrypoint
+that is not present in that tree. The checked-in DB API wrapper returns worker
+responses unchanged, and the checked-in server implementation defines the
+structured `server stop` success/error result, but neither is the CLI JSON
+serializer for property, graph, or `show` commands.
+
+This is a `schema_blocked` evidence gap, not a supported, `capability_no_go`,
+or `upstream_blocked` transport result. A private, non-executing preparation
+tool has deterministic safety coverage and remains incapable of starting a
+child process while schemas are unadmitted. It creates no host, graph, or
+fixture evidence. The next recovery boundary must still receive a separate
+exact authorization and may not award Gate C credit.
+
 ## Next bounded boundary
 
 One separately authorized recovery-verification attempt may inspect only the
@@ -100,6 +118,11 @@ root-UUID show, owner-scoped server stop, and final server list. Declare
 lifecycle effects before execution and inventory them separately from graph
 semantics before reads, after reads, and after stop. Unknown ownership or any
 undeclared lifecycle effect stops the attempt.
+
+Before that attempt, bind the exact executable, script, configuration, input
+records, private roots, operation grammar, timeout, and output-handling policy.
+Unadmitted read-result schemas permit no PASS and no semantic qualification;
+they do not license guessed validation rules.
 
 This recovery step earns no Gate C credit and cannot produce a terminal
 transport classification. It authorizes no fallback, writes, import/export,
