@@ -222,13 +222,19 @@ under a read-only mount. Its artifact, `app.asar`, and CLI-entry hashes bind a
 narrow JSON result envelope and shallow shapes for the Gate B recovery commands;
 see [`LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md`](../../quality/LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md).
 
+The required non-executing observer boundary is now defined by
+[`LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md`](../../quality/LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md).
+It excludes `server stop` while the DB-0 profile forbids every lifecycle
+change, and requires deterministic validation before any later execution gate.
+
 Therefore the CLI lane is **schema-admitted for bounded Gate B observation**,
 not `supported`, `capability_no_go`, or `upstream_blocked`. This is not a
 general API schema: dynamic graph, property, and entity fields remain bounded
 runtime evidence. The preparation runner remains non-executing until a separate
 execution-safety design binds the exact artifact, command grammar, fixture,
 private roots, capture policy, lifecycle inventory, and immediate pre-launch
-revalidation. `server stop` remains a separately bounded lifecycle mutation.
+revalidation. `server stop` remains excluded until a separate lifecycle
+evidence profile admits an owned transition.
 Any future observation-only recovery result remains Gate B evidence and must
 not advance this plan to Phase 4.
 
