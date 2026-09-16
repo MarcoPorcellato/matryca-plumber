@@ -217,13 +217,20 @@ checked-in DB API wrapper and server code establish only partial lower-layer
 behavior. They do not establish the machine JSON envelopes for property
 inventory, graph information, page show, or root-subtree show.
 
-Therefore the CLI lane is `schema_blocked`, not terminally unsupported or
-upstream-blocked. A private preparation runner may preserve hash-bound inputs
-and fail closed, but is intentionally non-executing until a separate
-authorization binds an exact artifact and evidence policy. No output schema
-may be inferred from mutable upstream code, partial documentation, or a
-successful exit code. Any future observation-only recovery result remains Gate
-B evidence and must not advance this plan to Phase 4.
+The separately admitted DMG's exact packaged CLI was then inspected statically
+under a read-only mount. Its artifact, `app.asar`, and CLI-entry hashes bind a
+narrow JSON result envelope and shallow shapes for the Gate B recovery commands;
+see [`LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md`](../../quality/LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md).
+
+Therefore the CLI lane is **schema-admitted for bounded Gate B observation**,
+not `supported`, `capability_no_go`, or `upstream_blocked`. This is not a
+general API schema: dynamic graph, property, and entity fields remain bounded
+runtime evidence. The preparation runner remains non-executing until a separate
+execution-safety design binds the exact artifact, command grammar, fixture,
+private roots, capture policy, lifecycle inventory, and immediate pre-launch
+revalidation. `server stop` remains a separately bounded lifecycle mutation.
+Any future observation-only recovery result remains Gate B evidence and must
+not advance this plan to Phase 4.
 
 ## Phase 4 — Separate read-only qualification (not started)
 

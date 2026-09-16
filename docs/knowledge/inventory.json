@@ -499,7 +499,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Accepted payload-policy authority under the Plumber Logseq gateway decision; no runtime or DB support claim."
+      "notes": "Accepted payload-policy authority under the Plumber Logseq gateway decision; no runtime or DB support claim.",
+      "missing": false
     },
     {
       "path": "docs/decisions/index.md",
@@ -1654,6 +1655,26 @@
       "missing": false
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md",
+      "type": "Audit",
+      "title": "Logseq DB bundled CLI static schema evidence — 2026-09-15",
+      "description": "Hash-bound static evidence for the shallow JSON result schemas required by the bounded bundled-CLI recovery observation.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Static-only evidence for bounded Gate B observation; no runtime, fixture, transport, adapter, or DB support claim.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",
       "type": "Runbook",
       "title": "Historical Logseq DB Read-Only Compatibility Persistent Goal",
@@ -1690,7 +1711,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active restart authority subordinate to the accepted Plumber Logseq gateway decision and implementation plan."
+      "notes": "Active restart authority subordinate to the accepted Plumber Logseq gateway decision and implementation plan.",
+      "missing": false
     },
     {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
@@ -4244,7 +4266,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active dependency order and completion authority for issue #491."
+      "notes": "Active dependency order and completion authority for issue #491.",
+      "missing": false
     },
     {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
@@ -4346,7 +4369,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active architecture authority subordinate to the accepted Plumber Logseq gateway decision."
+      "notes": "Active architecture authority subordinate to the accepted Plumber Logseq gateway decision.",
+      "missing": false
     },
     {
       "path": "docs/v1.8-OPTIMIZATION-PLAN.md",
