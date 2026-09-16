@@ -102,12 +102,20 @@ responses unchanged, and the checked-in server implementation defines the
 structured `server stop` success/error result, but neither is the CLI JSON
 serializer for property, graph, or `show` commands.
 
-This is a `schema_blocked` evidence gap, not a supported, `capability_no_go`,
-or `upstream_blocked` transport result. A private, non-executing preparation
-tool has deterministic safety coverage and remains incapable of starting a
-child process while schemas are unadmitted. It creates no host, graph, or
-fixture evidence. The next recovery boundary must still receive a separate
-exact authorization and may not award Gate C credit.
+The exact admitted DMG was subsequently inspected statically under a read-only
+mount. Its packaged CLI establishes a hash-bound JSON success/error envelope
+and shallow command-data shapes for `graph info`, property listing, page/root
+`show`, and server listing. The complete public-safe record is
+[`LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md`](LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md).
+
+This removes only the `schema_blocked` state for a bounded Gate B observation
+design. It is not a supported, `capability_no_go`, or `upstream_blocked`
+transport result. The private preparation tool remains non-executing until its
+separate execution-safety design binds the exact artifact, command grammar,
+fixture, roots, capture, lifecycle inventory, and immediate pre-launch
+revalidation. It creates no host, graph, or fixture evidence. The next
+recovery boundary must still receive a separate exact authorization and may not
+award Gate C credit.
 
 ## Next bounded boundary
 
