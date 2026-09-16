@@ -1655,6 +1655,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md",
+      "type": "Audit",
+      "title": "Logseq DB CLI recovery observer safety design — 2026-09-16",
+      "description": "Non-executing design for one bounded bundled-CLI recovery observation against an already existing synthetic fixture.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": "docs/knowledge/quality/",
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md",
       "type": "Audit",
       "title": "Logseq DB bundled CLI static schema evidence — 2026-09-15",

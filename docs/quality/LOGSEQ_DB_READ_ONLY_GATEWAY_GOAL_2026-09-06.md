@@ -117,15 +117,20 @@ revalidation. It creates no host, graph, or fixture evidence. The next
 recovery boundary must still receive a separate exact authorization and may not
 award Gate C credit.
 
+The execution-safety design is recorded in
+[`LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md`](LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md).
+It excludes `server stop` under the current DB-0 profile, because lifecycle
+changes remain forbidden until a separate evidence-profile decision exists.
+
 ## Next bounded boundary
 
 One separately authorized recovery-verification attempt may inspect only the
 exact existing synthetic root and write evidence only to a new private evidence
-directory. Allowed operations: property inventory, graph info, page show,
-root-UUID show, owner-scoped server stop, and final server list. Declare
-lifecycle effects before execution and inventory them separately from graph
-semantics before reads, after reads, and after stop. Unknown ownership or any
-undeclared lifecycle effect stops the attempt.
+directory. Candidate operations are property inventory, graph info, page show,
+root-UUID show, and final server list. Inventory lifecycle effects separately
+from graph semantics before and after reads. `server stop` is excluded until a
+separate lifecycle profile defines its ownership and allowed transition.
+Unknown ownership or any undeclared lifecycle effect stops the attempt.
 
 Before that attempt, bind the exact executable, script, configuration, input
 records, private roots, operation grammar, timeout, and output-handling policy.
