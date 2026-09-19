@@ -85,12 +85,14 @@ return shape does not prove process ownership or cleanup.
 
 ## Re-entry boundary
 
-Before any bounded recovery observation, bind the exact artifact, executable,
-CLI entry, command grammar, fixture manifest, configuration, private evidence
-root, time/output limits, shallow validator, lifecycle inventory, and stop
-conditions. The runner must retain its separate execution-safety requirements:
-revalidation immediately before process creation, disjoint roots, bounded
-capture, durable evidence, cancellation handling, and post-stop inventory.
+Before any bounded recovery observation, bind the exact artifact, a separately
+identified launcher or interpreter, the archived CLI entry, command grammar,
+fixture manifest, configuration, private evidence root, time/output limits,
+shallow validator, lifecycle inventory, and stop conditions. The archived
+entry alone is not an executable claim. The runner must retain its separate
+execution-safety requirements: revalidation immediately before process
+creation, disjoint roots, bounded capture, durable evidence, cancellation
+handling, and post-read inventory. `server stop` remains outside DB-0.
 
 This record supersedes neither the historic ZIP `upstream_blocked` evidence nor
 the current programme's transport order. It only removes the prior
