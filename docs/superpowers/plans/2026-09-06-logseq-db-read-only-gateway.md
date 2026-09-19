@@ -185,6 +185,28 @@ Fixture provisioning is mutation and receives no read-only credit.
 Never open a user graph, default Logseq root, account, sync configuration, or
 internal database directly.
 
+### Task 3.1a: pure fixture and observer structure (in progress)
+
+This preparatory slice accepts bounded in-memory bytes only. It defines a
+digest-bound synthetic fixture structure and a structurally validated observer
+envelope, but it creates no filesystem, process, authentication, or runtime
+authority. The schema and exclusions are frozen in
+[`2026-09-19-logseq-db-observer-structure.md`](../specs/2026-09-19-logseq-db-observer-structure.md).
+
+- [ ] Reject malformed, duplicate, trailing, non-finite, oversized, deep, or
+  schema-invalid input before it can become a structural candidate.
+- [ ] Bind fixture IDs, declared revision, page metadata, ordered subtree,
+  text, property declarations, and semantic digest without creating a payload
+  result or host claim.
+- [ ] Bind only unverified structural claims for artifact containment, launcher
+  identity, DB-0 policy, protected roots, fixture identity, and limits.
+- [ ] Do not parse paths, verify a signature, accept a caller trust anchor,
+  invoke a subprocess, or describe a candidate as authenticated or ready.
+
+Detached signature verification, safe filesystem verification, and immutable
+launch planning are separate future slices. They are not prerequisites for
+recording this structural work as incomplete preparation.
+
 ### Task 3.2: recovery verification of the incomplete nested fixture
 
 The 2026-09-12 fixture attempt is an ambiguous fixture-harness failure: nested

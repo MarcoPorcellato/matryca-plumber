@@ -2,6 +2,10 @@
 
 ### Changed
 
+- **DB observer structural boundary** — add an internal, deterministic parser
+  for digest-bound synthetic fixture and observer-envelope structure. It uses
+  in-memory bytes only and explicitly grants no authentication, filesystem,
+  process, fixture-readiness, or Logseq DB support. Refs #491.
 - **Bounded future graph payload contract** — define the additive
   `plumber.graph.payload.read/v1` semantics for exact page titles, complete
   ordered block subtrees, typed public properties, fixed safety limits, and
