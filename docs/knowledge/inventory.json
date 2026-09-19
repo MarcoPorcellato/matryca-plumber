@@ -1671,7 +1671,8 @@
       "destination": "docs/knowledge/quality/",
       "action": "keep",
       "supersedes": [],
-      "notes": ""
+      "notes": "",
+      "missing": false
     },
     {
       "path": "docs/quality/LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md",
@@ -4389,6 +4390,25 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Active architecture authority subordinate to the accepted Plumber Logseq gateway decision.",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-19-logseq-db-observer-structure.md",
+      "type": "Specification",
+      "title": "Logseq DB observer structural-contract v1",
+      "description": "Pure in-memory structural validation for a future DB-0 observer; no authentication, filesystem, process, or host operation.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "",
       "missing": false
     },
     {
