@@ -196,11 +196,11 @@ historic `upstream_blocked` result.
 One separately bounded recovery-verification attempt may use only the exact
 existing synthetic root and a new private evidence directory. Its allowed
 operations are property inventory, graph info, page show, root-UUID show,
-owner-scoped server stop, and final server list. Capture and compare a separate
-lifecycle inventory before reads, after reads, and after stop, alongside but
-distinct from semantic graph evidence. Declare expected lifecycle effects
-before execution. Stop on unknown ownership, undeclared effects, identity
-drift, or incomplete results.
+and final server list. `server stop` is excluded: DB-0 permits no lifecycle
+transition. Capture and compare a separate lifecycle inventory before and after
+reads, alongside but distinct from semantic graph evidence. Any observed
+lifecycle effect is an unclassified stop, not a CLI capability result. Stop on
+unknown ownership, undeclared effects, identity drift, or incomplete results.
 
 This is still Gate B recovery verification, not Gate C read-only
 qualification. It earns no Gate C credit and no terminal transport

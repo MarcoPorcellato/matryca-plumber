@@ -41,7 +41,7 @@ Trama and Brain are consumers, never direct Logseq readers or Parser imports.
 
 | Surface | Anchor | Meaning |
 | --- | --- | --- |
-| Plumber public main | `233731cde79ceb2e26da91b935ad5a4dfd02c85c`, tree `215122c0329643425de153cd42cba53fe142f812` | Current rebaseline |
+| Plumber public main | `badc5c69a1a968be842fb85dee71bdc8e369d7bf`, tree `bf0a0e09ecc6c762d42e4b0ff4c3a0fdc5a4b092` | Current rebaseline |
 | Active tracking issue | Plumber #491 | Qualification objective; do not infer host support |
 | Accepted decision | Payload-semantics ADR merged by PR #590 | No static contract or runtime support follows |
 | Prior artifact attempt | PR #580 / main `00b56329ed9b44e6d1e0ab0a2b83afac502b5ba2` | Terminal `upstream_blocked` before execution |
@@ -132,10 +132,14 @@ from graph semantics before and after reads. `server stop` is excluded until a
 separate lifecycle profile defines its ownership and allowed transition.
 Unknown ownership or any undeclared lifecycle effect stops the attempt.
 
-Before that attempt, bind the exact executable, script, configuration, input
-records, private roots, operation grammar, timeout, and output-handling policy.
-Unadmitted read-result schemas permit no PASS and no semantic qualification;
-they do not license guessed validation rules.
+Before that attempt, bind a separately authenticated admission manifest, the
+exact launcher/interpreter and archived script identities, configuration and
+policy identity, semantic fixture manifest, protected and private roots,
+operation grammar, timeout/cancellation policy, and output-handling policy.
+The archived `js/logseq-cli.js` entry is not assumed to be an executable. The
+preflight must validate containment and protected roots before opening any
+artifact or fixture file. Unadmitted read-result schemas permit no PASS and no
+semantic qualification; they do not license guessed validation rules.
 
 This recovery step earns no Gate C credit and cannot produce a terminal
 transport classification. It authorizes no fallback, writes, import/export,
@@ -148,11 +152,11 @@ may proceed without becoming a prerequisite or acquiring any DB behavior.
 ## Current authorization boundary
 
 Prior programme authorization does not broaden this recovery boundary. The
-only permitted operations are the bounded reads and owner-scoped lifecycle
-actions above against the exact existing synthetic root, with evidence written
-to a new private evidence directory. No other graph, user root, transport,
-fixture mutation, qualification, fallback, retry, publication, issue update,
-or repository mutation is authorized here.
+only permitted operations are the bounded reads above against the exact
+existing synthetic root, with evidence written to a new private evidence
+directory. No lifecycle action is permitted under DB-0. No other graph, user
+root, transport, fixture mutation, qualification, fallback, retry,
+publication, issue update, or repository mutation is authorized here.
 
 Tags, releases, PyPI, stable support claims, DB writes, events, sync,
 import/export, internal SQLite, DB-to-Markdown fallback, DB-source Shadow,

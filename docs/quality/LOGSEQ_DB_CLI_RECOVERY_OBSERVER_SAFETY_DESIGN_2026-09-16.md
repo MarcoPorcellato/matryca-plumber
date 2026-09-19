@@ -23,8 +23,9 @@ related:
 ## Decision
 
 This document defines the preparation boundary for a private, non-executing
-observer. It may validate its own configuration and inputs deterministically,
-but it must not start Logseq, create a graph, read a graph, stop a server, or
+observer. It may validate only a separately authenticated admission manifest
+and its own immutable inputs deterministically, but it must not start Logseq,
+create or read a graph, stop a server, create a fixture, create captures, or
 write runtime evidence. A later execution attempt needs its own exact
 authorization.
 
@@ -35,12 +36,18 @@ make a product support claim.
 
 ## Immutable inputs
 
-Before every process creation, the observer must revalidate all of the
-following exact bindings:
+Before a future process creation, a separately reviewed runner must revalidate
+the following exact bindings from a trusted admission manifest rather than
+caller-controlled matching hashes:
 
 - admitted DMG SHA-256 `1a71e4c0f8c304452b3126e03256141c365dd2c69197c516a05027811cef429f`;
 - packaged `app.asar` SHA-256 `9c476c014b6d65efa2d707f612d5cd26a3adcc0af4c048f1bb52c01ee7799ca7`;
 - embedded `js/logseq-cli.js` SHA-256 `b3710e5a0eba20272ab5e3b8bfe7a87b2697e283de109973cd4bf5910eb40a98`;
+- containment from DMG to mounted application, `app.asar`, and the archived
+  CLI path, offset, size, and digest;
+- a distinct launcher or interpreter identity, digest, fixed argument prefix,
+  and archived-entry identity; the archived JavaScript entry is not assumed to
+  be an executable path;
 - verified artifact signature and Gatekeeper result recorded by the separate
   artifact-admission evidence;
 - observer program and configuration hashes;
@@ -52,13 +59,42 @@ following exact bindings:
 Any mismatch is a pre-launch stop. The observer must not repair, infer, or
 replace an input.
 
+The trust anchor is not a caller argument. A future verifier pins, in reviewed
+source, the canonical digest of this static-evidence record, an admission
+manifest schema version, and the public-key fingerprint permitted to sign the
+private manifest. The manifest is canonical JSON with a detached Ed25519
+signature. It is admitted only when its schema, signer fingerprint, signature,
+static-record digest, artifact bindings, DB-0 policy, protected-root bindings,
+and semantic fixture-manifest digest all verify. An unsigned, self-signed,
+foreign-signer, or differently anchored manifest is rejected before any path
+is opened. The immutable-plan digest is computed from the verified manifest
+and the observer's fixed validation policy; raw caller configuration cannot
+replace either input.
+
+Hash equality proves byte consistency with that admission manifest; it does
+not independently admit provenance. The preflight may not open a declared
+artifact or fixture path until it has established permitted-root containment,
+component type, and no-symlink policy. A future runner consumes one immutable
+plan with canonical roots, trusted bindings, launcher grammar, effective
+limits, and capture grammar rather than mutable raw configuration.
+
 ## Root and process containment
 
 The synthetic root, temporary root, and evidence root must be canonical,
 owner-controlled, non-symlink paths that are pairwise disjoint. They must also
 be disjoint from user graphs, default Logseq locations, accounts, sync state,
 ambient configuration, and the observer working directory. The observer must
-reject an inherited graph selection or an undeclared executable path.
+reject an inherited graph selection or an undeclared launcher. It validates all
+protected-root bindings before opening a declared artifact or fixture file.
+
+The verified manifest, not raw configuration, records the user graph, default
+Logseq root, account root, sync root, configuration root, and working directory
+as protected bindings. Each binding is either a validated present path or a
+proven absent path; the observer never creates a missing protected path.
+Categories may resolve to one protected location, but no protected location may
+overlap an owned root. A future implementation needs nofollow type/owner/size
+checks and immediate pre-launch replacement detection; this static design does
+not claim to remove launch-time TOCTOU risk.
 
 Every child must use a shell-free fixed argument vector. The only candidate
 read commands are property inventory, `graph info`, selected-page `show`,
@@ -107,12 +143,22 @@ digests.
 
 ## Implementation and execution gates
 
-1. Implement deterministic configuration and manifest validation with synthetic
-   unit tests. No production path may invoke a subprocess at this stage.
-2. Independently review the exact diff, limits, and root-disjointness checks.
-3. Run repository documentation and hosted CI gates through a short PR.
-4. Only after merge, request an authorization that names the exact observer
-   commit, artifact bindings, fixture root, evidence root, fixed command set,
-   timeouts, and one-attempt stop boundary.
+1. Freeze a typed synthetic fixture-manifest schema that binds graph, page, and
+   root-block IDs; parentage; sibling order; content; permitted properties;
+   source revision; and a semantic digest.
+2. Implement deterministic admission-manifest and configuration validation with
+   synthetic unit tests. Negative coverage includes forged admission,
+   protected-path rejection before reads, absent defaults, cwd overlap,
+   symlink/replacement/type attacks, limits, and fixture-identifier mismatch.
+   No production path may invoke a subprocess at this stage.
+3. Independently review the exact diff, trusted-input contract, effective
+   policy fields, limits, and root-disjointness checks.
+4. Run repository documentation and hosted CI gates through a short PR.
+5. Only after merge, request an authorization that names the exact observer
+   commit and immutable-plan digest; admission-manifest identity, signer
+   fingerprint, and static-record digest; launcher/interpreter and archived
+   entry identities; artifact bindings; semantic fixture-manifest digest;
+   protected-root set; fixture and evidence roots; fixed command set;
+   timeout/cancellation policy; and one-attempt stop boundary.
 
-This design does not authorize the fourth step.
+This design does not authorize the fifth step.
