@@ -2,6 +2,11 @@
 
 ### Changed
 
+- **Logseq DB native MCP stdio qualification boundary** — record the native
+  stdio transport as `upstream_blocked` before DB-0 admission: public evidence
+  does not bind an exact stdio artifact to implementing source and an observer
+  read contract. All currently permitted DB-0 transport lanes are terminal;
+  reopening requires new upstream evidence. Refs #491.
 - **Logseq DB Plugin SDK qualification boundary** — record the reviewed SDK
   transport as `capability_no_go` before DB-0 admission: available read APIs do
   not establish immutable source binding, coherent complete ordered subtrees, or
