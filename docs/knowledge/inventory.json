@@ -1655,6 +1655,26 @@
       "missing": false
     },
     {
+      "path": "docs/quality/LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md",
+      "type": "Audit",
+      "title": "Logseq DB bundled CLI DB-0 admission blocker — 2026-09-19",
+      "description": "Public-safe official-source evidence that blocks the bundled Logseq CLI lane before any DB-0 execution attempt.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "CLI-lane upstream blocker only; no artifact, fixture, process, graph, or DB read was opened or executed.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md",
       "type": "Audit",
       "title": "Logseq DB CLI recovery observer safety design — 2026-09-16",

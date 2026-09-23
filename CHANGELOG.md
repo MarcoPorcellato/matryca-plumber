@@ -2,6 +2,11 @@
 
 ### Changed
 
+- **Logseq DB CLI qualification boundary** — record the bundled CLI transport
+  as `upstream_blocked` before DB-0 admission: documented worker and lock
+  lifecycle behavior cannot satisfy the zero-state-change profile, and no
+  upstream immutable signed read-observer/provenance contract is available.
+  The next transport remains separately gated. Refs #491.
 - **DB observer structural boundary** — add an internal, deterministic parser
   for digest-bound synthetic fixture and observer-envelope structure. It uses
   in-memory bytes only and explicitly grants no authentication, filesystem,
