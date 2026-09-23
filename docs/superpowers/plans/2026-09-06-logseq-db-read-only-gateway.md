@@ -7,7 +7,7 @@ classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: integration
 verified: { by: human:marco-porcellato, at: '2026-09-06T00:00:00Z' }
-last_verified: 2026-09-15
+last_verified: 2026-09-19
 stale_after: 2027-03-05
 tracking_issue: https://github.com/MarcoPorcellato/matryca-plumber/issues/491
 related:
@@ -46,8 +46,8 @@ themselves prove runtime compatibility.
   [`2026-09-06-logseq-db-read-only-gateway-design.md`](../specs/2026-09-06-logseq-db-read-only-gateway-design.md).
 - Active tracking work item: [Plumber #491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491),
   under epic [#490](https://github.com/MarcoPorcellato/matryca-plumber/issues/490).
-- Current public-main base: `233731cde79ceb2e26da91b935ad5a4dfd02c85c`,
-  tree `215122c0329643425de153cd42cba53fe142f812`.
+- Current public-main base: `0bab28afdd10efaeff82d541d5b9b6552ebd5595`,
+  tree `8ed111c8498e76b5d37609fb34400808d84c01a9`.
 - Phase 1 payload semantics are complete through the payload-semantics ADR
   merged by [PR #590](../../decisions/2026-09-12-plumber-graph-payload-read-v1.md). This
   completes semantic choices only; schema/TCK, host, runtime, adapter, and
@@ -155,7 +155,7 @@ Only after Task S.1 is merged:
 - [ ] add no DB condition, session type, transport, or new fallback;
 - [ ] run focused tests, code-audit change detection, and full hosted CI.
 
-## Phase 2 — Bundled CLI host evidence (artifact admitted; DB support unproven)
+## Phase 2 — Bundled CLI host evidence (DB-0 lane upstream-blocked)
 
 The official 2026-09-08 arm64 DMG completed artifact admission and bounded
 help-only CLI discovery. Exact artifact identity, digests, signature/Gatekeeper
@@ -165,9 +165,28 @@ subtree reads and creates no support claim. PR #580 remains the separate
 historic `upstream_blocked` ZIP result. Re-admission, download, or help probing
 is not part of the current recovery boundary.
 
+### 2026-09-19 DB-0 admission ruling
+
+The bundled-CLI lane is now terminal `upstream_blocked` **before execution**.
+The official CLI documents plausible read selectors, but also documents normal
+worker, lock-cleanup, and revision-mismatch replacement behavior. Under DB-0
+those possible side effects are forbidden, while public upstream material does
+not provide the immutable signed provenance, observer-only mode, or stable
+payload/ordering contract required to cross admission. The public-safe evidence
+record is [`LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md`](../../quality/LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md).
+
+This terminal lane record neither qualifies a read nor opens another transport
+within the same attempt. A Plugin SDK pre-admission review is the next separate
+lane; it has no artifact, fixture, or execution authority.
+
 ## Phase 3 — Disposable fixture mutation and bounded recovery
 
 Fixture provisioning is mutation and receives no read-only credit.
+
+**No Phase 3 task is active.** The CLI lane is terminal `upstream_blocked`,
+and the next Plugin SDK lane has not crossed pre-admission. Do not provision or
+inspect a fixture until a later transport has an independently approved
+artifact and execution boundary.
 
 ### Task 3.1: create and freeze one synthetic graph
 
@@ -185,7 +204,7 @@ Fixture provisioning is mutation and receives no read-only credit.
 Never open a user graph, default Logseq root, account, sync configuration, or
 internal database directly.
 
-### Task 3.1a: pure fixture and observer structure (in progress)
+### Task 3.1a: pure fixture and observer structure (complete)
 
 This preparatory slice accepts bounded in-memory bytes only. It defines a
 digest-bound synthetic fixture structure and a structurally validated observer
@@ -193,74 +212,44 @@ envelope, but it creates no filesystem, process, authentication, or runtime
 authority. The schema and exclusions are frozen in
 [`2026-09-19-logseq-db-observer-structure.md`](../specs/2026-09-19-logseq-db-observer-structure.md).
 
-- [ ] Reject malformed, duplicate, trailing, non-finite, oversized, deep, or
+- [x] Reject malformed, duplicate, trailing, non-finite, oversized, deep, or
   schema-invalid input before it can become a structural candidate.
-- [ ] Bind fixture IDs, declared revision, page metadata, ordered subtree,
+- [x] Bind fixture IDs, declared revision, page metadata, ordered subtree,
   text, property declarations, and semantic digest without creating a payload
   result or host claim.
-- [ ] Bind only unverified structural claims for artifact containment, launcher
+- [x] Bind only unverified structural claims for artifact containment, launcher
   identity, DB-0 policy, protected roots, fixture identity, and limits.
-- [ ] Do not parse paths, verify a signature, accept a caller trust anchor,
+- [x] Do not parse paths, verify a signature, accept a caller trust anchor,
   invoke a subprocess, or describe a candidate as authenticated or ready.
 
 Detached signature verification, safe filesystem verification, and immutable
 launch planning are separate future slices. They are not prerequisites for
 recording this structural work as incomplete preparation.
 
-### Task 3.2: recovery verification of the incomplete nested fixture
+### Task 3.2: historical CLI recovery verification (superseded for DB-0)
 
-The 2026-09-12 fixture attempt is an ambiguous fixture-harness failure: nested
-insertion returned only the root identifier and stopped before property
-inventory, graph info, or `show` verification. It neither proves the nested
-tree exists nor classifies the host or transport. Do not alter PR #580's
-historic `upstream_blocked` result.
+The 2026-09-19 CLI-lane `upstream_blocked` record supersedes this proposed
+execution step under DB-0. The retained text below explains the historical
+boundary; it does not authorize a CLI recovery attempt, fixture read, process,
+or lifecycle observation. A future upstream observer-only contract would need
+a fresh authority decision and a new transport-lane plan.
 
-One separately bounded recovery-verification attempt may use only the exact
-existing synthetic root and a new private evidence directory. Its allowed
-operations are property inventory, graph info, page show, root-UUID show,
-and final server list. `server stop` is excluded: DB-0 permits no lifecycle
-transition. Capture and compare a separate lifecycle inventory before and after
-reads, alongside but distinct from semantic graph evidence. Any observed
-lifecycle effect is an unclassified stop, not a CLI capability result. Stop on
-unknown ownership, undeclared effects, identity drift, or incomplete results.
+The 2026-09-12 fixture attempt remains historical, ambiguous evidence: nested
+insertion returned only the root identifier, so the nested tree was never
+verified. The 2026-09-15 static-schema and 2026-09-16 observer-safety records
+remain historical preparation evidence. Neither record is execution authority.
 
-This is still Gate B recovery verification, not Gate C read-only
-qualification. It earns no Gate C credit and no terminal transport
-classification, and authorizes no fallback, writes, import/export, query,
-sync, login, graph switch, reprovisioning, or retry. No later transport lane
-opens from this boundary.
+The 2026-09-19 terminal CLI-lane record supersedes their proposed recovery
+route under DB-0. Retain their hashes and limits for history, but do not read a
+fixture, invoke a CLI command, create an inventory, or interpret a result from
+this task. A future upstream observer-only contract would require a new
+authority decision and a new lane plan.
 
-#### 2026-09-15 schema-evidence checkpoint
+## Phase 4 — Selected-transport read-only qualification (not started)
 
-Exact-revision source review found that the bundled CLI build is generated from
-a Melange entrypoint absent from the checked-in source tree. The public CLI
-documentation establishes command spelling and global options, while the
-checked-in DB API wrapper and server code establish only partial lower-layer
-behavior. They do not establish the machine JSON envelopes for property
-inventory, graph information, page show, or root-subtree show.
-
-The separately admitted DMG's exact packaged CLI was then inspected statically
-under a read-only mount. Its artifact, `app.asar`, and CLI-entry hashes bind a
-narrow JSON result envelope and shallow shapes for the Gate B recovery commands;
-see [`LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md`](../../quality/LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md).
-
-The required non-executing observer boundary is now defined by
-[`LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md`](../../quality/LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md).
-It excludes `server stop` while the DB-0 profile forbids every lifecycle
-change, and requires deterministic validation before any later execution gate.
-
-Therefore the CLI lane is **schema-admitted for bounded Gate B observation**,
-not `supported`, `capability_no_go`, or `upstream_blocked`. This is not a
-general API schema: dynamic graph, property, and entity fields remain bounded
-runtime evidence. The preparation runner remains non-executing until a separate
-execution-safety design binds the exact artifact, command grammar, fixture,
-private roots, capture policy, lifecycle inventory, and immediate pre-launch
-revalidation. `server stop` remains excluded until a separate lifecycle
-evidence profile admits an owned transition.
-Any future observation-only recovery result remains Gate B evidence and must
-not advance this plan to Phase 4.
-
-## Phase 4 — Separate read-only qualification (not started)
+**No Phase 4 task is active.** It applies only after one non-CLI transport has
+passed its own pre-admission and fixture-provisioning gates. It is not a route
+around the terminal CLI-lane record.
 
 ### Task 4.1: qualify the required operation set
 
@@ -305,6 +294,19 @@ semantics.
 ## Phase 5 — Plugin SDK and MCP stdio fallback lanes (not authorized by Gate B recovery)
 
 Repeat Phases 2–4 independently for each permitted fallback transport.
+
+### Task 5.0: Plugin SDK pre-admission evidence review (next)
+
+- [ ] Pin and review only public official SDK documentation, source, package,
+  release metadata, issue state, permissions, and provenance material.
+- [ ] Determine whether the SDK offers an explicit graph identity, bounded page
+  read, complete ordered-subtree read, immutable provenance, and a
+  no-side-effect observer boundary suitable for DB-0.
+- [ ] Record a single terminal pre-admission result without downloading,
+  installing, executing, or provisioning an SDK, host, artifact, graph, or
+  fixture.
+- [ ] Start no MCP work from this review; MCP remains a later independent lane
+  and HTTP remains blocked while #1101 is open.
 
 ### Plugin SDK requirements
 

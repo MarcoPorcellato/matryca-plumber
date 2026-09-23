@@ -6,14 +6,14 @@ status: active
 classification: active
 authority: docs/decisions/2026-09-05-plumber-logseq-gateway-authority.md
 owner: integration
-last_verified: 2026-09-15
+last_verified: 2026-09-19
 ---
 
 # Logseq DB Read-Only Gateway Qualification
 
 This file is the restart-safe execution pointer for the next separately
-authorized recovery-verification attempt. It is operationally subordinate to the accepted
-Plumber gateway decision and active tracking issue
+authorized Plugin SDK pre-admission evidence review. It is operationally
+subordinate to the accepted Plumber gateway decision and active tracking issue
 [#491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491).
 The historical plan and persistent goal remain useful evidence, but are
 **historical and non-authorizing**. They must not be used to revive the former
@@ -41,7 +41,7 @@ Trama and Brain are consumers, never direct Logseq readers or Parser imports.
 
 | Surface | Anchor | Meaning |
 | --- | --- | --- |
-| Plumber public main | `badc5c69a1a968be842fb85dee71bdc8e369d7bf`, tree `bf0a0e09ecc6c762d42e4b0ff4c3a0fdc5a4b092` | Current rebaseline |
+| Plumber public main | `0bab28afdd10efaeff82d541d5b9b6552ebd5595`, tree `8ed111c8498e76b5d37609fb34400808d84c01a9` | Current rebaseline |
 | Active tracking issue | Plumber #491 | Qualification objective; do not infer host support |
 | Accepted decision | Payload-semantics ADR merged by PR #590 | No static contract or runtime support follows |
 | Prior artifact attempt | PR #580 / main `00b56329ed9b44e6d1e0ab0a2b83afac502b5ba2` | Terminal `upstream_blocked` before execution |
@@ -108,55 +108,51 @@ and shallow command-data shapes for `graph info`, property listing, page/root
 `show`, and server listing. The complete public-safe record is
 [`LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md`](LOGSEQ_DB_CLI_STATIC_SCHEMA_EVIDENCE_2026-09-15.md).
 
-This removes only the `schema_blocked` state for a bounded Gate B observation
-design. It is not a supported, `capability_no_go`, or `upstream_blocked`
-transport result. The private preparation tool remains non-executing until its
-separate execution-safety design binds the exact artifact, command grammar,
-fixture, roots, capture, lifecycle inventory, and immediate pre-launch
-revalidation. It creates no host, graph, or fixture evidence. The next
-recovery boundary must still receive a separate exact authorization and may not
-award Gate C credit.
+At the time it was written, this removed only a `schema_blocked` state for a
+proposed Gate B observer design. It is historical preparation evidence, not a
+supported transport result. The 2026-09-19 CLI-lane `upstream_blocked` ruling
+supersedes the proposed recovery route under DB-0; it cannot receive a later
+execution authorization from this pointer.
 
 The execution-safety design is recorded in
 [`LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md`](LOGSEQ_DB_CLI_RECOVERY_OBSERVER_SAFETY_DESIGN_2026-09-16.md).
 It excludes `server stop` under the current DB-0 profile, because lifecycle
 changes remain forbidden until a separate evidence-profile decision exists.
 
+## 2026-09-19 terminal CLI-lane boundary
+
+The current official CLI documentation makes normal startup a potential
+worker/lock/lifecycle transition. Public upstream material also lacks the
+versioned signed provenance and read-observer contract required by the M1
+execution-safety design. The terminal public-safe record is
+[`LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md`](LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md).
+
+The CLI lane is therefore `upstream_blocked` before admission and execution.
+The earlier proposed recovery verification is superseded for DB-0 and must not
+be revived from this pointer. Its historic evidence remains retained.
+
 ## Next bounded boundary
 
-One separately authorized recovery-verification attempt may inspect only the
-exact existing synthetic root and write evidence only to a new private evidence
-directory. Candidate operations are property inventory, graph info, page show,
-root-UUID show, and final server list. Inventory lifecycle effects separately
-from graph semantics before and after reads. `server stop` is excluded until a
-separate lifecycle profile defines its ownership and allowed transition.
-Unknown ownership or any undeclared lifecycle effect stops the attempt.
+The next separate lane is **Plugin SDK pre-admission evidence review only**.
+It may inspect public official documentation, source, release metadata, issue
+state, and package provenance without downloading, installing, executing, or
+provisioning an SDK, host, artifact, graph, or fixture. It must preserve the
+same payload, identity, ordering, provenance, and zero-state-change criteria.
 
-Before that attempt, bind a separately authenticated admission manifest, the
-exact launcher/interpreter and archived script identities, configuration and
-policy identity, semantic fixture manifest, protected and private roots,
-operation grammar, timeout/cancellation policy, and output-handling policy.
-The archived `js/logseq-cli.js` entry is not assumed to be an executable. The
-preflight must validate containment and protected roots before opening any
-artifact or fixture file. Unadmitted read-result schemas permit no PASS and no
-semantic qualification; they do not license guessed validation rules.
-
-This recovery step earns no Gate C credit and cannot produce a terminal
-transport classification. It authorizes no fallback, writes, import/export,
-query, sync, login, graph switch, reprovisioning, or retry. It does not open a
-Plugin SDK or MCP lane. Gate C remains unstarted.
+No Plugin SDK or MCP execution is authorized by this pointer. MCP HTTP remains
+blocked while #1101 is open. The independent `get_graph_read_port` lane remains
+unrelated and must not gain DB behavior.
 
 The independent `get_graph_read_port` characterization and pure-selector lane
 may proceed without becoming a prerequisite or acquiring any DB behavior.
 
 ## Current authorization boundary
 
-Prior programme authorization does not broaden this recovery boundary. The
-only permitted operations are the bounded reads above against the exact
-existing synthetic root, with evidence written to a new private evidence
-directory. No lifecycle action is permitted under DB-0. No other graph, user
-root, transport, fixture mutation, qualification, fallback, retry,
-publication, issue update, or repository mutation is authorized here.
+The completed CLI decision consumed no artifact or execution authority. The
+only next activity is the separately bounded, read-only Plugin SDK
+pre-admission review described above. No lifecycle action, artifact download,
+SDK installation, graph/fixture mutation, qualification probe, fallback, retry,
+or MCP action is permitted by this pointer.
 
 Tags, releases, PyPI, stable support claims, DB writes, events, sync,
 import/export, internal SQLite, DB-to-Markdown fallback, DB-source Shadow,
@@ -216,7 +212,7 @@ independently verified against exact bytes, refs, and checks.
 
 ## Next gate
 
-Do not execute recovery verification from this documentation update. It needs
-its own exact authorization and fresh operator preflight. After that bounded
-attempt, preserve its result and stop; do not infer Gate C readiness or select
-a fallback transport.
+Perform only the Plugin SDK pre-admission evidence review. Preserve an exact
+public-source record and a terminal `supported`, `capability_no_go`, or
+`upstream_blocked` pre-admission result. Do not download, install, execute, or
+provision an SDK, artifact, host, graph, or fixture; do not start MCP work.
