@@ -7,7 +7,7 @@ classification: active
 audience: [maintainer, contributor, operator, agent]
 owner: integration
 verified: { by: human:marco-porcellato, at: '2026-09-06T00:00:00Z' }
-last_verified: 2026-09-19
+last_verified: 2026-09-23
 stale_after: 2027-03-05
 tracking_issue: https://github.com/MarcoPorcellato/matryca-plumber/issues/491
 related:
@@ -46,8 +46,8 @@ themselves prove runtime compatibility.
   [`2026-09-06-logseq-db-read-only-gateway-design.md`](../specs/2026-09-06-logseq-db-read-only-gateway-design.md).
 - Active tracking work item: [Plumber #491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491),
   under epic [#490](https://github.com/MarcoPorcellato/matryca-plumber/issues/490).
-- Current public-main base: `0bab28afdd10efaeff82d541d5b9b6552ebd5595`,
-  tree `8ed111c8498e76b5d37609fb34400808d84c01a9`.
+- Current public-main base: `968dad9e96ae2b2d4ec40779489dca646a557de5`,
+  tree `152cbc9fe46d125ce05287a3a2b1527caac4bbff`.
 - Phase 1 payload semantics are complete through the payload-semantics ADR
   merged by [PR #590](../../decisions/2026-09-12-plumber-graph-payload-read-v1.md). This
   completes semantic choices only; schema/TCK, host, runtime, adapter, and
@@ -176,18 +176,18 @@ payload/ordering contract required to cross admission. The public-safe evidence
 record is [`LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md`](../../quality/LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md).
 
 This terminal lane record neither qualifies a read nor opens another transport
-within the same attempt. The completed Plugin SDK pre-admission review is
-recorded below; the next separate lane is MCP stdio pre-admission only, with no
-artifact, fixture, or execution authority.
+within the same attempt. The subsequent Plugin SDK and native MCP stdio
+pre-admission reviews are recorded below and are also terminal. No transport
+lane remains active under the current authority.
 
 ## Phase 3 — Disposable fixture mutation and bounded recovery
 
 Fixture provisioning is mutation and receives no read-only credit.
 
-**No Phase 3 task is active.** The CLI lane is terminal `upstream_blocked` and
-the Plugin SDK lane is terminal `capability_no_go`. Do not provision or inspect
-a fixture until a later transport has an independently approved artifact and
-execution boundary.
+**No Phase 3 task is active.** CLI and native MCP stdio are terminal
+`upstream_blocked`; Plugin SDK is terminal `capability_no_go`. Do not provision
+or inspect a fixture unless a future authority decision admits a new exact host
+and execution boundary.
 
 ### Task 3.1: create and freeze one synthetic graph
 
@@ -289,12 +289,13 @@ semantics.
   exact terminal result.
 - [ ] Update #491 without closing it unless every programme completion item is
   proven.
-- [ ] If unsupported or blocked, stop before adapter implementation and open
-  the next transport lane as a new attempt.
+- [ ] If unsupported or blocked, stop before adapter implementation. Open a
+  later transport lane only when one remains permitted by the active authority.
 
-## Phase 5 — Plugin SDK and MCP stdio fallback lanes (not authorized by Gate B recovery)
+## Phase 5 — Plugin SDK and MCP stdio fallback lanes (terminal)
 
-Repeat Phases 2–4 independently for each permitted fallback transport.
+Both permitted fallback reviews are complete and terminal. The retained task
+structure documents their required boundaries; it authorizes no new transport.
 
 ### Task 5.0: Plugin SDK pre-admission evidence review (complete)
 
@@ -339,17 +340,37 @@ artifact, fixture, graph, host, or process was opened or executed.
   forbidden-change gates.
 - [ ] Never start or probe MCP HTTP while #1101 is open.
 
-### Task 5.1: MCP stdio pre-admission evidence review (next)
+### Task 5.1: MCP stdio pre-admission evidence review (complete)
 
-- [ ] Pin and review only exact public official MCP stdio documentation, source,
+- [x] Pin and review only exact public official MCP stdio documentation, source,
   package/release metadata, issue state, transport declarations, and provenance.
-- [ ] Determine whether stdio can establish one explicit graph/session/revision
+- [x] Determine whether stdio can establish one explicit graph/session/revision
   identity, bounded page and complete ordered-subtree reads, and a no-side-effect
   DB-0 observer boundary.
-- [ ] Record one terminal pre-admission result without downloading, installing,
+- [x] Record one terminal pre-admission result without downloading, installing,
   executing, provisioning, or opening an MCP producer, host, artifact, graph,
   or fixture.
-- [ ] Keep MCP HTTP prohibited while #1101 remains open.
+- [x] Keep MCP HTTP prohibited while #1101 remains open.
+
+### 2026-09-23 native MCP stdio DB-0 ruling
+
+Native MCP stdio is terminal `upstream_blocked` before DB-0 admission. Exact
+official stdio artifact, implementing source, and versioned host contract remain
+unbound. Historical stdio reports describe a write-capable surface, while the
+exact current source record is HTTP-specific and cannot establish stdio
+behavior. The public-safe evidence record is
+[`LOGSEQ_DB_MCP_STDIO_DB0_ADMISSION_BLOCKER_2026-09-23.md`](../../quality/LOGSEQ_DB_MCP_STDIO_DB0_ADMISSION_BLOCKER_2026-09-23.md).
+
+No MCP producer, host, artifact, fixture, graph, database, executable, or user
+root was opened or executed. MCP HTTP remains prohibited while #1101 is open.
+
+## Current transport outcome
+
+All permitted strict DB-0 transport lanes are terminal without a supported
+host: bundled CLI is `upstream_blocked`, Plugin SDK is `capability_no_go`, and
+native MCP stdio is `upstream_blocked`. Phases 3 and 6–10 therefore remain
+inactive. Do not select, infer, or implement another host API without a new
+authority decision and a separately bounded evidence plan.
 
 ## Phase 6 — Static payload contract after `supported`
 
