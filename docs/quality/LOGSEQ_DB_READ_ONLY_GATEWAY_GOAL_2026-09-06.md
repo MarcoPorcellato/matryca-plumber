@@ -6,13 +6,13 @@ status: active
 classification: active
 authority: docs/decisions/2026-09-05-plumber-logseq-gateway-authority.md
 owner: integration
-last_verified: 2026-09-19
+last_verified: 2026-09-23
 ---
 
 # Logseq DB Read-Only Gateway Qualification
 
 This file is the restart-safe execution pointer for the next separately
-authorized Plugin SDK pre-admission evidence review. It is operationally
+authorized MCP stdio pre-admission evidence review. It is operationally
 subordinate to the accepted Plumber gateway decision and active tracking issue
 [#491](https://github.com/MarcoPorcellato/matryca-plumber/issues/491).
 The historical plan and persistent goal remain useful evidence, but are
@@ -48,6 +48,7 @@ Trama and Brain are consumers, never direct Logseq readers or Parser imports.
 | Active authority | `docs/decisions/2026-09-05-plumber-logseq-gateway-authority.md` | Accepted ownership decision |
 | Active design | `docs/superpowers/specs/2026-09-06-logseq-db-read-only-gateway-design.md` | Additive payload and host-adapter boundary |
 | Active plan | `docs/superpowers/plans/2026-09-06-logseq-db-read-only-gateway.md` | Dependency order and definition of done |
+| Plugin SDK lane | `LOGSEQ_DB_SDK_DB0_CAPABILITY_NO_GO_2026-09-23.md` | Terminal `capability_no_go` before admission or execution |
 | Active evidence | Private 2026-09-12 checkpoint | Exact 2026-09-08 DMG admission and later incomplete fixture attempt; raw evidence stays private |
 | Closed page-read issue | `logseq/db-test#833` | Closed 2026-08-31; closure is not artifact evidence |
 | MCP HTTP blocker | `logseq/db-test#1101` | Open; HTTP remains prohibited |
@@ -131,28 +132,42 @@ The CLI lane is therefore `upstream_blocked` before admission and execution.
 The earlier proposed recovery verification is superseded for DB-0 and must not
 be revived from this pointer. Its historic evidence remains retained.
 
+## 2026-09-23 terminal Plugin SDK-lane boundary
+
+The exact reviewed official Plugin SDK source exposes graph, page, and tree
+operations, but not the immutable graph/session/source-revision binding,
+coherent complete ordered-subtree guarantee, or enforceable observer-only
+boundary required by DB-0. The terminal public-safe record is
+[`LOGSEQ_DB_SDK_DB0_CAPABILITY_NO_GO_2026-09-23.md`](LOGSEQ_DB_SDK_DB0_CAPABILITY_NO_GO_2026-09-23.md).
+
+The Plugin SDK lane is therefore `capability_no_go` before admission and
+execution. It does not reject future SDK versions or other official transports.
+No SDK package, host, artifact, fixture, graph, database, executable, or user
+root was opened or changed.
+
 ## Next bounded boundary
 
-The next separate lane is **Plugin SDK pre-admission evidence review only**.
-It may inspect public official documentation, source, release metadata, issue
+The next separate lane is **MCP stdio pre-admission evidence review only**. It
+may inspect public official documentation, source, release metadata, issue
 state, and package provenance without downloading, installing, executing, or
-provisioning an SDK, host, artifact, graph, or fixture. It must preserve the
-same payload, identity, ordering, provenance, and zero-state-change criteria.
+provisioning an MCP producer, host, artifact, graph, or fixture. It must
+preserve the same payload, identity, ordering, provenance, and zero-state-change
+criteria.
 
-No Plugin SDK or MCP execution is authorized by this pointer. MCP HTTP remains
-blocked while #1101 is open. The independent `get_graph_read_port` lane remains
-unrelated and must not gain DB behavior.
+No MCP execution is authorized by this pointer. MCP HTTP remains blocked while
+#1101 is open. The independent `get_graph_read_port` lane remains unrelated and
+must not gain DB behavior.
 
 The independent `get_graph_read_port` characterization and pure-selector lane
 may proceed without becoming a prerequisite or acquiring any DB behavior.
 
 ## Current authorization boundary
 
-The completed CLI decision consumed no artifact or execution authority. The
-only next activity is the separately bounded, read-only Plugin SDK
-pre-admission review described above. No lifecycle action, artifact download,
-SDK installation, graph/fixture mutation, qualification probe, fallback, retry,
-or MCP action is permitted by this pointer.
+The completed CLI and Plugin SDK decisions consumed no artifact or execution
+authority. The only next activity is the separately bounded, read-only MCP
+stdio pre-admission review described above. No lifecycle action, artifact
+download, SDK/MCP installation, graph/fixture mutation, qualification probe,
+fallback, retry, or MCP action is permitted by this pointer.
 
 Tags, releases, PyPI, stable support claims, DB writes, events, sync,
 import/export, internal SQLite, DB-to-Markdown fallback, DB-source Shadow,
@@ -212,7 +227,8 @@ independently verified against exact bytes, refs, and checks.
 
 ## Next gate
 
-Perform only the Plugin SDK pre-admission evidence review. Preserve an exact
+Perform only the MCP stdio pre-admission evidence review. Preserve an exact
 public-source record and a terminal `supported`, `capability_no_go`, or
 `upstream_blocked` pre-admission result. Do not download, install, execute, or
-provision an SDK, artifact, host, graph, or fixture; do not start MCP work.
+provision an MCP producer, artifact, host, graph, or fixture; do not start MCP
+HTTP work.
