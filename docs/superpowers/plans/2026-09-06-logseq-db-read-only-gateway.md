@@ -176,17 +176,18 @@ payload/ordering contract required to cross admission. The public-safe evidence
 record is [`LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md`](../../quality/LOGSEQ_DB_CLI_DB0_ADMISSION_BLOCKER_2026-09-19.md).
 
 This terminal lane record neither qualifies a read nor opens another transport
-within the same attempt. A Plugin SDK pre-admission review is the next separate
-lane; it has no artifact, fixture, or execution authority.
+within the same attempt. The completed Plugin SDK pre-admission review is
+recorded below; the next separate lane is MCP stdio pre-admission only, with no
+artifact, fixture, or execution authority.
 
 ## Phase 3 — Disposable fixture mutation and bounded recovery
 
 Fixture provisioning is mutation and receives no read-only credit.
 
-**No Phase 3 task is active.** The CLI lane is terminal `upstream_blocked`,
-and the next Plugin SDK lane has not crossed pre-admission. Do not provision or
-inspect a fixture until a later transport has an independently approved
-artifact and execution boundary.
+**No Phase 3 task is active.** The CLI lane is terminal `upstream_blocked` and
+the Plugin SDK lane is terminal `capability_no_go`. Do not provision or inspect
+a fixture until a later transport has an independently approved artifact and
+execution boundary.
 
 ### Task 3.1: create and freeze one synthetic graph
 
@@ -295,18 +296,31 @@ semantics.
 
 Repeat Phases 2–4 independently for each permitted fallback transport.
 
-### Task 5.0: Plugin SDK pre-admission evidence review (next)
+### Task 5.0: Plugin SDK pre-admission evidence review (complete)
 
-- [ ] Pin and review only public official SDK documentation, source, package,
+- [x] Pin and review only public official SDK documentation, source, package,
   release metadata, issue state, permissions, and provenance material.
-- [ ] Determine whether the SDK offers an explicit graph identity, bounded page
+- [x] Determine whether the SDK offers an explicit graph identity, bounded page
   read, complete ordered-subtree read, immutable provenance, and a
   no-side-effect observer boundary suitable for DB-0.
-- [ ] Record a single terminal pre-admission result without downloading,
+- [x] Record a single terminal pre-admission result without downloading,
   installing, executing, or provisioning an SDK, host, artifact, graph, or
   fixture.
-- [ ] Start no MCP work from this review; MCP remains a later independent lane
+- [x] Start no MCP work from this review; MCP remains a later independent lane
   and HTTP remains blocked while #1101 is open.
+
+### 2026-09-23 Plugin SDK DB-0 ruling
+
+The exact reviewed official SDK source is terminal `capability_no_go` before
+DB-0 admission. It offers graph, page, and tree operations but does not provide
+immutable graph/session/source-revision binding, a coherent complete ordered
+subtree snapshot guarantee, or an SDK-enforced observer-only boundary. The
+public-safe evidence record is
+[`LOGSEQ_DB_SDK_DB0_CAPABILITY_NO_GO_2026-09-23.md`](../../quality/LOGSEQ_DB_SDK_DB0_CAPABILITY_NO_GO_2026-09-23.md).
+
+This ruling is limited to the pinned source and strict DB-0 requirements. It
+does not classify future SDK versions or other official transports. No SDK,
+artifact, fixture, graph, host, or process was opened or executed.
 
 ### Plugin SDK requirements
 
@@ -324,6 +338,18 @@ Repeat Phases 2–4 independently for each permitted fallback transport.
 - [ ] Preserve the same page, subtree, completeness, limits, provenance, and
   forbidden-change gates.
 - [ ] Never start or probe MCP HTTP while #1101 is open.
+
+### Task 5.1: MCP stdio pre-admission evidence review (next)
+
+- [ ] Pin and review only exact public official MCP stdio documentation, source,
+  package/release metadata, issue state, transport declarations, and provenance.
+- [ ] Determine whether stdio can establish one explicit graph/session/revision
+  identity, bounded page and complete ordered-subtree reads, and a no-side-effect
+  DB-0 observer boundary.
+- [ ] Record one terminal pre-admission result without downloading, installing,
+  executing, provisioning, or opening an MCP producer, host, artifact, graph,
+  or fixture.
+- [ ] Keep MCP HTTP prohibited while #1101 remains open.
 
 ## Phase 6 — Static payload contract after `supported`
 

@@ -2,6 +2,11 @@
 
 ### Changed
 
+- **Logseq DB Plugin SDK qualification boundary** — record the reviewed SDK
+  transport as `capability_no_go` before DB-0 admission: available read APIs do
+  not establish immutable source binding, coherent complete ordered subtrees, or
+  an SDK-enforced observer-only boundary. The MCP stdio lane remains separately
+  gated. Refs #491.
 - **Logseq DB CLI qualification boundary** — record the bundled CLI transport
   as `upstream_blocked` before DB-0 admission: documented worker and lock
   lifecycle behavior cannot satisfy the zero-state-change profile, and no
