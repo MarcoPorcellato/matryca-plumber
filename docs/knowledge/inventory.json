@@ -1324,6 +1324,26 @@
       "missing": false
     },
     {
+      "path": "docs/quality/DEVELOPER_ANALYSIS_TOOLING_EVALUATION_2026-09-26.md",
+      "type": "Roadmap",
+      "title": "Developer analysis tooling evaluation",
+      "description": "Evidence-bounded evaluation of notebook and report tools for Matryca Plumber development and debugging.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "agent"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Local maintainer evaluation; tool adoption and runtime qualification are deferred. Not a product-support claim.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/EVIDENCE_INDEX.md",
       "type": "Reference",
       "title": "Public quality evidence index",
@@ -1731,7 +1751,8 @@
       "destination": "docs/artifacts/quality/",
       "action": "artifact",
       "supersedes": [],
-      "notes": "Native-stdio upstream blocker only; no MCP producer, artifact, host, fixture, graph, database, executable, or user root was opened or executed."
+      "notes": "Native-stdio upstream blocker only; no MCP producer, artifact, host, fixture, graph, database, executable, or user root was opened or executed.",
+      "missing": false
     },
     {
       "path": "docs/quality/LOGSEQ_DB_READ_ONLY_COMPATIBILITY_PERSISTENT_GOAL_2026-09-05.md",

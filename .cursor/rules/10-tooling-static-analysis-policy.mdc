@@ -1,12 +1,26 @@
 ---
-description: Vendor-agnostic tooling policy for public repo surfaces (docs, CI, commits)
+description: Vendor-neutral public tooling policy with a narrow, license-evidenced project-naming exception
 globs: *
 alwaysApply: true
 ---
 
 # Tooling & Static Analysis Policy
 
-- Do not track, commit, or mention specific third-party local development tools, AST indexers, or custom MCP servers in public documentation, CI/CD, or commit messages.
+## Default
+
+- Keep public documentation, CI/CD, and commit messages vendor-neutral. Do not name third-party local development tools, AST indexers, or custom MCP servers unless the narrow maintainer-evaluation exception below applies.
 - Do not add tool-specific local ignore patterns to the public `.gitignore`; use local-only Git exclude files for personal dev tooling artifacts.
-- Keep the public repository vendor-agnostic and strictly focused on core project requirements.
-- When referring to local code audits in docs or issues, use generic terms like "Local Static Analysis", "AST tooling", or "Graph-based code analysis".
+- When referring to local code audits in docs or issues, use generic terms like "Local Static Analysis", "AST tooling", or "Graph-based code analysis" unless the exception below applies.
+
+## Maintainer tooling-evaluation exception
+
+This is a repository editorial rule, not a statement that licenses prohibit factual references. It permits a narrow, factual mention of an exact software project in a maintainer-facing tooling evaluation only when all conditions below are met:
+
+1. Scope the permission to the named project or component, not its vendor, parent company, other products, hosted services, plugins, or bundled distribution.
+2. Bind the name to the exact source release/tag or commit reviewed. If a runtime artifact was evaluated, identify that artifact separately; a source-repository license does not establish the license of a binary, bundle, plugin, service, or dependency set.
+3. Verify the license from an official, immutable upstream license file at that same release/tag or commit. Record the project/repository, exact revision, SPDX identifier, immutable license URL, verification date, and whether the claim covers source only or the evaluated artifact.
+4. For this exception, accept only a single SPDX identifier from this explicit non-reciprocal allowlist: `MIT`, `BSD-2-Clause`, `BSD-3-Clause`, `Apache-2.0`, or `ISC`. This list is a narrow editorial eligibility rule, not a complete legal classification of open-source licenses.
+5. Exclude unknown, custom, proprietary, copyleft, mixed, or compound license expressions. Do not infer eligibility from a vendor's other open-source projects, an OSI-approval badge, a package-registry label, or a moving default-branch license. OSI approval alone does not classify a license as non-copyleft.
+6. State evidence limits. Naming permission does not imply endorsement, partnership, compatibility, security, quality, support, adoption, or a recommendation. Do not use logos or promotional language.
+
+This exception grants no authority to download, install, execute, add dependencies, change CI, or publish compatibility/support claims. Preserve the separate authorization and evidence gates for those actions. It never relaxes the absolute assistant/model/tool authorship-attribution prohibition in `AGENTS.md`.
