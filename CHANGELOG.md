@@ -2,6 +2,10 @@
 
 ### Changed
 
+- **Public tooling-evaluation naming policy** — permit narrowly scoped factual
+  references to exact projects only when their version-bound upstream license
+  evidence satisfies an explicit non-reciprocal allowlist; authorship,
+  endorsement, adoption, and support boundaries remain unchanged.
 - **Logseq DB native MCP stdio qualification boundary** — record the native
   stdio transport as `upstream_blocked` before DB-0 admission: public evidence
   does not bind an exact stdio artifact to implementing source and an observer
