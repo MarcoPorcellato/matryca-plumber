@@ -21,6 +21,9 @@
 
 ### Changed
 
+- **RC4 Stage A operator guidance** — document the conditional exact-commit,
+  three-platform package-evidence procedure and keep human GO, signed-tag /
+  publication authority, and post-publication Gate B distinct.
 - **Public tooling-evaluation naming policy** — permit narrowly scoped factual
   references to exact projects only when their version-bound upstream license
   evidence satisfies an explicit non-reciprocal allowlist; authorship,

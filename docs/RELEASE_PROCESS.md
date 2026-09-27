@@ -73,6 +73,108 @@ profiles. Gate B is not a prerequisite to publish the experimental artifact, but
 terminal profile results and review of all other applicable gates are required for a
 separate final RC4 qualification decision. Neither stage authorizes stable promotion.
 
+### RC4 Stage A on-demand package qualification
+
+Use the proposed manual package-qualification workflow only after its implementation
+has landed on protected `main` and is available for dispatch. First select the exact,
+reachable, clean `main` commit and record its full commit and tree IDs. The workflow's
+own merge changes `main`; earlier diagnostic source and local build results remain
+historical and cannot be relabeled as evidence for the new commit. Confirm ordinary
+required hosted CI is terminal green for that exact commit before dispatch.
+
+Before any dispatch, inspect the workflow at that exact `main`: its sdist lane must
+authenticate the original sdist, record the complete observed private PEP 517 build
+environment before and after, verify static and backend-returned dynamic requirements
+against already installed packages, build a temporary wheel with
+`uv build --wheel --no-build-isolation`, and bind that wheel's name, size, and SHA-256.
+It must install the temporary wheel with `--no-deps` in the separate sdist runtime
+environment while `verify-installed` continues to authenticate the original bound
+sdist. The temporary wheel is not part of canonical `dist`. A recorded generated
+wheel hash proves only this run's exact output, not reproducible builds. Generator
+metadata alone does not prove the full build environment.
+
+The required Windows row must also be genuinely qualified. Until complete launcher
+installer/template provenance and native Windows x64 package/process evidence exist,
+Windows remains NO-GO. A deliberately failing Windows step is not a qualification
+result: do not dispatch such a workflow, call Stage A PASS, or infer stable-release
+readiness.
+
+The qualification workflow pins official uv `0.12.19`, which is outside the
+affected range in the [official GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7).
+The [0.12.19 release page](https://github.com/astral-sh/uv/releases/tag/0.12.19)
+links verified release commit `bea138450f0e620a4ce5765b0e38cff7b9f0799f`; the
+official [Windows x64 archive checksum](https://releases.astral.sh/github/uv/releases/download/0.12.19/uv-x86_64-pc-windows-msvc.zip.sha256)
+is `6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0`.
+The former `0.12.16` pin falls in the affected `>=0.12.7,<0.12.18` range and is
+historical only; do not use it for Windows wheel installation. The new tool pin
+does not qualify the generated launcher. Exact tag-to-commit resolution, the
+tag-pinned launcher source/content, and executable-template provenance remain
+unverified. `RECORD` and an `MZ`/PE header alone do not authenticate generated
+launcher bytes. Lifting NO-GO requires that exact source/template chain, an
+independent architecture-specific template/payload verifier (including
+interpreter binding, entry-point payload and trailing bytes), process-tree
+containment review, and native Windows x64 install and lifecycle tests.
+
+The SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary:
+action-internal code runs before explicit workflow verification. Independently
+verify the official uv `0.12.19` artifact and active executable before every
+workflow-owned uv command, including `uv sync`, and repeat verification in the
+aggregate job before its own `uv sync`. State only that uv was verified before
+workflow-owned use, not before action-internal code. The aggregate check is now
+locally implemented; its 14 focused workflow tests pass. This is local
+implementation evidence only, not hosted qualification or dispatch readiness.
+After repair of raw PEP 517 dynamic-expression and extras handling, the focused
+integrated package suite was 225 passed with 1 expected skip before final typing
+additions. The subsequent exact clone-local, locked/offline full `make ci`
+passed: 2443 passed, 6 skipped, 4 warnings, and 84.73% coverage, using four
+pytest workers; all static, documentation, and type gates were green. Earlier
+sandbox `ps` and shared-primary-venv coverage failures are diagnostic history,
+not the final run. Sol's final quality and security reviews are PASS_WITH_NOTES;
+process-containment review separately passed with notes after 21 focused tests.
+Review notes: PEP 518 environment
+records observe package names/versions but not package artifact hashes; two
+official uv archive downloads lack a byte-count cap before digest verification;
+and tested process containment is not a hostile-code sandbox. These scoped
+local checks do not establish hosted qualification. Windows remains NO-GO and
+no hosted dispatch or Stage A result is claimed.
+
+Before dispatch, obtain separate authorization bound to this workflow,
+`refs/heads/main`, the selected full SHA, and exactly one attempt. Green CI or
+approved documentation does not authorize a run; any rerun requires new
+authorization.
+
+Dispatch from `refs/heads/main` and enter the full lowercase 40-character SHA for that
+same `main` commit in the workflow's expected-commit input. The workflow must reject a
+different ref, SHA, tree, version, or dirty checkout. One Linux build produces exactly
+one canonical wheel and one canonical source distribution. Every platform verifies
+both original archive byte identities. Install the canonical wheel directly. For the
+sdist lane, build one temporary wheel from the authenticated original sdist in a
+private PEP 517 build environment, then install that temporary output in the separate
+sdist runtime environment; pass the original sdist—not the temporary wheel—to
+`verify-installed`. Keep the temporary wheel outside `dist`. Require terminal success
+and one complete, matching platform receipt for each platform. A missing, skipped,
+failed, cancelled, timed-out, or mismatched required job or receipt is NO-GO; preserve
+that attempt and its run identity. Any rerun is a distinct attempt, not a replacement
+for a failed receipt.
+
+Link the sanitized evidence record to issue #582. It must bind the workflow run and
+event SHA/ref; source/tree and artifact identities; the one wheel/sdist pair and its
+hashes; all three runner OS/architectures and terminal job conclusions; installed
+metadata, `RECORD`, resource and TCK results; focused test counts; and any explicit
+platform disposition. For each sdist row, also bind the complete observed build-env
+package manifest before and after, static and dynamic requirement satisfiers, and the
+temporary wheel's name/size/SHA-256. This is exact one-attempt evidence, not a
+reproducible-build claim. Keep local paths, raw graph content, private logs, tokens,
+and workstation state out of public evidence. Request independent human Stage A
+GO/NO-GO against the complete RC4 plan; a green workflow alone is not that decision.
+
+After a Stage A GO, obtain separate authorization before creating a signed tag or
+publishing the experimental RC4 prerelease. Stage A-built bytes are not assumed to
+match the later public release-workflow artifacts. Stage B starts only after authorized
+publication and independently verifies those exact public artifacts against the frozen
+manifest before either Gate B profile begins. Gate B and final RC4 disposition remain
+separate from Stage A and publication; neither grants stable `v2.0.1` support.
+
 ### Publication prerequisites
 
 A `v*` tag ruleset and a registered maintainer GPG key are external

@@ -1,5 +1,55 @@
 # Documentation update log
 
+## 2026-09-27
+
+- **RC4 package qualification exact local CI result:** the latest full
+  clone-local locked/offline `make ci` completed PASS with 2443 passed, 6
+  skipped, 4 warnings, and 84.73% coverage using four pytest workers; all
+  static, documentation, and type gates were green. The preceding focused
+  package suite (225 passed, 1 expected skip) predates final typing additions.
+  Earlier sandbox `ps` and shared-primary-venv coverage failures remain
+  diagnostic history and are not the final run. Sol quality/security review is
+  PASS_WITH_NOTES. This is local evidence only: Windows launcher/native
+  qualification remains NO-GO, with no hosted dispatch or Stage A PASS claimed.
+- **RC4 package qualification toolchain security update:** the manual workflow
+  was rebound from uv `0.12.16` to official uv `0.12.19` after GHSA-2cv4-cqwr-gwf7
+  identified Windows wheel-extraction traversal in `>=0.12.7,<0.12.18` and
+  marked `>=0.12.18` patched. The upstream release commit and Windows x64
+  archive checksum are bound in the qualification spec and plan. The Windows
+  row remains NO-GO before package installation: this fixes the affected tool
+  pin only, not launcher provenance, process-tree containment, or native
+  Windows qualification. No Stage A run or PASS is claimed.
+- **RC4 qualification review status update:** a later Sol re-review moved the
+  scoped process-containment assessment from BLOCKED to PASS_WITH_NOTES after
+  21 focused tests. The separate quality review remains BLOCKED on complete
+  PEP 517 dynamic declarations/raw receipt and extras handling. The
+  SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary because
+  its action-internal code runs before explicit uv verification. Require
+  independent uv 0.12.19 verification before workflow-owned uv use and again
+  in the aggregate before `uv sync`; do not claim verification preceded action
+  internals. That aggregate check remains in progress. Windows remains NO-GO;
+  no dispatch or Stage A result is claimed.
+- **RC4 package qualification final local review update:** the raw PEP 517
+  dynamic-expression and extras receipt gaps were repaired. The latest focused
+  integrated package suite now reports 225 passed and 1 expected skip; Ruff
+  check and format, docs-check, and agents-check pass. The latest full local
+  `make ci` is not green: mypy stopped on 8 errors in new tests, under repair.
+  Sol's final quality and security reviews are PASS_WITH_NOTES. Process-containment review
+  remains PASS_WITH_NOTES after 21 focused tests. Residual review scope: PEP 518
+  inventory records package names/versions but not package artifact hashes; two
+  official uv archive downloads are uncapped by byte count before digest
+  verification; process containment is not a hostile-code sandbox. These are
+  local evidence only.
+  Windows launcher provenance and native-platform evidence remain NO-GO; no
+  hosted workflow dispatch or Stage A PASS is claimed.
+- **RC4 Stage A operator procedure:** documented the conditional future manual
+  exact-`main` SHA workflow, single-build wheel/sdist handoff, three required
+  platform receipts, sanitized issue #582 evidence, and independent human
+  Stage A GO/NO-GO. Preserved historical attempts and separated any later
+  signed-tag/publication authorization from Stage B public-artifact Gate B.
+  The documentation does not claim the proposed workflow is implemented or
+  that any current-source candidate, receipt, or qualification result exists.
+
 ## 2026-09-12
 
 - **Bounded graph payload semantics:** froze the additive

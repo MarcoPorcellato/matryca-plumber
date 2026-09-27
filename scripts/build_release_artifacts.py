@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import copy
 import gzip
+import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -208,23 +210,103 @@ def _tracked_snapshot(repo_root: Path, destination: Path) -> None:
         bundle.extractall(destination, filter="data")
 
 
-def build_release_artifacts(repo_root: Path, output_dir: Path) -> tuple[Path, Path]:
+def _snapshot_records(source_root: Path) -> list[dict[str, str]]:
+    records: list[dict[str, str]] = []
+    for path in sorted(source_root.rglob("*")):
+        if path.is_symlink():
+            raise ValueError(
+                f"Release source snapshot contains a symlink: {path.relative_to(source_root)}"
+            )
+        if path.is_file():
+            records.append(
+                {
+                    "name": path.relative_to(source_root).as_posix(),
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+            )
+    return records
+
+
+def _write_content_ledger(path: Path, content: dict[str, object]) -> None:
+    if path.exists() or path.is_symlink():
+        raise ValueError(f"Refusing to overwrite existing content ledger: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(json.dumps(content, sort_keys=True, indent=2) + "\n")
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def build_release_artifacts(
+    repo_root: Path,
+    output_dir: Path,
+    *,
+    content_ledger_path: Path | None = None,
+) -> tuple[Path, Path]:
     """Build an sdist and a wheel from a disposable clean source snapshot."""
     if output_dir.exists() and any(output_dir.iterdir()):
         raise ValueError(f"Refusing to mix release artifacts with existing files in {output_dir}")
 
+    resolved_output = output_dir.resolve()
+    if content_ledger_path is not None:
+        resolved_ledger = content_ledger_path.resolve()
+        if resolved_ledger == resolved_output or resolved_output in resolved_ledger.parents:
+            raise ValueError("Content ledger must be outside the distribution output directory.")
+        if content_ledger_path.exists() or content_ledger_path.is_symlink():
+            raise ValueError(
+                f"Refusing to overwrite existing content ledger: {content_ledger_path}"
+            )
+
     expected_version = project_version(repo_root)
     source_date_epoch = _source_date_epoch(repo_root)
+    source_commit: str | None = None
+    source_tree: str | None = None
+    if content_ledger_path is not None:
+        source_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+        ).strip()
+        source_tree = subprocess.check_output(
+            ["git", "rev-parse", "HEAD^{tree}"], cwd=repo_root, text=True
+        ).strip()
     build_env = {**os.environ, "SOURCE_DATE_EPOCH": source_date_epoch}
     with tempfile.TemporaryDirectory(prefix="matryca-release-build-") as temporary:
         staging_root = Path(temporary)
         source_root = staging_root / "source"
         source_root.mkdir()
         _tracked_snapshot(repo_root, source_root)
+        selected_source_files = (
+            _snapshot_records(source_root) if content_ledger_path is not None else None
+        )
 
         frontend = source_root / "frontend"
         _run(["npm", "ci"], cwd=frontend, env=build_env)
         _run(["npm", "run", "build"], cwd=frontend, env=build_env)
+        frontend_dist = frontend / "dist"
+        if not frontend_dist.is_dir():
+            raise ValueError("Frontend build did not produce frontend/dist.")
+        if not any(path.is_file() for path in frontend_dist.rglob("*")):
+            raise ValueError("Frontend build produced no files.")
+        frontend_files = None
+        if content_ledger_path is not None:
+            frontend_files = [
+                {
+                    "name": f"frontend/dist/{item['name']}",
+                    "sha256": item["sha256"],
+                }
+                for item in _snapshot_records(frontend_dist)
+            ]
 
         artifacts = staging_root / "artifacts"
         artifacts.mkdir()
@@ -247,6 +329,36 @@ def build_release_artifacts(repo_root: Path, output_dir: Path) -> tuple[Path, Pa
         copied_sdist = output_dir / sdist.name
         shutil.copy2(wheel, copied_wheel)
         shutil.copy2(sdist, copied_sdist)
+        if content_ledger_path is not None:
+            metadata_classes = [
+                "wheel.dist-info.METADATA",
+                "wheel.dist-info.WHEEL",
+                "wheel.dist-info.RECORD",
+                "wheel.dist-info.entry_points.txt",
+                "wheel.dist-info.top_level.txt",
+                "sdist.PKG-INFO",
+                "sdist.setup.cfg",
+                "sdist.egg-info.SOURCES.txt",
+                "sdist.egg-info.PKG-INFO",
+                "sdist.egg-info.dependency_links.txt",
+                "sdist.egg-info.entry_points.txt",
+                "sdist.egg-info.requires.txt",
+                "sdist.egg-info.top_level.txt",
+                "wheel.dist-info.licenses.LICENSE",
+                "wheel.dist-info.licenses.NOTICE",
+            ]
+            _write_content_ledger(
+                content_ledger_path,
+                {
+                    "schema_version": 1,
+                    "source_commit": source_commit,
+                    "source_tree": source_tree,
+                    "version": expected_version,
+                    "selected_source_files": selected_source_files,
+                    "frontend_files": frontend_files,
+                    "generated_metadata_classes": metadata_classes,
+                },
+            )
         return copied_wheel, copied_sdist
 
 
