@@ -4370,6 +4370,26 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-09-27-on-demand-release-package-qualification.md",
+      "type": "Roadmap",
+      "title": "On-Demand Release Package Qualification Implementation Plan",
+      "description": "Test-driven implementation sequence for exact-commit, cross-platform RC4 Stage A package qualification without changing routine pull-request CI.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Implementation proposal subordinate to the approved design and RC4 qualification plan; no workflow-dispatch or publication authority.",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -4489,6 +4509,26 @@
       "action": "keep",
       "supersedes": [],
       "notes": "",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-27-on-demand-release-package-qualification-design.md",
+      "type": "Specification",
+      "title": "On-demand cross-platform release package qualification",
+      "description": "Exact-commit, single-build package and runtime evidence for the pre-publication RC4 gate without slowing routine pull-request CI.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Design proposal subordinate to the active RC4 qualification plan; no workflow, candidate, or publication authority.",
       "missing": false
     },
     {

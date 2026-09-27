@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
+import json
+import os
 import subprocess
 import tarfile
 import zipfile
 from pathlib import Path
 
 import pytest
+import scripts.build_release_artifacts as release_builder
 from scripts.build_release_artifacts import (
     _REQUIRED_MEMBERS,
     _normalize_sdist_timestamps,
@@ -229,3 +233,190 @@ def test_build_release_artifacts_refuses_nonempty_output_directory(tmp_path: Pat
 
     with pytest.raises(ValueError, match="Refusing to mix release artifacts"):
         build_release_artifacts(tmp_path / "unused-repository", output_dir)
+
+
+def _release_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "pyproject.toml").write_text(
+        "[project]\nname='matryca-plumber'\nversion='2.0.1rc4'\n", encoding="utf-8"
+    )
+    (repo / "src").mkdir()
+    (repo / "src" / "__init__.py").write_text("", encoding="utf-8")
+    (repo / "src" / "worker.py").write_text("VALUE = 7\n", encoding="utf-8")
+    (repo / "frontend").mkdir()
+    (repo / "frontend" / "package.json").write_text("{}\n", encoding="utf-8")
+    for member in _PUBLIC_CONTRACT_RESOURCE_MEMBERS:
+        path = repo / member
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"public static contract resource")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Release Test",
+            "-c",
+            "user.email=release-test@example.invalid",
+            "commit",
+            "-qm",
+            "release fixture",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    return repo
+
+
+def _fake_release_commands(
+    command: list[str], *, cwd: Path, env: dict[str, str] | None = None
+) -> None:
+    if command[0] == "git":
+        subprocess.run(command, cwd=cwd, check=True, env=env)
+        return
+    if command[:3] == ["npm", "run", "build"]:
+        output = cwd / "dist" / "index.html"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text("<!doctype html>\n", encoding="utf-8")
+    elif command[:3] == ["uv", "build", "--sdist"]:
+        artifacts = Path(command[4])
+        artifacts.mkdir(parents=True, exist_ok=True)
+        _write_sdist(artifacts / "matryca_plumber-2.0.1rc4.tar.gz", "2.0.1rc4")
+    elif command[:3] == ["uv", "build", "--wheel"]:
+        artifacts = Path(command[4])
+        _write_wheel(artifacts / "matryca_plumber-2.0.1rc4-py3-none-any.whl", "2.0.1rc4")
+
+
+def test_builder_default_keeps_only_the_two_distribution_outputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _release_repo(tmp_path)
+    monkeypatch.setattr(release_builder, "_run", _fake_release_commands)
+    monkeypatch.setattr(
+        release_builder,
+        "_snapshot_records",
+        lambda _root: pytest.fail("default artifact build must not snapshot file records"),
+    )
+    check_output_commands: list[list[str]] = []
+    original_check_output = subprocess.check_output
+
+    def record_check_output(command: list[str], *, cwd: Path, text: bool) -> str:
+        check_output_commands.append(command)
+        result = original_check_output(command, cwd=cwd, text=text)
+        assert isinstance(result, str)
+        return result
+
+    monkeypatch.setattr(subprocess, "check_output", record_check_output)
+    output = tmp_path / "dist"
+
+    wheel, sdist = build_release_artifacts(repo, output)
+
+    assert {path.name for path in output.iterdir()} == {wheel.name, sdist.name}
+    assert wheel.suffix == ".whl"
+    assert sdist.name.endswith(".tar.gz")
+    assert check_output_commands == [["git", "log", "-1", "--format=%ct", "HEAD"]]
+
+
+def test_builder_writes_optional_ledger_outside_output_after_archive_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _release_repo(tmp_path)
+    monkeypatch.setattr(release_builder, "_run", _fake_release_commands)
+    output = tmp_path / "dist"
+    ledger = tmp_path / "evidence" / "content-ledger.json"
+
+    build_release_artifacts(repo, output, content_ledger_path=ledger)
+
+    content = json.loads(ledger.read_text(encoding="utf-8"))
+    tracked = {item["name"]: item["sha256"] for item in content["selected_source_files"]}
+    generated = {item["name"]: item["sha256"] for item in content["frontend_files"]}
+    assert tracked["src/worker.py"]
+    assert generated == {
+        "frontend/dist/index.html": hashlib.sha256(b"<!doctype html>\n").hexdigest()
+    }
+    assert {path.name for path in output.iterdir()} == {
+        "matryca_plumber-2.0.1rc4-py3-none-any.whl",
+        "matryca_plumber-2.0.1rc4.tar.gz",
+    }
+
+
+def test_builder_default_still_rejects_empty_frontend_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _release_repo(tmp_path)
+
+    def fake_empty_frontend(
+        command: list[str], *, cwd: Path, env: dict[str, str] | None = None
+    ) -> None:
+        if command[0] == "git":
+            subprocess.run(command, cwd=cwd, check=True, env=env)
+        elif command[:3] == ["npm", "run", "build"]:
+            (cwd / "dist").mkdir()
+
+    monkeypatch.setattr(release_builder, "_run", fake_empty_frontend)
+
+    with pytest.raises(ValueError, match="Frontend build produced no files"):
+        build_release_artifacts(repo, tmp_path / "dist")
+
+
+def test_builder_rejects_ledger_inside_output_directory(tmp_path: Path) -> None:
+    output = tmp_path / "dist"
+
+    with pytest.raises(ValueError, match="outside"):
+        build_release_artifacts(
+            tmp_path / "unused-repository", output, content_ledger_path=output / "ledger.json"
+        )
+
+
+def test_builder_does_not_write_ledger_when_archive_build_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _release_repo(tmp_path)
+
+    def fail_wheel(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> None:
+        if command[0] == "git":
+            subprocess.run(command, cwd=cwd, check=True, env=env)
+            return
+        if command[:3] == ["uv", "build", "--sdist"]:
+            artifacts = Path(command[4])
+            artifacts.mkdir(parents=True, exist_ok=True)
+            _write_sdist(artifacts / "matryca_plumber-2.0.1rc4.tar.gz", "2.0.1rc4")
+            return
+        if command[:3] == ["uv", "build", "--wheel"]:
+            raise RuntimeError("synthetic wheel build failure")
+        if command[:3] == ["npm", "run", "build"]:
+            output = cwd / "dist" / "index.html"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text("<!doctype html>\n", encoding="utf-8")
+
+    monkeypatch.setattr(release_builder, "_run", fail_wheel)
+    ledger = tmp_path / "evidence" / "ledger.json"
+
+    with pytest.raises(RuntimeError, match="synthetic wheel build failure"):
+        build_release_artifacts(repo, tmp_path / "dist", content_ledger_path=ledger)
+
+    assert not ledger.exists()
+
+
+def test_content_ledger_publication_does_not_overwrite_concurrent_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ledger = tmp_path / "content-ledger.json"
+    original_link = os.link
+    concurrent_payload = b"concurrent writer owns this path\n"
+    attempted = False
+
+    def race_link(source: str | Path, destination: str | Path) -> None:
+        nonlocal attempted
+        attempted = True
+        Path(destination).write_bytes(concurrent_payload)
+        original_link(source, destination)
+
+    monkeypatch.setattr(os, "link", race_link)
+
+    with pytest.raises(FileExistsError):
+        release_builder._write_content_ledger(ledger, {"schema_version": 1})
+
+    assert attempted
+    assert ledger.read_bytes() == concurrent_payload

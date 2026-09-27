@@ -90,14 +90,85 @@ any RC4 tag or publication action:
 2. Terminal required hosted CI for that exact commit. Record workflow/run URLs,
    required-check names, conclusions, and any explicit non-blocking lane; a local
    pass is not a hosted-CI substitute.
-3. Reproducible release build from the selected source. Record exactly one wheel
-   and one sdist, each filename, size, SHA-256, build command, and archive manifest.
-   Reject missing, additional, compiled-cache, version-drift, or resource-drift
-   members.
-4. Isolated installs of the selected wheel and sdist. Verify package metadata,
-   `RECORD`, all 26 static contract/TCK resources, and byte-for-byte source/wheel/
-   sdist parity. Run all three installed TCKs from the installed package context;
-   source-checkout success alone is insufficient.
+3. One exact release build from the selected source. Record exactly one canonical
+   wheel and one canonical sdist, each filename, size, SHA-256, build command,
+   and archive manifest. Reject missing, additional, compiled-cache,
+   version-drift, or resource-drift members. This is evidence for the exact
+   artifacts built in that attempt; unless independent reproducibility tests
+   separately prove it, do not call the result a reproducible build.
+4. Isolated package checks. Install the canonical wheel directly and verify
+   package metadata, `RECORD`, all 26 static contract/TCK resources, and
+   byte-for-byte source/wheel/sdist parity. For the sdist installation, first
+   authenticate the original sdist; use a private PEP 517 build environment
+   whose complete observed package-name/version manifest is recorded before
+   and after; check static `build-system.requires` and backend-returned dynamic
+   requirements against packages already present, failing rather than
+   opportunistically installing a missing requirement; then run
+   `uv build --wheel --no-build-isolation` from that exact sdist. Bind the
+   temporary wheel name, size, and SHA-256, keep it outside canonical `dist`,
+   and install it with `--no-deps` into the separate sdist runtime environment.
+   The installed verifier must receive the original bound sdist as its artifact
+   input, not the temporary wheel. Run all three installed TCKs from the
+   installed package context; source-checkout success alone is insufficient.
+
+### Conditional on-demand Stage A procedure
+
+The proposed manual workflow at
+`.github/workflows/release-package-qualification.yml` is an implementation
+deliverable, not authority supplied by this plan. Use this procedure only after
+that workflow has landed on protected `main` and is available for dispatch. Its
+merge changes the source: select the resulting exact, reachable, clean `main`
+commit, record full commit/tree IDs, and confirm ordinary required hosted CI is
+terminal green for that same SHA. Do not carry forward the historical
+`b56254854b28701bd7f8b2e83a8ede58915f309d` diagnostic or earlier candidate
+results as current-source evidence.
+
+Before dispatch, confirm the exact-main workflow contains the full sdist
+build-environment chain described above and a genuinely qualified required
+Windows row. A generator name/version field alone is not complete PEP 517
+environment provenance. An unconditional failing Windows step is a NO-GO
+scaffold, not qualification evidence: do not dispatch it as Stage A, record
+Stage A PASS, or infer stable readiness until launcher installer/template
+provenance and native Windows x64 package/process evidence are admitted.
+
+Before dispatch, obtain separate authorization bound to this workflow,
+`refs/heads/main`, the selected full SHA, and exactly one attempt. Green CI or
+approved documentation does not authorize a run; any rerun requires new
+authorization.
+
+Dispatch only from `refs/heads/main`, supplying the full lowercase 40-character
+expected commit SHA equal to the selected `main` commit and workflow event SHA.
+Require the workflow to bind its checkout, tree, version, and clean state to that
+identity. One build must produce exactly one canonical wheel and one canonical
+sdist; all three required platform rows—Linux x64, macOS arm64, and Windows x64—
+must verify both original archive identities. Install the canonical wheel
+directly. For the sdist lane, build and install a temporary wheel from the exact
+original sdist using the separately recorded PEP 517 build environment; the
+installed verifier still checks against the original bound sdist. Record one
+sanitized, source- and artifact-bound receipt per platform, including runner
+OS/architecture, installed metadata/`RECORD`, all 26 resource and three TCK
+results, focused test counts, and terminal job conclusion. Every sdist receipt
+also binds its before/after complete observed build-package manifest, static and
+dynamic requirement satisfiers, and temporary-wheel name/size/SHA-256. This is
+exact-attempt evidence, not a reproducibility claim. The issue #582 evidence
+record also identifies the run URL and event SHA/ref, canonical artifact
+names/sizes/hashes, and any explicit platform disposition.
+
+Any failed, skipped, cancelled, timed-out, incomplete, or mismatched required
+job or receipt is NO-GO. Preserve each attempt and its run ID; a later rerun is a
+new attempt and cannot replace or relabel earlier historical evidence. Keep
+private logs, local paths, workstation state, tokens, and graph content out of
+public evidence. An independent human review records Stage A GO/NO-GO against
+the entire plan; green workflow conclusions are evidence for that decision, not
+the decision itself.
+
+Stage A GO permits only a separately authorized signed tag and publication of
+an experimental RC4 prerelease. It does not grant that authorization. After
+authorized publication, Stage B independently binds the public workflow-built
+wheel and sdist to the frozen deployment manifest before either Gate B profile
+starts; never assume Stage A build hashes equal public artifact hashes. Stage B
+and the final RC4 disposition remain separate from Stage A and publication, and
+do not promote stable `v2.0.1`.
 
 ## Targeted runtime and package controls
 
@@ -120,6 +191,39 @@ The candidate must retain focused, deterministic evidence for:
 - DB negative policy: the package contains no supported Logseq DB capability. The
   #580 `upstream_blocked` record is retained as evidence of a stopped external
   artifact admission, not as an operational test result.
+
+The on-demand package-qualification workflow is not deployed while Windows
+remains NO-GO. Its withheld prototype pinned uv `0.12.19`. The [official GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7)
+places `0.12.19` in the patched range (`>=0.12.18`) and identifies
+`>=0.12.7,<0.12.18` as affected by Windows wheel-extraction traversal. Its
+official Windows x64 archive checksum is recorded in the active package
+qualification plan. The previous workflow pin `0.12.16` was affected and is
+historical only. This toolchain correction does not qualify Windows: launcher
+provenance, process-tree containment, and native platform evidence remain
+separate required gates.
+
+The planned SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary;
+action-internal code runs before explicit workflow verification. Require
+independent verification of the official uv `0.12.19` artifact and active
+executable before workflow-owned uv use, including `uv sync`, and repeat the
+check in the aggregate job before its `uv sync`. Claim only “verified before
+workflow-owned uv use,” not before action-internal code. The withheld prototype's
+aggregate check passed 14 local workflow tests, but neither that workflow nor its
+contract tests are deployed. Task 4 remains deferred; this is not hosted
+qualification or dispatch readiness. After repair of raw PEP 517
+dynamic-expression and extras handling, the latest integrated package suite is
+225 passed with 1 expected skip before final typing additions. The subsequent
+exact clone-local, locked/offline full `make ci` passed: 2443 passed, 6 skipped,
+4 warnings, and 84.73% coverage, using four pytest workers; all static,
+documentation, and type gates were green. Earlier sandbox `ps` and
+shared-primary-venv coverage failures are diagnostic history, not the final
+run. Sol's final quality and security reviews are PASS_WITH_NOTES.
+Process-containment review separately passed with notes after 21 focused tests.
+Review notes: PEP 518 environment records observe
+package names and versions, not package artifact hashes; two official uv
+archive downloads in the withheld prototype were not byte-count capped before digest verification; tested
+process containment is not a hostile-code sandbox. Windows remains NO-GO. No
+hosted dispatch, Stage A result, or Windows qualification is implied.
 
 ## Platform and profile matrix
 
