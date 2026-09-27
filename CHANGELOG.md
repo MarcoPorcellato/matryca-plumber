@@ -1,5 +1,24 @@
 ## [Unreleased]
 
+## [2.0.1-rc.4] - 2026-09-27
+
+### Added
+
+- **Exact Logseq DB host artifact evidence** — preserve the first bundled-CLI
+  qualification attempt as `upstream_blocked`: the official macOS arm64 ZIP
+  matched both GitHub and checksum-list SHA-256 evidence, but Apple rejected
+  the signed application before execution. No graph or fixture was touched and
+  no DB support, fallback transport, runtime adapter, or product change is
+  claimed. Refs #491.
+
+- **Bounded internal OG topology slice** — require `logseq-matryca-parser`
+  1.9.0 and build one complete, content-free `plumber.graph.topology/v1`
+  projection from Plumber-captured Markdown through Parser's public
+  `LogseqGraph.from_snapshot_pages()` factory. The slice is session-bound and
+  rejects unresolved block references, title collisions, and source, node, or
+  edge limit failures; it adds no endpoint, CLI/MCP surface, consumer wiring,
+  Logseq DB path, or qualification claim. Refs #490.
+
 ### Changed
 
 - **Public tooling-evaluation naming policy** — permit narrowly scoped factual
@@ -30,28 +49,6 @@
   ordered block subtrees, typed public properties, fixed safety limits, and
   profile-bound provenance without changing runtime behavior or claiming
   Logseq DB support. Refs #491.
-
-## [2.0.1-rc.4] - 2026-09-06
-
-### Added
-
-- **Exact Logseq DB host artifact evidence** — preserve the first bundled-CLI
-  qualification attempt as `upstream_blocked`: the official macOS arm64 ZIP
-  matched both GitHub and checksum-list SHA-256 evidence, but Apple rejected
-  the signed application before execution. No graph or fixture was touched and
-  no DB support, fallback transport, runtime adapter, or product change is
-  claimed. Refs #491.
-
-- **Bounded internal OG topology slice** — require `logseq-matryca-parser`
-  1.9.0 and build one complete, content-free `plumber.graph.topology/v1`
-  projection from Plumber-captured Markdown through Parser's public
-  `LogseqGraph.from_snapshot_pages()` factory. The slice is session-bound and
-  rejects unresolved block references, title collisions, and source, node, or
-  edge limit failures; it adds no endpoint, CLI/MCP surface, consumer wiring,
-  Logseq DB path, or qualification claim. Refs #490.
-
-### Changed
-
 - **Immutable static consumer packages** — add content-free
   `plumber.consumer.package/v1` profiles for Matryca Trama and Brain. They pin
   static graph-read/topology contract and canonical consumer-profile bytes but
@@ -80,6 +77,17 @@
   gateway and public `plumber.*` contract owner; Parser remains OG-internal,
   while Trama and Brain remain contract consumers. This documentation change
   enables no Logseq DB runtime capability. Refs #562.
+- **Installed static public contracts** — package the canonical, content-free
+  `plumber.consumer.package/v1`, `plumber.graph.read/v1`, and
+  `plumber.graph.topology/v1` resources with their deterministic TCK scripts.
+  This is artifact availability only: it adds no public Python adapter, transport,
+  CLI/MCP endpoint, Logseq DB capability, Trama/Brain import, UI, or LENS surface.
+  Refs #579.
+- **Frontend dependency group refresh** — update 13 direct frontend dependency
+  and development-tool ranges with the matching lockfile, including React
+  `^19.3.0`, Vite `^8.3.0`, and Vitest `^5.0.1`. This changes the frontend
+  build and test dependency set without adding application code or Logseq DB
+  support. Refs #591.
 
 ### Fixed
 
@@ -87,21 +95,12 @@
   declare and verify its exact installed candidate version instead of retaining a
   runner-local version from an earlier release candidate.
 
-### Changed
-
-- **Installed static public contracts** — package the canonical, content-free
-  `plumber.consumer.package/v1`, `plumber.graph.read/v1`, and
-  `plumber.graph.topology/v1` resources with their deterministic TCK scripts.
-  This is artifact availability only: it adds no public Python adapter, transport,
-  CLI/MCP endpoint, Logseq DB capability, Trama/Brain import, UI, or LENS surface.
-  Refs #579.
-
 ### Security
 
 - **Frontend dependency audit remediation** — pin transitive `browserslist`
   `4.28.7` and `nanoid` `3.3.18`, their first fixed advisory versions, through
-  manifest overrides and the lockfile without changing direct dependency ranges,
-  application source, or feature behavior. Refs #584.
+  manifest overrides and the lockfile. That earlier remediation did not change
+  direct dependency ranges, application source, or feature behavior. Refs #584.
 
 ## [2.0.1-rc.3] - 2026-08-31
 

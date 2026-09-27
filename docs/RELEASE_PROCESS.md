@@ -29,7 +29,7 @@ release mechanics and maintainer authority gates. The fail-closed decision recor
 - classify the release delta before selecting operational gates, using the
   [risk-based qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md);
 - do not tag or publish a release candidate until its exact preparation commit
-  has passed the full release gate;
+  has passed its required pre-publication gates (Stage A in the RC4 plan);
 - when the selected risk tier requires Gate B, bind the campaign to the exact
   installed public candidate wheel and its runner, profiles, digest, checkpoints,
   and valid elapsed time;
@@ -58,15 +58,20 @@ classify its complete delta, and record the applicable gates before publication.
 The [v2.0.1-rc.2 attempt](releases/v2.0.1-rc.2-FAILED-PUBLICATION.md) is immutable
 terminal failed-publication history: its signed tag and workflow passed source,
 destination-preflight, build, attestation, and bundle-verification stages, but it
-published neither destination. The active [v2.0.1-rc.3 proposed qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
-classifies the next candidate as Tier 3 for operator `.env` parent-directory durability,
-maintenance-robot Git path-isolation integrity, and explicit repository binding for
-checkout-free GitHub Release creation. Its preparation base is not a candidate: source,
-tag, workflow run, and public release bundle remain unselected. Targeted controls do not
-replace fresh exact-artifact dual-profile Gate B or a later separate stable decision.
-A post-replacement parent-directory fsync `OSError` remains non-fatal and does not roll
-back the shipped `.env` replacement, but that attempt cannot claim directory-entry
-durability; the RC3 plan requires focused success and tolerated-failure evidence.
+published neither destination. [RC3](releases/v2.0.1-rc.3-GITHUB.md) is a published,
+historical prerelease; its source, artifacts, and qualification evidence do not transfer
+to RC4 or stable `v2.0.1`. Its [qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
+is historical, not a proposal for the next candidate.
+
+The active [RC4 qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
+defines two stages. Stage A is pre-publication GO/NO-GO for an exact source and
+independently built artifact, required source/platform/resource/TCK controls, and
+independent review; a GO permits only separate authorization to publish an experimental
+RC4 prerelease. Stage B begins after publication: verify the exact workflow-built public
+wheel against the frozen manifest, then run fresh exact-artifact Gate B for both required
+profiles. Gate B is not a prerequisite to publish the experimental artifact, but both
+terminal profile results and review of all other applicable gates are required for a
+separate final RC4 qualification decision. Neither stage authorizes stable promotion.
 
 ### Publication prerequisites
 
