@@ -1,11 +1,11 @@
 ---
 type: release-qualification-plan
 title: v2.0.1-rc.4 release qualification plan
-description: Proposed exact-artifact qualification envelope for the RC4 delta; no candidate, release, package, soak result, or stable decision is selected.
+description: Two-stage exact-artifact qualification for RC4; pre-publication gates precede the public-wheel Gate B campaign and final decision.
 resource: docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md
 tags: [release, qualification, parser, topology, contracts, v2]
-last_verified: 2026-09-06
-stale_after: 2027-03-06
+last_verified: 2026-09-27
+stale_after: 2027-03-26
 status: proposed
 classification: active
 audience: [maintainer, contributor, operator]
@@ -21,24 +21,33 @@ related:
 
 # v2.0.1-rc.4 release qualification plan
 
-## Authority and non-selection boundary
+## Authority and current-source boundary
 
 This proposed plan is tracked by
 [#582](https://github.com/MarcoPorcellato/matryca-plumber/issues/582). It is
 separate from the implementation and package-preparation authority in
 [#579](https://github.com/MarcoPorcellato/matryca-plumber/issues/579).
 
-The planning anchor is `origin/main` commit
-`118b265b5c6b29682c76453aad5fbde0de0c841f`. It is not an RC4 candidate.
-The release authority must first select one exact, reachable, clean-source commit
-after the implementation/preparation merge plan is complete. That selection must
-record the full commit ID, tree ID, clean status, source provenance, and the
-resulting wheel/sdist filenames and SHA-256 values. A later change requires a new
-selection and invalidates candidate-bound evidence.
+The original planning anchor was `origin/main@118b265b5c6b29682c76453aad5fbde0de0c841f`;
+it was not a candidate. Issue #582 subsequently selected
+`74884c38edb9cae445fa465969aa2c9cee5ecd1c` and recorded source, hosted-CI,
+build, installed-resource, and TCK evidence for those exact bytes. That candidate
+remains historical evidence. Protected `main@50d3fc9f34c0c88d054a5abc8fcacad8b1da5b6f`
+on 2026-09-27 is 18 commits later, with product and release-workflow changes. The
+earlier hashes and passes cannot qualify current `main`. This commit is an observed
+source anchor, not a newly selected candidate; reverify it immediately before use.
 
-No candidate source, tag, public artifact, Gate B result, or stable decision is selected.
-This document creates no tag, GitHub Release, PyPI upload, hosted workflow run,
-or local qualification attempt. It does not authorize a heavy Gate B/CCP invocation.
+For a current-source RC4, first merge any release-plan correction, then select the
+resulting exact, reachable, clean `main` commit. Record full commit and tree IDs,
+source provenance, version and lock, changelog-to-source agreement, and wheel/sdist
+filenames and SHA-256 values. Resolve post-RC4-heading `Unreleased` changes before
+freezing release notes. A subsequent source change requires a new selection and an
+applicability review of every candidate-bound result.
+
+No current-source candidate, public RC4 artifact, Gate B result, or final RC4
+qualification decision is selected by this plan. It creates no tag, GitHub Release,
+PyPI upload, hosted workflow run, or local qualification attempt; it authorizes no
+heavy Gate B/CCP invocation.
 
 Historical RC3 publication, RC2 failure, and earlier Gate B evidence remain bound to
 their own artifacts. They do not qualify RC4 or a future stable `v2.0.1`.
@@ -46,8 +55,9 @@ their own artifacts. They do not qualify RC4 or a future stable `v2.0.1`.
 ## Complete RC4 delta classification
 
 The delta is assessed against the last qualified public artifact, not against an
-unpublished preparation commit. The following rows are a complete release-plan
-classification, not evidence that any row has passed.
+unpublished preparation commit. The original rows remain applicable. A current-main
+candidate must also disposition every post-`74884c38` change; the additional rows
+below name the currently observed categories, not evidence that they passed.
 
 | Delta | Release-relevant behavior | Required control | Tier effect |
 | --- | --- | --- | --- |
@@ -57,6 +67,11 @@ classification, not evidence that any row has passed.
 | static contract/TCK resources | Three public, content-free contract families and their deterministic TCK scripts ship in wheel and sdist. | Archive membership/byte parity, installed-resource discovery, installed TCK, metadata, and `RECORD` checks. | Distribution change; included in the overall Tier 3 envelope. |
 | Logseq DB policy | Capability discovery fixtures and protocol are test-only and unbound. | Negative protocol fixtures; inspect package/runtime imports to prove no DB adapter, transport, direct internal access, or capability claim. | No DB runtime support is introduced; it cannot lower the overall tier. |
 | #580 external evidence | The first official bundled-CLI attempt is `upstream_blocked` at executable admission. | Preserve the artifact record as blocked; do not substitute it for runtime or DB compatibility evidence. | No executable/DB behavior was tested; no qualification credit. |
+| OG read-port selection | The internal graph repository selection was characterized and refactored after the earlier candidate. | Run exact-candidate characterization, Shadow fallback, filesystem ownership, and read-path regressions. | Graph I/O remains Tier 3. |
+| DB observer structure | An in-memory structural validator was added, while CLI, SDK, and MCP stdio DB-0 lanes remain blocked or no-go. | Run synthetic parser/bounds and negative capability-policy controls; prove no host access, DB read adapter, or supported DB claim. | No DB runtime support; include the new code in package and import review. |
+| Frontend dependencies | A later dependency-group update changed the lock and direct manifest versions. | Recheck exact locked install, frontend tests/build, and high-severity audit before candidate selection. | Dependency/security review; no Tier 3 downgrade. |
+| Hosted workflow pins | CI, CodeQL, dependency-update, and release action pins changed. | Verify exact-source workflow contract, required hosted checks, expected conditional skips, and tag-workflow provenance. | Publication control; no historical workflow result transfers. |
+| Documentation and media | Later gateway research, policy, and overview content changed without adding a supported DB transport. | Check generated inventory, documentation gate, release notes, and claim boundaries. | No runtime credit or tier reduction. |
 
 The release is **Tier 3** because the candidate delta changes Parser and graph-I/O
 semantics and a process timeout lifecycle. The Tier 3 classification applies even
@@ -66,11 +81,12 @@ No downgrade is available under this plan without a new reviewed decision.
 ## Candidate selection and source gates
 
 After separate merge authority selects the candidate, record the following before
-any publication action:
+any RC4 tag or publication action:
 
 1. Exact commit/tree, ancestry from protected `main`, clean worktree, version
    agreement (`2.0.1rc4` / `v2.0.1-rc.4`), dependency lock, and no uncommitted
-   generated-resource drift.
+   generated-resource drift; reconcile `Unreleased` entries that describe code
+   included in that source with the RC4 release notes.
 2. Terminal required hosted CI for that exact commit. Record workflow/run URLs,
    required-check names, conclusions, and any explicit non-blocking lane; a local
    pass is not a hosted-CI substitute.
@@ -108,8 +124,9 @@ The candidate must retain focused, deterministic evidence for:
 ## Platform and profile matrix
 
 No platform result is recorded by this plan. Before RC4 publication, attach
-candidate-bound evidence for each applicable row and disposition any unavailable
-row explicitly; never mark an unrun row as covered by a different runner.
+candidate-bound evidence for each applicable **pre-publication** row and disposition
+any unavailable row explicitly. Gate B rows are post-publication and must not be
+represented as pre-tag PASS; never mark an unrun row as covered by another runner.
 
 | Surface | Required evidence | Status now |
 | --- | --- | --- |
@@ -119,10 +136,23 @@ row explicitly; never mark an unrun row as covered by a different runner.
 | macOS arm64 | Candidate-bound Parser/topology and timeout controls on the supported maintainer platform. | Unselected. |
 | Linux hosted runner | Candidate-bound parser/topology, archive, and installed-package controls. | Unselected. |
 | Windows | Candidate-bound installed-package/TCK and process-lifecycle disposition if the release support claim includes Windows. | Unselected. |
-| `default-on` Gate B profile | Exact installed public RC4 artifact; independent attempt chain and terminal report. | Not started. |
-| `read-only + external Shadow` Gate B profile | Exact installed public RC4 artifact; independent attempt chain and terminal report. | Not started. |
+| `default-on` Gate B profile | Post-publication: exact installed public RC4 artifact; independent attempt chain and terminal report. | Not started; not a pre-tag gate. |
+| `read-only + external Shadow` Gate B profile | Post-publication: exact installed public RC4 artifact; independent attempt chain and terminal report. | Not started; not a pre-tag gate. |
 
-## Gate B and publication sequence
+## Two-stage publication and Gate B sequence
+
+**Stage A — pre-publication GO/NO-GO:** freeze one exact source; pass required hosted
+CI, platform and focused controls; build and hash the wheel/sdist; verify isolated
+installs, all 26 resource bytes, metadata/`RECORD`, and all three installed TCKs;
+check empty destinations and notes. An independent review must record a
+pre-publication GO before separate tag/publication authorization. This GO permits
+only an experimental RC4 prerelease, not final RC4 qualification or stable support.
+
+**Stage B — post-publication qualification:** verify the workflow-built GitHub/PyPI
+artifacts and download the exact public wheel. Its identity and installed `RECORD`
+must match the frozen deployment manifest before either Gate B profile starts.
+The independently built Stage A wheel is diagnostic pre-publication evidence; do
+not assume its hash equals the public workflow-built wheel.
 
 Tier 3 requires fresh exact-artifact Gate B. Each required profile must accumulate
 at least **259,200 valid seconds per required profile**: `default-on` and
@@ -132,14 +162,17 @@ only after a separately authorized public RC4 artifact and resource/admission ch
 it must follow the Gate B runbook’s checkpoint, receipt, interruption, and
 public-safe evidence rules.
 
+Terminal Gate B PASS for both exact-artifact profiles, plus review of all other
+applicable gates, yields a separate final RC4 qualification GO/NO-GO. Gate B is
+**not** a prerequisite for publishing the experimental RC4 artifact needed to run
+Gate B. It is a prerequisite for claiming that RC4 completed Tier 3 qualification.
+
 This plan neither starts that campaign nor authorizes an exception. The local
 coordinator/CCP is operational support, not release qualification; normal public
 hosted CI must remain separate from the heavy soak decision.
 
-RC4 pre-publication sequence is: select clean source; pass exact hosted CI; build and
-hash artifacts; verify installed resources/TCK/parity and targeted controls; obtain
-separate tag/publication authority; bind Gate B to the resulting exact public artifact;
-then record a release-specific final disposition. A prerelease result does not promote
+The Stage A decision, tag/publication authority, Stage B terminal evidence, and
+final RC4 disposition are distinct records. A prerelease result does not promote
 stable `v2.0.1`.
 
 Any future stable `v2.0.1` needs its own exact source/artifact selection, delta
@@ -152,6 +185,7 @@ platform, or Gate B result to changed stable bytes.
 Stop and return to release authority if source/tree/package identity is missing;
 hosted CI is absent or non-terminal; an archive resource differs; an installed TCK
 uses checkout bytes; Parser/topology controls fail; timeout handling returns stale
-data; a DB policy is presented as runtime support; the public artifact differs from
-the gated bytes; a Gate B profile lacks valid duration; or the stable decision is
-attempted from RC4 inference.
+data; a DB policy is presented as runtime support; a public artifact cannot be
+bound to its source and deployment manifest; a Gate B profile lacks valid duration;
+or the stable decision is attempted from RC4 inference. Preserve a published RC4
+and its failed evidence rather than replacing its tag or artifact bytes.

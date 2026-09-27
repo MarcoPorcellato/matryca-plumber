@@ -54,7 +54,9 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > before GitHub Release creation and PyPI publication; its signed tag and workflow
 > evidence are immutable but are not a public artifact, Gate B result, or
 > stable-promotion credit. `v2.0.1-rc.3` is a published historical prerelease.
-> `v2.0.1-rc.4` / `2.0.1rc4` is preparation only: no selected candidate source, tag,
+> `v2.0.1-rc.4` / `2.0.1rc4` remains unpublished. An earlier exact candidate
+> (`74884c38`) has source, build, and installed-resource evidence, but later
+> changes require a new current-source selection and qualification. No RC4 tag,
 > public artifact, Gate B result, or stable promotion exists. See the
 > [RC2 failed-publication record](docs/releases/v2.0.1-rc.2-FAILED-PUBLICATION.md),
 > [RC3 publication record](docs/releases/v2.0.1-rc.3-GITHUB.md), and

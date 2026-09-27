@@ -20,17 +20,23 @@ def test_rc4_qualification_plan_binds_the_required_delta_and_gate_boundaries() -
         "259,200 valid seconds per required profile",
         "default-on",
         "read-only + external Shadow",
-        "No candidate source, tag, public artifact, Gate B result, or stable decision is selected.",
+        "74884c38edb9cae445fa465969aa2c9cee5ecd1c",
+        "No current-source candidate, public RC4 artifact, Gate B result",
     ):
         assert required in text
 
 
 def test_rc4_qualification_plan_separates_rc_from_stable_and_forbids_execution() -> None:
     text = PLAN.read_text(encoding="utf-8")
+    normalized = " ".join(text.split())
 
-    assert "RC4 pre-publication" in text
+    assert text.index("Stage A — pre-publication GO/NO-GO") < text.index(
+        "Stage B — post-publication qualification"
+    )
+    assert "Gate B is **not** a prerequisite for publishing the experimental RC4" in normalized
+    assert "Terminal Gate B PASS for both exact-artifact profiles" in normalized
     assert "future stable `v2.0.1`" in text
-    assert "does not authorize a heavy Gate B/CCP invocation" in text
+    assert "authorizes no heavy Gate B/CCP invocation" in normalized
 
 
 def test_rc4_qualification_plan_is_discoverable_from_the_public_readme() -> None:
