@@ -192,8 +192,8 @@ The candidate must retain focused, deterministic evidence for:
   #580 `upstream_blocked` record is retained as evidence of a stopped external
   artifact admission, not as an operational test result.
 
-The separate on-demand package-qualification workflow currently pins uv
-`0.12.19`. The [official GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7)
+The on-demand package-qualification workflow is not deployed while Windows
+remains NO-GO. Its withheld prototype pinned uv `0.12.19`. The [official GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7)
 places `0.12.19` in the patched range (`>=0.12.18`) and identifies
 `>=0.12.7,<0.12.18` as affected by Windows wheel-extraction traversal. Its
 official Windows x64 archive checksum is recorded in the active package
@@ -202,14 +202,15 @@ historical only. This toolchain correction does not qualify Windows: launcher
 provenance, process-tree containment, and native platform evidence remain
 separate required gates.
 
-The SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary;
+The planned SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary;
 action-internal code runs before explicit workflow verification. Require
 independent verification of the official uv `0.12.19` artifact and active
 executable before workflow-owned uv use, including `uv sync`, and repeat the
 check in the aggregate job before its `uv sync`. Claim only “verified before
-workflow-owned uv use,” not before action-internal code. The aggregate check is
-now locally implemented and its 14 focused workflow tests pass; this is not
-hosted qualification or dispatch readiness. After repair of raw PEP 517
+workflow-owned uv use,” not before action-internal code. The withheld prototype's
+aggregate check passed 14 local workflow tests, but neither that workflow nor its
+contract tests are deployed. Task 4 remains deferred; this is not hosted
+qualification or dispatch readiness. After repair of raw PEP 517
 dynamic-expression and extras handling, the latest integrated package suite is
 225 passed with 1 expected skip before final typing additions. The subsequent
 exact clone-local, locked/offline full `make ci` passed: 2443 passed, 6 skipped,
@@ -220,7 +221,7 @@ run. Sol's final quality and security reviews are PASS_WITH_NOTES.
 Process-containment review separately passed with notes after 21 focused tests.
 Review notes: PEP 518 environment records observe
 package names and versions, not package artifact hashes; two official uv
-archive downloads are not byte-count capped before digest verification; tested
+archive downloads in the withheld prototype were not byte-count capped before digest verification; tested
 process containment is not a hostile-code sandbox. Windows remains NO-GO. No
 hosted dispatch, Stage A result, or Windows qualification is implied.
 

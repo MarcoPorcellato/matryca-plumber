@@ -4,7 +4,7 @@
 
 **Goal:** Produce fail-closed, exact-commit pre-publication package and platform evidence for the RC4 Stage A decision without adding work to routine pull-request CI.
 
-**Architecture:** Keep the existing release builder and canonical wheel/sdist pair unchanged. A repository-owned verifier binds those exact bytes to independent build-job outputs, checks archive and installed-package integrity, and emits sanitized receipts. The wheel is installed directly. Because an sdist must be built to install it, each platform uses a separate private PEP 517 build environment to build a temporary wheel from the authenticated original sdist, then installs that wheel into the clean sdist runtime environment. A manually dispatched workflow runs the verifier and frozen focused tests on Linux, macOS arm64, and Windows; an aggregator accepts only complete all-green evidence. The current Windows launcher boundary is NO-GO, so this workflow is not yet dispatchable as a qualification and cannot yield Stage A PASS.
+**Architecture:** Keep the existing release builder and canonical wheel/sdist pair unchanged. A repository-owned verifier binds those exact bytes to independent build-job outputs, checks archive and installed-package integrity, and emits sanitized receipts. The wheel is installed directly. Because an sdist must be built to install it, each platform uses a separate private PEP 517 build environment to build a temporary wheel from the authenticated original sdist, then installs that wheel into the clean sdist runtime environment. After Windows admission, a manually dispatched workflow will run the verifier and frozen focused tests on Linux, macOS arm64, and Windows; an aggregator will accept only complete all-green evidence. The current Windows launcher boundary is NO-GO, so no Stage A workflow is deployed or dispatchable and Stage A cannot yield PASS.
 
 **Tech Stack:** Python 3.12, pytest, uv, GitHub Actions YAML, SHA-256, Python `zipfile`/`tarfile`/`importlib.metadata`, existing static TCKs and release builder.
 
@@ -15,8 +15,11 @@
 ### Implementation status — 2026-09-27
 
 Local implementation is **in progress**, not qualification evidence. The sdist
-helper, workflow lane, and receipt binding are now present in the isolated
-worktree. The earlier integrated focused run with 142 passes and 2 receipt
+helper and receipt binding are present. The dispatchable workflow prototype and
+its contract tests were withheld from this implementation slice because its
+required Windows row deliberately failed. A regression test keeps that workflow
+path absent while Windows remains NO-GO. Task 4 and workflow activation remain
+deferred. The earlier integrated focused run with 142 passes and 2 receipt
 assertion failures on error ordering is historical. After repairing raw PEP 517
 dynamic-expression and extras handling, the latest integrated package suite is
 **225 passed, 1 expected skip** before final typing additions. The subsequent
@@ -30,8 +33,8 @@ passed with notes after 21 focused tests; none of these scoped reviews is a
 public qualification result. The aggregate uv
 0.12.19 archive/hash/active-binary check is locally implemented before its
 `uv sync` and passed 14 focused workflow tests. These remain local implementation
-and review evidence, not hosted qualification. The required Windows row still
-exits NO-GO. The workflow now pins official uv
+and review evidence for a withheld prototype, not hosted qualification. The
+required Windows row remains NO-GO. The withheld prototype pinned official uv
 `0.12.19`; the official
 [GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7)
 marks `>=0.12.7,<0.12.18` affected by Windows wheel-extraction path traversal,
@@ -40,22 +43,23 @@ links verified commit `bea138450f0e620a4ce5765b0e38cff7b9f0799f`; its official
 [Windows x64 archive checksum](https://releases.astral.sh/github/uv/releases/download/0.12.19/uv-x86_64-pc-windows-msvc.zip.sha256)
 is `6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0`.
 The superseded `0.12.16` pin was in the affected range and remains historical
-only; never use it for Windows wheel installation. The Windows row exits before
-installation and remains NO-GO pending launcher provenance and native platform
-evidence. The SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap
-boundary: action-internal code runs before workflow-owned verification. The
-workflow must independently verify the official uv `0.12.19` archive and active
+only; never use it for Windows wheel installation. The prototype Windows row
+exited before installation; Windows remains NO-GO pending launcher provenance
+and native platform evidence. The SHA-pinned `astral-sh/setup-uv` action is a
+trusted bootstrap boundary: action-internal code runs before workflow-owned
+verification. Any future workflow must independently verify the official uv
+`0.12.19` archive and active
 binary before any workflow-owned uv invocation, including `uv sync`; the
 aggregate job must repeat that check before its own `uv sync`. The guarantee is
-“verified before workflow-owned uv use,” not “verified before any action-internal
-code." Review notes retain three scope limits: the PEP 518 environment record
-observes package names and versions, not package artifact hashes; two official
-uv archive downloads are not byte-count capped before digest verification; and
-tested process containment is not a hostile-code sandbox. Windows launcher
-provenance and native platform evidence remain unresolved, so the workflow is
-not dispatchable as a Stage A qualification. No hosted dispatch, Stage A PASS,
-or stable-release claim is implied. Update this checkpoint only after the
-Windows launcher/native evidence gates are complete.
+"verified before workflow-owned uv use,” not “verified before any action-internal
+code." Review notes retain three scope limits for the withheld prototype: the
+PEP 518 environment record observes package names and versions, not package
+artifact hashes; two official uv archive downloads were not byte-count capped
+before digest verification; and tested process containment is not a hostile-code
+sandbox. Windows launcher provenance and native platform evidence remain
+unresolved, so no workflow is deployed for Stage A qualification. No hosted
+dispatch, Stage A PASS, or stable-release claim is implied. Update this
+checkpoint only after the Windows launcher/native evidence gates are complete.
 
 - Reverify protected `main`, tree, version, `uv.lock`, action pins, and existing CI before editing or selecting a candidate. The planning anchor `b56254854b28701bd7f8b2e83a8ede58915f309d` is historical, not a release candidate.
 - Keep `.github/workflows/ci.yml`, its required `Ironclad Gatekeeper`, and `.github/workflows/release.yml` unchanged. An optional out-of-band content-ledger output may be added to `scripts/build_release_artifacts.py`; default distribution bytes and tag-driven invocation must remain unchanged.
@@ -66,8 +70,8 @@ Windows launcher/native evidence gates are complete.
 - Required platform or receipt failure, cancellation, timeout, unexpected skip, or missing dependency means NO-GO. Stage A is separate from tag/publication authority and post-publication Gate B.
 - Generator metadata is not complete PEP 517 build-environment provenance. Sdist qualification must record the exact observed backend package-name/version manifest before and after a no-isolation build from the authenticated original sdist, verify declared and backend-returned dynamic requirements against that manifest without installing anything opportunistically, and bind the temporary wheel name, size, and SHA-256. The temporary wheel is only an installation vehicle; it is never added to or substituted for the canonical release `dist` pair. These checks establish which exact sdist and observed build environment produced the tested install; they do not claim reproducible builds.
 - Windows launcher provenance and native Windows package evidence remain NO-GO. Do not dispatch the workflow, claim Stage A PASS, or make stable-release claims while any required platform is deliberately rejected or not qualified.
-- Historical Windows launcher research remains bounded: the [official uv 0.12.16 release](https://github.com/astral-sh/uv/releases/tag/0.12.16) linked signed release commit `761ff1379b3b79f61fc8d421dfe4fe064834e084`, and GitHub marked that commit signature verified. This old tool pin was vulnerable under GHSA-2cv4-cqwr-gwf7 and must not be used for Windows wheel installation. The current workflow instead pins patched uv `0.12.19`, with the exact official [Windows x64 archive checksum](https://releases.astral.sh/github/uv/releases/download/0.12.19/uv-x86_64-pc-windows-msvc.zip.sha256) recorded above. The tag-pinned launcher source/content path and exact executable-template provenance used for launcher generation have not yet been verified. `RECORD` and the `MZ` header alone are insufficient. Admission still requires exact tag/source resolution, an independent template-and-payload verifier, process-tree containment review, and native Windows x64 tests.
-- Security advisory gate: [GHSA-2cv4-cqwr-gwf7](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7) identifies uv `>=0.12.7,<0.12.18` as affected by Windows wheel-install path traversal; uv `>=0.12.18` is patched. The workflow now pins `0.12.19` and verifies official per-platform archive checksums. The superseded `0.12.16` pin was affected and remains historical only; the current Windows row still fails before any wheel install. The patched tool pin does not qualify the Windows launcher or platform: retain NO-GO until source/template provenance and native tests pass.
+- Historical Windows launcher research remains bounded: the [official uv 0.12.16 release](https://github.com/astral-sh/uv/releases/tag/0.12.16) linked signed release commit `761ff1379b3b79f61fc8d421dfe4fe064834e084`, and GitHub marked that commit signature verified. This old tool pin was vulnerable under GHSA-2cv4-cqwr-gwf7 and must not be used for Windows wheel installation. The withheld workflow prototype instead pinned patched uv `0.12.19`, with the exact official [Windows x64 archive checksum](https://releases.astral.sh/github/uv/releases/download/0.12.19/uv-x86_64-pc-windows-msvc.zip.sha256) recorded above. The tag-pinned launcher source/content path and exact executable-template provenance used for launcher generation have not yet been verified. `RECORD` and the `MZ` header alone are insufficient. Admission still requires exact tag/source resolution, an independent template-and-payload verifier, process-tree containment review, and native Windows x64 tests.
+- Security advisory gate: [GHSA-2cv4-cqwr-gwf7](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7) identifies uv `>=0.12.7,<0.12.18` as affected by Windows wheel-install path traversal; uv `>=0.12.18` is patched. The withheld workflow prototype pinned `0.12.19` and checked official per-platform archive checksums. The superseded `0.12.16` pin was affected and remains historical only; no Windows workflow row is currently deployed. A patched tool pin does not qualify the Windows launcher or platform: retain NO-GO until source/template provenance and native tests pass.
 - All synthetic tests use disposable roots. Do not mount a user graph or claim Logseq DB support. Standard hosted CI is the full public-repository gate; no CCP heavy run.
 - Run local code-graph impact analysis before editing an existing symbol and changed-flow analysis before any later commit. The index was stale during planning; refresh it before code execution or use current-source analysis if it remains unavailable.
 - Commit, push, PR, workflow dispatch, issue mutation, merge, branch deletion, tag and release are separate authorization boundaries. This plan itself grants none.
@@ -92,7 +96,7 @@ Windows launcher/native evidence gates are complete.
 - `scripts/release_qualification/focused.py`: frozen platform-specific pytest node selections and sanitized result counts.
 - `scripts/qualify_release_package.py`: small CLI exposing `build-handoff`, `verify-handoff`, `prepare-sdist-build`, `verify-installed`, `run-focused`, and `verify-receipts`; no release or network operation.
 - `tests/test_release_package_bundle.py`, `tests/test_release_package_installed.py`, `tests/test_release_package_focused.py`: synthetic positive/negative tests for the corresponding modules.
-- `.github/workflows/release-package-qualification.yml` and `tests/test_release_package_workflow_contract.py`: manual source/build/platform/aggregate workflow and semantic mutation-resistant contract tests.
+- `.github/workflows/release-package-qualification.yml` and `tests/test_release_package_workflow_contract.py`: deferred manual source/build/platform/aggregate workflow and semantic contract tests; neither file is deployed in the current implementation slice. `tests/test_release_package_workflow_admission.py` prevents accidental deployment while Windows remains NO-GO.
 - `tests/test_release_package_sdist_build.py`: synthetic positive/negative coverage for PEP 517 source-distribution build provenance.
 - `docs/RELEASE_PROCESS.md`, `docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md`, `docs/knowledge/log.md`, `docs/knowledge/inventory.json`, `docs/knowledge/inventory.md`, and `CHANGELOG.md`: narrowly reconcile operator instructions, Stage A evidence location, documentation inventory, and changelog decision. Do not rewrite historical receipts.
 
@@ -166,7 +170,7 @@ The qualification-only CLI is `prepare-sdist-build --artifact BOUND_SDIST --sour
 - [ ] Run `rtk uv run pytest -q -o addopts= tests/test_release_package_focused.py` and the Linux/macOS node selection locally. The Windows selection needs terminal hosted Windows evidence; a local collection or macOS pass does not disposition it.
 - [ ] Preserve the full node list and counts in sanitized output. Any later node-list change requires a new source commit and new candidate qualification. Commit only under a separate explicit authorization.
 
-### Task 4: Wire the manual workflow and terminal gate
+### Task 4: Wire the manual workflow and terminal gate — deferred until Windows admission
 
 **Files:** Create `.github/workflows/release-package-qualification.yml`, `tests/test_release_package_workflow_contract.py`; extend `scripts/qualify_release_package.py` with `verify-receipts` and test its synthetic three-platform inputs.
 

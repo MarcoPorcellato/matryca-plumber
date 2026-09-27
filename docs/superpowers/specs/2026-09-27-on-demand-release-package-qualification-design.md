@@ -90,22 +90,25 @@ Until then Windows is NO-GO and Stage A cannot pass.
 An additional security gate applies to the workflow's tool pin. The
 [official GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7)
 states that uv `>=0.12.7,<0.12.18` is affected by Windows wheel-extraction
-path traversal and that `>=0.12.18` is patched. The qualification workflow now
-pins official uv `0.12.19` on all rows. Its [official release page](https://github.com/astral-sh/uv/releases/tag/0.12.19)
+path traversal and that `>=0.12.18` is patched. The withheld workflow prototype
+pinned official uv `0.12.19` on all rows. Its [official release page](https://github.com/astral-sh/uv/releases/tag/0.12.19)
 links verified release commit
 `bea138450f0e620a4ce5765b0e38cff7b9f0799f` and the adjacent [Windows x64
 archive checksum](https://releases.astral.sh/github/uv/releases/download/0.12.19/uv-x86_64-pc-windows-msvc.zip.sha256)
 is `6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0`.
-These are the workflow's pinned-tool provenance inputs; they do not qualify the
+These are proposed pinned-tool provenance inputs for the future workflow; they do not qualify the
 Windows launcher or platform lane. The former `0.12.16` candidate was inside the
 affected range and is historical only: never use it for Windows wheel
-installation. The Windows row still exits before package installation and
-remains explicit NO-GO. Before Windows admission, verify the exact pinned
+installation. The prototype Windows row exited before package installation;
+no Stage A workflow is deployed and Windows remains explicit NO-GO. Before
+Windows admission, verify the exact pinned
 archive and provenance on the runner, then complete the separate launcher and
 native Windows evidence gates.
 
-The local implementation remains in progress: helper, workflow, and receipt
-bindings are present. The earlier integrated focused run with 142 passes and
+The local implementation remains in progress: helper and receipt bindings are
+present, but the dispatchable workflow prototype and its contract tests were
+withheld. Task 4 remains deferred until Windows launcher and native evidence
+are admitted. The earlier integrated focused run with 142 passes and
 two receipt assertion failures on error ordering is historical. After repairing
 raw PEP 517 dynamic-expression and extras handling, the focused package suite
 reported **225 passed, 1 expected skip** before final typing additions. The
@@ -126,11 +129,11 @@ boundary because its action-internal code runs before workflow-owned checks.
 Independently verify the official pinned uv `0.12.19` artifact and active
 executable before workflow-owned uv use, including `uv sync`, and repeat that
 verification in the aggregate job before its `uv sync`. Claim only “verified
-before workflow-owned uv use,” not before action-internal code. The aggregate
-check is locally implemented and its 14 focused workflow tests pass. Windows
-remains NO-GO because launcher provenance and native platform evidence are
-unresolved. No hosted dispatch, Stage A qualification, or stable-release claim
-is made.
+before workflow-owned uv use,” not before action-internal code. The withheld
+prototype's aggregate check passed 14 local focused workflow tests; that is
+historical implementation evidence, not a deployed workflow. Windows remains
+NO-GO because launcher provenance and native platform evidence are unresolved.
+No hosted dispatch, Stage A qualification, or stable-release claim is made.
 
 ## Why this is needed
 

@@ -75,8 +75,12 @@ separate final RC4 qualification decision. Neither stage authorizes stable promo
 
 ### RC4 Stage A on-demand package qualification
 
-Use the proposed manual package-qualification workflow only after its implementation
-has landed on protected `main` and is available for dispatch. First select the exact,
+No Stage A workflow is currently deployed or dispatchable: its prototype was
+withheld because the required Windows row lacks admitted launcher provenance
+and native Windows x64 evidence. The package verifiers and operator procedure
+are preparatory only; Stage A remains NO-GO. Use the proposed manual
+package-qualification workflow only after its implementation has landed on
+protected `main` with a genuinely qualified Windows row. First select the exact,
 reachable, clean `main` commit and record its full commit and tree IDs. The workflow's
 own merge changes `main`; earlier diagnostic source and local build results remain
 historical and cannot be relabeled as evidence for the new commit. Confirm ordinary
@@ -99,7 +103,7 @@ Windows remains NO-GO. A deliberately failing Windows step is not a qualificatio
 result: do not dispatch such a workflow, call Stage A PASS, or infer stable-release
 readiness.
 
-The qualification workflow pins official uv `0.12.19`, which is outside the
+The withheld qualification-workflow prototype pinned official uv `0.12.19`, which is outside the
 affected range in the [official GHSA-2cv4-cqwr-gwf7 advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-2cv4-cqwr-gwf7).
 The [0.12.19 release page](https://github.com/astral-sh/uv/releases/tag/0.12.19)
 links verified release commit `bea138450f0e620a4ce5765b0e38cff7b9f0799f`; the
@@ -115,14 +119,15 @@ independent architecture-specific template/payload verifier (including
 interpreter binding, entry-point payload and trailing bytes), process-tree
 containment review, and native Windows x64 install and lifecycle tests.
 
-The SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary:
+The planned SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary:
 action-internal code runs before explicit workflow verification. Independently
 verify the official uv `0.12.19` artifact and active executable before every
 workflow-owned uv command, including `uv sync`, and repeat verification in the
 aggregate job before its own `uv sync`. State only that uv was verified before
-workflow-owned use, not before action-internal code. The aggregate check is now
-locally implemented; its 14 focused workflow tests pass. This is local
-implementation evidence only, not hosted qualification or dispatch readiness.
+workflow-owned use, not before action-internal code. The withheld prototype's
+aggregate check passed 14 local focused workflow tests; neither the workflow
+nor its contract tests are deployed. This is historical local implementation
+evidence only, not hosted qualification or dispatch readiness.
 After repair of raw PEP 517 dynamic-expression and extras handling, the focused
 integrated package suite was 225 passed with 1 expected skip before final typing
 additions. The subsequent exact clone-local, locked/offline full `make ci`
@@ -133,7 +138,7 @@ not the final run. Sol's final quality and security reviews are PASS_WITH_NOTES;
 process-containment review separately passed with notes after 21 focused tests.
 Review notes: PEP 518 environment
 records observe package names/versions but not package artifact hashes; two
-official uv archive downloads lack a byte-count cap before digest verification;
+official uv archive downloads in the withheld prototype lacked a byte-count cap before digest verification;
 and tested process containment is not a hostile-code sandbox. These scoped
 local checks do not establish hosted qualification. Windows remains NO-GO and
 no hosted dispatch or Stage A result is claimed.

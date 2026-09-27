@@ -2,6 +2,13 @@
 
 ## 2026-09-27
 
+- **RC4 Stage A workflow admission correction:** withheld the manual workflow
+  and its workflow-contract tests from this implementation slice. The exact
+  package verifiers and receipt helpers remain, but no Stage A workflow is
+  deployed or dispatchable while Windows launcher provenance and native
+  Windows x64 package/process evidence remain NO-GO. The earlier workflow
+  prototype and its local test results below are historical implementation
+  evidence, not current-source qualification or a Stage A PASS.
 - **RC4 package qualification exact local CI result:** the latest full
   clone-local locked/offline `make ci` completed PASS with 2443 passed, 6
   skipped, 4 warnings, and 84.73% coverage using four pytest workers; all
