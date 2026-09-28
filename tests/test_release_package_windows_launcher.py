@@ -432,9 +432,7 @@ def test_synthetic_candidate_rejects_changed_expected_content(
     original_script = b"original script " + b"x" * 1_024
     interpreter = "other-python.exe" if changed_field == "interpreter" else "python.exe"
     expected_script = (
-        original_script
-        if changed_field == "interpreter"
-        else b"changed script " + b"x" * 1_024
+        original_script if changed_field == "interpreter" else b"changed script " + b"x" * 1_024
     )
     candidate = _reconstruct_launcher(template, "python.exe", original_script)
     expected = _reconstruct_launcher(template, interpreter, expected_script)
