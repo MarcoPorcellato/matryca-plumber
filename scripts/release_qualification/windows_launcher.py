@@ -40,11 +40,11 @@ def _slice(data: bytes, offset: int, size: int, label: str) -> bytes:
 
 
 def _u16(data: bytes, offset: int, label: str) -> int:
-    return struct.unpack("<H", _slice(data, offset, 2, label))[0]
+    return int.from_bytes(_slice(data, offset, 2, label), byteorder="little")
 
 
 def _u32(data: bytes, offset: int, label: str) -> int:
-    return struct.unpack("<I", _slice(data, offset, 4, label))[0]
+    return int.from_bytes(_slice(data, offset, 4, label), byteorder="little")
 
 
 def _align(value: int, alignment: int, label: str) -> int:
