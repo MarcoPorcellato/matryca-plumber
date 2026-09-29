@@ -199,6 +199,15 @@ def test_run_rejects_source_mutation_during_execution_before_receipt(
 ) -> None:
     source_commit = _initialize_git_repo(tmp_path)
     monkeypatch.setattr(focused, "_PLUGIN_REPO_ROOT", tmp_path.resolve())
+    plugin_repo_root = Path(__file__).resolve().parents[1]
+    monkeypatch.setenv(
+        "PYTHONPATH",
+        os.pathsep.join(
+            part
+            for part in (str(plugin_repo_root), os.environ.get("PYTHONPATH", ""))
+            if part
+        ),
+    )
     test_file = tmp_path / "test_sample.py"
     test_file.write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     subprocess.run(["git", "add", "test_sample.py"], cwd=tmp_path, check=True)
