@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Added
+
+- **Bounded Windows x64 launcher qualification lane** — add a separate,
+  non-required hosted workflow that verifies an exact pinned template as
+  read-only input and executes only the generated candidate; existing required
+  gates and platform-support claims remain unchanged.
+
 ## [2.0.1-rc.4] - 2026-09-27
 
 ### Added
