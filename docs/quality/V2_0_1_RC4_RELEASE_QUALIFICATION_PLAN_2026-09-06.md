@@ -256,6 +256,16 @@ wheel or sdist, run installed TCKs, qualify process-tree containment, establish
 general Windows package support, pass Stage A, qualify Trama, or establish
 release readiness. Windows installed-package/TCK status remains `Unselected`.
 
+Release-note disposition: retain the `CHANGELOG.md` Unreleased bullet as
+maintainer-facing tooling, but exclude this bounded Windows x64 launcher CI
+entry from the v2.0.1-rc.4 product release notes. This release-note
+classification does not exclude the exact-source change from candidate delta
+review or applicable workflow checks. It does not establish installed Windows
+package or TCK qualification, process-tree containment, general Windows
+support, Trama compatibility, or release readiness. It makes no claim about
+whether the entry is present in the wheel or sdist; that requires direct archive
+evidence. Windows installed-package/TCK status remains `Unselected`.
+
 | Surface | Required evidence | Status now |
 | --- | --- | --- |
 | Hosted source CI, Python 3.12 | Exact candidate required checks, including docs, lint, types, security, and full tests. | Unselected. |
