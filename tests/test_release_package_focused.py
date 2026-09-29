@@ -311,14 +311,11 @@ def test_runner_returns_pass_counts_for_exact_collected_nodes(tmp_path: Path) ->
 
 def test_command_timeout_kills_descendants_then_allows_healthy_command(tmp_path: Path) -> None:
     pid_path = tmp_path / "descendant.pid"
-    child_code = (
-        "import os, sys, time; "
-        "open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid())); "
-        "time.sleep(30)"
-    )
+    child_code = "import time; time.sleep(30)"
     parent_code = (
         "import subprocess, sys, time; "
-        f"subprocess.Popen([sys.executable, '-c', {child_code!r}, {str(pid_path)!r}]); "
+        f"child = subprocess.Popen([sys.executable, '-c', {child_code!r}]); "
+        f"open({str(pid_path)!r}, 'w', encoding='utf-8').write(str(child.pid)); "
         "time.sleep(30)"
     )
 
@@ -328,11 +325,11 @@ def test_command_timeout_kills_descendants_then_allows_healthy_command(tmp_path:
             [sys.executable, "-c", parent_code],
             tmp_path,
             "Focused command failed.",
-            timeout=0.5,
+            timeout=2.0,
         )
     elapsed = time.monotonic() - started
 
-    assert elapsed < 3.0
+    assert elapsed < 4.0
     descendant_pid = int(pid_path.read_text(encoding="utf-8"))
     deadline = time.monotonic() + 2.0
     if sys.platform == "win32":
