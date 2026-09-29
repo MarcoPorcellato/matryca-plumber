@@ -1,0 +1,185 @@
+name: Windows launcher qualification
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-launcher-qualification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-launcher:
+    name: Generated console launcher (Windows x64)
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out Plumber source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install Python 3.12 through uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          python-version: "3.12"
+
+      - name: Check out pinned uv trampoline source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: astral-sh/uv
+          ref: bea138450f0e620a4ce5765b0e38cff7b9f0799f
+          path: uv-source
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: crates/uv-trampoline-builder/trampolines/uv-trampoline-x86_64-console.exe
+          sparse-checkout-cone-mode: false
+
+      - name: Reconstruct and execute only the generated candidate
+        shell: pwsh
+        run: |
+          @'
+          from __future__ import annotations
+
+          import hashlib
+          import os
+          import platform
+          import stat
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          from scripts.release_qualification.windows_launcher import (
+              _reconstruct_launcher,
+              verify_windows_console_launcher,
+          )
+
+          source_commit = "bea138450f0e620a4ce5765b0e38cff7b9f0799f"
+          source_relative_path = Path(
+              "crates/uv-trampoline-builder/trampolines/uv-trampoline-x86_64-console.exe"
+          )
+          expected_blob = "c6d3881fc6b7d3ef0c6d3c08d505ab2b4c0ad9c4"
+          expected_size = 45056
+          expected_sha256 = "0447a4febf43fdd958e4236129d6050b1dad64c124c43355d557542b3229cae8"
+
+          def require(condition: bool, message: str) -> None:
+              if not condition:
+                  raise SystemExit(message)
+
+          source_repo = Path("uv-source").resolve()
+          source_blob_spec = f"HEAD:{source_relative_path.as_posix()}"
+          observed_commit = subprocess.run(
+              ["git", "-C", str(source_repo), "rev-parse", "HEAD"],
+              check=True,
+              capture_output=True,
+              text=True,
+              timeout=10,
+          ).stdout.strip()
+          require(observed_commit == source_commit, f"Unexpected upstream commit: {observed_commit}")
+
+          observed_git_blob = subprocess.run(
+              ["git", "-C", str(source_repo), "rev-parse", source_blob_spec],
+              check=True,
+              capture_output=True,
+              text=True,
+              timeout=10,
+          ).stdout.strip()
+          require(observed_git_blob == expected_blob, f"Unexpected Git blob: {observed_git_blob}")
+          observed_git_size = subprocess.run(
+              ["git", "-C", str(source_repo), "cat-file", "-s", source_blob_spec],
+              check=True,
+              capture_output=True,
+              text=True,
+              timeout=10,
+          ).stdout.strip()
+          require(
+              int(observed_git_size) == expected_size,
+              f"Unexpected Git blob size: {observed_git_size}",
+          )
+
+          template_path = source_repo / source_relative_path
+          template_before = template_path.read_bytes()
+          observed_blob = subprocess.run(
+              ["git", "-C", str(source_repo), "hash-object", str(template_path)],
+              check=True,
+              capture_output=True,
+              text=True,
+              timeout=10,
+          ).stdout.strip()
+          require(observed_blob == expected_blob, f"Unexpected worktree blob: {observed_blob}")
+          require(len(template_before) == expected_size, "Template byte size changed.")
+          require(
+              hashlib.sha256(template_before).hexdigest() == expected_sha256,
+              "Template SHA-256 changed.",
+          )
+          template_path.chmod(stat.S_IREAD)
+
+          def require_template_unchanged(expected_bytes: bytes) -> None:
+              template_after = template_path.read_bytes()
+              require(template_after == expected_bytes, "Template bytes changed during qualification.")
+              require(
+                  len(template_after) == expected_size,
+                  "Template size changed during qualification.",
+              )
+              require(
+                  hashlib.sha256(template_after).hexdigest() == expected_sha256,
+                  "Template SHA-256 changed during qualification.",
+              )
+
+          require(sys.platform == "win32", "Qualification must run on Windows.")
+          require(
+              platform.machine().lower() in {"amd64", "x86_64"},
+              f"Qualification requires x64, found {platform.machine()}.",
+          )
+          require(sys.maxsize > 2**32, "Qualification requires a 64-bit Python runtime.")
+
+          expected_script = (
+              b"print('PLUMBER_WINDOWS_LAUNCHER_QUALIFICATION_OK')\n"
+          )
+          candidate = _reconstruct_launcher(
+              template_before,
+              sys.executable,
+              expected_script,
+          )
+          require_template_unchanged(template_before)
+
+          with tempfile.TemporaryDirectory(prefix="plumber-generated-launcher-") as candidate_dir:
+              candidate_path = Path(candidate_dir) / "generated-console-launcher.exe"
+              candidate_path.write_bytes(candidate)
+              candidate_on_disk = candidate_path.read_bytes()
+              require(candidate_on_disk == candidate, "Generated candidate bytes changed on disk.")
+              verify_windows_console_launcher(
+                  candidate_on_disk,
+                  template_before,
+                  sys.executable,
+                  expected_script,
+              )
+
+              try:
+                  result = subprocess.run(
+                      [str(candidate_path)],
+                      capture_output=True,
+                      text=True,
+                      encoding="utf-8",
+                      timeout=10,
+                      check=False,
+                  )
+              finally:
+                  require_template_unchanged(template_before)
+
+              require(result.returncode == 0, f"Candidate exited {result.returncode}.")
+              require(len(result.stdout) <= 128, "Candidate stdout exceeded 128 characters.")
+              require(len(result.stderr) <= 128, "Candidate stderr exceeded 128 characters.")
+              require(
+                  result.stdout == "PLUMBER_WINDOWS_LAUNCHER_QUALIFICATION_OK\n",
+                  "Candidate stdout did not match the fixed expected output.",
+              )
+              require(result.stderr == "", "Candidate stderr was not empty.")
+          '@ | uv run --no-project --python 3.12 python -
