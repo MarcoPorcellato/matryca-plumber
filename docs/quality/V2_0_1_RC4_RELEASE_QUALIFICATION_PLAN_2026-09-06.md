@@ -4,7 +4,7 @@ title: v2.0.1-rc.4 release qualification plan
 description: Two-stage exact-artifact qualification for RC4; pre-publication gates precede the public-wheel Gate B campaign and final decision.
 resource: docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md
 tags: [release, qualification, parser, topology, contracts, v2]
-last_verified: 2026-09-27
+last_verified: 2026-09-29
 stale_after: 2027-03-26
 status: proposed
 classification: active
@@ -231,6 +231,30 @@ No platform result is recorded by this plan. Before RC4 publication, attach
 candidate-bound evidence for each applicable **pre-publication** row and disposition
 any unavailable row explicitly. Gate B rows are post-publication and must not be
 represented as pre-tag PASS; never mark an unrun row as covered by another runner.
+
+Bounded Windows launcher-lane evidence from PRs [#614](https://github.com/MarcoPorcellato/matryca-plumber/pull/614)
+and [#615](https://github.com/MarcoPorcellato/matryca-plumber/pull/615) is separate
+from candidate-bound Stage A results. PR #614 head
+`709c475ee441a1de76c5254b21ea926ad922deaf` merged as
+`f3977eec98481d2042068dbd5817bc4887b13960`; CI run `36462221350` and CodeQL run
+`36462221329` succeeded, while Dependabot uv lock auto-fixer run `36462221474`
+was skipped. Its only files were the bounded verifier and synthetic PE tests,
+so it was not Windows runtime qualification.
+
+PR #615 head `246d8c98bbf0177b920adfbc55fa5af8905b41dd` merged as
+`28ef8ae015ec013edb3ad1dbbce1b082b9d16df7`; CI `36534885784`, CodeQL
+`36534885858`, and Windows launcher lane `36534885814` succeeded, with the
+expected uv lock auto-fixer skip `36534885829`. The merge's main checks also
+passed: CI `36537138054`, CodeQL `36537138099`, and Windows lane `36537137950`.
+The lane pinned uv source commit
+`bea138450f0e620a4ce5765b0e38cff7b9f0799f`, Git blob
+`c6d3881fc6b7d3ef0c6d3c08d505ab2b4c0ad9c4` (45,056 bytes; SHA-256
+`0447a4febf43fdd958e4236129d6050b1dad64c124c43355d557542b3229cae8`), kept the
+template read-only, reconstructed a synthetic generated candidate, and ran only
+that candidate on hosted Windows x64/Python 3.12. It did not install an RC4
+wheel or sdist, run installed TCKs, qualify process-tree containment, establish
+general Windows package support, pass Stage A, qualify Trama, or establish
+release readiness. Windows installed-package/TCK status remains `Unselected`.
 
 | Surface | Required evidence | Status now |
 | --- | --- | --- |
