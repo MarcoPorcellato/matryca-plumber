@@ -11,7 +11,6 @@ import json
 import os
 import re
 import shlex
-import signal
 import subprocess
 import tempfile
 import threading
@@ -24,6 +23,7 @@ from urllib.parse import urlparse
 
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
 from scripts.release_qualification import bundle as bundle_module
+from scripts.release_qualification import process as process_module
 from scripts.release_qualification.bundle import BundleBinding
 
 _MAX_RECORD_BYTES = 8 * 1024 * 1024
@@ -560,15 +560,16 @@ def _run_bounded(
 ) -> tuple[int, bytes, bytes]:
     """Run child with bounded pipe collection and terminate its process group on overflow."""
     try:
-        process = subprocess.Popen(
+        owned = process_module.start_process(
             argv,
             cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            start_new_session=(os.name != "nt"),
+            windows=os.name == "nt",
         )
     except OSError as error:
         raise ValueError("Isolated interpreter subprocess could not be started.") from error
+    process = owned.process
     assert process.stdout is not None and process.stderr is not None
     collected: list[bytearray] = [bytearray(), bytearray()]
     overflow = threading.Event()
@@ -590,17 +591,8 @@ def _run_bounded(
 
     def terminate_group() -> None:
         try:
-            if os.name == "nt":
-                subprocess.run(
-                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                    check=False,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    timeout=5,
-                )
-            else:
-                os.killpg(process.pid, signal.SIGKILL)
-        except (OSError, subprocess.SubprocessError):
+            owned.terminate(grace_seconds=0, immediate=True)
+        except (OSError, subprocess.SubprocessError, TimeoutError, ValueError):
             if process.poll() is None:
                 process.kill()
 
