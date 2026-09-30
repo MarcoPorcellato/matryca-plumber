@@ -12,6 +12,10 @@
 - **Frontend development dependency security** — update the lockfile to a
   compatible patched release.
 
+- **Python dependency advisory remediation** — require patched floors for
+  AnyIO 4.14.2, PyJWT 2.15.0, GitPython 3.1.60, urllib3 2.8.0, and development
+  httpx2 2.12.0; include its Emscripten-only `httpx2-jsfetch` lock closure.
+
 ## [2.0.1-rc.4] - 2026-09-27
 
 ### Added
