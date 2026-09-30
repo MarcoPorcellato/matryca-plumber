@@ -7,6 +7,11 @@
   read-only input and executes only the generated candidate; existing required
   gates and platform-support claims remain unchanged.
 
+### Security
+
+- **Frontend development dependency security** — update the lockfile to a
+  compatible patched release.
+
 ## [2.0.1-rc.4] - 2026-09-27
 
 ### Added
