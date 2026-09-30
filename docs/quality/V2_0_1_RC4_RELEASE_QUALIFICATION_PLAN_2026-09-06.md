@@ -4,7 +4,7 @@ title: v2.0.1-rc.4 release qualification plan
 description: Two-stage exact-artifact qualification for RC4; pre-publication gates precede the public-wheel Gate B campaign and final decision.
 resource: docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md
 tags: [release, qualification, parser, topology, contracts, v2]
-last_verified: 2026-09-29
+last_verified: 2026-09-30
 stale_after: 2027-03-26
 status: proposed
 classification: active
@@ -32,10 +32,34 @@ The original planning anchor was `origin/main@118b265b5c6b29682c76453aad5fbde0de
 it was not a candidate. Issue #582 subsequently selected
 `74884c38edb9cae445fa465969aa2c9cee5ecd1c` and recorded source, hosted-CI,
 build, installed-resource, and TCK evidence for those exact bytes. That candidate
-remains historical evidence. Protected `main@50d3fc9f34c0c88d054a5abc8fcacad8b1da5b6f`
-on 2026-09-27 is 18 commits later, with product and release-workflow changes. The
-earlier hashes and passes cannot qualify current `main`. This commit is an observed
-source anchor, not a newly selected candidate; reverify it immediately before use.
+remains historical evidence. The 2026-09-27 observation
+`main@50d3fc9f34c0c88d054a5abc8fcacad8b1da5b6f` was 18 commits later, with
+product and release-workflow changes; it was an observed source anchor, not a
+candidate. The earlier hashes and passes cannot qualify later `main` commits.
+
+The subsequent source-selection record used
+`e350125fbc758839be6f0f474d50af9d5f361240` (tree
+`14676a7f937c48c178a768c320fa3faf2500b09b`). On 2026-09-30, signed PR
+[#618](https://github.com/MarcoPorcellato/matryca-plumber/pull/618) advanced
+protected `main` to `da65a3aeecb68d5420dafc8147b773d7f507eb55` (tree
+`ee67cbe725ca0e42bcd115df194b4fdd4f8e9cb9`), whose GitHub commit signature is
+verified. Its parent is the prior `e350125f...` source. The PR changes only
+`tests/test_release_package_focused.py` (+7/-0): it adds the actual repository
+root to the nested pytest child's `PYTHONPATH` while retaining the synthetic
+temporary repository as the source under test. This test-harness correction
+does not change package runtime behavior. The prior local focused-test failure
+remains historical diagnostic evidence; the correction and later green hosted
+checks do not relabel or replace that attempt.
+
+For the exact post-merge `main@da65a3ae...`, GitHub reported ten completed
+check runs: nine `success` and the push-event `Dependency Review` expected
+`skipped`; CI/Ironclad, CodeQL, and the separate generated Windows launcher lane
+all completed successfully. These are source-check results, not package
+installation, artifact, or release-qualification evidence. The source-selection
+record at `e350125f...` is now historical because `main` advanced. As observed
+on 2026-09-30, `da65a3ae...` is a source anchor only; it is not newly selected
+as the RC4 candidate. Reselect only after any required plan correction has
+merged, and reverify the resulting exact `main` commit immediately before use.
 
 For a current-source RC4, first merge any release-plan correction, then select the
 resulting exact, reachable, clean `main` commit. Record full commit and tree IDs,
@@ -71,6 +95,7 @@ below name the currently observed categories, not evidence that they passed.
 | DB observer structure | An in-memory structural validator was added, while CLI, SDK, and MCP stdio DB-0 lanes remain blocked or no-go. | Run synthetic parser/bounds and negative capability-policy controls; prove no host access, DB read adapter, or supported DB claim. | No DB runtime support; include the new code in package and import review. |
 | Frontend dependencies | A later dependency-group update changed the lock and direct manifest versions. | Recheck exact locked install, frontend tests/build, and high-severity audit before candidate selection. | Dependency/security review; no Tier 3 downgrade. |
 | Hosted workflow pins | CI, CodeQL, dependency-update, and release action pins changed. | Verify exact-source workflow contract, required hosted checks, expected conditional skips, and tag-workflow provenance. | Publication control; no historical workflow result transfers. |
+| Focused release-runner test import | PR #618 fixes the nested pytest plugin import path in one test; no production module changed. | Preserve the earlier diagnostic failure; verify the fix through exact-source hosted CI, then rerun candidate-bound focused controls only after a new source selection. | Test-only; no runtime or package evidence and no Tier 3 downgrade. |
 | Documentation and media | Later gateway research, policy, and overview content changed without adding a supported DB transport. | Check generated inventory, documentation gate, release notes, and claim boundaries. | No runtime credit or tier reduction. |
 
 The release is **Tier 3** because the candidate delta changes Parser and graph-I/O
