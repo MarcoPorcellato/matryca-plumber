@@ -203,9 +203,7 @@ def test_run_rejects_source_mutation_during_execution_before_receipt(
     monkeypatch.setenv(
         "PYTHONPATH",
         os.pathsep.join(
-            part
-            for part in (str(plugin_repo_root), os.environ.get("PYTHONPATH", ""))
-            if part
+            part for part in (str(plugin_repo_root), os.environ.get("PYTHONPATH", "")) if part
         ),
     )
     test_file = tmp_path / "test_sample.py"
