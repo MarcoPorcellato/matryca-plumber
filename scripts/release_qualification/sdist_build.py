@@ -8,7 +8,6 @@ import os
 import platform as host_platform
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import tarfile
@@ -28,6 +27,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 from scripts.release_qualification import bundle as bundle_module
+from scripts.release_qualification import process as process_module
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.installed import _authenticated_archive, _verify_source
 
@@ -38,7 +38,7 @@ _MAX_OUTPUT_BYTES = 512 * 1024 * 1024
 _MAX_BUILD_REQUIREMENT_LENGTH = 2048
 _COMMAND_TIMEOUT_SECONDS = 15 * 60
 _TERMINATE_SECONDS = 3.0
-_PROCESS_GROUP_POLL_SECONDS = 0.05
+_PROCESS_GROUP_POLL_SECONDS = process_module.PROCESS_GROUP_POLL_SECONDS
 _BACKEND = "setuptools.build_meta"
 _BACKEND_QUERY = f"""import contextlib, io, json, setuptools, setuptools.build_meta
 class _BoundedTextBuffer(io.StringIO):
@@ -346,21 +346,17 @@ def _run_bounded(
     if os.name == "nt":
         _fail("Windows build-process containment is not qualified for this helper.")
     try:
-        process = subprocess.Popen(
+        owned = process_module.start_process(
             command,
             cwd=cwd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            start_new_session=True,
+            windows=False,
         )
     except OSError as error:
         raise ValueError("Could not start a bounded qualification command.") from error
-    # POSIX assigns the PID as SID and PGID when the child is created with
-    # start_new_session=True. Popen returns after exec setup; retain that owned
-    # identity instead of racing a later getpgid() against an immediate exit.
-    process_group_id = process.pid
-
+    process = owned.process
     output = bytearray()
     overflow = threading.Event()
     reader: threading.Thread | None = None
@@ -383,7 +379,7 @@ def _run_bounded(
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                _terminate_process_group(process_group_id, leader=process)
+                owned.terminate(grace_seconds=_TERMINATE_SECONDS)
                 process.wait(timeout=_TERMINATE_SECONDS)
                 _fail("A qualification command exceeded its timeout.")
             try:
@@ -391,18 +387,18 @@ def _run_bounded(
                 break
             except subprocess.TimeoutExpired:
                 if overflow.is_set():
-                    _terminate_process_group(process_group_id, leader=process)
+                    owned.terminate(grace_seconds=_TERMINATE_SECONDS)
                     returncode = process.wait(timeout=_TERMINATE_SECONDS)
                     break
         # A successful direct child can leave background descendants holding
         # files or captured pipes. Their existence invalidates a synchronous
         # result even if cleanup succeeds, so record it before terminating.
-        group_had_descendants = _process_group_exists(process_group_id)
-        _terminate_process_group(process_group_id, leader=process)
+        group_had_descendants = owned.group_exists()
+        owned.terminate(grace_seconds=_TERMINATE_SECONDS)
         if reader is not None:
             reader.join(timeout=1.0)
             if reader.is_alive():
-                _terminate_process_group(process_group_id, leader=process)
+                owned.terminate(grace_seconds=_TERMINATE_SECONDS)
                 _fail("Qualification command output did not terminate cleanly.")
         if overflow.is_set():
             _fail("Qualification command output exceeded its capture limit.")
@@ -410,67 +406,11 @@ def _run_bounded(
             _fail("Qualification command left background descendants after direct-child exit.")
         return _CommandResult(returncode, bytes(output))
     finally:
-        _terminate_process_group(process_group_id, leader=process)
+        owned.terminate(grace_seconds=_TERMINATE_SECONDS)
         if process.poll() is None:
             process.wait(timeout=_TERMINATE_SECONDS)
         if process.stdout is not None:
             process.stdout.close()
-
-
-def _process_group_exists(process_group_id: int) -> bool:
-    try:
-        os.killpg(process_group_id, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except OSError as error:
-        raise ValueError("Could not inspect the owned qualification process group.") from error
-    return True
-
-
-def _signal_process_group(process_group_id: int, signal_number: int) -> None:
-    try:
-        os.killpg(process_group_id, signal_number)
-    except ProcessLookupError:
-        return
-    except OSError as error:
-        raise ValueError("Could not signal the owned qualification process group.") from error
-
-
-def _wait_process_group_exit(
-    process_group_id: int, timeout: float, leader: subprocess.Popen[bytes] | None = None
-) -> bool:
-    deadline = time.monotonic() + timeout
-    while _process_group_exists(process_group_id):
-        if leader is not None:
-            # Reap the direct child while polling; otherwise its zombie can
-            # keep killpg(..., 0) reporting a live group indefinitely.
-            leader.poll()
-            if not _process_group_exists(process_group_id):
-                return True
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return False
-        time.sleep(min(_PROCESS_GROUP_POLL_SECONDS, remaining))
-    return True
-
-
-def _terminate_process_group(
-    process_group_id: int, *, leader: subprocess.Popen[bytes] | None = None
-) -> None:
-    """Terminate all descendants in the owned process group, even post-parent."""
-    if not _process_group_exists(process_group_id):
-        return
-    try:
-        _signal_process_group(process_group_id, signal.SIGTERM)
-        if _wait_process_group_exit(process_group_id, _TERMINATE_SECONDS, leader):
-            return
-        _signal_process_group(process_group_id, signal.SIGKILL)
-        if not _wait_process_group_exit(process_group_id, _TERMINATE_SECONDS, leader):
-            _fail("Could not stop every member of the owned qualification process group.")
-    except ValueError as error:
-        raise ValueError("Could not stop an owned qualification process group safely.") from error
 
 
 def _checked_output(command: list[str], *, cwd: Path | None = None) -> bytes:

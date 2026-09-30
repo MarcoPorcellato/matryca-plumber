@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import ctypes
 import json
 import os
 import re
-import signal
 import subprocess
 import sys
 import tempfile
@@ -15,11 +13,13 @@ import time
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import IO, Any, Literal, cast
+from typing import IO, Literal
 
 import pytest
 from _pytest.main import Session
 from _pytest.reports import TestReport
+
+from scripts.release_qualification import process as process_module
 
 FocusedPlatform = Literal["linux", "macos", "windows"]
 
@@ -56,6 +56,7 @@ _PLUGIN_ENV = "MATRYCA_FOCUSED_EXPECTED_NODES"
 _PLUGIN_ACTIVE_ENV = "MATRYCA_FOCUSED_ENFORCE"
 _PLUGIN_REPO_ROOT = Path(__file__).resolve().parents[2]
 _IS_WINDOWS = os.name == "nt"
+_WindowsJob = process_module.WindowsJob
 _WINDOWS_GATE_CODE = (
     "import subprocess,sys; "
     "token=sys.stdin.buffer.read(1); "
@@ -261,6 +262,7 @@ def _run_command(
         process, job = _spawn_process(command, repo_root, env)
     except OSError as error:
         raise ValueError(failure_message) from error
+    owned = process_module.OwnedProcess(process, windows=_IS_WINDOWS, job=job)
     readers: list[threading.Thread] = []
     primary_error: BaseException | None = None
     try:
@@ -274,8 +276,7 @@ def _run_command(
             watched_file_limit=watched_file_limit,
             readers=readers,
         )
-        if job is not None:
-            job.require_empty()
+        owned.require_empty()
         return result
     except BaseException as error:
         primary_error = error
@@ -291,7 +292,7 @@ def _run_command(
     finally:
         if job is not None:
             try:
-                job.close()
+                owned.close()
             except Exception as close_error:
                 if primary_error is not None:
                     primary_error.add_note(
@@ -374,13 +375,12 @@ def _terminate_owned_process(
     process: subprocess.Popen[bytes], job: _WindowsJob | None
 ) -> BaseException | None:
     try:
-        if job is None:
+        if job is None and _IS_WINDOWS:
             _terminate_process_tree(process)
-            return None
-        job.terminate()
-        process.wait(timeout=_TERMINATION_WAIT_SECONDS)
-        if job.active_processes() != 0:
-            raise ValueError("Windows qualification Job Object retained active processes.")
+        else:
+            process_module.OwnedProcess(process, windows=_IS_WINDOWS, job=job).terminate(
+                grace_seconds=0, immediate=True
+            )
     except Exception as error:
         return error
     return None
@@ -389,69 +389,19 @@ def _terminate_owned_process(
 def _spawn_process(
     command: list[str], repo_root: Path, env: dict[str, str] | None
 ) -> tuple[subprocess.Popen[bytes], _WindowsJob | None]:
-    if not _IS_WINDOWS:
-        return (
-            subprocess.Popen(
-                command,
-                cwd=repo_root,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True,
-            ),
-            None,
-        )
-
-    job = _WindowsJob()
-    process: subprocess.Popen[bytes] | None = None
-    try:
-        process = subprocess.Popen(
-            [sys.executable, "-I", "-S", "-c", _WINDOWS_GATE_CODE, *command],
-            cwd=repo_root,
-            env=env,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
-        )
-    except BaseException as error:
-        try:
-            job.close()
-        except Exception as close_error:
-            error.add_note(f"Windows Job Object close also failed: {type(close_error).__name__}.")
-        raise
-    try:
-        if process.stdin is None:
-            raise ValueError("Windows qualification gate stdin was unavailable.")
-        job.assign(process._handle)  # type: ignore[attr-defined]
-        process.__dict__["_focused_windows_job"] = job
-        process.stdin.write(b"G")
-        process.stdin.close()
-    except BaseException as error:
-        cleanup_errors: list[BaseException] = []
-        if process is not None:
-            try:
-                job.terminate()
-            except Exception as caught_error:
-                cleanup_errors.append(caught_error)
-            try:
-                process.kill()
-            except Exception as caught_error:
-                cleanup_errors.append(caught_error)
-            try:
-                process.wait(timeout=_TERMINATION_WAIT_SECONDS)
-            except Exception as caught_error:
-                cleanup_errors.append(caught_error)
-        try:
-            job.close()
-        except Exception as caught_error:
-            cleanup_errors.append(caught_error)
-        for cleanup_note_error in cleanup_errors:
-            error.add_note(
-                f"Windows gate cleanup also failed: {type(cleanup_note_error).__name__}."
-            )
-        raise
-    return process, job
+    owned = process_module.start_process(
+        command,
+        cwd=repo_root,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        windows=_IS_WINDOWS,
+        windows_job_factory=_WindowsJob,
+        windows_gate_code=_WINDOWS_GATE_CODE if _IS_WINDOWS else None,
+    )
+    if owned.job is not None:
+        owned.process.__dict__["_focused_windows_job"] = owned.job
+    return owned.process, owned.job
 
 
 def _watched_file_error(path: Path | None, limit: int) -> str | None:
@@ -466,165 +416,6 @@ def _watched_file_error(path: Path | None, limit: int) -> str | None:
     if size > limit:
         return "JUnit report exceeded limit."
     return None
-
-
-class _JobBasicLimitInformation(ctypes.Structure):
-    _fields_ = [
-        ("PerProcessUserTimeLimit", ctypes.c_longlong),
-        ("PerJobUserTimeLimit", ctypes.c_longlong),
-        ("LimitFlags", ctypes.c_uint32),
-        ("MinimumWorkingSetSize", ctypes.c_size_t),
-        ("MaximumWorkingSetSize", ctypes.c_size_t),
-        ("ActiveProcessLimit", ctypes.c_uint32),
-        ("Affinity", ctypes.c_size_t),
-        ("PriorityClass", ctypes.c_uint32),
-        ("SchedulingClass", ctypes.c_uint32),
-    ]
-
-
-class _JobIoCounters(ctypes.Structure):
-    _fields_ = [
-        (name, ctypes.c_uint64)
-        for name in (
-            "ReadOperationCount",
-            "WriteOperationCount",
-            "OtherOperationCount",
-            "ReadTransferCount",
-            "WriteTransferCount",
-            "OtherTransferCount",
-        )
-    ]
-
-
-class _JobExtendedLimitInformation(ctypes.Structure):
-    _fields_ = [
-        ("BasicLimitInformation", _JobBasicLimitInformation),
-        ("IoInfo", _JobIoCounters),
-        ("ProcessMemoryLimit", ctypes.c_size_t),
-        ("JobMemoryLimit", ctypes.c_size_t),
-        ("PeakProcessMemoryUsed", ctypes.c_size_t),
-        ("PeakJobMemoryUsed", ctypes.c_size_t),
-    ]
-
-
-class _JobBasicAccountingInformation(ctypes.Structure):
-    _fields_ = [
-        ("TotalUserTime", ctypes.c_longlong),
-        ("TotalKernelTime", ctypes.c_longlong),
-        ("ThisPeriodTotalUserTime", ctypes.c_longlong),
-        ("ThisPeriodTotalKernelTime", ctypes.c_longlong),
-        ("TotalPageFaults", ctypes.c_uint32),
-        ("TotalProcesses", ctypes.c_uint32),
-        ("ActiveProcesses", ctypes.c_uint32),
-        ("TotalTerminatedProcesses", ctypes.c_uint32),
-    ]
-
-
-class _WindowsJob:
-    """Own a kill-on-close job and verify its process tree is empty."""
-
-    _KILL_ON_CLOSE = 0x00002000
-    _JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
-    _JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1
-
-    def __init__(self) -> None:
-        win_dll = getattr(ctypes, "WinDLL", None)
-        if win_dll is None:
-            raise ValueError("Windows Job Objects are unavailable.")
-        self._kernel32: Any = win_dll("kernel32", use_last_error=True)
-        self._configure_api()
-        self._handle = self._kernel32.CreateJobObjectW(None, None)
-        if not self._handle:
-            raise self._last_error("Could not create Windows qualification Job Object.")
-        limits = _JobExtendedLimitInformation()
-        limits.BasicLimitInformation.LimitFlags = self._KILL_ON_CLOSE
-        try:
-            if not self._kernel32.SetInformationJobObject(
-                self._handle,
-                self._JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
-                ctypes.byref(limits),
-                ctypes.sizeof(limits),
-            ):
-                raise self._last_error("Could not configure Windows qualification Job Object.")
-        except BaseException as error:
-            try:
-                self.close()
-            except Exception as close_error:
-                error.add_note(
-                    f"Windows Job Object close also failed: {type(close_error).__name__}."
-                )
-            raise
-
-    def _configure_api(self) -> None:
-        self._kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
-        self._kernel32.CreateJobObjectW.restype = ctypes.c_void_p
-        self._kernel32.SetInformationJobObject.argtypes = [
-            ctypes.c_void_p,
-            ctypes.c_int,
-            ctypes.c_void_p,
-            ctypes.c_uint32,
-        ]
-        self._kernel32.SetInformationJobObject.restype = ctypes.c_int
-        self._kernel32.AssignProcessToJobObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-        self._kernel32.AssignProcessToJobObject.restype = ctypes.c_int
-        self._kernel32.TerminateJobObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
-        self._kernel32.TerminateJobObject.restype = ctypes.c_int
-        self._kernel32.QueryInformationJobObject.argtypes = [
-            ctypes.c_void_p,
-            ctypes.c_int,
-            ctypes.c_void_p,
-            ctypes.c_uint32,
-            ctypes.c_void_p,
-        ]
-        self._kernel32.QueryInformationJobObject.restype = ctypes.c_int
-        self._kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
-        self._kernel32.CloseHandle.restype = ctypes.c_int
-
-    @staticmethod
-    def _last_error(message: str) -> OSError:
-        get_last_error = getattr(ctypes, "get_last_error", lambda: 0)
-        win_error = getattr(ctypes, "WinError", OSError)
-        return cast(OSError, win_error(get_last_error(), message))
-
-    def assign(self, process_handle: int) -> None:
-        if not self._kernel32.AssignProcessToJobObject(self._handle, process_handle):
-            raise self._last_error("Could not assign qualification gate to Job Object.")
-
-    def active_processes(self) -> int:
-        info = _JobBasicAccountingInformation()
-        if not self._kernel32.QueryInformationJobObject(
-            self._handle,
-            self._JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION,
-            ctypes.byref(info),
-            ctypes.sizeof(info),
-            None,
-        ):
-            raise self._last_error("Could not inspect Windows qualification Job Object.")
-        return int(info.ActiveProcesses)
-
-    def terminate(self) -> None:
-        if self.active_processes() == 0:
-            return
-        if not self._kernel32.TerminateJobObject(self._handle, 1):
-            raise self._last_error("Could not terminate Windows qualification Job Object.")
-        deadline = time.monotonic() + _TERMINATION_WAIT_SECONDS
-        while self.active_processes() != 0:
-            if time.monotonic() >= deadline:
-                raise TimeoutError("Windows qualification Job Object did not become empty.")
-            time.sleep(0.02)
-
-    def require_empty(self) -> None:
-        active = self.active_processes()
-        if active:
-            self.terminate()
-            raise ValueError("Windows qualification Job Object retained active processes.")
-
-    def close(self) -> None:
-        handle = getattr(self, "_handle", None)
-        if handle:
-            if not self._kernel32.CloseHandle(handle):
-                raise self._last_error("Could not close Windows qualification Job Object.")
-            self._handle = None
 
 
 class _BoundedCapture:
@@ -685,23 +476,12 @@ def _terminate_and_join(
 
 
 def _terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
-    if _IS_WINDOWS:
-        _terminate_windows_process_tree(process)
-        return
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-    except OSError:
-        process.kill()
-        process.wait(timeout=_TERMINATION_WAIT_SECONDS)
-        raise
-    try:
-        process.wait(timeout=_TERMINATION_WAIT_SECONDS)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=_TERMINATION_WAIT_SECONDS)
-        raise
+    owned = process_module.OwnedProcess(
+        process,
+        windows=_IS_WINDOWS,
+        job=getattr(process, "_focused_windows_job", None),
+    )
+    owned.terminate(grace_seconds=0, immediate=True)
 
 
 def _terminate_windows_process_tree(process: subprocess.Popen[bytes]) -> None:
@@ -709,10 +489,9 @@ def _terminate_windows_process_tree(process: subprocess.Popen[bytes]) -> None:
     if not isinstance(job, _WindowsJob):
         raise ValueError("Windows qualification Job Object was unavailable.")
     try:
-        job.terminate()
-        process.wait(timeout=_TERMINATION_WAIT_SECONDS)
-        if job.active_processes() != 0:
-            raise ValueError("Windows qualification Job Object retained active processes.")
+        process_module.OwnedProcess(process, windows=True, job=job).terminate(
+            grace_seconds=0, immediate=True
+        )
     finally:
         job.close()
 

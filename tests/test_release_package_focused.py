@@ -830,27 +830,38 @@ def test_windows_tree_cleanup_uses_owned_job_object(monkeypatch: pytest.MonkeyPa
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows Job Object integration proof")
 def test_windows_job_kills_descendant_that_closed_stdio(tmp_path: Path) -> None:
     pid_path = tmp_path / "stdio-closed-child.pid"
-    child_code = (
-        "import os, sys, time; "
-        "open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid())); "
-        "time.sleep(30)"
-    )
+    child_code = "import time; time.sleep(30)"
     parent_code = (
-        "import subprocess, sys; "
-        f"subprocess.Popen([sys.executable, '-c', {child_code!r}, {str(pid_path)!r}], "
-        "stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)"
+        "import os, subprocess, sys, time\n"
+        f"child = subprocess.Popen([sys.executable, '-c', {child_code!r}], "
+        "stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        f"open({str(pid_path)!r}, 'w', encoding='utf-8').write(str(child.pid))\n"
+        "deadline = time.monotonic() + 2.0\n"
+        f"while not os.path.exists({str(pid_path)!r}):\n"
+        "    if time.monotonic() >= deadline:\n"
+        "        sys.exit(126)\n"
+        "    time.sleep(0.01)\n"
     )
 
     started = time.monotonic()
-    with pytest.raises(ValueError, match="process tree was not empty"):
-        focused._run_command(
-            [sys.executable, "-c", parent_code],
-            tmp_path,
-            "Focused command failed.",
-            timeout=3.0,
-        )
-    assert time.monotonic() - started < 3.0
-    _assert_process_stopped(int(pid_path.read_text(encoding="utf-8")))
+    descendant_pid: int | None = None
+    try:
+        with pytest.raises(ValueError, match="Job Object retained active processes"):
+            focused._run_command(
+                [sys.executable, "-c", parent_code],
+                tmp_path,
+                "Focused command failed.",
+                timeout=3.0,
+            )
+        assert time.monotonic() - started < 3.0
+        descendant_pid = int(pid_path.read_text(encoding="utf-8"))
+        _assert_process_stopped(descendant_pid)
+    finally:
+        if descendant_pid is None and pid_path.is_file():
+            descendant_pid = int(pid_path.read_text(encoding="utf-8"))
+        if descendant_pid is not None:
+            _kill_test_process(descendant_pid)
+            _assert_process_stopped(descendant_pid)
 
 
 def _assert_process_stopped(pid: int) -> None:
@@ -881,6 +892,7 @@ def _kill_test_process(pid: int) -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
+            timeout=5.0,
         )
     else:
         with suppress(ProcessLookupError):

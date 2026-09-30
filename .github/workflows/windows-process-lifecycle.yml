@@ -1,0 +1,46 @@
+name: Windows process lifecycle regression
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/windows-process-lifecycle.yml
+      - pyproject.toml
+      - scripts/release_qualification/focused.py
+      - scripts/release_qualification/process.py
+      - tests/test_release_package_focused.py
+      - tests/test_release_package_workflow_admission.py
+      - tests/test_release_qualification_process.py
+      - uv.lock
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-process-lifecycle-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  process-lifecycle:
+    name: Native Windows process containment regression
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out Plumber source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Sync locked Python dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Test native Windows Job Object cleanup
+        run: >-
+          uv run pytest -q -o addopts=
+          tests/test_release_package_focused.py::test_windows_job_kills_descendant_that_closed_stdio
+          tests/test_release_package_focused.py::test_command_timeout_kills_descendants_then_allows_healthy_command
