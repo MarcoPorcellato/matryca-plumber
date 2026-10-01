@@ -6,18 +6,22 @@ import hashlib
 import json
 import re
 import tomllib
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, NoReturn
 
-from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 from scripts.release_qualification import bundle as bundle_module
+from scripts.release_qualification.build_environment import (
+    ExpectedBuildEnvironmentBindings,
+    TargetEnvironmentBinding,
+)
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.focused import focused_nodes
-from scripts.release_qualification.sdist_build import _marker_environment
+from scripts.release_qualification.sdist_build import BuildRequirementRecord
 
 _SOURCE_ID = re.compile(r"[0-9a-f]{40}\Z")
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -85,17 +89,28 @@ _SDIST_BUILD_FIELDS = frozenset(
         "wheel_name",
         "wheel_size",
         "wheel_sha256",
+        "build_lock_sha256",
+        "environment_descriptor_sha256",
+        "provisioning_recipe_sha256",
+        "provisioning_evidence_sha256",
+        "target_os",
+        "target_architecture",
+        "python_implementation",
         "python_version",
+        "python_executable_sha256",
         "uv_version",
         "uv_sha256",
         "backend",
         "backend_version",
-        "static_requirements",
-        "dynamic_requirement_expressions",
-        "dynamic_requirements",
-        "build_packages",
+        "static_requirement_records",
+        "dynamic_requirement_records",
+        "provisioned_packages",
+        "before_hooks_packages",
+        "after_hooks_packages",
+        "after_build_packages",
     }
 )
+_BUILD_REQUIREMENT_FIELDS = frozenset({"expression", "marker_applicable", "satisfier"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +123,7 @@ class ReceiptVerification:
     artifact_id: str
     artifact_digest: str
     lock_sha256: str
+    build_lock_sha256: str
     platforms: tuple[str, str, str]
 
     def to_dict(self) -> dict[str, object]:
@@ -433,6 +449,77 @@ def _validate_build_package_manifest(value: object) -> tuple[tuple[str, str], ..
     return canonical
 
 
+def _validate_expected_build_environment_bindings(
+    value: object,
+) -> tuple[str, str, dict[str, TargetEnvironmentBinding]]:
+    if not isinstance(value, ExpectedBuildEnvironmentBindings):
+        _fail("Independent expected build-environment bindings are required.")
+    if type(value.schema_version) is not int or value.schema_version != 1:
+        _fail("Expected build-environment bindings schema version is unsupported.")
+    build_lock_sha256 = _check_digest(value.build_lock_sha256, "Expected build lock digest")
+    recipe_sha256 = _check_digest(
+        value.provisioning_recipe_sha256, "Expected provisioning recipe digest"
+    )
+    required_targets = {
+        f"{operating_system}-{architecture}" for operating_system, architecture in _PLATFORMS
+    }
+    if not isinstance(value.targets, Mapping):
+        _fail("Expected build-environment bindings must include the exact target set.")
+    try:
+        if set(value.targets) != required_targets:
+            _fail("Expected build-environment bindings must include the exact target set.")
+    except TypeError as error:
+        raise ValueError(
+            "Expected build-environment bindings must include the exact target set."
+        ) from error
+
+    targets: dict[str, TargetEnvironmentBinding] = {}
+    for target in sorted(required_targets):
+        binding = value.targets[target]
+        if not isinstance(binding, TargetEnvironmentBinding):
+            _fail("Expected build-environment target binding is invalid.")
+        _check_digest(binding.descriptor_sha256, f"{target} expected descriptor digest")
+        _check_digest(
+            binding.provisioning_evidence_sha256, f"{target} expected provisioning evidence digest"
+        )
+        targets[target] = binding
+    return build_lock_sha256, recipe_sha256, targets
+
+
+def _validate_build_requirement_records(
+    value: object, *, label: str, allow_empty: bool
+) -> tuple[BuildRequirementRecord, ...]:
+    if (
+        not isinstance(value, list)
+        or len(value) > _MAX_BUILD_REQUIREMENTS
+        or (not allow_empty and not value)
+    ):
+        _fail(f"sdist {label} requirement records are invalid or exceed their count limit.")
+    records: list[BuildRequirementRecord] = []
+    for item in value:
+        record = _check_fields(item, _BUILD_REQUIREMENT_FIELDS, f"sdist {label} requirement")
+        expression = record["expression"]
+        marker_applicable = record["marker_applicable"]
+        if not isinstance(expression, str) or type(marker_applicable) is not bool:
+            _fail(f"sdist {label} requirement record is invalid.")
+        raw_satisfier = record["satisfier"]
+        satisfier: tuple[str, str] | None = None
+        if raw_satisfier is not None:
+            package = _check_fields(
+                raw_satisfier,
+                frozenset({"name", "version"}),
+                f"sdist {label} requirement satisfier",
+            )
+            name, version = package["name"], package["version"]
+            if not isinstance(name, str) or not isinstance(version, str):
+                _fail(f"sdist {label} requirement satisfier is invalid.")
+            satisfier = (name, version)
+        records.append(BuildRequirementRecord(expression, marker_applicable, satisfier))
+    if len({record.expression for record in records}) != len(records):
+        _fail(f"sdist {label} requirement records contain duplicate expressions.")
+    return tuple(records)
+
+
 def _validate_sdist_build(
     value: object,
     *,
@@ -445,13 +532,16 @@ def _validate_sdist_build(
     uv_sha256: str,
     installed_python: str,
     expected_static_requirements: tuple[str, ...],
+    expected_build_lock_sha256: str,
+    expected_provisioning_recipe_sha256: str,
+    expected_target_binding: TargetEnvironmentBinding,
 ) -> str:
     """Validate sanitized build provenance for the temporary sdist-derived wheel."""
     build = _check_fields(value, _SDIST_BUILD_FIELDS, "sdist build")
     binding_sha256 = hashlib.sha256(binding.to_json().encode("utf-8")).hexdigest()
     if (
         type(build["schema_version"]) is not int
-        or build["schema_version"] != 1
+        or build["schema_version"] != 2
         or build["source_commit"] != expected_commit
         or build["source_tree"] != expected_tree
         or build["binding_sha256"] != binding_sha256
@@ -479,6 +569,31 @@ def _validate_sdist_build(
         _fail("sdist build Python version does not match its isolated install receipt.")
     if build["uv_version"] != uv_version or build["uv_sha256"] != uv_sha256:
         _fail("sdist build receipt does not match its platform uv binding.")
+    if build["target_os"] != platform or build["target_architecture"] != architecture:
+        _fail("sdist build target does not match its platform receipt.")
+    python_implementation = build["python_implementation"]
+    if python_implementation != "CPython":
+        _fail("sdist build Python implementation is unsupported.")
+    _check_digest(build["python_executable_sha256"], "sdist build Python executable digest")
+
+    build_lock_sha256 = _check_digest(build["build_lock_sha256"], "sdist build lock digest")
+    descriptor_sha256 = _check_digest(
+        build["environment_descriptor_sha256"], "sdist build environment descriptor digest"
+    )
+    recipe_sha256 = _check_digest(
+        build["provisioning_recipe_sha256"], "sdist build provisioning recipe digest"
+    )
+    evidence_sha256 = _check_digest(
+        build["provisioning_evidence_sha256"], "sdist build provisioning evidence digest"
+    )
+    if build_lock_sha256 != expected_build_lock_sha256:
+        _fail("sdist build lock digest differs from independent expected bindings.")
+    if descriptor_sha256 != expected_target_binding.descriptor_sha256:
+        _fail("sdist build environment descriptor differs from independent expected bindings.")
+    if recipe_sha256 != expected_provisioning_recipe_sha256:
+        _fail("sdist build provisioning recipe differs from independent expected bindings.")
+    if evidence_sha256 != expected_target_binding.provisioning_evidence_sha256:
+        _fail("sdist build provisioning evidence differs from independent expected bindings.")
     if build["backend"] != "setuptools.build_meta":
         _fail("sdist build backend is unsupported.")
     backend_version = build["backend_version"]
@@ -492,124 +607,37 @@ def _validate_sdist_build(
     except Exception as error:
         raise ValueError("sdist build backend version is invalid.") from error
 
-    package_pairs = _validate_build_package_manifest(build["build_packages"])
-    package_versions = dict(package_pairs)
+    package_manifests = {
+        field: _validate_build_package_manifest(build[field])
+        for field in (
+            "provisioned_packages",
+            "before_hooks_packages",
+            "after_hooks_packages",
+            "after_build_packages",
+        )
+    }
+    provisioned_packages = package_manifests["provisioned_packages"]
+    if any(manifest != provisioned_packages for manifest in package_manifests.values()):
+        _fail("sdist build package manifests differ across qualification stages.")
+    package_versions = dict(provisioned_packages)
     if package_versions.get("setuptools") != backend_version:
         _fail("sdist build backend version does not match its package manifest.")
 
-    static_requirements = build["static_requirements"]
-    if (
-        not isinstance(static_requirements, list)
-        or not static_requirements
-        or len(static_requirements) > _MAX_BUILD_REQUIREMENTS
-        or any(
-            not isinstance(requirement, str)
-            or not requirement.strip()
-            or len(requirement) > _MAX_BUILD_REQUIREMENT_LENGTH
-            or any(ord(character) < 32 for character in requirement)
-            for requirement in static_requirements
-        )
-        or len(set(static_requirements)) != len(static_requirements)
-    ):
-        _fail("sdist static build requirements are invalid or exceed their bounds.")
-    if tuple(static_requirements) != expected_static_requirements:
+    static_records = _validate_build_requirement_records(
+        build["static_requirement_records"], label="static", allow_empty=False
+    )
+    if tuple(record.expression for record in static_records) != expected_static_requirements:
         _fail("sdist static build requirements differ from checked-out source metadata.")
-    environment = _marker_environment(platform, architecture, installed_python)
-    unsupported_marker_values = {
-        "dependency_groups",
-        "extra",
-        "extras",
-        "platform_release",
-        "platform_version",
-    }
-    for raw_requirement in static_requirements:
-        try:
-            requirement = Requirement(raw_requirement)
-        except (TypeError, ValueError) as error:
-            raise ValueError("sdist static build requirement is invalid.") from error
-        if requirement.url:
-            _fail("sdist static build requirements cannot contain direct URLs.")
-        if requirement.extras:
-            _fail("sdist static build requirement extras are not permitted.")
-        marker_expression = raw_requirement.partition(";")[2]
-        marker_names = set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", marker_expression))
-        if marker_names & unsupported_marker_values:
-            _fail("sdist static build requirement uses an unbound platform marker.")
-        if requirement.marker and not requirement.marker.evaluate(environment):
-            continue
-        installed_version = package_versions.get(canonicalize_name(requirement.name))
-        if installed_version is None or (
-            requirement.specifier and Version(installed_version) not in requirement.specifier
-        ):
-            _fail("sdist static build requirements are not satisfied by the package manifest.")
-
-    dynamic_expressions = build["dynamic_requirement_expressions"]
-    if (
-        not isinstance(dynamic_expressions, list)
-        or len(dynamic_expressions) > _MAX_BUILD_REQUIREMENTS
-        or any(
-            not isinstance(expression, str)
-            or not expression.strip()
-            or len(expression) > _MAX_BUILD_REQUIREMENT_LENGTH
-            or any(ord(character) < 32 for character in expression)
-            for expression in dynamic_expressions
-        )
-        or len(set(dynamic_expressions)) != len(dynamic_expressions)
-    ):
-        _fail("sdist dynamic build requirement expressions are invalid or exceed their bounds.")
-    dynamic_requirements = build["dynamic_requirements"]
-    if (
-        not isinstance(dynamic_requirements, list)
-        or len(dynamic_requirements) > _MAX_BUILD_REQUIREMENTS
-    ):
-        _fail("sdist dynamic build requirements are invalid or exceed their count limit.")
-    dynamic_pairs: list[tuple[str, str]] = []
-    for item in dynamic_requirements:
-        package = _check_fields(item, frozenset({"name", "version"}), "sdist dynamic requirement")
-        name, version = package["name"], package["version"]
-        if (
-            not isinstance(name, str)
-            or _DEPENDENCY_NAME.fullmatch(name) is None
-            or canonicalize_name(name) != name
-            or not isinstance(version, str)
-            or _DEPENDENCY_VERSION.fullmatch(version) is None
-        ):
-            _fail("sdist dynamic build requirement contains invalid values.")
-        dynamic_pairs.append((name, version))
-    canonical_dynamic = tuple(dynamic_pairs)
-    if tuple(sorted(canonical_dynamic)) != canonical_dynamic or len(
-        {name for name, _ in canonical_dynamic}
-    ) != len(canonical_dynamic):
-        _fail("sdist dynamic build requirements are not canonical (sorted and unique).")
-    if canonical_dynamic and not dynamic_expressions:
-        _fail("sdist dynamic build requirement expressions are missing.")
-    verified_dynamic: set[tuple[str, str]] = set()
-    for raw_requirement in dynamic_expressions:
-        try:
-            requirement = Requirement(raw_requirement)
-        except (TypeError, ValueError) as error:
-            raise ValueError("sdist dynamic build requirement expression is invalid.") from error
-        if requirement.url:
-            _fail("sdist dynamic build requirement expressions cannot contain direct URLs.")
-        if requirement.extras:
-            _fail("sdist dynamic build requirement expression extras are not permitted.")
-        marker_expression = raw_requirement.partition(";")[2]
-        marker_names = set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", marker_expression))
-        if marker_names & unsupported_marker_values:
-            _fail("sdist dynamic build requirement uses an unbound platform marker.")
-        if requirement.marker and not requirement.marker.evaluate(environment):
-            continue
-        name = canonicalize_name(requirement.name)
-        installed_version = package_versions.get(name)
-        if installed_version is None or (
-            requirement.specifier and Version(installed_version) not in requirement.specifier
-        ):
-            _fail("sdist dynamic build requirements are not satisfied by the package manifest.")
-        verified_dynamic.add((name, installed_version))
-    if tuple(sorted(verified_dynamic)) != canonical_dynamic:
-        _fail(
-            "sdist dynamic build requirements do not match the package manifest "
-            "or declared expressions."
+    dynamic_records = _validate_build_requirement_records(
+        build["dynamic_requirement_records"], label="dynamic", allow_empty=True
+    )
+    for requirement in (*static_records, *dynamic_records):
+        requirement.validate(
+            package_versions,
+            target_os=platform,
+            target_architecture=architecture,
+            python_implementation=python_implementation,
+            python_version=python_version,
         )
     return backend_version
 
@@ -620,18 +648,20 @@ def verify_receipts(
     expected_commit: str,
     expected_tree: str,
     expected_binding: BundleBinding,
+    expected_build_environments: ExpectedBuildEnvironmentBindings,
     artifact_id: str,
     artifact_digest: str,
     run_id: str,
     expected_platform_count: int = 3,
 ) -> ReceiptVerification:
-    """Verify exactly three sanitized rows against the independent build handoff.
+    """Verify exactly three sanitized rows against independent release bindings.
 
     The function verifies receipt claims and their cross-job bindings. It does not
-    independently derive installed dependency membership from the lockfile; the
-    workflow's `uv sync --locked` step supplies that execution evidence. It does
-    bind every row to the exact checked-out lockfile and requires matching wheel
-    and sdist dependency-set digests within each platform.
+    independently derive installed dependency membership from either lockfile; the
+    workflow's locked sync step supplies runtime/test dependency evidence, and the
+    caller authenticates provisioning evidence before constructing the independent
+    build-environment bindings. This verifier binds both lock digests separately and
+    cannot certify provisioning evidence whose contents it does not receive.
     """
     if expected_platform_count != len(_PLATFORMS):
         _fail("Exactly three qualification platforms are required.")
@@ -645,6 +675,9 @@ def verify_receipts(
         or expected_binding.source_tree != expected_tree
     ):
         _fail("Expected source identity does not match the independent bundle binding.")
+    expected_build_lock_sha256, expected_recipe_sha256, expected_targets = (
+        _validate_expected_build_environment_bindings(expected_build_environments)
+    )
     _check_positive_id(run_id, "Expected run ID")
     _check_positive_id(artifact_id, "Expected artifact ID")
     if not isinstance(artifact_digest, str) or _ARTIFACT_DIGEST.fullmatch(artifact_digest) is None:
@@ -719,6 +752,9 @@ def verify_receipts(
             uv_sha256=uv["sha256"],
             installed_python=sdist_python_version,
             expected_static_requirements=expected_static_requirements,
+            expected_build_lock_sha256=expected_build_lock_sha256,
+            expected_provisioning_recipe_sha256=expected_recipe_sha256,
+            expected_target_binding=expected_targets[f"{platform}-{architecture}"],
         )
         if sdist_generator_version != backend_version:
             _fail("sdist install generator differs from observed build backend version.")
@@ -742,5 +778,6 @@ def verify_receipts(
         artifact_id=artifact_id,
         artifact_digest=artifact_digest,
         lock_sha256=expected_lock,
+        build_lock_sha256=expected_build_lock_sha256,
         platforms=platforms,  # type: ignore[arg-type]
     )

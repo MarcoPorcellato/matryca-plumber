@@ -4,8 +4,8 @@ title: v2.0.1-rc.4 release qualification plan
 description: Two-stage exact-artifact qualification for RC4; pre-publication gates precede the public-wheel Gate B campaign and final decision.
 resource: docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md
 tags: [release, qualification, parser, topology, contracts, v2]
-last_verified: 2026-09-30
-stale_after: 2027-03-26
+last_verified: 2026-10-01
+stale_after: 2027-03-30
 status: proposed
 classification: active
 audience: [maintainer, contributor, operator]
@@ -125,9 +125,11 @@ any RC4 tag or publication action:
    package metadata, `RECORD`, all 26 static contract/TCK resources, and
    byte-for-byte source/wheel/sdist parity. For the sdist installation, first
    authenticate the original sdist; use a private PEP 517 build environment
-   whose complete observed package-name/version manifest is recorded before
-   and after; check static `build-system.requires` and backend-returned dynamic
-   requirements against packages already present, failing rather than
+   whose complete observed package-name/version manifests are recorded at all
+   four checkpoints: `provisioned_packages`, `before_hooks_packages`,
+   `after_hooks_packages`, and `after_build_packages`. Require all four lists
+   to match exactly. Check static `build-system.requires` and backend-returned
+   dynamic requirements against packages already present, failing rather than
    opportunistically installing a missing requirement; then run
    `uv build --wheel --no-build-isolation` from that exact sdist. Bind the
    temporary wheel name, size, and SHA-256, keep it outside canonical `dist`,
@@ -135,6 +137,56 @@ any RC4 tag or publication action:
    The installed verifier must receive the original bound sdist as its artifact
    input, not the temporary wheel. Run all three installed TCKs from the
    installed package context; source-checkout success alone is insufficient.
+
+   The qualification-only build project at `release-qualification-build/`
+   keeps its direct requirements separate from application dependency
+   resolution. Its reviewed lock,
+   `release-qualification-build/uv.lock`, has SHA-256
+   `72b95c7c4d89d0a1382882078914094b08be25acbf47da4a14ecb6f4d6972d9f` and
+   contains the static inputs `setuptools>=61` and `wheel`, resolved to
+   `setuptools==84.0.0`, `wheel==0.48.0`, and transitive `packaging==26.3`.
+   Independent review compared all six wheel/sdist URLs, hashes, sizes, and
+   registry/dependency edges with a fresh official metadata snapshot. This is
+   metadata review only; it does not qualify artifact bytes, installation,
+   backend hooks, the provisioned environment, any target, Stage A, or release.
+   Revalidate the lock and recipe for the exact candidate before provisioning.
+   This plan's build-interpreter profile is CPython 3.12 only; it does not
+   qualify CPython 3.13 or a future Python profile. Keep the PEP 517 build lock
+   distinct from the root runtime/test `uv.lock`: receipt `build_lock_sha256`
+   binds the former, while outer `lock_sha256` continues to bind the latter.
+
+   The trusted caller/provisioner owns the private environment lifecycle and
+   must retain and authenticate evidence of exact-lock use, locked-artifact hash
+   verification, and no re-resolution or repair. It supplies the environment
+   descriptor and an independently bound expected descriptor SHA-256 to
+   `prepare-sdist-build --expected-build-environment-sha256`; the helper must
+   never derive its expected digest from the descriptor it reads. Aggregation
+   separately requires `verify-receipts --expected-build-environments PATH`, a
+   caller-authenticated schema-v1 binding file for exactly `linux-x64`,
+   `macos-arm64`, and `windows-x64`. Expected lock, recipe, descriptor, and
+   provisioning-evidence digests are independent inputs, never values inferred
+   from receipt rows. The three-target completeness check does not admit a
+   Windows lane or change its NO-GO status.
+
+   Nested sdist receipt schema v2 records four complete package-name/version
+   manifests: `provisioned_packages`, `before_hooks_packages`,
+   `after_hooks_packages`, and `after_build_packages`. Require all four lists
+   to match exactly; any package-set drift stops qualification. The helper
+   consumes the existing provisioned environment and must not create, resolve,
+   install, sync, or repair it. It verifies supplied identities and observes
+   these manifests; it does not authenticate provisioning evidence that it
+   never receives, prove unseen evidence contents, or prove executable-to-
+   descriptor content consistency. The caller/provisioner trust boundary
+   remains responsible for authenticating retained descriptor and provisioning
+   evidence before constructing expected bindings.
+
+   The CPython identity probe uses isolated mode but retains `site` startup:
+   disabling `site` prevents the admitted CPython 3.12 venv from reporting its
+   venv prefix. Startup may therefore process that environment's site
+   configuration, which the caller must trust. This is not a hostile-code
+   sandbox. The helper's explicit path and digest checks do not restrict the
+   interpreter or backend's ordinary filesystem access; no OS-level filesystem
+   containment or hostile-backend isolation is established.
 
 ### Conditional on-demand Stage A procedure
 
@@ -173,9 +225,12 @@ installed verifier still checks against the original bound sdist. Record one
 sanitized, source- and artifact-bound receipt per platform, including runner
 OS/architecture, installed metadata/`RECORD`, all 26 resource and three TCK
 results, focused test counts, and terminal job conclusion. Every sdist receipt
-also binds its before/after complete observed build-package manifest, static and
-dynamic requirement satisfiers, and temporary-wheel name/size/SHA-256. This is
-exact-attempt evidence, not a reproducibility claim. The issue #582 evidence
+also binds all four complete observed build-package manifests:
+`provisioned_packages`, `before_hooks_packages`, `after_hooks_packages`, and
+`after_build_packages`; all four lists must match exactly. Each receipt also
+binds static and dynamic requirement satisfiers and temporary-wheel
+name/size/SHA-256. This is exact-attempt evidence, not a reproducibility claim.
+The issue #582 evidence
 record also identifies the run URL and event SHA/ref, canonical artifact
 names/sizes/hashes, and any explicit platform disposition.
 

@@ -7,6 +7,14 @@
   read-only input and executes only the generated candidate; existing required
   gates and platform-support claims remain unchanged.
 
+### Changed
+
+- **RC4 locked-build operator contract** — document a separately locked,
+  caller-provisioned CPython 3.12 environment, independent descriptor and
+  evidence expectations, matching package manifests, and original-sdist versus
+  temporary-wheel boundaries; no qualification or release authority is granted,
+  and Windows remains NO-GO.
+
 ### Security
 
 - **Frontend development dependency security** — update the lockfile to a
