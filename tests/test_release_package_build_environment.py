@@ -231,7 +231,9 @@ def test_expected_build_bindings_require_exact_target_set(tmp_path: Path) -> Non
         bindings.targets["linux-x64"] = bindings.targets["linux-x64"]
 
     missing_target = _expected_bindings_document()
-    del missing_target["targets"]["windows-x64"]  # type: ignore[index]
+    missing_targets = missing_target["targets"]
+    assert isinstance(missing_targets, dict)
+    del missing_targets["windows-x64"]
     with pytest.raises(ValueError, match="target"):
         contract.ExpectedBuildEnvironmentBindings.from_bytes(_json_bytes(missing_target))
 
