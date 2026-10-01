@@ -16,6 +16,9 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.build_release_artifacts import build_release_artifacts
+from scripts.release_qualification.build_environment import (
+    load_expected_build_environment_bindings,
+)
 from scripts.release_qualification.bundle import (
     BundleBinding,
     build_binding,
@@ -139,11 +142,15 @@ def _run_focused(args: argparse.Namespace) -> None:
 
 def _verify_receipts(args: argparse.Namespace) -> None:
     binding = BundleBinding.from_json(args.expected_binding)
+    expected_build_environments = load_expected_build_environment_bindings(
+        args.expected_build_environments
+    )
     receipt = verify_receipts(
         args.receipt_dir,
         expected_commit=args.expected_commit,
         expected_tree=args.expected_tree,
         expected_binding=binding,
+        expected_build_environments=expected_build_environments,
         artifact_id=args.artifact_id,
         artifact_digest=args.artifact_digest,
         run_id=args.run_id,
@@ -165,6 +172,8 @@ def _prepare_sdist_build(args: argparse.Namespace) -> None:
         args.uv,
         args.uv_sha256,
         args.wheel_output,
+        environment_descriptor=args.build_environment_descriptor,
+        expected_build_environment_sha256=args.expected_build_environment_sha256,
     )
     print(receipt.to_json())
 
@@ -203,12 +212,22 @@ def _parser() -> argparse.ArgumentParser:
     focused.set_defaults(handler=_run_focused)
 
     receipts = commands.add_parser(
-        "verify-receipts", help="verify exactly three bound platform qualification receipts"
+        "verify-receipts",
+        help="verify three platform receipts against independent build-environment bindings",
     )
     receipts.add_argument("--receipt-dir", type=Path, required=True)
     receipts.add_argument("--expected-commit", required=True)
     receipts.add_argument("--expected-tree", required=True)
     receipts.add_argument("--expected-binding", required=True)
+    receipts.add_argument(
+        "--expected-build-environments",
+        type=Path,
+        required=True,
+        help=(
+            "separate caller-authenticated three-target expectations for build-lock, recipe, "
+            "descriptor, and provisioning-evidence digests; never inferred from receipts"
+        ),
+    )
     receipts.add_argument("--artifact-id", required=True)
     receipts.add_argument("--artifact-digest", required=True)
     receipts.add_argument("--run-id", required=True)
@@ -217,14 +236,46 @@ def _parser() -> argparse.ArgumentParser:
 
     sdist_build = commands.add_parser(
         "prepare-sdist-build",
-        help="build a temporary wheel from the bound sdist in a private PEP 517 environment",
+        help=(
+            "verify the original sdist and four equal package manifests, then build one temporary "
+            "wheel in an already-provisioned, separately locked CPython 3.12 environment"
+        ),
     )
-    sdist_build.add_argument("--artifact", type=Path, required=True)
+    sdist_build.add_argument(
+        "--artifact",
+        type=Path,
+        required=True,
+        help="bound original sdist; temporary wheel must not replace this verifier input",
+    )
     sdist_build.add_argument("--source-root", type=Path, required=True)
-    sdist_build.add_argument("--python", type=Path, required=True)
+    sdist_build.add_argument(
+        "--python",
+        type=Path,
+        required=True,
+        help=(
+            "CPython 3.12 interpreter in the caller-provisioned environment; no creation, "
+            "resolution, install, sync, or repair"
+        ),
+    )
     sdist_build.add_argument("--uv", type=Path, required=True)
     sdist_build.add_argument("--uv-sha256", required=True)
-    sdist_build.add_argument("--wheel-output", type=Path, required=True)
+    sdist_build.add_argument(
+        "--wheel-output",
+        type=Path,
+        required=True,
+        help="private temporary-wheel destination outside canonical dist",
+    )
+    sdist_build.add_argument(
+        "--build-environment-descriptor",
+        type=Path,
+        required=True,
+        help=("caller-provisioned descriptor; authenticate it and bind its digest separately"),
+    )
+    sdist_build.add_argument(
+        "--expected-build-environment-sha256",
+        required=True,
+        help="independently caller-bound descriptor SHA-256; never derived from descriptor bytes",
+    )
     sdist_build.set_defaults(handler=_prepare_sdist_build)
 
     return parser

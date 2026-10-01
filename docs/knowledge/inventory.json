@@ -2133,7 +2133,7 @@
       "path": "docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md",
       "type": "Roadmap",
       "title": "v2.0.1-rc.4 release qualification plan",
-      "description": "Proposed Tier 3 qualification envelope for RC4; no candidate source, tag, artifact, Gate B result, or stable decision is selected.",
+      "description": "Proposed Tier 3 RC4 plan with a separately locked, caller-provisioned CPython 3.12 build profile; no candidate source, tag, package result, Gate B result, or stable decision is selected.",
       "classification": "active",
       "audience": [
         "maintainer",
@@ -2146,7 +2146,7 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active proposed RC4 qualification plan; classifies Parser/graph-I/O and timeout lifecycle as Tier 3 and records no selected candidate or result.",
+      "notes": "Active proposed RC4 qualification plan; classifies Parser/graph-I/O and timeout lifecycle as Tier 3, records the consume-only build-environment boundary, keeps Windows NO-GO, and grants no workflow, Stage A, publication, qualification, or release authority.",
       "missing": false
     },
     {
@@ -4390,6 +4390,25 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-09-30-rc4-locked-build-environment.md",
+      "type": "Roadmap",
+      "title": "RC4 Locked Build Environment Implementation Plan",
+      "description": "Test-driven implementation sequence for an independently locked, caller-provisioned RC4 PEP 517 environment; does not authorize build, dispatch, or qualification.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Implementation plan subordinate to the approved RC4 design; no package build, workflow dispatch, Stage A, or release authority.",
+      "missing": false
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
@@ -4529,6 +4548,25 @@
       "action": "keep",
       "supersedes": [],
       "notes": "Design proposal subordinate to the active RC4 qualification plan; no workflow, candidate, or publication authority.",
+      "missing": false
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-30-rc4-locked-build-environment-design.md",
+      "type": "Specification",
+      "title": "RC4 independently locked build environment",
+      "description": "Fail-closed design for consuming an independently provisioned PEP 517 environment from a dedicated lock without changing runtime qualification inputs.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Approved design proposal; implementation planning remains subject to maintainer review and grants no provisioning, build, workflow, qualification, or release authority.",
       "missing": false
     },
     {

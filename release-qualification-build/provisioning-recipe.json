@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "project": "release-qualification-build",
+  "lockfile": "uv.lock",
+  "operation": "uv-sync-locked",
+  "project_installation_allowed": false,
+  "resolution_allowed": false,
+  "repair_allowed": false,
+  "verify_locked_artifact_hashes": true
+}
