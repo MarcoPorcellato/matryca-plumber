@@ -8,6 +8,7 @@ import csv
 import hashlib
 import importlib.metadata
 import json
+import math
 import os
 import re
 import shlex
@@ -559,6 +560,27 @@ def _run_bounded(
     argv: list[str], *, cwd: Path, timeout: int, output_limit: int = _MAX_PROBE_BYTES
 ) -> tuple[int, bytes, bytes]:
     """Run child with bounded pipe collection and terminate its process group on overflow."""
+    if (
+        not argv
+        or isinstance(timeout, bool)
+        or not math.isfinite(timeout)
+        or timeout <= 0
+        or timeout > _MAX_TCK_SECONDS
+        or output_limit <= 0
+    ):
+        _fail("Isolated subprocess parameters are invalid.")
+    collected: list[bytearray] = [bytearray(), bytearray()]
+    overflow = threading.Event()
+    reader_failed = threading.Event()
+    reader_errors: list[BaseException] = []
+    windows_readers: list[process_module.WindowsPipeReader] = []
+    readers: list[threading.Thread] = []
+    succeeded = False
+    primary_error: BaseException | None = None
+    result: tuple[int, bytes, bytes] | None = None
+    cleanup_errors: list[BaseException] = []
+    job_active_processes: object | None = None
+    deadline = time.monotonic() + timeout
     try:
         owned = process_module.start_process(
             argv,
@@ -566,68 +588,215 @@ def _run_bounded(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             windows=os.name == "nt",
+            windows_gate_code=(process_module.WINDOWS_GATE_CODE if os.name == "nt" else None),
+            bufsize=0 if os.name == "nt" else -1,
         )
     except OSError as error:
         raise ValueError("Isolated interpreter subprocess could not be started.") from error
     process = owned.process
-    assert process.stdout is not None and process.stderr is not None
-    collected: list[bytearray] = [bytearray(), bytearray()]
-    overflow = threading.Event()
-
-    def drain(stream: object, target: bytearray) -> None:
-        while chunk := stream.read(64 * 1024):  # type: ignore[attr-defined]
-            remaining = output_limit + 1 - len(target)
-            if remaining > 0:
-                target.extend(chunk[:remaining])
-            if len(chunk) > remaining or len(target) > output_limit:
-                overflow.set()
-
-    readers = [
-        threading.Thread(target=drain, args=(process.stdout, collected[0]), daemon=True),
-        threading.Thread(target=drain, args=(process.stderr, collected[1]), daemon=True),
-    ]
-    for reader in readers:
-        reader.start()
-
-    def terminate_group() -> None:
-        try:
-            owned.terminate(grace_seconds=0, immediate=True)
-        except (OSError, subprocess.SubprocessError, TimeoutError, ValueError):
-            if process.poll() is None:
-                process.kill()
-
-    deadline = time.monotonic() + timeout
-    timed_out = False
-    while process.poll() is None:
-        if overflow.is_set():
-            break
-        if time.monotonic() >= deadline:
-            timed_out = True
-            break
-        time.sleep(0.01)
-    if process.poll() is None:
-        terminate_group()
+    if os.name == "nt":
+        job_active_processes = getattr(getattr(owned, "job", None), "active_processes", None)
     try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
-    terminate_group()
-    for reader in readers:
-        reader.join(timeout=1)
-    if any(reader.is_alive() for reader in readers):
-        terminate_group()
-        for reader in readers:
-            reader.join(timeout=5)
-    if any(reader.is_alive() for reader in readers):
-        process.stdout.close()
-        process.stderr.close()
-        _fail("Isolated subprocess left an output-producing descendant alive.")
-    if overflow.is_set():
-        _fail("Isolated subprocess exceeded the output bound.")
-    if timed_out:
-        _fail("Isolated subprocess exceeded its time limit.")
-    return process.returncode, bytes(collected[0]), bytes(collected[1])
+        assert process.stdout is not None and process.stderr is not None
+        if os.name == "nt":
+            for stream in (process.stdout, process.stderr):
+                windows_readers.append(
+                    process_module.WindowsPipeReader(stream, limit=output_limit)
+                )
+            for reader in windows_readers:
+                reader.start()
+            for reader in windows_readers:
+                if not reader.wait_ready(max(0.0, deadline - time.monotonic())):
+                    _fail("Isolated subprocess output readers did not become ready.")
+            for reader in windows_readers:
+                reader.release()
+        else:
+            def drain(stream: object, target: bytearray) -> None:
+                try:
+                    while chunk := stream.read(64 * 1024):  # type: ignore[attr-defined]
+                        remaining = output_limit + 1 - len(target)
+                        if remaining > 0:
+                            target.extend(chunk[:remaining])
+                        if len(chunk) > remaining or len(target) > output_limit:
+                            overflow.set()
+                except BaseException as error:
+                    reader_errors.append(error)
+                    reader_failed.set()
+
+            readers.append(
+                threading.Thread(
+                    target=drain, args=(process.stdout, collected[0]), daemon=True
+                )
+            )
+            readers.append(
+                threading.Thread(
+                    target=drain, args=(process.stderr, collected[1]), daemon=True
+                )
+            )
+            for reader in readers:
+                reader.start()
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                _fail("Isolated subprocess exceeded its time limit.")
+            try:
+                returncode = process.wait(timeout=min(remaining, 0.05))
+                break
+            except subprocess.TimeoutExpired:
+                if reader_failed.is_set():
+                    _fail("Isolated subprocess output reader failed.")
+                if any(reader.failed.is_set() or reader.errors for reader in windows_readers):
+                    _fail("Isolated subprocess output reader failed.")
+                if overflow.is_set() or any(reader.overflowed for reader in windows_readers):
+                    _fail("Isolated subprocess exceeded the output bound.")
+        if os.name == "nt":
+            if callable(job_active_processes):
+                if job_active_processes():
+                    for reader in windows_readers:
+                        reader.stop.set()
+                    owned.require_empty()
+                    _fail("Windows qualification Job Object retained active processes.")
+            else:
+                owned.require_empty()
+            for reader in windows_readers:
+                if callable(job_active_processes):
+                    while not reader.wait(0):
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            _fail("Isolated subprocess output reader did not terminate.")
+                        if reader.wait(min(0.05, remaining)):
+                            break
+                        if job_active_processes():
+                            for active_reader in windows_readers:
+                                active_reader.stop.set()
+                            owned.require_empty()
+                            _fail(
+                                "Windows qualification Job Object retained active processes."
+                            )
+                elif not reader.wait(max(0.0, deadline - time.monotonic())):
+                    _fail("Isolated subprocess output reader did not terminate.")
+                if reader.errors:
+                    _fail("Isolated subprocess output reader failed.")
+                if reader.overflowed:
+                    _fail("Isolated subprocess exceeded the output bound.")
+            for reader in windows_readers:
+                if callable(job_active_processes):
+                    reader.stop.set()
+                else:
+                    stop = getattr(reader, "stop", None)
+                    if stop is not None:
+                        stop.set()
+            if callable(job_active_processes):
+                if job_active_processes():
+                    owned.require_empty()
+                    _fail("Windows qualification Job Object retained active processes.")
+                owned.require_empty()
+            collected = [reader.data[:output_limit] for reader in windows_readers]
+        else:
+            if owned.group_exists():
+                owned.terminate(grace_seconds=0, immediate=True)
+                _fail("Isolated subprocess left an output-producing descendant alive.")
+            reader_deadline = time.monotonic() + process_module.TERMINATION_WAIT_SECONDS
+            for reader in readers:
+                reader.join(timeout=max(0.0, min(deadline, reader_deadline) - time.monotonic()))
+                if reader.is_alive():
+                    _fail("Isolated subprocess output reader did not terminate.")
+            if reader_errors:
+                _fail("Isolated subprocess output reader failed.")
+        if overflow.is_set():
+            _fail("Isolated subprocess exceeded the output bound.")
+        result = (returncode, bytes(collected[0]), bytes(collected[1]))
+        succeeded = True
+    except BaseException as error:
+        primary_error = error
+        raise
+    finally:
+        if not succeeded:
+            if os.name == "nt":
+                for reader in windows_readers:
+                    try:
+                        if callable(job_active_processes):
+                            reader.stop.set()
+                        else:
+                            stop = getattr(reader, "stop", None)
+                            if stop is not None:
+                                stop.set()
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+            try:
+                owned.terminate(grace_seconds=0, immediate=True)
+            except BaseException as error:
+                cleanup_errors.append(error)
+        if os.name == "nt":
+            cleanup_deadline = time.monotonic() + process_module._READER_CLEANUP_SECONDS
+            for reader in windows_readers:
+                if process_module._WINDOWS_OBSERVER_POISONED:
+                    if not any(
+                        stream is reader.stream and thread is reader.thread
+                        for stream, thread, _handle in process_module._POISONED_READER_RESOURCES
+                    ):
+                        process_module._POISONED_READER_RESOURCES.append(
+                            (reader.stream, reader.thread, reader.thread_handle)
+                        )
+                    continue
+                try:
+                    if reader.thread.ident is None:
+                        reader.close_stream()
+                    else:
+                        reader.cancel_and_join(deadline=cleanup_deadline)
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            for stream in (process.stdout, process.stderr):
+                if stream is not None and not any(
+                    stream is reader.stream for reader in windows_readers
+                ):
+                    try:
+                        stream.close()
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+            try:
+                owned.reap_and_dispose_handle(timeout=process_module.TERMINATION_WAIT_SECONDS)
+            except BaseException as error:
+                cleanup_errors.append(error)
+            try:
+                owned.close()
+            except BaseException as error:
+                cleanup_errors.append(error)
+        else:
+            cleanup_deadline = time.monotonic() + process_module.TERMINATION_WAIT_SECONDS
+            for reader in readers:
+                try:
+                    if reader.ident is not None and reader.is_alive():
+                        owned.terminate(grace_seconds=0, immediate=True)
+                        reader.join(timeout=max(0.0, cleanup_deadline - time.monotonic()))
+                    if reader.is_alive():
+                        raise ValueError("Isolated subprocess output reader did not stop.")
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            if any(reader.is_alive() for reader in readers):
+                cleanup_errors.append(
+                    ValueError("Isolated subprocess output reader remains live; pipes stay owned.")
+                )
+            else:
+                for stream in (process.stdout, process.stderr):
+                    try:
+                        stream.close()
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+            try:
+                owned.reap_and_dispose_handle(timeout=process_module.TERMINATION_WAIT_SECONDS)
+            except BaseException as error:
+                cleanup_errors.append(error)
+        if cleanup_errors:
+            if primary_error is not None:
+                for error in cleanup_errors:
+                    primary_error.add_note(
+                        f"Subprocess cleanup also failed: {type(error).__name__}."
+                    )
+            else:
+                raise ValueError("Isolated subprocess cleanup failed.") from cleanup_errors[0]
+    assert result is not None
+    return result
 
 
 def _selected_environment(python: Path) -> tuple[Path, Path, str, str, str]:

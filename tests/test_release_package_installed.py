@@ -15,12 +15,14 @@ import sys
 import tarfile
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
 from scripts.qualify_release_package import main as qualify_main
 from scripts.release_qualification import bundle as bundle_module
 from scripts.release_qualification import installed as installed_module
+from scripts.release_qualification import process as process_module
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.installed import InstalledReceipt, _run_bounded, verify_installed
 
@@ -31,6 +33,87 @@ TCKS = (
     "run_plumber_graph_read_v1_tck.py",
     "run_plumber_graph_topology_v1_tck.py",
 )
+
+
+def test_windows_bounded_runner_uses_shared_gate_and_raw_readers(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    class _Process:
+        stdout = object()
+        stderr = object()
+
+        def wait(self, timeout: float) -> int:
+            return 0
+
+    class _Owned:
+        process = _Process()
+
+        def require_empty(self) -> None:
+            return None
+
+        def reap_and_dispose_handle(self, *, timeout: float) -> int:
+            return 0
+
+        def close(self) -> None:
+            return None
+
+    class _Reader:
+        errors: list[BaseException] = []
+        overflowed = False
+
+        def __init__(self, stream: object, *, limit: int) -> None:
+            self.stream = stream
+            self.thread = type("_Thread", (), {"ident": 1})()
+            self.limit = limit
+            self.data = bytearray(b"stdout" if stream is _Owned.process.stdout else b"stderr")
+
+        def start(self) -> None:
+            return None
+
+        def wait_ready(self, _timeout: float) -> bool:
+            return True
+
+        def release(self) -> None:
+            return None
+
+        def wait(self, _timeout: float) -> bool:
+            return True
+
+        def cancel_and_join(self, *, deadline: float) -> None:
+            return None
+
+    def _start(command: list[str], **kwargs: object) -> _Owned:
+        calls.append({"command": command, **kwargs})
+        return _Owned()
+
+    monkeypatch.setattr(installed_module, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(process_module, "start_process", _start)
+    monkeypatch.setattr(process_module, "WindowsPipeReader", _Reader)
+
+    code, stdout, stderr = installed_module._run_bounded(
+        ["synthetic-child"], cwd=tmp_path, timeout=2
+    )
+
+    assert (code, stdout, stderr) == (0, b"stdout", b"stderr")
+    assert calls[0]["windows"] is True
+    assert calls[0]["windows_gate_code"] == process_module.WINDOWS_GATE_CODE
+    assert calls[0]["bufsize"] == 0
+
+
+def test_bounded_runner_rejects_nonfinite_deadline_before_process_start(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        process_module,
+        "start_process",
+        lambda *_args, **_kwargs: pytest.fail("invalid deadline started a process"),
+    )
+    with pytest.raises(ValueError, match="subprocess parameters"):
+        installed_module._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=float("nan"))
 TCK_IDS = (
     "plumber.consumer.package/v1",
     "plumber.graph.read/v1",
@@ -542,11 +625,8 @@ def test_bounded_runner_kills_descendant_that_inherits_output_pipes(tmp_path: Pa
         "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\n"
     )
 
-    returncode, stdout, stderr = _run_bounded([sys.executable, "-c", code], cwd=tmp_path, timeout=5)
-
-    assert returncode == 0
-    assert stdout == b""
-    assert stderr == b""
+    with pytest.raises(ValueError, match="left an output-producing descendant alive"):
+        _run_bounded([sys.executable, "-c", code], cwd=tmp_path, timeout=5)
 
 
 @pytest.mark.parametrize(

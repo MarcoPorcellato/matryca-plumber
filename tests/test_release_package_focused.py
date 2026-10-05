@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 from scripts import qualify_release_package as release_cli
-from scripts.release_qualification import focused
+from scripts.release_qualification import focused, process
 
 LINUX_MACOS_NODES = (
     "tests/test_og_parser_identity_adapter.py::test_parser_receives_exact_admitted_snapshot_from_one_source_read",
@@ -127,6 +127,10 @@ def test_windows_selection_checks_timeout_recovery_without_unix_sigkill() -> Non
     )
     assert "tests/test_bounded_page_parse.py::test_worker_crash_recovers_bounded" not in nodes
     assert "tests/test_bounded_page_parse.py::test_worker_survives_success_and_shuts_clean" in nodes
+
+
+def test_focused_runner_uses_shared_windows_gate() -> None:
+    assert focused._WINDOWS_GATE_CODE == process.WINDOWS_GATE_CODE
 
 
 def test_unknown_platform_is_rejected() -> None:
@@ -750,8 +754,27 @@ def test_windows_job_assignment_failure_does_not_release_gate(
             self.closed = True
 
     class _Process:
-        stdin = io.BytesIO()
-        _handle = 417
+        class _Pipe:
+            def __init__(self) -> None:
+                self.payload = bytearray()
+                self.closed = False
+
+            def write(self, payload: bytes) -> int:
+                self.payload.extend(payload)
+                return len(payload)
+
+            def close(self) -> None:
+                self.closed = True
+
+        stdin = _Pipe()
+        stdout = None
+        stderr = None
+
+        class _Handle:
+            def Close(self) -> None:
+                pass
+
+        _handle = _Handle()
         kill_attempted = False
         wait_attempted = False
 
@@ -785,7 +808,8 @@ def test_windows_job_assignment_failure_does_not_release_gate(
         "-c",
         focused._WINDOWS_GATE_CODE,
     ]
-    assert process.stdin.getvalue() == b""
+    assert process.stdin.payload == b""
+    assert process.stdin.closed is True
     assert process.kill_attempted is True
     assert process.wait_attempted is True
     assert job.closed is True

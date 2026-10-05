@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import platform as host_platform
 import re
@@ -541,10 +542,26 @@ def _run_bounded(
     timeout: float = _COMMAND_TIMEOUT_SECONDS,
     capture: bool = False,
 ) -> _CommandResult:
-    if not command or timeout <= 0:
+    if (
+        not command
+        or isinstance(timeout, bool)
+        or not math.isfinite(timeout)
+        or timeout <= 0
+        or timeout > _COMMAND_TIMEOUT_SECONDS
+    ):
         _fail("Qualification command parameters are invalid.")
-    if os.name == "nt":
-        _fail("Windows build-process containment is not qualified for this helper.")
+    output = bytearray()
+    overflow = threading.Event()
+    reader_failed = threading.Event()
+    reader_errors: list[BaseException] = []
+    reader: threading.Thread | None = None
+    windows_reader: process_module.WindowsPipeReader | None = None
+    succeeded = False
+    primary_error: BaseException | None = None
+    result: _CommandResult | None = None
+    cleanup_errors: list[BaseException] = []
+    job_active_processes: object | None = None
+    deadline = time.monotonic() + timeout
     try:
         owned = process_module.start_process(
             command,
@@ -552,65 +569,193 @@ def _run_bounded(
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            windows=False,
+            windows=os.name == "nt",
+            windows_gate_code=(process_module.WINDOWS_GATE_CODE if os.name == "nt" else None),
+            bufsize=0 if os.name == "nt" else -1,
         )
     except OSError as error:
         raise ValueError("Could not start a bounded qualification command.") from error
     process = owned.process
-    output = bytearray()
-    overflow = threading.Event()
-    reader: threading.Thread | None = None
-    if capture:
-        assert process.stdout is not None
-
-        def drain() -> None:
-            assert process.stdout is not None
-            while chunk := process.stdout.read(8192):
-                if len(output) + len(chunk) > _MAX_CAPTURE_BYTES:
-                    overflow.set()
-                elif not overflow.is_set():
-                    output.extend(chunk)
-
-        reader = threading.Thread(target=drain, name="sdist-build-output", daemon=True)
-        reader.start()
-
+    if os.name == "nt":
+        job_active_processes = getattr(getattr(owned, "job", None), "active_processes", None)
     try:
-        deadline = time.monotonic() + timeout
+        if capture and os.name == "nt":
+            assert process.stdout is not None
+            windows_reader = process_module.WindowsPipeReader(
+                process.stdout, limit=_MAX_CAPTURE_BYTES
+            )
+            windows_reader.start()
+            if not windows_reader.wait_ready(max(0.0, deadline - time.monotonic())):
+                _fail("Qualification command output reader did not become ready.")
+            windows_reader.release()
+        elif capture:
+            assert process.stdout is not None
+
+            def drain() -> None:
+                assert process.stdout is not None
+                try:
+                    while chunk := process.stdout.read(8192):
+                        if len(output) + len(chunk) > _MAX_CAPTURE_BYTES:
+                            overflow.set()
+                        elif not overflow.is_set():
+                            output.extend(chunk)
+                except BaseException as error:
+                    reader_errors.append(error)
+                    reader_failed.set()
+
+            reader = threading.Thread(target=drain, name="sdist-build-output", daemon=True)
+            reader.start()
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                owned.terminate(grace_seconds=_TERMINATE_SECONDS)
-                process.wait(timeout=_TERMINATE_SECONDS)
                 _fail("A qualification command exceeded its timeout.")
             try:
                 returncode = process.wait(timeout=min(remaining, _PROCESS_GROUP_POLL_SECONDS))
                 break
             except subprocess.TimeoutExpired:
-                if overflow.is_set():
-                    owned.terminate(grace_seconds=_TERMINATE_SECONDS)
-                    returncode = process.wait(timeout=_TERMINATE_SECONDS)
-                    break
+                if reader_failed.is_set():
+                    _fail("Qualification command output reader failed.")
+                if windows_reader is not None and (
+                    windows_reader.failed.is_set() or windows_reader.errors
+                ):
+                    _fail("Qualification command output reader failed.")
+                if overflow.is_set() or (windows_reader is not None and windows_reader.overflowed):
+                    _fail("Qualification command output exceeded its capture limit.")
         # A successful direct child can leave background descendants holding
         # files or captured pipes. Their existence invalidates a synchronous
         # result even if cleanup succeeds, so record it before terminating.
-        group_had_descendants = owned.group_exists()
-        owned.terminate(grace_seconds=_TERMINATE_SECONDS)
-        if reader is not None:
-            reader.join(timeout=1.0)
-            if reader.is_alive():
+        if os.name != "nt":
+            group_had_descendants = owned.group_exists()
+            if group_had_descendants:
                 owned.terminate(grace_seconds=_TERMINATE_SECONDS)
+                _fail("Qualification command left background descendants after direct-child exit.")
+        elif callable(job_active_processes):
+            if job_active_processes():
+                if windows_reader is not None:
+                    windows_reader.stop.set()
+                owned.require_empty()
+                _fail("Windows qualification Job Object retained active processes.")
+        else:
+            owned.require_empty()
+        if windows_reader is not None:
+            if callable(job_active_processes):
+                while not windows_reader.wait(0):
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        _fail("Qualification command output did not terminate cleanly.")
+                    if windows_reader.wait(min(0.05, remaining)):
+                        break
+                    if job_active_processes():
+                        windows_reader.stop.set()
+                        owned.require_empty()
+                        _fail("Windows qualification Job Object retained active processes.")
+            elif not windows_reader.wait(max(0.0, deadline - time.monotonic())):
                 _fail("Qualification command output did not terminate cleanly.")
+            if windows_reader.errors:
+                _fail("Qualification command output reader failed.")
+            if windows_reader.overflowed:
+                _fail("Qualification command output exceeded its capture limit.")
+            output.extend(windows_reader.data[:_MAX_CAPTURE_BYTES])
+            if callable(job_active_processes):
+                windows_reader.stop.set()
+            else:
+                stop = getattr(windows_reader, "stop", None)
+                if stop is not None:
+                    stop.set()
+        if os.name == "nt" and callable(job_active_processes):
+            if job_active_processes():
+                owned.require_empty()
+                _fail("Windows qualification Job Object retained active processes.")
+            owned.require_empty()
+        elif reader is not None:
+            reader.join(timeout=max(0.0, deadline - time.monotonic()))
+            if reader.is_alive():
+                _fail("Qualification command output did not terminate cleanly.")
+            if reader_errors:
+                _fail("Qualification command output reader failed.")
         if overflow.is_set():
             _fail("Qualification command output exceeded its capture limit.")
-        if group_had_descendants:
-            _fail("Qualification command left background descendants after direct-child exit.")
-        return _CommandResult(returncode, bytes(output))
+        result = _CommandResult(returncode, bytes(output))
+        succeeded = True
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
-        owned.terminate(grace_seconds=_TERMINATE_SECONDS)
-        if process.poll() is None:
-            process.wait(timeout=_TERMINATE_SECONDS)
-        if process.stdout is not None:
-            process.stdout.close()
+        if not succeeded:
+            if os.name == "nt":
+                try:
+                    if callable(job_active_processes):
+                        if windows_reader is not None:
+                            windows_reader.stop.set()
+                    elif windows_reader is not None:
+                        stop = getattr(windows_reader, "stop", None)
+                        if stop is not None:
+                            stop.set()
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            try:
+                owned.terminate(grace_seconds=_TERMINATE_SECONDS, immediate=True)
+            except BaseException as error:
+                cleanup_errors.append(error)
+        if windows_reader is not None:
+            try:
+                if windows_reader.thread.ident is None:
+                    windows_reader.close_stream()
+                else:
+                    windows_reader.cancel_and_join(
+                        deadline=time.monotonic() + process_module._READER_CLEANUP_SECONDS
+                    )
+            except BaseException as error:
+                cleanup_errors.append(error)
+        elif reader is not None and process.stdout is not None:
+            try:
+                if reader.ident is not None and reader.is_alive():
+                    owned.terminate(grace_seconds=_TERMINATE_SECONDS, immediate=True)
+                    reader.join(timeout=_TERMINATE_SECONDS)
+                if reader.is_alive():
+                    raise ValueError("Qualification command output reader did not stop.")
+            except BaseException as error:
+                cleanup_errors.append(error)
+        if os.name == "nt":
+            if process.stdout is not None and windows_reader is None:
+                try:
+                    process.stdout.close()
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            try:
+                owned.reap_and_dispose_handle(timeout=process_module.TERMINATION_WAIT_SECONDS)
+            except BaseException as error:
+                cleanup_errors.append(error)
+            try:
+                owned.close()
+            except BaseException as error:
+                cleanup_errors.append(error)
+        else:
+            try:
+                owned.reap_and_dispose_handle(timeout=process_module.TERMINATION_WAIT_SECONDS)
+            except BaseException as error:
+                cleanup_errors.append(error)
+            if process.stdout is not None and windows_reader is None and not (
+                reader is not None and reader.is_alive()
+            ):
+                try:
+                    process.stdout.close()
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            elif reader is not None and reader.is_alive():
+                cleanup_errors.append(
+                    ValueError("Qualification output reader remains live; pipe stays owned.")
+                )
+        if cleanup_errors:
+            if primary_error is not None:
+                for cleanup_error in cleanup_errors:
+                    primary_error.add_note(
+                        f"Qualification cleanup also failed: {type(cleanup_error).__name__}."
+                    )
+            else:
+                raise ValueError("Qualification command cleanup failed.") from cleanup_errors[0]
+    assert result is not None
+    return result
 
 
 def _checked_output(command: list[str], *, cwd: Path | None = None) -> bytes:
