@@ -114,6 +114,8 @@ def test_bounded_runner_rejects_nonfinite_deadline_before_process_start(
     )
     with pytest.raises(ValueError, match="subprocess parameters"):
         installed_module._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=float("nan"))
+
+
 TCK_IDS = (
     "plumber.consumer.package/v1",
     "plumber.graph.read/v1",

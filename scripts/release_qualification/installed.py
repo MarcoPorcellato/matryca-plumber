@@ -600,9 +600,7 @@ def _run_bounded(
         assert process.stdout is not None and process.stderr is not None
         if os.name == "nt":
             for stream in (process.stdout, process.stderr):
-                windows_readers.append(
-                    process_module.WindowsPipeReader(stream, limit=output_limit)
-                )
+                windows_readers.append(process_module.WindowsPipeReader(stream, limit=output_limit))
             for reader in windows_readers:
                 reader.start()
             for reader in windows_readers:
@@ -611,6 +609,7 @@ def _run_bounded(
             for reader in windows_readers:
                 reader.release()
         else:
+
             def drain(stream: object, target: bytearray) -> None:
                 try:
                     while chunk := stream.read(64 * 1024):  # type: ignore[attr-defined]
@@ -624,14 +623,10 @@ def _run_bounded(
                     reader_failed.set()
 
             readers.append(
-                threading.Thread(
-                    target=drain, args=(process.stdout, collected[0]), daemon=True
-                )
+                threading.Thread(target=drain, args=(process.stdout, collected[0]), daemon=True)
             )
             readers.append(
-                threading.Thread(
-                    target=drain, args=(process.stderr, collected[1]), daemon=True
-                )
+                threading.Thread(target=drain, args=(process.stderr, collected[1]), daemon=True)
             )
             for reader in readers:
                 reader.start()
@@ -670,9 +665,7 @@ def _run_bounded(
                             for active_reader in windows_readers:
                                 active_reader.stop.set()
                             owned.require_empty()
-                            _fail(
-                                "Windows qualification Job Object retained active processes."
-                            )
+                            _fail("Windows qualification Job Object retained active processes.")
                 elif not reader.wait(max(0.0, deadline - time.monotonic())):
                     _fail("Isolated subprocess output reader did not terminate.")
                 if reader.errors:

@@ -216,9 +216,7 @@ def _install_fake_windows_apis(
     state = {"active": 0, "thread_handle": 0}
     job_handle = 0xA001
 
-    def _query(
-        _handle: object, _kind: object, payload: object, *_args: object
-    ) -> int:
+    def _query(_handle: object, _kind: object, payload: object, *_args: object) -> int:
         events.append("job-query")
         info = process.ctypes.cast(
             payload, process.ctypes.POINTER(process._JobBasicAccountingInformation)
@@ -283,7 +281,9 @@ def test_each_pipe_reader_kernel_object_is_configured_and_keeps_pointer_sized_ha
             )
             self.CloseHandle = _NativeFunction(lambda handle: closed.append(int(handle)) or 1)
 
-    monkeypatch.setattr(process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False)
+    monkeypatch.setattr(
+        process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False
+    )
     stream = io.BytesIO(b"synthetic")
     reader = process.WindowsPipeReader(stream, limit=32)
     reader.start()
@@ -295,7 +295,11 @@ def test_each_pipe_reader_kernel_object_is_configured_and_keeps_pointer_sized_ha
     assert len(api_objects) == 3
     for api in api_objects:
         assert api.GetCurrentThreadId.restype is process.ctypes.c_uint32
-        assert api.OpenThread.argtypes == [process.ctypes.c_uint32, process.ctypes.c_int, process.ctypes.c_uint32]
+        assert api.OpenThread.argtypes == [
+            process.ctypes.c_uint32,
+            process.ctypes.c_int,
+            process.ctypes.c_uint32,
+        ]
         assert api.OpenThread.restype is process.ctypes.c_void_p
         assert api.CancelSynchronousIo.argtypes == [process.ctypes.c_void_p]
         assert api.CancelSynchronousIo.restype is process.ctypes.c_int
@@ -323,12 +327,13 @@ def test_windows_job_api_failures_fail_closed_and_close_once(
             )
             self.AssignProcessToJobObject = _NativeFunction(lambda *_args: 1)
             self.TerminateJobObject = _NativeFunction(
-                lambda *_args: 0 if failure == "terminate" else active_processes.__setitem__(0, 0) or 1
+                lambda *_args: (
+                    0 if failure == "terminate" else active_processes.__setitem__(0, 0) or 1
+                )
             )
             self.QueryInformationJobObject = _NativeFunction(self._query)
             self.CloseHandle = _NativeFunction(
-                lambda handle: closed.append(int(handle))
-                or (0 if failure == "close" else 1)
+                lambda handle: closed.append(int(handle)) or (0 if failure == "close" else 1)
             )
 
         @staticmethod
@@ -341,7 +346,9 @@ def test_windows_job_api_failures_fail_closed_and_close_once(
             info.ActiveProcesses = active_processes[0]
             return 1
 
-    monkeypatch.setattr(process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False)
+    monkeypatch.setattr(
+        process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False
+    )
 
     if failure in {"create", "configure"}:
         with pytest.raises(OSError):
@@ -362,7 +369,9 @@ def test_windows_job_api_failures_fail_closed_and_close_once(
             assert closed == [job_handle]
 
 
-def test_reader_retains_short_raw_reads_and_close_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reader_retains_short_raw_reads_and_close_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pointer_handle = 0x1_0000_2222
     close_calls: list[int] = []
 
@@ -925,9 +934,7 @@ def test_sdist_windows_consumer_observes_reader_error_during_wait_loop(
     monkeypatch.setattr(process, "WindowsPipeReader", _Reader)
 
     with pytest.raises(ValueError, match="output reader failed") as caught:
-        sdist_build._run_bounded(
-            ["synthetic-child"], cwd=tmp_path, timeout=1.0, capture=True
-        )
+        sdist_build._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=1.0, capture=True)
 
     assert "cleanup also failed" in " ".join(getattr(caught.value, "__notes__", []))
     assert events == ["terminate", "cancel", "reap", "close-job"]
@@ -975,11 +982,7 @@ def test_windows_installed_consumer_failure_matrix_uses_real_owner_and_readers(
     class _Stream:
         def __init__(self, name: str) -> None:
             self.name = name
-            self.payload = (
-                b"12345"
-                if failure == f"{name}-overflow"
-                else b""
-            )
+            self.payload = b"12345" if failure == f"{name}-overflow" else b""
             self.read_started = threading.Event()
             self.read_done = threading.Event()
             self.closed = False
@@ -1088,9 +1091,7 @@ def test_windows_installed_consumer_failure_matrix_uses_real_owner_and_readers(
     }
     try:
         with pytest.raises(ValueError, match=messages[failure]) as caught:
-            installed._run_bounded(
-                ["synthetic-child"], cwd=tmp_path, timeout=1.0, output_limit=4
-            )
+            installed._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=1.0, output_limit=4)
     finally:
         cancel.set()
 
@@ -1103,9 +1104,7 @@ def test_windows_installed_consumer_failure_matrix_uses_real_owner_and_readers(
     assert events.count("native-close:45057") == 1
     assert events.count("native-close:45058") == 1
     if failure == "reader-error":
-        assert "Subprocess cleanup also failed" in " ".join(
-            getattr(caught.value, "__notes__", [])
-        )
+        assert "Subprocess cleanup also failed" in " ".join(getattr(caught.value, "__notes__", []))
     if failure == "retained-pipe-descendant":
         assert child.stdout.read_started.is_set()
         assert "reader-cancel" in events
@@ -1259,13 +1258,9 @@ def test_windows_sdist_consumer_reader_error_uses_real_owner_and_reader(
     monkeypatch.setattr(sdist_build, "os", type("_Windows", (), {"name": "nt"})())
 
     with pytest.raises(ValueError, match="output reader failed") as caught:
-        sdist_build._run_bounded(
-            ["synthetic-child"], cwd=tmp_path, timeout=1.0, capture=True
-        )
+        sdist_build._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=1.0, capture=True)
 
-    assert "Qualification cleanup also failed" in " ".join(
-        getattr(caught.value, "__notes__", [])
-    )
+    assert "Qualification cleanup also failed" in " ".join(getattr(caught.value, "__notes__", []))
     assert child.wait_calls >= 2
     assert child.stdout.closed and child.stdout.close_calls == 1
     assert events.count("job-terminate") == 1
@@ -1536,13 +1531,9 @@ def test_sdist_capture_enforces_64k_bound_and_cleans_up(
 
     if expect_overflow:
         with pytest.raises(ValueError, match="capture limit"):
-            sdist_build._run_bounded(
-                ["synthetic-child"], timeout=1.0, capture=True
-            )
+            sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
     else:
-        accepted = sdist_build._run_bounded(
-            ["synthetic-child"], timeout=1.0, capture=True
-        )
+        accepted = sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
         assert accepted.returncode == 0
         assert len(accepted.stdout) == 65_536
         assert accepted.stdout == b"a" * 65_536
@@ -1608,8 +1599,7 @@ def test_owned_process_preserves_primary_when_job_cleanup_fails(
     primary = raised.value.__cause__
     assert isinstance(primary, subprocess.TimeoutExpired)
     assert any(
-        "Windows Job cleanup also failed: RuntimeError" in note
-        for note in primary.__notes__
+        "Windows Job cleanup also failed: RuntimeError" in note for note in primary.__notes__
     )
     owned.close()
 
@@ -1672,19 +1662,13 @@ def test_sdist_windows_capture_uses_real_reader_and_finalizes(
 
     child = _Child()
     monkeypatch.setattr(sdist_build, "os", _WindowsPlatform())
-    monkeypatch.setattr(
-        process.subprocess, "Popen", lambda *_args, **_kwargs: child
-    )
+    monkeypatch.setattr(process.subprocess, "Popen", lambda *_args, **_kwargs: child)
 
     if expect_overflow:
         with pytest.raises(ValueError, match="capture limit"):
-            sdist_build._run_bounded(
-                ["synthetic-child"], timeout=1.0, capture=True
-            )
+            sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
     else:
-        result = sdist_build._run_bounded(
-            ["synthetic-child"], timeout=1.0, capture=True
-        )
+        result = sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
         assert result.returncode == 0
         assert len(result.stdout) == 65_536
         assert result.stdout == b"a" * 65_536
@@ -1735,7 +1719,10 @@ def test_posix_tree_termination_shares_one_five_second_fake_clock_budget(
 
     with pytest.raises(ValueError, match="process group safely"):
         process.terminate_process_group(
-            4321, leader=leader, grace_seconds=3.0, immediate=False  # type: ignore[arg-type]
+            4321,
+            leader=leader,
+            grace_seconds=3.0,
+            immediate=False,  # type: ignore[arg-type]
         )
 
     kill_time = next(at for signal, at in events if signal == str(process.signal.SIGKILL))
@@ -1836,14 +1823,9 @@ def test_sdist_consumer_preserves_reader_failure_when_pipe_close_fails(
     monkeypatch.setattr(process, "process_group_exists", lambda _pid: False)
 
     with pytest.raises(ValueError, match="output reader failed") as raised:
-        sdist_build._run_bounded(
-            ["synthetic-child"], timeout=1.0, capture=True
-        )
+        sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
 
-    assert any(
-        "cleanup also failed: RuntimeError" in note
-        for note in raised.value.__notes__
-    )
+    assert any("cleanup also failed: RuntimeError" in note for note in raised.value.__notes__)
     assert child.wait_calls >= 1
     assert child.stdout.close_calls >= 1
 
@@ -1894,8 +1876,9 @@ def test_posix_reader_constructor_baseexception_finalizes_owner(
     monkeypatch.setattr(
         process,
         "_signal_process_group",
-        lambda _pid, sig: events.append(f"group-signal:{sig}")
-        or group_active.__setitem__(0, False),
+        lambda _pid, sig: (
+            events.append(f"group-signal:{sig}") or group_active.__setitem__(0, False)
+        ),
     )
 
     module = sdist_build if consumer == "sdist" else installed
@@ -1922,9 +1905,7 @@ def test_posix_reader_constructor_baseexception_finalizes_owner(
 
     with pytest.raises(KeyboardInterrupt, match="synthetic reader allocation failure"):
         if consumer == "sdist":
-            sdist_build._run_bounded(
-                ["synthetic-child"], timeout=1.0, capture=True
-            )
+            sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
         else:
             installed._run_bounded(["synthetic-child"], cwd=Path("."), timeout=1)
 
@@ -2012,9 +1993,7 @@ def test_windows_reader_constructor_baseexception_finalizes_owner(
 
     with pytest.raises(KeyboardInterrupt, match="synthetic raw-reader allocation failure"):
         if consumer == "sdist":
-            sdist_build._run_bounded(
-                ["synthetic-child"], timeout=1.0, capture=True
-            )
+            sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
         else:
             installed._run_bounded(["synthetic-child"], cwd=Path("."), timeout=1)
 
@@ -2177,10 +2156,10 @@ def test_windows_job_configuration_close_baseexception_preserves_configuration_e
             events.append("job-close")
             raise _InjectedCleanupBaseException("configuration-close")
 
-    monkeypatch.setattr(process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False)
     monkeypatch.setattr(
-        process.WindowsJob, "_last_error", staticmethod(lambda _message: primary)
+        process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False
     )
+    monkeypatch.setattr(process.WindowsJob, "_last_error", staticmethod(lambda _message: primary))
     observed: BaseException | None = None
     try:
         process.WindowsJob()
@@ -2283,7 +2262,9 @@ def test_windows_consumer_requests_reader_stop_before_job_cleanup(
     real_job_terminate = job.terminate
 
     def _observe_job_terminate() -> None:
-        stop_at_job_cleanup.append(bool(readers) and all(reader.stop.is_set() for reader in readers))
+        stop_at_job_cleanup.append(
+            bool(readers) and all(reader.stop.is_set() for reader in readers)
+        )
         for signal in release:
             signal.set()
         real_job_terminate()
@@ -2310,13 +2291,9 @@ def test_windows_consumer_requests_reader_stop_before_job_cleanup(
     observed: BaseException | None = None
     try:
         if consumer == "installed":
-            installed._run_bounded(
-                ["synthetic-child"], cwd=tmp_path, timeout=0.08, output_limit=8
-            )
+            installed._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=0.08, output_limit=8)
         else:
-            sdist_build._run_bounded(
-                ["synthetic-child"], timeout=0.08, capture=True
-            )
+            sdist_build._run_bounded(["synthetic-child"], timeout=0.08, capture=True)
     except BaseException as error:
         observed = error
     finally:
@@ -2359,9 +2336,7 @@ def test_windows_initial_job_query_failure_still_terminates_before_reader_cleanu
             active[0] = 0
             return 1
 
-        def _query(
-            self, _handle: object, _kind: object, payload: object, *_args: object
-        ) -> int:
+        def _query(self, _handle: object, _kind: object, payload: object, *_args: object) -> int:
             query_calls[0] += 1
             events.append("job-query")
             if query_calls[0] == 1:
@@ -2419,7 +2394,9 @@ def test_windows_initial_job_query_failure_still_terminates_before_reader_cleanu
     class _WindowsPlatform:
         name = "nt"
 
-    monkeypatch.setattr(process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False)
+    monkeypatch.setattr(
+        process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False
+    )
     monkeypatch.setattr(
         process.WindowsJob,
         "_last_error",
@@ -2662,9 +2639,7 @@ def test_windows_consumers_retain_drainage_outcomes_and_cleanup_order(
     readers: list[process.WindowsPipeReader] = []
     stop_at_tree_cleanup: list[tuple[bool, ...]] = []
     query_phases: list[str] = []
-    polling_observations: list[
-        tuple[tuple[bool, ...], tuple[bool, ...]]
-    ] = []
+    polling_observations: list[tuple[tuple[bool, ...], tuple[bool, ...]]] = []
     empty_queries_after_tree_cleanup: list[int] = []
     pipe_close_with_live_reader: list[bool] = []
     query_error = OSError("synthetic final Job query failure")
@@ -2743,9 +2718,7 @@ def test_windows_consumers_retain_drainage_outcomes_and_cleanup_order(
     child = _Child()
     job = process.WindowsJob()
 
-    def _query(
-        _handle: object, _kind: object, payload: object, *_args: object
-    ) -> int:
+    def _query(_handle: object, _kind: object, payload: object, *_args: object) -> int:
         nonlocal final_query_done_state, final_query_failure_injected
         nonlocal final_query_phase, final_query_stop_state
         events.append("job-query")
@@ -2837,15 +2810,11 @@ def test_windows_consumers_retain_drainage_outcomes_and_cleanup_order(
                 ["synthetic-child"], cwd=tmp_path, timeout=1, output_limit=8
             )
         else:
-            result = sdist_build._run_bounded(
-                ["synthetic-child"], timeout=1.0, capture=True
-            )
+            result = sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
     except BaseException as error:
         observed = error
     finally:
-        production_terminal_reader_alive = tuple(
-            reader.thread.is_alive() for reader in readers
-        )
+        production_terminal_reader_alive = tuple(reader.thread.is_alive() for reader in readers)
         production_terminal_pipe_close_with_live_reader = tuple(pipe_close_with_live_reader)
         # Bounded fixture rescue is intentionally separate from the captured production state.
         allow_first_read.set()
@@ -2854,15 +2823,11 @@ def test_windows_consumers_retain_drainage_outcomes_and_cleanup_order(
             reader.release()
             if reader.thread.ident is not None:
                 reader.thread.join(timeout=1.0)
-        fixture_rescue_reader_alive = tuple(
-            reader.thread.is_alive() for reader in readers
-        )
+        fixture_rescue_reader_alive = tuple(reader.thread.is_alive() for reader in readers)
 
     assert readers
     assert production_terminal_reader_alive == tuple(False for _ in readers)
-    assert production_terminal_pipe_close_with_live_reader == tuple(
-        False for _ in readers
-    )
+    assert production_terminal_pipe_close_with_live_reader == tuple(False for _ in readers)
     assert fixture_rescue_reader_alive == tuple(False for _ in readers)
     if scenario == "polling-descendant":
         assert isinstance(observed, ValueError)
@@ -2880,9 +2845,11 @@ def test_windows_consumers_retain_drainage_outcomes_and_cleanup_order(
             not all(done_state) and not any(stop_state)
             for done_state, stop_state in polling_observations
         )
-        assert query_phases.index("reader-drainage") < query_phases.index(
-            "cleanup-after-reader-stop"
-        ) < query_phases.index("post-tree-cleanup")
+        assert (
+            query_phases.index("reader-drainage")
+            < query_phases.index("cleanup-after-reader-stop")
+            < query_phases.index("post-tree-cleanup")
+        )
         assert events.count("tree-cleanup") == 1
         assert events.count("job-terminate") == 1
         assert empty_queries_after_tree_cleanup
@@ -3044,12 +3011,8 @@ def test_windows_consumers_preserve_job_query_failures_by_reader_phase(
                 for name, started in read_started.items():
                     if not started.wait(1.0):
                         raise AssertionError(f"{name} reader did not reach drainage")
-                injection_done_state = tuple(
-                    reader.done.is_set() for reader in readers
-                )
-                injection_stop_state = tuple(
-                    reader.stop.is_set() for reader in readers
-                )
+                injection_done_state = tuple(reader.done.is_set() for reader in readers)
+                injection_stop_state = tuple(reader.stop.is_set() for reader in readers)
                 if all(injection_done_state) or any(injection_stop_state):
                     raise AssertionError("query error fixture did not reach unfinished drainage")
                 injected_phase = "unfinished-reader-drainage"
@@ -3093,26 +3056,20 @@ def test_windows_consumers_preserve_job_query_failures_by_reader_phase(
     monkeypatch.setattr(process, "start_process", lambda *_args, **_kwargs: owned)
     try:
         if consumer == "installed":
-            installed._run_bounded(
-                ["synthetic-child"], cwd=tmp_path, timeout=1.0, output_limit=8
-            )
+            installed._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=1.0, output_limit=8)
         else:
             sdist_build._run_bounded(["synthetic-child"], timeout=1.0, capture=True)
     except BaseException as error:
         observed = error
     finally:
-        production_terminal_reader_alive = tuple(
-            reader.thread.is_alive() for reader in readers
-        )
+        production_terminal_reader_alive = tuple(reader.thread.is_alive() for reader in readers)
         allow_first_read.set()
         allow_pipe_exit.set()
         for reader in readers:
             reader.release()
             if reader.thread.ident is not None:
                 reader.thread.join(timeout=1.0)
-        fixture_rescue_reader_alive = tuple(
-            reader.thread.is_alive() for reader in readers
-        )
+        fixture_rescue_reader_alive = tuple(reader.thread.is_alive() for reader in readers)
 
     assert observed is query_error
     assert injection_count == 1
@@ -3143,6 +3100,7 @@ def test_windows_owner_uses_one_budget_per_tree_reap_and_reader_phase(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Observe separate modeled cleanup phases, not cap exhaustion or reentry behavior."""
+
     class _Clock:
         def __init__(self) -> None:
             self.now = 0.0
@@ -3254,11 +3212,7 @@ def test_windows_owner_uses_one_budget_per_tree_reap_and_reader_phase(
     kernel32 = job._kernel32
 
     def _query(_handle: object, _kind: object, payload: object, *_args: object) -> int:
-        if (
-            tree_phase_start
-            and state["active"]
-            and clock.monotonic() - tree_phase_start[0] >= 2.0
-        ):
+        if tree_phase_start and state["active"] and clock.monotonic() - tree_phase_start[0] >= 2.0:
             state["active"] = 0
             tree_phase_end.append(clock.monotonic())
             tree_phase_spend.append(tree_phase_end[-1] - tree_phase_start[0])
@@ -3348,9 +3302,7 @@ def test_windows_owner_uses_one_budget_per_tree_reap_and_reader_phase(
     except BaseException as error:
         observed = error
     finally:
-        production_terminal_reader_alive = tuple(
-            reader.thread.is_alive() for reader in readers
-        )
+        production_terminal_reader_alive = tuple(reader.thread.is_alive() for reader in readers)
         production_terminal_pipes = tuple(
             (
                 name,
@@ -3381,9 +3333,7 @@ def test_windows_owner_uses_one_budget_per_tree_reap_and_reader_phase(
             reader.release()
             if reader.thread.ident is not None:
                 reader.thread.join(timeout=max(0.0, rescue_deadline - time.monotonic()))
-        fixture_rescue_reader_alive = tuple(
-            reader.thread.is_alive() for reader in readers
-        )
+        fixture_rescue_reader_alive = tuple(reader.thread.is_alive() for reader in readers)
 
     assert type(observed) is ValueError
     assert str(observed) == "Isolated subprocess exceeded its time limit."
@@ -3661,9 +3611,7 @@ def test_installed_reader_poison_stops_second_reader_cleanup(
     monkeypatch.setattr(process, "start_process", lambda *_args, **_kwargs: owned)
 
     try:
-        process_outcome = installed._run_bounded(
-            ["synthetic-child"], cwd=tmp_path, timeout=1.0
-        )
+        process_outcome = installed._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=1.0)
     except BaseException as error:
         observed_error = error
 
@@ -3687,14 +3635,12 @@ def test_installed_reader_poison_stops_second_reader_cleanup(
     assert worker_waits[1][1] == ()
     assert observed_error is primary_error
     assert process_outcome is no_return
-    assert primary_error_notes == (
-        "Subprocess cleanup also failed: ProcessCleanupIncomplete.",
-    )
+    assert primary_error_notes == ("Subprocess cleanup also failed: ProcessCleanupIncomplete.",)
     assert observer_poisoned is True
-    assert tuple(
-        (stream.name, handle)
-        for stream, _thread, handle in retained_summary
-    ) == (("stdout", 0xB601), ("stderr", 0xB602))
+    assert tuple((stream.name, handle) for stream, _thread, handle in retained_summary) == (
+        ("stdout", 0xB601),
+        ("stderr", 0xB602),
+    )
     assert len(retained_summary) == 2
     assert all(thread.is_alive() for _stream, thread, _handle in retained_summary)
     assert worker_waits[0][0] is child.stdout
@@ -3711,6 +3657,7 @@ def test_windows_job_poll_wait_fits_remaining_allowance_and_owner_reentry_is_cac
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Check requested waits against allowance; this is not a wall-time claim."""
+
     class _Clock:
         now = 0.0
         deadline = 0.0
@@ -3740,9 +3687,7 @@ def test_windows_job_poll_wait_fits_remaining_allowance_and_owner_reentry_is_cac
             clock.deadline = clock.monotonic() + 1.0
             return 1
 
-        def _query(
-            self, _handle: object, _kind: object, payload: object, *_args: object
-        ) -> int:
+        def _query(self, _handle: object, _kind: object, payload: object, *_args: object) -> int:
             nonlocal active, query_calls
             query_calls += 1
             if query_calls == 2:
@@ -3757,7 +3702,9 @@ def test_windows_job_poll_wait_fits_remaining_allowance_and_owner_reentry_is_cac
 
     monkeypatch.setattr(process, "time", clock)
     monkeypatch.setattr(process, "TERMINATION_WAIT_SECONDS", 1.0)
-    monkeypatch.setattr(process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False)
+    monkeypatch.setattr(
+        process.ctypes, "WinDLL", lambda *_args, **_kwargs: _Kernel(), raising=False
+    )
     job = process.WindowsJob()
     job_failure: BaseException | None = None
     try:

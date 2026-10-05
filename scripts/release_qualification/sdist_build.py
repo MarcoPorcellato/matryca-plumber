@@ -735,8 +735,10 @@ def _run_bounded(
                 owned.reap_and_dispose_handle(timeout=process_module.TERMINATION_WAIT_SECONDS)
             except BaseException as error:
                 cleanup_errors.append(error)
-            if process.stdout is not None and windows_reader is None and not (
-                reader is not None and reader.is_alive()
+            if (
+                process.stdout is not None
+                and windows_reader is None
+                and not (reader is not None and reader.is_alive())
             ):
                 try:
                     process.stdout.close()

@@ -130,9 +130,7 @@ class WindowsPipeReader:
                 stream is self.stream and thread is self.thread
                 for stream, thread, _handle in _POISONED_READER_RESOURCES
             ):
-                _POISONED_READER_RESOURCES.append(
-                    (self.stream, self.thread, self.thread_handle)
-                )
+                _POISONED_READER_RESOURCES.append((self.stream, self.thread, self.thread_handle))
             raise ProcessCleanupIncomplete(
                 "Qualification cleanup incomplete: reader resources remain owned."
             )
@@ -185,9 +183,7 @@ class WindowsPipeReader:
                 stream is self.stream and thread is self.thread
                 for stream, thread, _handle in _POISONED_READER_RESOURCES
             ):
-                _POISONED_READER_RESOURCES.append(
-                    (self.stream, self.thread, self.thread_handle)
-                )
+                _POISONED_READER_RESOURCES.append((self.stream, self.thread, self.thread_handle))
             error = ProcessCleanupIncomplete(
                 "Qualification cleanup incomplete: live reader, raw pipe and thread handle "
                 "remain owned."
@@ -387,7 +383,9 @@ class WindowsJob:
         if handle:
             if self._close_attempted:
                 if self._close_error is not None:
-                    raise ValueError("Windows qualification Job Object close previously failed.") from self._close_error
+                    raise ValueError(
+                        "Windows qualification Job Object close previously failed."
+                    ) from self._close_error
                 return
             self._close_attempted = True
             try:
@@ -470,9 +468,7 @@ class OwnedProcess:
                 fallback_reap=self._reap_posix_child,
             )
         except BaseException as error:
-            termination_attempted = bool(
-                getattr(self.job, "_termination_attempted", True)
-            )
+            termination_attempted = bool(getattr(self.job, "_termination_attempted", True))
             query_only_failure = (
                 self.job is not None
                 and not termination_attempted
@@ -749,9 +745,7 @@ def terminate_process_group(
         ):
             return
         _signal_process_group(process_group_id, signal.SIGKILL)
-        if not _wait_process_group_exit(
-            process_group_id, leader=leader, deadline=cleanup_deadline
-        ):
+        if not _wait_process_group_exit(process_group_id, leader=leader, deadline=cleanup_deadline):
             raise ValueError(
                 "Could not stop every member of the owned qualification process group."
             )
