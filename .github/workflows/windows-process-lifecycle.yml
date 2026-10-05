@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - name: Install uv and Python 3.12
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         with:
           enable-cache: true
           python-version: "3.12"
