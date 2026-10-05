@@ -9,7 +9,8 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 TERMINATION_WAIT_SECONDS = 5.0
 PROCESS_GROUP_POLL_SECONDS = 0.05

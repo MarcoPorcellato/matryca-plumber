@@ -469,13 +469,17 @@ def test_posix_runner_never_closes_a_pipe_with_a_live_reader(
     monkeypatch.setattr(process, "TERMINATION_WAIT_SECONDS", 0.02)
     if runner_name == "installed":
         monkeypatch.setattr(installed, "os", __import__("types").SimpleNamespace(name="posix"))
-        run = lambda: installed._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=0.03)
+
+        def run() -> tuple[int, bytes, bytes]:
+            return installed._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=0.03)
     else:
         monkeypatch.setattr(sdist_build, "os", __import__("types").SimpleNamespace(name="posix"))
         monkeypatch.setattr(sdist_build, "_TERMINATE_SECONDS", 0.02)
-        run = lambda: sdist_build._run_bounded(
-            ["synthetic-child"], cwd=tmp_path, timeout=0.03, capture=True
-        )
+
+        def run() -> sdist_build._CommandResult:
+            return sdist_build._run_bounded(
+                ["synthetic-child"], cwd=tmp_path, timeout=0.03, capture=True
+            )
 
     try:
         with pytest.raises(ValueError, match="reader|output"):
