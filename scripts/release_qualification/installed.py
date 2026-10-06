@@ -19,7 +19,7 @@ import time
 import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
-from typing import Literal, NoReturn
+from typing import IO, Literal, NoReturn, cast
 from urllib.parse import urlparse
 
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
@@ -628,8 +628,8 @@ def _run_bounded(
             readers.append(
                 threading.Thread(target=drain, args=(process.stderr, collected[1]), daemon=True)
             )
-            for reader in readers:
-                reader.start()
+            for posix_reader in readers:
+                posix_reader.start()
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -690,9 +690,11 @@ def _run_bounded(
                 owned.terminate(grace_seconds=0, immediate=True)
                 _fail("Isolated subprocess left an output-producing descendant alive.")
             reader_deadline = time.monotonic() + process_module.TERMINATION_WAIT_SECONDS
-            for reader in readers:
-                reader.join(timeout=max(0.0, min(deadline, reader_deadline) - time.monotonic()))
-                if reader.is_alive():
+            for posix_reader in readers:
+                posix_reader.join(
+                    timeout=max(0.0, min(deadline, reader_deadline) - time.monotonic())
+                )
+                if posix_reader.is_alive():
                     _fail("Isolated subprocess output reader did not terminate.")
             if reader_errors:
                 _fail("Isolated subprocess output reader failed.")
@@ -739,12 +741,16 @@ def _run_bounded(
                         reader.cancel_and_join(deadline=cleanup_deadline)
                 except BaseException as error:
                     cleanup_errors.append(error)
-            for stream in (process.stdout, process.stderr):
-                if stream is not None and not any(
-                    stream is reader.stream for reader in windows_readers
+            windows_cleanup_streams: tuple[IO[bytes] | None, IO[bytes] | None] = (
+                process.stdout,
+                process.stderr,
+            )
+            for windows_cleanup_stream in windows_cleanup_streams:
+                if windows_cleanup_stream is not None and not any(
+                    windows_cleanup_stream is reader.stream for reader in windows_readers
                 ):
                     try:
-                        stream.close()
+                        windows_cleanup_stream.close()
                     except BaseException as error:
                         cleanup_errors.append(error)
             try:
@@ -757,23 +763,23 @@ def _run_bounded(
                 cleanup_errors.append(error)
         else:
             cleanup_deadline = time.monotonic() + process_module.TERMINATION_WAIT_SECONDS
-            for reader in readers:
+            for posix_reader in readers:
                 try:
-                    if reader.ident is not None and reader.is_alive():
+                    if posix_reader.ident is not None and posix_reader.is_alive():
                         owned.terminate(grace_seconds=0, immediate=True)
-                        reader.join(timeout=max(0.0, cleanup_deadline - time.monotonic()))
-                    if reader.is_alive():
+                        posix_reader.join(timeout=max(0.0, cleanup_deadline - time.monotonic()))
+                    if posix_reader.is_alive():
                         raise ValueError("Isolated subprocess output reader did not stop.")
                 except BaseException as error:
                     cleanup_errors.append(error)
-            if any(reader.is_alive() for reader in readers):
+            if any(posix_reader.is_alive() for posix_reader in readers):
                 cleanup_errors.append(
                     ValueError("Isolated subprocess output reader remains live; pipes stay owned.")
                 )
             else:
-                for stream in (process.stdout, process.stderr):
+                for posix_cleanup_stream in (process.stdout, process.stderr):
                     try:
-                        stream.close()
+                        cast(IO[bytes], posix_cleanup_stream).close()
                     except BaseException as error:
                         cleanup_errors.append(error)
             try:
@@ -782,9 +788,9 @@ def _run_bounded(
                 cleanup_errors.append(error)
         if cleanup_errors:
             if primary_error is not None:
-                for error in cleanup_errors:
+                for cleanup_error in cleanup_errors:
                     primary_error.add_note(
-                        f"Subprocess cleanup also failed: {type(error).__name__}."
+                        f"Subprocess cleanup also failed: {type(cleanup_error).__name__}."
                     )
             else:
                 raise ValueError("Isolated subprocess cleanup failed.") from cleanup_errors[0]

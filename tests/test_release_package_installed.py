@@ -16,6 +16,7 @@ import tarfile
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
@@ -113,7 +114,10 @@ def test_bounded_runner_rejects_nonfinite_deadline_before_process_start(
         lambda *_args, **_kwargs: pytest.fail("invalid deadline started a process"),
     )
     with pytest.raises(ValueError, match="subprocess parameters"):
-        installed_module._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=float("nan"))
+        # This cast is static-only: validation must still receive non-finite NaN.
+        installed_module._run_bounded(
+            ["synthetic-child"], cwd=tmp_path, timeout=cast(int, float("nan"))
+        )
 
 
 TCK_IDS = (

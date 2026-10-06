@@ -185,13 +185,13 @@ class WindowsPipeReader:
                 for stream, thread, _handle in _POISONED_READER_RESOURCES
             ):
                 _POISONED_READER_RESOURCES.append((self.stream, self.thread, self.thread_handle))
-            error = ProcessCleanupIncomplete(
+            cleanup_error = ProcessCleanupIncomplete(
                 "Qualification cleanup incomplete: live reader, raw pipe and thread handle "
                 "remain owned."
             )
             if self.errors:
-                error.add_note(f"Reader cleanup errors: {len(self.errors)}.")
-            raise error
+                cleanup_error.add_note(f"Reader cleanup errors: {len(self.errors)}.")
+            raise cleanup_error
         self._close_owned_resources()
         if self.errors:
             raise ValueError(
