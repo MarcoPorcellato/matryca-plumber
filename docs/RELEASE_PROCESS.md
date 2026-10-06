@@ -75,10 +75,12 @@ separate final RC4 qualification decision. Neither stage authorizes stable promo
 
 ### RC4 Stage A on-demand package qualification
 
-No Stage A workflow is currently deployed or dispatchable: its prototype was
-withheld because the required Windows row lacks admitted launcher provenance
-and native Windows x64 evidence. The package verifiers and operator procedure
-are preparatory only; Stage A remains NO-GO. Use the proposed manual
+No Stage A workflow is currently deployed or dispatchable. Its prototype was
+initially withheld pending upstream installer/template provenance and native
+Windows x64 evidence. Later byte-only admission accepted the exact upstream
+provenance chain described below; installed-launcher authentication and native
+Windows x64 package/process qualification remain outstanding. The package
+verifiers and operator procedure are preparatory only; Stage A remains NO-GO. Use the proposed manual
 package-qualification workflow only after its implementation has landed on
 protected `main` with a genuinely qualified Windows row. First select the exact,
 reachable, clean `main` commit and record its full commit and tree IDs. The workflow's
@@ -97,8 +99,9 @@ sdist. The temporary wheel is not part of canonical `dist`. A recorded generated
 wheel hash proves only this run's exact output, not reproducible builds. Generator
 metadata alone does not prove the full build environment.
 
-The required Windows row must also be genuinely qualified. Until complete launcher
-installer/template provenance and native Windows x64 package/process evidence exist,
+The required Windows row must also be genuinely qualified. Admitted upstream
+installer/template provenance does not establish actual installed-launcher
+authentication or native Windows x64 package/process evidence. Until those exist,
 Windows remains NO-GO. A deliberately failing Windows step is not a qualification
 result: do not dispatch such a workflow, call Stage A PASS, or infer stable-release
 readiness.
@@ -111,10 +114,16 @@ official [Windows x64 archive checksum](https://releases.astral.sh/github/uv/rel
 is `6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0`.
 The former `0.12.16` pin falls in the affected `>=0.12.7,<0.12.18` range and is
 historical only; do not use it for Windows wheel installation. The new tool pin
-does not qualify the generated launcher. Exact tag-to-commit resolution, the
-tag-pinned launcher source/content, and executable-template provenance remain
-unverified. `RECORD` and an `MZ`/PE header alone do not authenticate generated
-launcher bytes. Lifting NO-GO requires that exact source/template chain, an
+alone did not qualify the generated launcher. Initial byte-only attempts retained
+their failures, including a verification-command construction error that was not
+an artifact rejection. A subsequent bounded, non-executing admission on
+2026-10-01 accepted the exact archive and pinned template under the authenticated
+upstream release-builder policy, binding the selected source and inspected
+build/sign/assembly recipe to cryptographically verified archive identity. This
+is trusted upstream provenance, not independent compilation, reproducible builds,
+local Authenticode verification or generated-launcher execution evidence.
+`RECORD` and an `MZ`/PE header alone do not authenticate generated
+launcher bytes. Lifting NO-GO still requires an
 independent architecture-specific template/payload verifier (including
 interpreter binding, entry-point payload and trailing bytes), process-tree
 containment review, and native Windows x64 install and lifecycle tests.
@@ -134,7 +143,7 @@ additions. The subsequent exact clone-local, locked/offline full `make ci`
 passed: 2443 passed, 6 skipped, 4 warnings, and 84.73% coverage, using four
 pytest workers; all static, documentation, and type gates were green. Earlier
 sandbox `ps` and shared-primary-venv coverage failures are diagnostic history,
-not the final run. Sol's final quality and security reviews are PASS_WITH_NOTES;
+not the final run. Final quality and security reviews are PASS_WITH_NOTES;
 process-containment review separately passed with notes after 21 focused tests.
 Review notes: PEP 518 environment
 records observe package names/versions but not package artifact hashes; two

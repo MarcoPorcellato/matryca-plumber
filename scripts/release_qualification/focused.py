@@ -57,13 +57,7 @@ _PLUGIN_ACTIVE_ENV = "MATRYCA_FOCUSED_ENFORCE"
 _PLUGIN_REPO_ROOT = Path(__file__).resolve().parents[2]
 _IS_WINDOWS = os.name == "nt"
 _WindowsJob = process_module.WindowsJob
-_WINDOWS_GATE_CODE = (
-    "import subprocess,sys; "
-    "token=sys.stdin.buffer.read(1); "
-    "sys.exit(subprocess.run(sys.argv[1:], stdin=subprocess.DEVNULL, "
-    "stdout=sys.stdout, stderr=sys.stderr).returncode) "
-    "if token == b'G' else sys.exit(125)"
-)
+_WINDOWS_GATE_CODE = process_module.WINDOWS_GATE_CODE
 
 
 def focused_nodes(platform: FocusedPlatform) -> tuple[str, ...]:

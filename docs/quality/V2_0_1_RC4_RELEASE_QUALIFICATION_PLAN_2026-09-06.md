@@ -278,9 +278,17 @@ places `0.12.19` in the patched range (`>=0.12.18`) and identifies
 `>=0.12.7,<0.12.18` as affected by Windows wheel-extraction traversal. Its
 official Windows x64 archive checksum is recorded in the active package
 qualification plan. The previous workflow pin `0.12.16` was affected and is
-historical only. This toolchain correction does not qualify Windows: launcher
-provenance, process-tree containment, and native platform evidence remain
-separate required gates.
+historical only. Initially unresolved byte-only admission attempts, including a
+verification-command construction error rather than artifact rejection, remain
+historical evidence. A subsequent bounded, non-executing admission on 2026-10-01
+accepted the exact pinned installer/template chain under the authenticated
+upstream release-builder policy: inspected source/build/sign/assembly behavior
+and cryptographic archive verification establish trusted upstream provenance,
+not independent compilation, reproducible builds or local Authenticode checks.
+This admission does not qualify actual installed launchers or Windows packages.
+Independent installed-launcher authentication, process-tree containment and
+native platform evidence remain separate required gates; the aggregate Stage A
+workflow remains withheld.
 
 The planned SHA-pinned `astral-sh/setup-uv` action is a trusted bootstrap boundary;
 action-internal code runs before explicit workflow verification. Require
@@ -297,7 +305,7 @@ exact clone-local, locked/offline full `make ci` passed: 2443 passed, 6 skipped,
 4 warnings, and 84.73% coverage, using four pytest workers; all static,
 documentation, and type gates were green. Earlier sandbox `ps` and
 shared-primary-venv coverage failures are diagnostic history, not the final
-run. Sol's final quality and security reviews are PASS_WITH_NOTES.
+run. Final quality and security reviews are PASS_WITH_NOTES.
 Process-containment review separately passed with notes after 21 focused tests.
 Review notes: PEP 518 environment records observe
 package names and versions, not package artifact hashes; two official uv

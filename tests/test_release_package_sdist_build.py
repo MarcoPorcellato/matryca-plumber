@@ -15,6 +15,7 @@ import pytest
 import scripts.qualify_release_package as cli
 import scripts.release_qualification.sdist_build as sdist_build
 from scripts.release_qualification import bundle as bundle_module
+from scripts.release_qualification import process as process_module
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.sdist_build import (
     _parse_build_system,
@@ -47,6 +48,85 @@ def _wheel(
 
 def _package_set(*items: tuple[str, str]) -> dict[str, str]:
     return {name: version for name, version in items}
+
+
+def test_windows_bounded_runner_uses_shared_gate_and_raw_reader(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    class _Process:
+        stdout = object()
+
+        def wait(self, timeout: float) -> int:
+            return 0
+
+    class _Owned:
+        process = _Process()
+
+        def require_empty(self) -> None:
+            return None
+
+        def reap_and_dispose_handle(self, *, timeout: float) -> int:
+            return 0
+
+        def close(self) -> None:
+            return None
+
+    class _Reader:
+        data = bytearray(b"synthetic output")
+        errors: list[BaseException] = []
+        overflowed = False
+
+        def __init__(self, stream: object, *, limit: int) -> None:
+            self.stream = stream
+            self.thread = type("_Thread", (), {"ident": 1})()
+            self.limit = limit
+
+        def start(self) -> None:
+            return None
+
+        def wait_ready(self, _timeout: float) -> bool:
+            return True
+
+        def release(self) -> None:
+            return None
+
+        def wait(self, _timeout: float) -> bool:
+            return True
+
+        def cancel_and_join(self, *, deadline: float) -> None:
+            return None
+
+    def _start(command: list[str], **kwargs: object) -> _Owned:
+        calls.append({"command": command, **kwargs})
+        return _Owned()
+
+    monkeypatch.setattr(sdist_build, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(process_module, "start_process", _start)
+    monkeypatch.setattr(process_module, "WindowsPipeReader", _Reader)
+
+    result = sdist_build._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=2, capture=True)
+
+    assert result.returncode == 0
+    assert result.stdout == b"synthetic output"
+    assert calls[0]["windows"] is True
+    assert calls[0]["windows_gate_code"] == process_module.WINDOWS_GATE_CODE
+    assert calls[0]["bufsize"] == 0
+
+
+def test_bounded_runner_rejects_nonfinite_deadline_before_process_start(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        process_module,
+        "start_process",
+        lambda *_args, **_kwargs: pytest.fail("invalid deadline started a process"),
+    )
+    with pytest.raises(ValueError, match="command parameters"):
+        sdist_build._run_bounded(["synthetic-child"], cwd=tmp_path, timeout=float("nan"))
 
 
 def _requirement_records(
