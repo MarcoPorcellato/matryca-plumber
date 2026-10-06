@@ -1537,6 +1537,10 @@ def test_windows_gate_stdin_close_failure_terminates_tree_and_disposes_once(
     assert "direct-child-kill" not in events
 
 
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="POSIX fake-child fixture; native Windows gate requires separate controls",
+)
 @pytest.mark.parametrize(
     "payload, expect_overflow",
     [(b"a" * 65_536, False), (b"b" * 65_537, True)],
@@ -1784,6 +1788,10 @@ def test_posix_tree_termination_shares_one_five_second_fake_clock_budget(
     assert clock.now <= 5.0
 
 
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="POSIX fake-child fixture; native Windows gate requires separate controls",
+)
 def test_sdist_timeout_shares_five_second_direct_reap_budget_with_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1841,6 +1849,10 @@ def test_sdist_timeout_shares_five_second_direct_reap_budget_with_owner(
     assert sum(reap_waits) <= 5.0
 
 
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="POSIX fake-child fixture; native Windows gate requires separate controls",
+)
 def test_sdist_consumer_preserves_reader_failure_when_pipe_close_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

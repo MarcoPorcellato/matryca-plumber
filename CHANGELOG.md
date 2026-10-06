@@ -15,6 +15,14 @@
   temporary-wheel boundaries; no qualification or release authority is granted,
   and Windows remains NO-GO.
 
+### Fixed
+
+- **Release qualification subprocess cleanup** — share owned process-tree and
+  reader cleanup across installed-package and source-build checks, preserve
+  primary errors alongside cleanup failures, and retain bounded cleanup budgets
+  with platform-specific regression controls; Windows installed-package
+  qualification remains NO-GO.
+
 ### Security
 
 - **Frontend development dependency security** — update the lockfile to a
