@@ -7,6 +7,7 @@ import os
 import stat
 from contextlib import suppress
 from pathlib import Path, PurePosixPath
+from typing import Literal
 
 from logseq_matryca_parser import LogosParser
 
@@ -16,6 +17,22 @@ from ..graph.session_read_models import GraphSessionReadError, GraphSourceIdenti
 from ..rag.matryca_hooks import resolve_logseq_page_md
 
 MAX_OG_IDENTITY_SNAPSHOT_BYTES = 1024 * 1024
+
+
+class _OgSnapshotReadError(GraphSessionReadError):
+    """Private structured rejection compatible with the legacy identity boundary."""
+
+    def __init__(
+        self,
+        code: Literal["source_rejected", "bounds_exceeded", "source_changed"],
+        message: str,
+    ) -> None:
+        super().__init__(message)
+        self._code = code
+
+    @property
+    def code(self) -> Literal["source_rejected", "bounds_exceeded", "source_changed"]:
+        return self._code
 
 
 def _validated_page_title(page_title: str) -> str:
@@ -39,7 +56,7 @@ def _file_identity(metadata: os.stat_result) -> tuple[int, int, int]:
 def _require_regular_source(metadata: os.stat_result) -> None:
     """Reject links and non-regular files before they can become an identity source."""
     if not stat.S_ISREG(metadata.st_mode):
-        raise GraphSessionReadError("OG snapshot source rejected")
+        raise _OgSnapshotReadError("source_rejected", "OG snapshot source rejected")
 
 
 def _read_bounded_snapshot(
@@ -53,7 +70,7 @@ def _read_bounded_snapshot(
         before = page_path.lstat()
         _require_regular_source(before)
         if before.st_size > max_bytes:
-            raise GraphSessionReadError("OG snapshot exceeds byte ceiling")
+            raise _OgSnapshotReadError("bounds_exceeded", "OG snapshot exceeds byte ceiling")
         flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
         descriptor = os.open(page_path, flags)
         with os.fdopen(descriptor, "rb") as handle:
@@ -61,24 +78,24 @@ def _read_bounded_snapshot(
             descriptor_metadata = os.fstat(handle.fileno())
             _require_regular_source(descriptor_metadata)
             if _file_identity(before) != _file_identity(descriptor_metadata):
-                raise GraphSessionReadError("OG snapshot changed during read")
+                raise _OgSnapshotReadError("source_changed", "OG snapshot changed during read")
             if descriptor_metadata.st_size > max_bytes:
-                raise GraphSessionReadError("OG snapshot exceeds byte ceiling")
+                raise _OgSnapshotReadError("bounds_exceeded", "OG snapshot exceeds byte ceiling")
             snapshot = handle.read(max_bytes + 1)
         after = page_path.lstat()
         _require_regular_source(after)
     except GraphSessionReadError:
         raise
     except OSError as exc:
-        raise GraphSessionReadError("OG snapshot read rejected") from exc
+        raise _OgSnapshotReadError("source_rejected", "OG snapshot read rejected") from exc
     finally:
         if descriptor != -1:
             with suppress(OSError):
                 os.close(descriptor)
     if len(snapshot) > max_bytes or after.st_size > max_bytes:
-        raise GraphSessionReadError("OG snapshot exceeds byte ceiling")
+        raise _OgSnapshotReadError("bounds_exceeded", "OG snapshot exceeds byte ceiling")
     if _file_identity(descriptor_metadata) != _file_identity(after):
-        raise GraphSessionReadError("OG snapshot changed during read")
+        raise _OgSnapshotReadError("source_changed", "OG snapshot changed during read")
     return snapshot
 
 
