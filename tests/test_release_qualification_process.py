@@ -1332,6 +1332,9 @@ def test_windows_pipe_reader_retains_limit_plus_one_and_supervisor_closes_stream
         def OpenThread(self, *_args: object) -> int:
             return 91
 
+        def CancelSynchronousIo(self, _handle: int) -> int:
+            return 1
+
         def CloseHandle(self, _handle: int) -> int:
             return 1
 
@@ -1339,13 +1342,16 @@ def test_windows_pipe_reader_retains_limit_plus_one_and_supervisor_closes_stream
     stream = io.BytesIO(b"abcdefgh")
     reader = process.WindowsPipeReader(stream, limit=4, chunk_size=2)
     reader.start()
-    assert reader.wait_ready(1.0)
-    reader.release()
-    assert reader.wait(1.0)
-    assert reader.data == b"abcde"
-    assert reader.overflowed is True
-    assert stream.closed is False
-    reader.close_stream()
+    try:
+        assert reader.wait_ready(1.0)
+        reader.release()
+        assert reader.wait(1.0)
+        assert reader.data == b"abcde"
+        assert reader.overflowed is True
+        assert stream.closed is False
+    finally:
+        reader.cancel_and_join(deadline=time.monotonic() + 1.0)
+    assert reader.thread.is_alive() is False
     assert stream.closed is True
 
 

@@ -17,6 +17,11 @@
 
 ### Fixed
 
+- **Internal OG topology capture** — bound discovery and iterative projection,
+  use portable logical page identities, require complete captured-page coverage,
+  and reject observed source changes; no operational endpoint or Trama
+  compatibility claim is added.
+
 - **Release qualification subprocess cleanup** — share owned process-tree and
   reader cleanup across installed-package and source-build checks, preserve
   primary errors alongside cleanup failures, and retain bounded cleanup budgets

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import hashlib
-import stat
+from collections.abc import Iterator
 from pathlib import Path
 
 from logseq_matryca_parser.graph import LogseqGraph, SnapshotPage
 from logseq_matryca_parser.logos_core import LogseqNode, LogseqPage
 
-from ..graph.path_sandbox import resolved_graph_root
 from ..graph.ports.session_read import OgGraphTopologyPort
 from ..graph.session_read_models import GraphSessionReadError
 from ..graph.session_topology_models import (
@@ -19,66 +18,24 @@ from ..graph.session_topology_models import (
     GraphTopologyResult,
     OgTopologySourceSnapshot,
 )
-from .og_parser_identity_adapter import _opaque_digest, _read_bounded_snapshot
+from .og_parser_identity_adapter import _OgSnapshotReadError, _opaque_digest
+from .og_topology_snapshot import MAX_CAPTURE_BYTES as MAX_OG_TOPOLOGY_SNAPSHOT_BYTES
+from .og_topology_snapshot import MAX_CAPTURE_FILE_BYTES as MAX_OG_TOPOLOGY_SNAPSHOT_PAGE_BYTES
+from .og_topology_snapshot import MAX_CAPTURE_FILES as MAX_OG_TOPOLOGY_SNAPSHOT_PAGES
+from .og_topology_snapshot import (
+    _admit_og_topology_root,
+    capture_og_topology,
+    verify_og_topology_capture,
+)
 
-MAX_OG_TOPOLOGY_SNAPSHOT_PAGES = 1024
-MAX_OG_TOPOLOGY_SNAPSHOT_BYTES = 16 * 1024 * 1024
-MAX_OG_TOPOLOGY_SNAPSHOT_PAGE_BYTES = 1024 * 1024
 MAX_OG_TOPOLOGY_NODES = 1024
 MAX_OG_TOPOLOGY_EDGES = 4096
+MAX_OG_TOPOLOGY_BLOCK_DEPTH = 64
 
 
 def _opaque_topology_token(*parts: str) -> str:
     digest = hashlib.sha256("\x00".join(parts).encode("utf-8")).hexdigest()[:32]
     return f"topology-{digest}"
-
-
-def _regular_markdown_paths(root: Path) -> tuple[tuple[str, Path], ...]:
-    """Discover only regular ``pages/`` and ``journals/`` Markdown candidates."""
-    candidates: list[tuple[str, Path]] = []
-    try:
-        for directory_name in ("pages", "journals"):
-            directory = root / directory_name
-            try:
-                directory_metadata = directory.lstat()
-            except FileNotFoundError:
-                continue
-            if stat.S_ISLNK(directory_metadata.st_mode) or not stat.S_ISDIR(
-                directory_metadata.st_mode
-            ):
-                raise GraphSessionReadError("OG topology source rejected")
-            for path in directory.rglob("*.md"):
-                if stat.S_ISREG(path.lstat().st_mode):
-                    candidates.append((path.relative_to(root).as_posix(), path))
-    except OSError as exc:
-        raise GraphSessionReadError("OG topology discovery rejected") from exc
-    candidates.sort(key=lambda item: item[0])
-    if len(candidates) > MAX_OG_TOPOLOGY_SNAPSHOT_PAGES:
-        raise GraphSessionReadError("OG topology page limit exceeded")
-    return tuple(candidates)
-
-
-def _capture_snapshot_pages(root: Path) -> tuple[tuple[SnapshotPage, ...], str]:
-    """Capture one bounded source set before Parser performs any graph construction."""
-    captured: list[SnapshotPage] = []
-    revision = hashlib.sha256()
-    total_bytes = 0
-    for logical_path, path in _regular_markdown_paths(root):
-        snapshot = _read_bounded_snapshot(path, max_bytes=MAX_OG_TOPOLOGY_SNAPSHOT_PAGE_BYTES)
-        total_bytes += len(snapshot)
-        if total_bytes > MAX_OG_TOPOLOGY_SNAPSHOT_BYTES:
-            raise GraphSessionReadError("OG topology byte limit exceeded")
-        try:
-            text = snapshot.decode("utf-8")
-        except UnicodeDecodeError as exc:
-            raise GraphSessionReadError("OG topology decoding rejected") from exc
-        logical_bytes = logical_path.encode("utf-8")
-        revision.update(len(logical_bytes).to_bytes(4, "big"))
-        revision.update(logical_bytes)
-        revision.update(len(snapshot).to_bytes(8, "big"))
-        revision.update(snapshot)
-        captured.append(SnapshotPage(logical_path=logical_path, text=text))
-    return tuple(captured), revision.hexdigest()
 
 
 def _append_node(
@@ -89,37 +46,141 @@ def _append_node(
     parser_node: LogseqNode,
     parent_id: str,
     ordinal: int,
+    seen_ids: set[str],
+    projected_blocks: list[LogseqNode],
 ) -> None:
-    node_id = _opaque_topology_token(source_revision, "block", parser_node.uuid)
-    node_ids[parser_node.uuid] = node_id
-    nodes.append(GraphTopologyNode(id=node_id, kind="block", parent_id=parent_id, ordinal=ordinal))
-    for child_ordinal, child in enumerate(parser_node.children):
-        _append_node(
-            nodes=nodes,
-            node_ids=node_ids,
-            source_revision=source_revision,
-            parser_node=child,
-            parent_id=node_id,
-            ordinal=child_ordinal,
+    """Consume one subtree lazily, retaining only a bounded DFS stack."""
+    stack: list[tuple[Iterator[tuple[int, LogseqNode]], str, int]] = [
+        (iter(enumerate((parser_node,), start=ordinal)), parent_id, 1)
+    ]
+    while stack:
+        children, parent, depth = stack[-1]
+        try:
+            child_ordinal, child = next(children)
+        except StopIteration:
+            stack.pop()
+            continue
+        if depth > MAX_OG_TOPOLOGY_BLOCK_DEPTH or len(nodes) >= MAX_OG_TOPOLOGY_NODES:
+            raise _OgSnapshotReadError("bounds_exceeded", "OG topology node/depth limit exceeded")
+        node_id = _opaque_topology_token(source_revision, "block", child.uuid)
+        if not child.uuid or child.uuid in node_ids or node_id in seen_ids:
+            raise _OgSnapshotReadError("source_rejected", "OG topology node identity rejected")
+        node_ids[child.uuid] = node_id
+        seen_ids.add(node_id)
+        nodes.append(
+            GraphTopologyNode(id=node_id, kind="block", parent_id=parent, ordinal=child_ordinal)
         )
+        projected_blocks.append(child)
+        if child.children:
+            if depth >= MAX_OG_TOPOLOGY_BLOCK_DEPTH:
+                raise _OgSnapshotReadError("bounds_exceeded", "OG topology block depth exceeded")
+            stack.append((iter(enumerate(child.children)), node_id, depth + 1))
 
 
-def _canonical_pages(graph: LogseqGraph) -> tuple[LogseqPage, ...]:
-    """Use Parser's in-memory snapshot graph but select a deterministic page order."""
-    return tuple(sorted(graph.iter_canonical_pages(), key=lambda page: page.source_path or ""))
+def _logical_page_path(page: LogseqPage, root: Path) -> str:
+    if not page.source_path:
+        raise _OgSnapshotReadError("source_rejected", "OG topology page source rejected")
+    path = Path(page.source_path)
+    if not path.is_absolute() or ".." in path.parts:
+        raise _OgSnapshotReadError("source_rejected", "OG topology page source rejected")
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise _OgSnapshotReadError("source_rejected", "OG topology page source rejected") from exc
 
 
-def _project_topology(graph: LogseqGraph, source_revision: str) -> GraphTopologyResult:
-    """Project Parser-owned values into bounded Plumber-owned opaque topology values."""
-    pages = _canonical_pages(graph)
+def _canonical_pages(
+    graph: LogseqGraph, *, root: Path, logical_paths: tuple[str, ...]
+) -> tuple[tuple[str, LogseqPage], ...]:
+    """Require exact physical-page coverage, without absolute-path/title identity fallback."""
+    if len(logical_paths) > MAX_OG_TOPOLOGY_SNAPSHOT_PAGES:
+        raise _OgSnapshotReadError("bounds_exceeded", "OG topology page limit exceeded")
+    expected = set(logical_paths)
+    if len(expected) != len(logical_paths):
+        raise _OgSnapshotReadError("source_rejected", "OG topology capture mapping rejected")
+    mapped: dict[str, LogseqPage] = {}
+    titles: set[str] = set()
+    for page in graph.iter_canonical_pages():
+        logical_path = _logical_page_path(page, root)
+        title = page.title.strip().casefold()
+        if logical_path not in expected or logical_path in mapped or not title or title in titles:
+            raise _OgSnapshotReadError("source_rejected", "OG topology page mapping rejected")
+        mapped[logical_path] = page
+        titles.add(title)
+    if mapped.keys() != expected:
+        raise _OgSnapshotReadError("source_rejected", "OG topology incomplete page mapping")
+    return tuple(
+        (logical_path, mapped[logical_path])
+        for logical_path in sorted(expected, key=lambda value: value.encode("utf-8"))
+    )
+
+
+def _project_references(
+    graph: LogseqGraph,
+    *,
+    root: Path,
+    pages: tuple[tuple[str, LogseqPage], ...],
+    page_ids: dict[str, str],
+    node_ids: dict[str, str],
+    blocks: list[LogseqNode],
+) -> tuple[GraphTopologyReference, ...]:
+    """Resolve references only against the already complete, bounded physical projection."""
+    declared_pages = dict(pages)
+    edges: set[tuple[str, str]] = set()
+
+    def _add_edge(source_id: str, target_id: str) -> None:
+        key = (source_id, target_id)
+        if key not in edges:
+            if len(edges) >= MAX_OG_TOPOLOGY_EDGES:
+                raise _OgSnapshotReadError("bounds_exceeded", "OG topology edge limit exceeded")
+            edges.add(key)
+
+    for block in blocks:
+        source_id = node_ids[block.uuid]
+        for reference in block.wikilinks:
+            target_page = graph.get_page(reference)
+            if target_page is None:
+                raise _OgSnapshotReadError("source_rejected", "OG topology reference rejected")
+            logical_path = _logical_page_path(target_page, root)
+            declared = declared_pages.get(logical_path)
+            if declared is None or declared.title != target_page.title:
+                raise _OgSnapshotReadError("source_rejected", "OG topology reference rejected")
+            _add_edge(source_id, page_ids[logical_path])
+        for reference in block.block_refs:
+            target_block = graph.get_node_by_embed_ref(reference)
+            if target_block is None or target_block.uuid not in node_ids:
+                raise _OgSnapshotReadError("source_rejected", "OG topology reference rejected")
+            _add_edge(source_id, node_ids[target_block.uuid])
+    return tuple(
+        GraphTopologyReference(source_id=source_id, target_id=target_id)
+        for source_id, target_id in sorted(edges)
+    )
+
+
+def _project_topology(
+    graph: LogseqGraph,
+    source_revision: str,
+    *,
+    root: Path,
+    logical_paths: tuple[str, ...],
+) -> GraphTopologyResult:
+    """Project captured logical identities with bounded, iterative preorder and references."""
+    pages = _canonical_pages(graph, root=root, logical_paths=logical_paths)
     page_ids = {
-        page.title: _opaque_topology_token(source_revision, "page", page.source_path or page.title)
-        for page in pages
+        logical_path: _opaque_topology_token(source_revision, "page", logical_path)
+        for logical_path, _ in pages
     }
     nodes: list[GraphTopologyNode] = []
     node_ids: dict[str, str] = {}
-    for page_ordinal, page in enumerate(pages):
-        page_id = page_ids[page.title]
+    seen_ids: set[str] = set()
+    projected_blocks: list[LogseqNode] = []
+    for page_ordinal, (logical_path, page) in enumerate(pages):
+        if len(nodes) >= MAX_OG_TOPOLOGY_NODES:
+            raise _OgSnapshotReadError("bounds_exceeded", "OG topology node limit exceeded")
+        page_id = page_ids[logical_path]
+        if page_id in seen_ids:
+            raise _OgSnapshotReadError("source_rejected", "OG topology node identity rejected")
+        seen_ids.add(page_id)
         nodes.append(
             GraphTopologyNode(id=page_id, kind="page", parent_id=None, ordinal=page_ordinal)
         )
@@ -131,38 +192,16 @@ def _project_topology(graph: LogseqGraph, source_revision: str) -> GraphTopology
                 parser_node=child,
                 parent_id=page_id,
                 ordinal=child_ordinal,
+                seen_ids=seen_ids,
+                projected_blocks=projected_blocks,
             )
-    if len(nodes) > MAX_OG_TOPOLOGY_NODES:
-        raise GraphSessionReadError("OG topology node limit exceeded")
-
-    edges: set[tuple[str, str]] = set()
-
-    def add_page_reference(source_id: str, reference: str) -> None:
-        target = graph.get_page(reference)
-        if target is not None and target.title in page_ids:
-            edges.add((source_id, page_ids[target.title]))
-
-    def add_block_references(source_id: str, parser_node: LogseqNode) -> None:
-        for reference in parser_node.wikilinks:
-            add_page_reference(source_id, reference)
-        for reference in parser_node.block_refs:
-            target = graph.get_node_by_embed_ref(reference)
-            if target is not None and target.uuid in node_ids:
-                edges.add((source_id, node_ids[target.uuid]))
-        for child in parser_node.children:
-            child_id = node_ids[child.uuid]
-            add_block_references(child_id, child)
-
-    for page in pages:
-        page_id = page_ids[page.title]
-        for child in page.root_nodes:
-            add_block_references(node_ids[child.uuid], child)
-
-    if len(edges) > MAX_OG_TOPOLOGY_EDGES:
-        raise GraphSessionReadError("OG topology edge limit exceeded")
-    ordered_edges = tuple(
-        GraphTopologyReference(source_id=source_id, target_id=target_id)
-        for source_id, target_id in sorted(edges)
+    ordered_edges = _project_references(
+        graph,
+        root=root,
+        pages=pages,
+        page_ids=page_ids,
+        node_ids=node_ids,
+        blocks=projected_blocks,
     )
     return GraphTopologyResult(
         topology_id=_opaque_topology_token(source_revision, "graph"),
@@ -176,10 +215,13 @@ class ParserOgTopologyAdapter(OgGraphTopologyPort):
     """Build a complete topology only from Plumber-captured bytes and Parser's public API."""
 
     def snapshot_og_graph(self, graph_root: Path) -> OgTopologySourceSnapshot:
-        root = resolved_graph_root(graph_root)
-        if not root.is_dir():
-            raise GraphSessionReadError("OG graph root unavailable")
-        snapshot_pages, source_revision = _capture_snapshot_pages(root)
+        root = _admit_og_topology_root(graph_root)
+        capture = capture_og_topology(root)
+        snapshot_pages = tuple(
+            SnapshotPage(logical_path=page.logical_path, text=page.content.decode("utf-8"))
+            for page in capture.pages
+        )
+        source_revision = capture.source_revision
         try:
             graph = LogseqGraph.from_snapshot_pages(
                 root,
@@ -187,12 +229,21 @@ class ParserOgTopologyAdapter(OgGraphTopologyPort):
                 strict_refs=True,
                 strict_title_collisions=True,
             )
+            topology = _project_topology(
+                graph,
+                source_revision,
+                root=root,
+                logical_paths=tuple(page.logical_path for page in capture.pages),
+            )
+        except GraphSessionReadError:
+            raise
         except Exception as exc:
-            raise GraphSessionReadError("OG Parser topology read failed") from exc
+            raise _OgSnapshotReadError("source_rejected", "OG Parser topology read failed") from exc
+        verify_og_topology_capture(root, capture)
         return OgTopologySourceSnapshot(
             graph_id=_opaque_digest(str(root)),
             source_revision=source_revision,
-            topology=_project_topology(graph, source_revision),
+            topology=topology,
         )
 
 

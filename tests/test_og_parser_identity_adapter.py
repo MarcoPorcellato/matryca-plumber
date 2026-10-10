@@ -298,3 +298,45 @@ def test_parser_adapter_normalizes_parser_failures_to_a_closed_boundary_error(
 
     with pytest.raises(GraphSessionReadError, match="OG Parser identity read failed"):
         ParserOgIdentityAdapter().identify_og_graph(tmp_path, "Selected")
+
+
+@pytest.mark.parametrize(
+    ("failure_kind", "expected_code", "expected_message"),
+    [
+        ("oversize", "bounds_exceeded", "OG snapshot exceeds byte ceiling"),
+        ("link", "source_rejected", "OG snapshot source rejected"),
+        ("replacement", "source_changed", "OG snapshot changed during read"),
+    ],
+)
+def test_bounded_reader_preserves_legacy_messages_and_adds_typed_codes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_kind: str,
+    expected_code: str,
+    expected_message: str,
+) -> None:
+    """Structured capture failures must remain compatible with existing identity catches."""
+    page = tmp_path / "Selected.md"
+    page.write_bytes(b"- root\n")
+    maximum = 1024
+    if failure_kind == "oversize":
+        maximum = 2
+    elif failure_kind == "link":
+        link = tmp_path / "Linked.md"
+        link.symlink_to(page)
+        page = link
+    else:
+        replacement = tmp_path / "replacement.md"
+        replacement.write_bytes(b"- next\n")
+        original_open = os.open
+
+        def _replace_before_open(path: str | Path, *args: Any, **kwargs: Any) -> int:
+            if Path(path) == page:
+                os.replace(replacement, page)
+            return original_open(path, *args, **kwargs)
+
+        monkeypatch.setattr(os, "open", _replace_before_open)
+    with pytest.raises(GraphSessionReadError) as failure:
+        og_parser_identity_adapter._read_bounded_snapshot(page, max_bytes=maximum)
+    assert str(failure.value) == expected_message
+    assert getattr(failure.value, "code", None) == expected_code
