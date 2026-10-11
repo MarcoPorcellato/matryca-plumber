@@ -148,6 +148,324 @@ jobs:
           tests/test_shadow_fts_routing.py::test_handle_search_bm25_uses_shadow_when_ready
           tests/test_shadow_fts_routing.py::test_handle_search_bm25_shadow_not_ready_falls_back
 
+  og-gateway-bootstrap-diagnostic:
+    name: OG gateway bootstrap diagnostic
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/og-operational-gateway-t2b-20261010'
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact diagnostic head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: false
+
+      - name: Sync diagnostic locked dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Admit source and verify all thirty bootstrap cases
+        timeout-minutes: 3
+        env:
+          SELECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          SELECTED_BASE: ${{ github.event.pull_request.base.sha }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          .venv/bin/python -I -B - <<'PY'
+          import hashlib
+          import importlib
+          import importlib.machinery
+          import importlib.metadata
+          import json
+          import os
+          import platform
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          EXPECTED_FILES = {
+              "matryca_plumber/__init__.py": "8250772fcb1d3a3196f3307fea95ac6d1b1eb47d5cd577ee1aabd5939ca16ca6",
+              "matryca_plumber/graph_gateway/__init__.py": "46f89d766324e38c025d1014db46397edd5d64f71ba7d9a8fb36964955ab3534",
+              "matryca_plumber/graph_gateway/__main__.py": "792c4a2148bc507dd99cf9a9133b14294f8e3208519a70abe39aeffb1da32d12",
+              "matryca_plumber/graph_gateway/bootstrap.py": "11e573e4878210b6ef8fb3bd974ebb0da3b52d9c21f0ebb62ba2690c61b31da7",
+              "matryca_plumber/graph_gateway/profile.py": "6d46b37a880eb5e217c7d2f49c8ce3f8cfc7567f8ee25d9dde3637f74d394343",
+              "matryca_plumber/graph_gateway/wire.py": "c5406407a8d3a6af977de2ab9644d818a260493ed1bbfe4ab781d159b690ec90",
+              "matryca_plumber/graph_gateway/runtime.py": "e380a941103ece5b9eab4d994f37b1fe85a708dbffb7621e7fd83f7b6efdd16f",
+              "pyproject.toml": "1487f762c8ccb6b15936ba0e0d686537f3cdc1dad37e99fcca0dd5bf8b0df0c5",
+              "MANIFEST.in": "3b2309997c3b9193059bca80659c19cf490c48e8069720d437f827b1d909f0dd",
+              "Makefile": "3f7902af066584d2a6e7557ef90a3f08baf5a1ad17cddba0e6a9d2d2a862384e",
+              "scripts/check_graph_read_sandbox.py": "a5b532176e2a09b9aaeed9a843c7ae3cf498961049585cb0c64967719ee06d2d",
+              "scripts/build_release_artifacts.py": "6e888b529afb933a9b40a91af8208054f3ddba214938a917e84190f88d7f53e8",
+              "scripts/release_qualification/bundle.py": "26f9aff71f9ff414c83263325c0b6610e66cb84c3d74e99d9488df0a460aac99",
+              "scripts/release_qualification/installed.py": "7591990671f0a8112c23259d3e5df9f1dc114a312ac4c9d2139662f024210679",
+              "tests/test_og_graph_gateway_bootstrap.py": "8e2142d38eb13e5659b65268463f6846908cfb4fdf329ae02bda95908e353633",
+              "tests/test_og_graph_gateway_wire.py": "01d6180ab4f73fe2e05dde7b0b8903f3fe42fee2332ed5a6707cc136ee1f9e40",
+              "tests/test_og_graph_gateway.py": "2eb37e5a56c162a21ee8f8e56d5d1d00b15bdfb5f87af77cddbc24b8dc4e239d",
+              "tests/test_og_graph_gateway_packaging.py": "6116916089d730a251334bcce3dda395f477842bc706b098d26ced928a59581d",
+              "tests/test_build_release_artifacts.py": "b6bbb044d1371a882e56424b4140cbcdb78693294171f9226e63fb02d86f9591",
+              "tests/test_release_package_bundle.py": "1d922f9669369b5622ec4be242ad2abb9992591947dd3eecd21f6654bcaf9434",
+              "tests/test_release_package_installed.py": "9dbb66a939acd56efdeca51583463aab4da1f025c760091e42c56b65072e3a40",
+              "tests/test_sandbox_read_check.py": "5fb3a3a1aa848d5b390c9f08672fa5ee54b28d180f4c83f7f6c4026089bdfe69",
+              "CHANGELOG.md": "540e3742f0a739dde259f39dbac47c21d76bd33e85dbd7c6b0823ed11545103c",
+              "tests/conftest.py": "99c6b3e2f9fdfd60048e8db9c06541c6878b8ba99cba8007a2fdedd8ffe09fd1",
+              "tests/__init__.py": "5cb6f49c0f6ddc0b7b67aff7c01dbf2f919a80dd9822c746f79d7b82cf972bbb",
+              "src/__init__.py": "2b22be530fac76eecb7932fb4b929361a89fc26b922ce7e79bb092ef543ec438",
+              "frontend/__init__.py": "96df58a6cf4e65f8e01bdb15a4b2e6fcf9af346e73517eafde32c183d0cb6249",
+              "src/agent/og_topology_session_composition.py": "8296e6a4fe4500b611154923b7bef6e6290023cda5ea947de3ac0d9a84d2eb88",
+              "src/agent/og_parser_topology_adapter.py": "02f94cc1ae04e67814bcfb1be86c02829bf481dafb88edaec36686a73254506a",
+              "src/agent/og_parser_identity_adapter.py": "10aa09c9760e6a9a7ee59a366c4fff9c08e1a50028598cef8a33b0837ef49057",
+              "src/agent/og_topology_snapshot.py": "d6aff0c08766611da108ab2dc0713e0c7ce60388abd6ce40a449e74fc3a325f7",
+              "src/graph/session_read_models.py": "bd5c7b76d3fd40f24217c5f5179c4ac0c5697cf0e95456c9fcdd1926fa6dbbdc",
+              "src/graph/session_topology_models.py": "6e34719328ef86abdf2919c2bbe9850fbda9bf171913cfbd5aa2cb0c52410f6a",
+              "src/graph/session_read_service.py": "78e3a5fd93defb912705c713d684d1573354f2572fb0a4fe16343bc5527b7ef8",
+              "src/graph/ports/session_read.py": "b47eaa1cd895623d21d05f411f300d7574d3d712867f06dfdd4cfb31aaedcb05",
+              "tests/test_og_topology_session_read.py": "0c9fbc66702b8fd9c605f75bdcce68b8d7ca6dc28e3c10e1dcc97dcb8e7bff99",
+              "uv.lock": "5cdaa4045252403add35580db25012b1e20b547eaefcc7c0155ec2f87acfa2ca",
+              "contracts/plumber.graph.read/v1/schema.json": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569",
+              "contracts/plumber.graph.topology/v1/schema.json": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a",
+              "tests/test_ci_workflow_contract.py": "d856d662c236d1ffaa7446d37388e22862c98b3793a8a23ff42cc5835e4c96d8"
+          }
+          EXPECTED_NODES = [
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_parent_packages_and_bootstrap_are_inert",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_every_declared_audit_event_in_owned_child",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_silent_hook_refusal_stops_before_application_imports",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments0]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments1]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments2]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments3]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments4]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments5]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments6]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments[arguments7]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_accepts_only_explicit_snapshot_and_describe",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unplanned_platforms[Windows-AMD64-python0]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unplanned_platforms[Linux-aarch64-python1]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unplanned_platforms[Darwin-x86_64-python2]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unplanned_platforms[Linux-x86_64-python3]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unqualified_dependency_metadata[1.10.0]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unqualified_dependency_metadata[1.11.0]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unqualified_dependency_metadata[]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unqualified_dependency_metadata[1.9.0+unknown]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_nonce_mismatch_rejects_before_internal_imports",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child[deadline]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child[stdout]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child[stderr]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child[read]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child[selector]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child[interruption]",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_kills_after_bounded_terminate_wait",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_preserves_primary_when_cleanup_steps_fail",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_reports_cleanup_only_failure"
+          ]
+          SELECTORS = [
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_parent_packages_and_bootstrap_are_inert",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_every_declared_audit_event_in_owned_child",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_silent_hook_refusal_stops_before_application_imports",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_invalid_or_implicit_arguments",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_accepts_only_explicit_snapshot_and_describe",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unplanned_platforms",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_unqualified_dependency_metadata",
+              "tests/test_og_graph_gateway_bootstrap.py::test_gateway_nonce_mismatch_rejects_before_internal_imports",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_failure_finalizes_owned_child",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_kills_after_bounded_terminate_wait",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_preserves_primary_when_cleanup_steps_fail",
+              "tests/test_og_graph_gateway_bootstrap.py::test_source_child_reports_cleanup_only_failure"
+          ]
+
+          def validate_origin(module, expected):
+              file = getattr(module, "__file__", None)
+              spec = getattr(module, "__spec__", None)
+              origin = getattr(spec, "origin", None)
+              if not isinstance(file, str) or not isinstance(origin, str):
+                  raise RuntimeError("source origin is missing")
+              if Path(file).resolve() != expected or Path(origin).resolve() != expected:
+                  raise RuntimeError("source origin mismatch")
+
+          def validate_case_ids(node_ids):
+              if node_ids != EXPECTED_NODES or len(set(node_ids)) != 30:
+                  raise RuntimeError("case inventory mismatch")
+
+          def validate_reports(reports):
+              if set(reports) != set(EXPECTED_NODES):
+                  raise RuntimeError("case outcomes are incomplete")
+              expected = [("setup", "passed", False), ("call", "passed", False), ("teardown", "passed", False)]
+              if any(records != expected for records in reports.values()):
+                  raise RuntimeError("case outcomes include failure, skip, xfail or duplicate")
+
+          root = Path.cwd().resolve()
+          selected = os.environ["SELECTED_HEAD"]
+          workflow_sha = os.environ["WORKFLOW_SHA"]
+          workflow_ref = os.environ["WORKFLOW_REF"]
+          if not re.fullmatch(r"[0-9a-f]{40}", selected):
+              raise RuntimeError("invalid selected head")
+          if not re.fullmatch(r"[0-9a-f]{40}", workflow_sha):
+              raise RuntimeError("invalid workflow identity")
+          if not workflow_ref.startswith("MarcoPorcellato/matryca-plumber/.github/workflows/ci.yml@"):
+              raise RuntimeError("unexpected workflow identity")
+          if os.environ["SELECTED_BASE"] != "93889319f22dbc09e2896101001a1bf6ac9c5a0d":
+              raise RuntimeError("base drift")
+          if sys.flags.isolated != 1 or not sys.dont_write_bytecode:
+              raise RuntimeError("unexpected interpreter flags")
+          if (
+              sys.version_info[:2] != (3, 12)
+              or platform.python_implementation() != "CPython"
+              or platform.system() != "Linux"
+              or platform.machine() != "x86_64"
+              or Path(sys.prefix).resolve() != root / ".venv"
+          ):
+              raise RuntimeError("unexpected diagnostic runtime")
+
+          def git_metadata(*arguments):
+              result = subprocess.run(
+                  ["git", "--no-optional-locks", *arguments],
+                  cwd=root,
+                  stdin=subprocess.DEVNULL,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+                  timeout=10,
+                  check=True,
+              )
+              if len(result.stdout) > 4096 or result.stderr:
+                  raise RuntimeError("incomplete source identity")
+              return result.stdout.decode("ascii").strip()
+
+          head = git_metadata("rev-parse", "HEAD")
+          tree = git_metadata("rev-parse", "HEAD^{tree}")
+          if head != selected or git_metadata("rev-parse", "--show-toplevel") != str(root):
+              raise RuntimeError("checkout identity mismatch")
+
+          def selected_file_map():
+              observed = {}
+              for name, expected in EXPECTED_FILES.items():
+                  path = root / name
+                  if path.is_symlink() or not path.is_file() or path.stat().st_size > 2 * 1024 * 1024:
+                      raise RuntimeError("selected source input rejected")
+                  digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                  if digest != expected:
+                      raise RuntimeError("selected source digest mismatch")
+                  observed[name] = digest
+              workflow = root / ".github/workflows/ci.yml"
+              if workflow.is_symlink() or not workflow.is_file() or workflow.stat().st_size > 2 * 1024 * 1024:
+                  raise RuntimeError("workflow input rejected")
+              observed[".github/workflows/ci.yml"] = hashlib.sha256(workflow.read_bytes()).hexdigest()
+              return observed
+
+          observed_files = selected_file_map()
+          parser_distribution = importlib.metadata.distribution("logseq-matryca-parser")
+          if parser_distribution.version != "1.9.0" or importlib.metadata.version("pytest") != "9.0.3":
+              raise RuntimeError("unqualified dependency metadata")
+          parser_origin = Path(
+              parser_distribution.locate_file("logseq_matryca_parser/__init__.py")
+          ).resolve()
+          if not parser_origin.is_file() or not parser_origin.is_relative_to(root / ".venv"):
+              raise RuntimeError("unexpected Parser origin")
+          parser_spec = importlib.machinery.PathFinder.find_spec("logseq_matryca_parser", sys.path)
+          if parser_spec is None or parser_spec.origin is None:
+              raise RuntimeError("Parser origin is missing")
+          if Path(parser_spec.origin).resolve() != parser_origin:
+              raise RuntimeError("Parser origin mismatch")
+
+          sys.path.insert(0, str(root))
+          source_modules = (
+              ("src", "src/__init__.py", root),
+              ("src.agent", "src/agent/__init__.py", root / "src"),
+              (
+                  "src.agent.og_parser_topology_adapter",
+                  "src/agent/og_parser_topology_adapter.py",
+                  root / "src/agent",
+              ),
+              ("matryca_plumber", "matryca_plumber/__init__.py", root),
+              (
+                  "matryca_plumber.graph_gateway",
+                  "matryca_plumber/graph_gateway/__init__.py",
+                  root / "matryca_plumber",
+              ),
+              (
+                  "matryca_plumber.graph_gateway.bootstrap",
+                  "matryca_plumber/graph_gateway/bootstrap.py",
+                  root / "matryca_plumber/graph_gateway",
+              ),
+          )
+          admitted_modules = []
+          for name, relative, search in source_modules:
+              expected = root / relative
+              spec = importlib.machinery.PathFinder.find_spec(name, [str(search)])
+              if spec is None or spec.origin is None or Path(spec.origin).resolve() != expected:
+                  raise RuntimeError("source origin mismatch before import")
+              module = importlib.import_module(name)
+              validate_origin(module, expected)
+              admitted_modules.append((module, expected))
+          parser_module = importlib.import_module("logseq_matryca_parser")
+          validate_origin(parser_module, parser_origin)
+
+          for name in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"):
+              if not os.environ[name].isdigit():
+                  raise RuntimeError("invalid run identity")
+          identity = {
+              "head": head,
+              "tree": tree,
+              "workflow_sha": workflow_sha,
+              "workflow_ref": workflow_ref,
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "python": platform.python_version(),
+              "parser": parser_distribution.version,
+              "pytest": importlib.metadata.version("pytest"),
+              "parser_origin": "logseq_matryca_parser/__init__.py",
+              "origins": [str(expected.relative_to(root)) for _, expected in admitted_modules],
+              "selected_files": observed_files,
+          }
+          print("OG_BOOTSTRAP_ADMISSION " + json.dumps(identity, sort_keys=True), flush=True)
+
+          import pytest
+
+          class DiagnosticEvidence:
+              def __init__(self):
+                  self.collected = False
+                  self.reports = {}
+
+              def pytest_collection_finish(self, session):
+                  for module, expected in admitted_modules:
+                      validate_origin(module, expected)
+                  validate_case_ids([item.nodeid for item in session.items])
+                  if any(list(item.iter_markers(name="xfail")) for item in session.items):
+                      raise RuntimeError("xfail marker is not admitted")
+                  self.collected = True
+
+              def pytest_runtest_logreport(self, report):
+                  self.reports.setdefault(report.nodeid, []).append(
+                      (report.when, report.outcome, hasattr(report, "wasxfail"))
+                  )
+
+          evidence = DiagnosticEvidence()
+          result = pytest.main(
+              ["-n", "0", "-vv", "-o", "addopts=", "--tb=short", *SELECTORS],
+              plugins=[evidence],
+          )
+          if result != 0 or not evidence.collected:
+              raise SystemExit(int(result) or 1)
+          validate_reports(evidence.reports)
+          if selected_file_map() != observed_files or git_metadata("rev-parse", "HEAD") != head:
+              raise RuntimeError("source changed during diagnostic")
+          for module, expected in admitted_modules:
+              validate_origin(module, expected)
+          validate_origin(parser_module, parser_origin)
+          print(
+              "OG_BOOTSTRAP_RESULT "
+              + json.dumps({"status": "PASS", "cases": evidence.reports, "identity": identity}, sort_keys=True),
+              flush=True,
+          )
+          PY
+
   ironclad-gatekeeper:
     name: Ironclad Gatekeeper
     runs-on: ubuntu-latest

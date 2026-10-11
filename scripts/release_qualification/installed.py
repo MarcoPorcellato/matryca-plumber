@@ -123,9 +123,10 @@ def _verify_source(source_root: Path, binding: BundleBinding) -> set[str]:
 
 
 def _payload_map(source_root: Path, tracked: set[str]) -> dict[str, Path]:
+    gateway = bundle_module._gateway_source_files({name: "" for name in tracked})
     expected: dict[str, Path] = {}
     for name in tracked:
-        if name.startswith("src/") and name.endswith(".py"):
+        if name in gateway or (name.startswith("src/") and name.endswith(".py")):
             expected[name] = source_root / name
         elif name.startswith("contracts/"):
             expected[f"src/contract_artifacts/{name}"] = source_root / name
@@ -168,6 +169,9 @@ def _authenticated_archive(
         expected_inventory = binding.sdist_inventory_sha256
     if bundle_module._inventory_digest(members) != expected_inventory:
         _fail("Release artifact inventory does not match the independent binding.")
+    gateway = bundle_module._gateway_source_files(
+        {name: member.sha256 for name, member in members.items()}
+    )
 
     payload: dict[str, tuple[int, str]] = {}
     metadata: dict[str, bytes] = {}
@@ -181,7 +185,7 @@ def _authenticated_archive(
             _fail("Authenticated wheel must contain exactly one dist-info root.")
         dist_info_root = next(iter(dist_info_roots))
         for name, member in members.items():
-            if name.startswith(("src/", "frontend/")):
+            if name in gateway or name.startswith(("src/", "frontend/")):
                 payload[name] = (member.size, member.sha256)
             elif name.startswith(f"{dist_info_root}/") and not name.endswith("/RECORD"):
                 payload[name] = (member.size, member.sha256)
@@ -189,7 +193,7 @@ def _authenticated_archive(
                     metadata["METADATA"] = contents[name]
     else:
         for name, member in members.items():
-            if name.startswith("src/") or name.startswith("frontend/"):
+            if name in gateway or name.startswith(("src/", "frontend/")):
                 payload[name] = (member.size, member.sha256)
             elif name.startswith("contracts/"):
                 payload[f"src/contract_artifacts/{name}"] = (member.size, member.sha256)
@@ -479,7 +483,7 @@ def _verify_generated_metadata(
         {
             name.split("/", 1)[0]
             for name in archive_payload
-            if name.startswith(("src/", "frontend/"))
+            if name.startswith(("src/", "frontend/", "matryca_plumber/"))
         }
     )
     top_level = (dist_info / "top_level.txt").read_text(encoding="utf-8").splitlines()
@@ -865,11 +869,22 @@ def _verify_inventory(
 ) -> tuple[str, str, BuildGenerator]:
     src_root = site / "src"
     frontend_root = site / "frontend"
-    actual_payload = {f"src/{name}" for name in _scope_files(src_root, label="package")} | {
-        f"frontend/{name}" for name in _scope_files(frontend_root, label="frontend")
-    }
+    actual_payload = (
+        {f"src/{name}" for name in _scope_files(src_root, label="package")}
+        | {f"frontend/{name}" for name in _scope_files(frontend_root, label="frontend")}
+        | {
+            f"matryca_plumber/{name}"
+            for name in _scope_files(site / "matryca_plumber", label="package")
+        }
+    )
+    bundle_module._gateway_source_files({name: "" for name in actual_payload})
+    bundle_module._gateway_source_files(
+        {name: digest for name, (_, digest) in archive_payload.items()}
+    )
     expected_names = {
-        name for name in archive_payload if name.startswith("src/") or name.startswith("frontend/")
+        name
+        for name in archive_payload
+        if name.startswith(("src/", "frontend/", "matryca_plumber/"))
     }
     if actual_payload != expected_names:
         missing = expected_names - actual_payload
@@ -993,17 +1008,28 @@ def _verify_inventory(
 def _isolated_probe(
     python: Path, env_root: Path, site: Path, source_root: Path
 ) -> tuple[Path, Path, str, str, str, str, tuple[tuple[str, str], ...]]:
+    namespace_root = site / "matryca_plumber"
+    if namespace_root.is_symlink():
+        _fail("Installed gateway namespace provenance must not be a symlink.")
+    has_gateway = namespace_root.exists()
     code = (
         "import importlib.metadata, json, platform, sys, sysconfig\n"
         "sys.path.insert(0, sys.argv[1])\n"
         "import src, frontend\n"
+        "gateway = {}\n"
+        "if sys.argv[2] == 'gateway':\n"
+        "    import matryca_plumber, matryca_plumber.graph_gateway\n"
+        "    for name, module in (('matryca_plumber', matryca_plumber), "
+        "('matryca_plumber.graph_gateway', matryca_plumber.graph_gateway)):\n"
+        "        gateway[name] = {'file': getattr(module, '__file__', None), "
+        "'spec': getattr(getattr(module, '__spec__', None), 'origin', None)}\n"
         "dists = sorted((d.metadata.get('Name', ''), d.version) "
         "for d in importlib.metadata.distributions())\n"
         "print(json.dumps({'src': src.__file__, 'frontend': frontend.__file__, "
         "'purelib': sysconfig.get_paths()['purelib'], 'prefix': sys.prefix, "
         "'base_prefix': sys.base_prefix, 'python': platform.python_version(), "
         "'os': platform.system().lower(), 'machine': platform.machine().lower(), "
-        "'deps': dists}))\n"
+        "'deps': dists, 'gateway': gateway}))\n"
     )
     with tempfile.TemporaryDirectory(prefix="matryca-installed-probe-") as cache_prefix:
         returncode, stdout, _stderr = _run_bounded(
@@ -1016,6 +1042,7 @@ def _isolated_probe(
                 "-c",
                 code,
                 str(site),
+                "gateway" if has_gateway else "historical",
             ],
             cwd=env_root,
             timeout=_MAX_TCK_SECONDS,
@@ -1047,6 +1074,32 @@ def _isolated_probe(
         or not _within(frontend_origin, purelib)
     ):
         _fail("Installed import provenance does not resolve from this isolated environment.")
+    if has_gateway:
+        origins = result.get("gateway")
+        expected_origins = {
+            "matryca_plumber": purelib / "matryca_plumber/__init__.py",
+            "matryca_plumber.graph_gateway": purelib / "matryca_plumber/graph_gateway/__init__.py",
+        }
+        if not isinstance(origins, dict) or set(origins) != set(expected_origins):
+            _fail("Installed gateway namespace provenance is missing or unexpected.")
+        for name, expected_origin in expected_origins.items():
+            value = origins[name]
+            if (
+                not isinstance(value, dict)
+                or set(value) != {"file", "spec"}
+                or not all(isinstance(part, str) and part for part in value.values())
+            ):
+                _fail("Installed gateway namespace provenance is malformed.")
+            try:
+                file_origin = Path(value["file"]).resolve(strict=True)
+                spec_origin = Path(value["spec"]).resolve(strict=True)
+                expected_origin = expected_origin.resolve(strict=True)
+            except (OSError, TypeError, ValueError) as error:
+                raise ValueError("Installed gateway namespace provenance is malformed.") from error
+            if file_origin != expected_origin or spec_origin != expected_origin:
+                _fail("Installed gateway namespace provenance differs from its authenticated file.")
+            if not _within(file_origin, purelib) or _within(file_origin, source_root):
+                _fail("Installed gateway namespace provenance escapes its authenticated site.")
     dependency_pairs: list[tuple[str, str]] = []
     for item in raw_dependencies:
         if (

@@ -55,6 +55,15 @@ _SOURCE_CONTRACT_RESOURCE_MEMBERS = tuple(
     )
     for member in _PUBLIC_CONTRACT_RESOURCE_MEMBERS
 )
+_SYNTHETIC_GATEWAY_MEMBERS = (
+    "matryca_plumber/__init__.py",
+    "matryca_plumber/graph_gateway/__init__.py",
+    "matryca_plumber/graph_gateway/__main__.py",
+    "matryca_plumber/graph_gateway/bootstrap.py",
+    "matryca_plumber/graph_gateway/profile.py",
+    "matryca_plumber/graph_gateway/wire.py",
+    "matryca_plumber/graph_gateway/runtime.py",
+)
 
 
 def _metadata(version: str) -> bytes:
@@ -72,6 +81,8 @@ def _write_wheel(
         bundle.writestr("src/__init__.py", "")
         bundle.writestr("frontend/dist/index.html", "<!doctype html>")
         bundle.writestr(f"matryca_plumber-{version}.dist-info/METADATA", _metadata(version))
+        for member in _SYNTHETIC_GATEWAY_MEMBERS:
+            bundle.writestr(member, "# synthetic archive bytes, never executed\n")
         if include_public_contract_resources:
             for member in _PUBLIC_CONTRACT_RESOURCE_MEMBERS:
                 bundle.writestr(member, "public static contract resource")
@@ -92,6 +103,7 @@ def _write_sdist(
             (f"{prefix}/src/__init__.py", b""),
             (f"{prefix}/frontend/dist/index.html", b"<!doctype html>"),
             (f"{prefix}/PKG-INFO", _metadata(version)),
+            *((f"{prefix}/{member}", b"# synthetic\n") for member in _SYNTHETIC_GATEWAY_MEMBERS),
             *(
                 (f"{prefix}/{member}", b"public static contract resource")
                 for member in _SOURCE_CONTRACT_RESOURCE_MEMBERS

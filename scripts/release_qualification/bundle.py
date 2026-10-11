@@ -15,6 +15,8 @@ from email.parser import BytesParser
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from scripts.build_release_artifacts import _GATEWAY_MEMBERS
+
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SOURCE_ID = re.compile(r"^[0-9a-f]{40}$")
 _FORBIDDEN_SUFFIXES = {".pyc", ".pyd", ".pyo"}
@@ -462,11 +464,25 @@ def _ledger_map(items: list[dict[str, str]]) -> dict[str, str]:
     return {item["name"]: item["sha256"] for item in items}
 
 
+def _gateway_source_files(source: dict[str, str]) -> dict[str, str]:
+    """Recognize one exact namespace; zero members describe historical sources only."""
+    names = {
+        name
+        for name in source
+        if name.casefold() == "matryca_plumber" or name.casefold().startswith("matryca_plumber/")
+    }
+    if names and names != _GATEWAY_MEMBERS:
+        raise ValueError("Gateway namespace inventory is incomplete or contains unowned members.")
+    return {name: source[name] for name in names}
+
+
 def _expected_sdist_source_files(source: dict[str, str]) -> dict[str, str]:
+    gateway = _gateway_source_files(source)
     return {
         name: digest
         for name, digest in source.items()
-        if name.startswith(("src/", "contracts/"))
+        if name in gateway
+        or name.startswith(("src/", "contracts/"))
         or (name.startswith("tests/test_") and name.count("/") == 1 and name.endswith(".py"))
         or name in _SDIST_SELECTED_ROOT_FILES
         or name in _SDIST_TCK_FILES
@@ -475,10 +491,11 @@ def _expected_sdist_source_files(source: dict[str, str]) -> dict[str, str]:
 
 
 def _expected_wheel_source_files(source: dict[str, str]) -> dict[str, str]:
+    gateway = _gateway_source_files(source)
     expected = {
         name: digest
         for name, digest in source.items()
-        if name.startswith("src/") and name.endswith(".py")
+        if name in gateway or (name.startswith("src/") and name.endswith(".py"))
     }
     for name, digest in source.items():
         if name.startswith("contracts/"):

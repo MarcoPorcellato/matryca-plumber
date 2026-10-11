@@ -58,15 +58,28 @@ _SOURCE_CONTRACT_RESOURCE_MEMBERS = {
     )
     for member in _PUBLIC_CONTRACT_RESOURCE_MEMBERS
 }
+_GATEWAY_MEMBERS = frozenset(
+    {
+        "matryca_plumber/__init__.py",
+        "matryca_plumber/graph_gateway/__init__.py",
+        "matryca_plumber/graph_gateway/__main__.py",
+        "matryca_plumber/graph_gateway/bootstrap.py",
+        "matryca_plumber/graph_gateway/profile.py",
+        "matryca_plumber/graph_gateway/wire.py",
+        "matryca_plumber/graph_gateway/runtime.py",
+    }
+)
 _REQUIRED_MEMBERS = {
     "src/__init__.py",
     "frontend/dist/index.html",
     *_PUBLIC_CONTRACT_RESOURCE_MEMBERS,
+    *_GATEWAY_MEMBERS,
 }
 _REQUIRED_SDIST_MEMBERS = {
     "src/__init__.py",
     "frontend/dist/index.html",
     *_SOURCE_CONTRACT_RESOURCE_MEMBERS,
+    *_GATEWAY_MEMBERS,
 }
 
 
