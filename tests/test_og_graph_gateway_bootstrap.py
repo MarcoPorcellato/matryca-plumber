@@ -270,7 +270,9 @@ def owned_child_controls(monkeypatch: pytest.MonkeyPatch) -> tuple[Mock, Mock, M
     monkeypatch.setattr(
         module,
         "selectors",
-        SimpleNamespace(DefaultSelector=Mock(return_value=selection), EVENT_READ=selectors.EVENT_READ),
+        SimpleNamespace(
+            DefaultSelector=Mock(return_value=selection), EVENT_READ=selectors.EVENT_READ
+        ),
     )
     monkeypatch.setattr(module, "time", SimpleNamespace(monotonic=clock))
     return process, selection, clock

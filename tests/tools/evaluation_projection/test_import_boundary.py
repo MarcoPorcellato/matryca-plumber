@@ -57,6 +57,7 @@ def test_distribution_discovery_excludes_maintainer_tools() -> None:
     assert package_config["tool"]["setuptools"]["packages"]["find"]["include"] == [
         "src*",
         "frontend",
+        "matryca_plumber*",
     ]
 
 
