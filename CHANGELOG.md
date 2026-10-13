@@ -4,9 +4,12 @@
 
 - **Experimental OG process gateway** — add a content-free, single-capture
   identity/topology boundary with bounded output, strict package ownership and
-  tested audit-event rejection. Operational resources and installed runtime
-  qualification remain pending; no Trama compatibility or stable support is
-  claimed.
+  mapped audit-event rejection; include a hash-bound resource/dependency
+  profile, block-text/property-value privacy canaries, and a synthetic process
+  TCK that defines native timeout, overflow, same-group SIGKILL and separately
+  labeled cleanup-interruption controls. The descriptor remains unqualified,
+  all runtime rows remain planned, and no installed TCK result, public package,
+  Trama compatibility, or stable support is claimed.
 
 - **Bounded Windows x64 launcher qualification lane** — add a separate,
   non-required hosted workflow that verifies an exact pinned template as

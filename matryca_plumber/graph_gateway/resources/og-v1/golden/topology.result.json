@@ -1,0 +1,108 @@
+{
+  "complete": true,
+  "edges": [
+    {
+      "kind": "reference",
+      "source_id": "topology-03ead811ab19131954261725cb4ecbd2",
+      "target_id": "topology-f53f4960a5ea657a504a7088773ae8cb"
+    },
+    {
+      "kind": "reference",
+      "source_id": "topology-ae2d3f4e187d195c2fd7b9f89b6bf490",
+      "target_id": "topology-0991e125a634936caa45738417c70f01"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "topology-5752a8917cf4582c17797ebae6c7cdab",
+      "kind": "page",
+      "ordinal": 0,
+      "parent_id": null
+    },
+    {
+      "id": "topology-ae2d3f4e187d195c2fd7b9f89b6bf490",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-5752a8917cf4582c17797ebae6c7cdab"
+    },
+    {
+      "id": "topology-0991e125a634936caa45738417c70f01",
+      "kind": "page",
+      "ordinal": 1,
+      "parent_id": null
+    },
+    {
+      "id": "topology-821e94bcdac339b8fe9feafb553444ac",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-0991e125a634936caa45738417c70f01"
+    },
+    {
+      "id": "topology-03ead811ab19131954261725cb4ecbd2",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-821e94bcdac339b8fe9feafb553444ac"
+    },
+    {
+      "id": "topology-78528ba6484d02f058a2998d7f115245",
+      "kind": "page",
+      "ordinal": 2,
+      "parent_id": null
+    },
+    {
+      "id": "topology-0edb7619dd8f828accc952ccef959824",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-78528ba6484d02f058a2998d7f115245"
+    },
+    {
+      "id": "topology-92cc65251852f16e0b53992cc7c47c76",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-0edb7619dd8f828accc952ccef959824"
+    },
+    {
+      "id": "topology-f53f4960a5ea657a504a7088773ae8cb",
+      "kind": "page",
+      "ordinal": 3,
+      "parent_id": null
+    },
+    {
+      "id": "topology-b9413deaf1d1bd03ca196db4310e1034",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-f53f4960a5ea657a504a7088773ae8cb"
+    },
+    {
+      "id": "topology-8a1ffc9c6a7774a7322dc0931305f91c",
+      "kind": "block",
+      "ordinal": 1,
+      "parent_id": "topology-f53f4960a5ea657a504a7088773ae8cb"
+    },
+    {
+      "id": "topology-126f7b3b6deae1dc3c5c2722677050b4",
+      "kind": "page",
+      "ordinal": 4,
+      "parent_id": null
+    },
+    {
+      "id": "topology-e0ac21892374700e1e22a7eb6d0afd4b",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-126f7b3b6deae1dc3c5c2722677050b4"
+    },
+    {
+      "id": "topology-284befb9ea25ff636f5c5c9e205be987",
+      "kind": "block",
+      "ordinal": 0,
+      "parent_id": "topology-e0ac21892374700e1e22a7eb6d0afd4b"
+    }
+  ],
+  "provenance": {
+    "kind": "derived-structural",
+    "source_contract_id": "plumber.graph.read/v1",
+    "source_revision": "5eee29126c2af0f080c8c3a91702837cc5940e6c017c05863f234c070db0e05a",
+    "source_schema_version": 1
+  },
+  "topology_id": "topology-9ed58536251b7f4930f6163c26531ce7"
+}

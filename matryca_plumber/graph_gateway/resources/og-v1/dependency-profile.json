@@ -1,0 +1,35 @@
+{
+  "export": {
+    "arguments": [
+      "export",
+      "--frozen",
+      "--no-dev",
+      "--no-emit-project",
+      "--no-header",
+      "--no-annotate"
+    ],
+    "environment": {
+      "UV_NO_CACHE": "1",
+      "UV_OFFLINE": "1"
+    },
+    "entry_count": 83,
+    "kind": "uv-export-runtime-closure"
+  },
+  "lock_sha256": "5cdaa4045252403add35580db25012b1e20b547eaefcc7c0155ec2f87acfa2ca",
+  "lock_source": "uv.lock",
+  "matrix": [
+    {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
+    {"system": "Linux", "machine": "x86_64", "python": "3.13", "state": "planned"},
+    {"system": "Darwin", "machine": "arm64", "python": "3.12", "state": "planned"},
+    {"system": "Darwin", "machine": "arm64", "python": "3.13", "state": "planned"}
+  ],
+  "parser": {"name": "logseq-matryca-parser", "version": "1.9.0"},
+  "profile_id": "og-v1-parser-1.9.0",
+  "project": {"name": "matryca-plumber", "version": "2.0.1rc4"},
+  "qualification": "unqualified",
+  "requirements": {
+    "path": "requirements-og-v1-parser-1.9.0.txt",
+    "sha256": "6847b3b52cc308826b6b849ae8c75b96a4c1d92143ce8313bee07b8c6996d69a"
+  },
+  "resolution": "Frozen lock export preserves platform markers and every locked wheel hash; no dependency was installed."
+}

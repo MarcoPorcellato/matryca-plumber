@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://matryca.ai/contracts/plumber.graph.read/v1/schema.json",
+  "title": "Plumber graph read v1 synthetic fixture envelope",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/profile" },
+    { "$ref": "#/$defs/operationResult" }
+  ],
+  "$defs": {
+    "opaqueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_kind",
+        "contract_id",
+        "schema_version",
+        "profile_id",
+        "role",
+        "capabilities"
+      ],
+      "properties": {
+        "fixture_kind": { "const": "profile" },
+        "contract_id": { "const": "plumber.graph.read/v1" },
+        "schema_version": { "const": 1 },
+        "profile_id": { "$ref": "#/$defs/opaqueId" },
+        "role": { "enum": ["producer", "consumer"] },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["graph.identify", "page.read", "block.subtree.read.complete"]
+          }
+        }
+      }
+    },
+    "operationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_kind",
+        "id",
+        "contract_id",
+        "schema_version",
+        "producer_profile_id",
+        "consumer_profile_id",
+        "graph_id",
+        "session",
+        "source_revision",
+        "operation",
+        "outcome",
+        "reason",
+        "result"
+      ],
+      "properties": {
+        "fixture_kind": { "const": "operation-result" },
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "contract_id": { "const": "plumber.graph.read/v1" },
+        "schema_version": { "const": 1 },
+        "producer_profile_id": { "$ref": "#/$defs/opaqueId" },
+        "consumer_profile_id": { "$ref": "#/$defs/opaqueId" },
+        "graph_id": { "$ref": "#/$defs/opaqueId" },
+        "session": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "state"],
+          "properties": {
+            "id": { "$ref": "#/$defs/opaqueId" },
+            "state": { "enum": ["active", "closed", "rejected"] }
+          }
+        },
+        "source_revision": { "$ref": "#/$defs/opaqueId" },
+        "operation": {
+          "enum": ["graph.identify", "page.read", "block.subtree.read.complete"]
+        },
+        "requested_capability": { "$ref": "#/$defs/opaqueId" },
+        "outcome": { "enum": ["pass", "rejected", "unsupported", "error"] },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "result": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": { "const": "graph.identify" },
+              "outcome": { "const": "pass" }
+            },
+            "required": ["operation", "outcome"]
+          },
+          "then": { "properties": { "result": { "$ref": "#/$defs/graphIdentityResult" } } }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": { "const": "page.read" },
+              "outcome": { "const": "pass" }
+            },
+            "required": ["operation", "outcome"]
+          },
+          "then": { "properties": { "result": { "$ref": "#/$defs/pageReadResult" } } }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": { "const": "block.subtree.read.complete" },
+              "outcome": { "const": "pass" }
+            },
+            "required": ["operation", "outcome"]
+          },
+          "then": { "properties": { "result": { "$ref": "#/$defs/subtreeResult" } } }
+        }
+      ]
+    },
+    "graphIdentityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph_id"],
+      "properties": { "graph_id": { "$ref": "#/$defs/opaqueId" } }
+    },
+    "pageReadResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": { "page_id": { "$ref": "#/$defs/opaqueId" } }
+    },
+    "subtreeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root_block_id", "complete", "ordered_nodes"],
+      "properties": {
+        "root_block_id": { "$ref": "#/$defs/opaqueId" },
+        "complete": { "type": "boolean" },
+        "ordered_nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "parent_id", "ordinal"],
+            "properties": {
+              "id": { "$ref": "#/$defs/opaqueId" },
+              "parent_id": { "anyOf": [{ "$ref": "#/$defs/opaqueId" }, { "type": "null" }] },
+              "ordinal": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "cases": [
+    "installed-origin-required",
+    "resource-and-code-byte-authentication",
+    "existing-read-and-topology-schemas",
+    "descriptor-and-session-bindings",
+    "fixture-privacy-and-portable-tree",
+    "topology-result-golden-and-independent-counts",
+    "same-root-repeatability",
+    "relocation-invariance",
+    "source-change-sensitivity",
+    "globally-unique-success-session-identities",
+    "strict-invalid-root-error",
+    "before-after-graph-and-owned-work-root-inventory",
+    "native-synthetic-process-lifecycle-controls",
+    "bounded-environment-import-payload-inventory"
+  ],
+  "limits": {
+    "cleanup_seconds_total": 5,
+    "child_execution_seconds": 180,
+    "max_stdout_bytes": 4194304,
+    "max_stderr_bytes": 512
+  },
+  "environment_inventory": {
+    "roots": ["sysconfig.purelib", "sysconfig.platlib"],
+    "max_entries": 100000,
+    "max_file_bytes": 67108864,
+    "max_total_file_bytes": 536870912,
+    "coverage": "all regular-file bytes and directory names; unknown, unreadable, or over-budget state fails closed"
+  },
+  "consumer_lifecycle_controls": {
+    "native_synthetic_child": [
+      "native-timeout-cleanup",
+      "native-stdout-overflow-cleanup",
+      "native-stderr-overflow-cleanup",
+      "native-same-group-survivor-kill-escalation"
+    ],
+    "injected_fault": ["injected-cleanup-interruption-fallback"]
+  },
+  "qualification": "unqualified",
+  "schema_version": 1,
+  "source_unit_controls": {
+    "audit_event_rejection": "tests/test_og_graph_gateway_bootstrap.py::test_gateway_rejects_every_declared_audit_event_in_owned_child",
+    "finite_source_boundaries": [
+      "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_oversize_snapshot_before_parser_invocation",
+      "tests/test_og_topology_session_read.py::test_topology_rejects_projection_bounds_before_excess_append[nodes]",
+      "tests/test_og_topology_session_read.py::test_topology_rejects_projection_bounds_before_excess_append[references]",
+      "tests/test_og_topology_session_read.py::test_topology_rejects_projection_bounds_before_excess_append[depth]",
+      "tests/test_og_topology_session_read.py::test_topology_rejects_projection_bounds_before_excess_append[recursion]",
+      "tests/test_og_topology_session_read.py::test_topology_accepts_inclusive_projection_bounds[nodes]",
+      "tests/test_og_topology_session_read.py::test_topology_accepts_inclusive_projection_bounds[references]",
+      "tests/test_og_topology_session_read.py::test_topology_accepts_inclusive_projection_bounds[depth]",
+      "tests/test_og_graph_gateway_wire.py::test_wire_node_limit_is_inclusive_and_never_truncates",
+      "tests/test_og_graph_gateway_wire.py::test_wire_edge_limit_is_inclusive_and_never_truncates",
+      "tests/test_og_graph_gateway_wire.py::test_wire_block_depth_limit_is_inclusive_and_never_truncates"
+    ],
+    "page_mapping_integrity": [
+      "tests/test_og_topology_session_read.py::test_topology_rejects_missing_extra_and_duplicate_page_mappings[missing]",
+      "tests/test_og_topology_session_read.py::test_topology_rejects_missing_extra_and_duplicate_page_mappings[extra]",
+      "tests/test_og_topology_session_read.py::test_topology_rejects_missing_extra_and_duplicate_page_mappings[duplicate]"
+    ],
+    "source_addition_removal": [
+      "tests/test_og_topology_snapshot.py::test_verification_rejects_same_size_edit_addition_and_removal"
+    ],
+    "capture_integrity": [
+      "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_non_regular_source_before_descriptor_open_or_parser",
+      "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_snapshot_that_grows_during_read",
+      "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_same_size_external_symlink_swapped_after_containment",
+      "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_same_size_replacement_inode_after_descriptor_read",
+      "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_invalid_utf8_snapshot_before_parser_invocation",
+      "tests/test_og_topology_snapshot.py::test_capture_counts_entries_before_descent_and_acceptance",
+      "tests/test_og_topology_snapshot.py::test_capture_accepts_inclusive_walk_limits",
+      "tests/test_og_topology_snapshot.py::test_capture_enforces_inclusive_byte_limits"
+    ],
+    "post_child_graph_addition_removal": [
+      "tests/test_og_operational_package.py::test_tck_rejects_graph_addition_or_removal_during_child[addition]",
+      "tests/test_og_operational_package.py::test_tck_rejects_graph_addition_or_removal_during_child[removal]"
+    ],
+    "mid_capture_mutation": "tests/test_og_parser_identity_adapter.py::test_adapter_rejects_same_size_replacement_inode_after_descriptor_read",
+    "startup_admission": "tests/test_og_graph_gateway_bootstrap.py::test_gateway_silent_hook_refusal_stops_before_application_imports"
+  }
+}

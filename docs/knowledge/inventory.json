@@ -1815,6 +1815,27 @@
       "missing": false
     },
     {
+      "path": "docs/quality/OG_OPERATIONAL_PACKAGE.md",
+      "type": "Runbook",
+      "title": "OG operational package boundary",
+      "description": "Records the prepared OG operational resource package and its unqualified evidence boundary.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "T3 source preparation boundary only; does not establish artifact admission or runtime qualification.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
       "type": "Guide",
       "title": "Public release and soak evidence policy",

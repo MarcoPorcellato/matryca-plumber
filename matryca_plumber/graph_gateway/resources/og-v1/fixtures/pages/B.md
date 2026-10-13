@@ -1,0 +1,6 @@
+title:: B
+id:: 40000000-0000-4000-8000-000000000001
+test-canary:: PRIVACY-CANARY-PROPERTY-VALUE
+
+- Alpha parent PRIVACY-CANARY-BLOCK-TEXT
+  - Alpha child [[x]]
