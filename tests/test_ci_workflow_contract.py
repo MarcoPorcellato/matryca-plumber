@@ -161,7 +161,7 @@ def test_og_gateway_bootstrap_diagnostic_rejects_incomplete_evidence() -> None:
     expected = ast.literal_eval(inventory)
     assert len(expected) == len(set(expected)) == 30
     assert len({node.split("[", 1)[0] for node in expected}) == 12
-    functions = [
+    functions: list[ast.stmt] = [
         node
         for node in parsed.body
         if isinstance(node, ast.FunctionDef)

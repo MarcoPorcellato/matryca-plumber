@@ -154,10 +154,13 @@ for module, file in (
                 selection.close()
             except BaseException as error:
                 cleanup_errors.append(("selector_close", error))
-        for label, stream in (("stdout_close", process.stdout), ("stderr_close", process.stderr)):
-            if stream is not None:
+        for label, cleanup_stream in (
+            ("stdout_close", process.stdout),
+            ("stderr_close", process.stderr),
+        ):
+            if cleanup_stream is not None:
                 try:
-                    stream.close()
+                    cleanup_stream.close()
                 except BaseException as error:
                     cleanup_errors.append((label, error))
         try:
