@@ -2,6 +2,7 @@ include LICENSE
 include NOTICE
 include setup.py
 graft src
+graft matryca_plumber
 graft frontend/dist
 graft contracts
 include scripts/run_plumber_consumer_package_v1_tck.py

@@ -88,7 +88,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "frontend"]
+include = ["src*", "frontend", "matryca_plumber*"]
 
 [tool.setuptools.package-data]
 frontend = ["dist/**/*"]
@@ -96,7 +96,7 @@ frontend = ["dist/**/*"]
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["src", "tests"]
+src = ["src", "matryca_plumber", "tests"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -180,7 +180,7 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
-addopts = "--cov=src --cov-report=term-missing:skip-covered --cov-fail-under=70"
+addopts = "--cov=src --cov=matryca_plumber --cov-report=term-missing:skip-covered --cov-fail-under=70"
 markers = [
     "slow: performance or memory soak tests (excluded from default CI)",
     "integration: subprocess or full-bootstrap tests (skipped by make test-fast)",

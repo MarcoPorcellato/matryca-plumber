@@ -2,6 +2,12 @@
 
 ### Added
 
+- **Experimental OG process gateway** — add a content-free, single-capture
+  identity/topology boundary with bounded output, strict package ownership and
+  tested audit-event rejection. Operational resources and installed runtime
+  qualification remain pending; no Trama compatibility or stable support is
+  claimed.
+
 - **Bounded Windows x64 launcher qualification lane** — add a separate,
   non-required hosted workflow that verifies an exact pinned template as
   read-only input and executes only the generated candidate; existing required

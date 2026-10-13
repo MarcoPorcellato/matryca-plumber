@@ -16,10 +16,10 @@ lint: ## Run ruff to check for linting errors
 	uv run ruff check .
 
 security-check: ## Run the source security static-analysis baseline
-	uv run ruff check --select S --ignore S101 src
+	uv run ruff check --select S --ignore S101 src matryca_plumber
 
 typecheck: ## Run mypy for strict type checking
-	uv run mypy src/ tests/
+	uv run mypy src/ matryca_plumber/ tests/
 
 sandbox-read-check: ## Ensure graph reads use read_graph_file_text (v1.9.9 security)
 	uv run python scripts/check_graph_read_sandbox.py

@@ -13,6 +13,7 @@ SCAN_ROOTS = (
     REPO_ROOT / "src" / "agent",
     REPO_ROOT / "src" / "rag",
     REPO_ROOT / "src" / "semantic",
+    REPO_ROOT / "matryca_plumber",
 )
 
 # Files allowed to call Path.read_text directly (sandbox primitives or non-markdown I/O).
