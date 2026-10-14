@@ -36,6 +36,12 @@
 
 ### Security
 
+- **Runtime dependency security** — remove the vulnerable cache dependency and
+  obsolete tooling closure by updating the structured-output and API SDK
+  requirements; add synthetic-transport regression coverage for structured
+  responses and embeddings. Model behavior and installed release artifacts
+  remain separately qualified.
+
 - **Frontend development dependency security** — update the lockfile to a
   compatible patched release.
 
