@@ -6,6 +6,7 @@ import json
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from copy import deepcopy
 from importlib import metadata, util
 from typing import Any
 
@@ -23,6 +24,7 @@ from openai.types.chat import ChatCompletion
 from packaging.requirements import Requirement
 from packaging.version import Version
 from pydantic import BaseModel, ConfigDict, Field
+from src.agent.context_compressor import ChatMessage
 from src.agent.llm_client import (
     MAX_SELF_CORRECTION_RETRIES,
     AdaptiveStructuredOutputEngine,
@@ -30,6 +32,7 @@ from src.agent.llm_client import (
     InstructorLLMClient,
     LlmBackendProfile,
     StructuredOutputExhaustedError,
+    _to_sdk_messages,
     pydantic_to_strict_json_schema,
 )
 from src.agent.plumber_config import PlumberLintConfig
@@ -151,6 +154,31 @@ def _assert_nested_schema(schema: dict[str, Any]) -> None:
     assert detail["properties"]["count"]["minimum"] == 1
 
 
+def test_sdk_message_boundary_preserves_roles_order_content_and_caller() -> None:
+    messages: list[ChatMessage] = [
+        {"role": "system", "content": _SYSTEM},
+        {"role": "user", "content": _PROMPT},
+        {"role": "assistant", "content": "Synthetic prior response.\n"},
+    ]
+    original = deepcopy(messages)
+
+    converted = _to_sdk_messages(messages)
+
+    assert converted == original
+    assert converted is not messages
+    for sdk_message, message in zip(converted, messages, strict=True):
+        assert sdk_message is not message
+    converted[0]["content"] = "Synthetic SDK-side modification."
+    assert messages == original
+
+
+def test_sdk_message_boundary_rejects_unknown_roles() -> None:
+    malformed: ChatMessage = json.loads('{"role":"tool","content":"synthetic"}')
+
+    with pytest.raises(ValueError, match="^Unsupported chat message role$"):
+        _to_sdk_messages([malformed])
+
+
 def test_default_sdk_imports_and_wrapping_do_not_require_diskcache() -> None:
     assert util.find_spec("diskcache") is None
     assert Version("1.15.0") <= Version(metadata.version("instructor")) < Version("2")
@@ -249,7 +277,9 @@ def test_path_b_real_wrapper_preserves_request_schema_and_raw_completion(
 
     with _sdk_client(handle) as raw:
         parsed, completion = _complete(_engine(raw, capability))
-    assert parsed == SdkResult(label="synthetic", detail=SdkDetail(count=2))
+    assert isinstance(parsed, SdkResult)
+    assert isinstance(parsed.detail, SdkDetail)
+    assert parsed.model_dump() == {"label": "synthetic", "detail": {"count": 2}}
     assert isinstance(completion, ChatCompletion)
     assert completion.id == "synthetic-completion"
     assert len(requests) == 1
@@ -272,6 +302,52 @@ def test_path_b_real_wrapper_preserves_request_schema_and_raw_completion(
         assert _PROMPT in user
         assert "```json codeblock. not the JSON_SCHEMA" in user
         assert "tools" not in request
+
+
+@pytest.mark.parametrize(
+    "capability",
+    [GrammarCapability.LEGACY_TEXT, GrammarCapability.INSTRUCTOR_TOOLS],
+)
+def test_path_b_converts_current_messages_after_correction(
+    capability: GrammarCapability,
+) -> None:
+    requests: list[dict[str, Any]] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/v1/chat/completions"
+        requests.append(json.loads(request.content))
+        if len(requests) <= 2:
+            return httpx.Response(200, json=_chat_response("not-json"))
+        reply = (
+            _chat_response(None, tool_name="SdkResult")
+            if capability == GrammarCapability.INSTRUCTOR_TOOLS
+            else _chat_response(f"```json\n{_VALID_JSON}\n```")
+        )
+        return httpx.Response(200, json=reply)
+
+    with _sdk_client(handle) as raw:
+        parsed, completion = _complete(_engine(raw, capability))
+
+    assert isinstance(parsed, SdkResult)
+    assert isinstance(parsed.detail, SdkDetail)
+    assert parsed.model_dump() == {"label": "synthetic", "detail": {"count": 2}}
+    assert isinstance(completion, ChatCompletion)
+    assert len(requests) == 3
+    assert requests[1]["response_format"] == {"type": "json_object"}
+    retry_messages = requests[2]["messages"]
+    assert retry_messages[0]["role"] == "system"
+    assert retry_messages[0]["content"].startswith(_SYSTEM)
+    assert any(
+        message["role"] == "user" and _PROMPT in message["content"] for message in retry_messages
+    )
+    assert any(
+        message["role"] == "user"
+        and message["content"].startswith(
+            "Your previous output failed validation with this error:\n",
+        )
+        for message in retry_messages
+    )
 
 
 @pytest.mark.parametrize("failure", ["invalid-json", "missing-tool", "wrong-tool"])
@@ -353,7 +429,7 @@ def test_embedding_rejects_empty_sdk_response() -> None:
         requests.append(request)
         return httpx.Response(200, json={"data": [], "model": "synthetic-embedding"})
 
-    with _sdk_client(handle) as raw, pytest.raises(RuntimeError, match="returned no vectors"):
+    with _sdk_client(handle) as raw, pytest.raises(ValueError, match="No embedding data received"):
         _embedding_client(raw).embed_text("synthetic input")
     assert len(requests) == 1
 
