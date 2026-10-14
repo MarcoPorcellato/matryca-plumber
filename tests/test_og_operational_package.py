@@ -176,7 +176,15 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     assert profile["export"]["entry_count"] == 83
     assert profile["export"]["kind"] == "uv-export-runtime-closure"
     requirements = package.assets["requirements-og-v1-parser-1.9.0.txt"]
-    assert requirements.startswith(b"--require-hashes\n")
+    package_prefix = profile["export"].get("package_prefix")
+    native_sha256 = profile["export"].get("native_sha256")
+    assert package_prefix == "--require-hashes\n"
+    assert native_sha256 == "6f0b43da54075ad95d3d1804a312bbbe5985b29d064bc65ca0afade165e56be8"
+    assert requirements.startswith(package_prefix.encode())
+    native_requirements = requirements[len(package_prefix.encode()) :]
+    assert hashlib.sha256(native_requirements).hexdigest() == native_sha256
+    assert b"python-discovery==1.6.0 \\\n" in requirements
+    assert b"virtualenv==21.7.13 \\\n" in requirements
     pinned_entries = sum(
         b"==" in line and not line.startswith(b" ") for line in requirements.splitlines()
     )

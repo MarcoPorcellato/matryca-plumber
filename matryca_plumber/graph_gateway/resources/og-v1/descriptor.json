@@ -43,9 +43,9 @@
     "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a"
   },
   "resource_digests": {
-    "manifest": "7527fa0dbe6429347f7d29ce5d75cc5fbe3f104931f5615ba03bfe8f4277ebdd",
-    "dependency_profile": "d16de699378e858510d6391bdb637b6de247efd402016fce82c7f82e6849ccb7",
-    "requirements": "6847b3b52cc308826b6b849ae8c75b96a4c1d92143ce8313bee07b8c6996d69a",
+    "manifest": "819a4ae9540d5f8d4e09802b43b46583e51519933b2f68e6d7b4f3f0f3330dd2",
+    "dependency_profile": "a336620fcffd5c2121d627073a3ef188dc9b65fdf555d94ed6208da267f1767a",
+    "requirements": "29768e5969fb8464a858a2028150b7af559d5c9367b53dc75841f610aafca3b8",
     "fixture_manifest": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
     "golden": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3",
     "tck_cases": "4a231586eb6838ffb2083bcb228858284d6f5b07ff507db91b5b368e6ff41aea"

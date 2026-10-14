@@ -20,7 +20,7 @@ This document records the prepared source package for the experimental OG proces
 
 The packaged descriptor identifies `plumber.og.operational/v1` and remains `unqualified`. Its four declared rows—Linux x86_64 with Python 3.12 and 3.13, and macOS arm64 with Python 3.12 and 3.13—remain `planned`. The profile advertises only graph identification and a complete topology snapshot from an OG Markdown source.
 
-The dependency profile is generated from the unchanged project lock and preserves its runtime closure, platform markers, and wheel hashes. It includes the exact `logseq-matryca-parser` 1.9.0 requirement and introduces no dependency. The declared closure is preparation metadata, not proof that an installed package has been qualified.
+The dependency profile records a no-header UV export of the frozen lock: its 83-entry native export has a pinned SHA-256, and the packaged requirements prepend the recorded `--require-hashes` policy line without changing those native bytes. The lock-derived closure includes `virtualenv` 21.7.13 and `python-discovery` 1.6.0 alongside the exact `logseq-matryca-parser` 1.9.0 requirement, and introduces no dependency. This remains preparation metadata, not proof that an installed package has been qualified.
 
 ## Package contents and bounds
 

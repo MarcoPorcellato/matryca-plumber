@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "files": {
-    "dependency-profile.json": "d16de699378e858510d6391bdb637b6de247efd402016fce82c7f82e6849ccb7",
+    "dependency-profile.json": "a336620fcffd5c2121d627073a3ef188dc9b65fdf555d94ed6208da267f1767a",
     "fixture-manifest.json": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
     "fixtures/journals/2026_10_13.md": "7a710f3e4d48069ddf00f6b6b9bde40894e2c6e6525bad4600aa6efa37fa6b7c",
     "fixtures/pages/B.md": "83680d7150820edfd610e23e3e4b41f263337c86bccc4893f85485093d416bd9",
@@ -9,7 +9,7 @@
     "fixtures/pages/sub/x.md": "295fad7b5e39d9e898fedb5e8e3ef1d264e366f75328cb32d5acf0a201fb9304",
     "fixtures/pages/subA.md": "621bf08c03e59c299ff20ef1194f44af695722b514361e396f87cc814eac0775",
     "golden/topology.result.json": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3",
-    "requirements-og-v1-parser-1.9.0.txt": "6847b3b52cc308826b6b849ae8c75b96a4c1d92143ce8313bee07b8c6996d69a",
+    "requirements-og-v1-parser-1.9.0.txt": "29768e5969fb8464a858a2028150b7af559d5c9367b53dc75841f610aafca3b8",
     "schemas/plumber.graph.read.v1.json": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569",
     "schemas/plumber.graph.topology.v1.json": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a",
     "tck-cases.json": "4a231586eb6838ffb2083bcb228858284d6f5b07ff507db91b5b368e6ff41aea"

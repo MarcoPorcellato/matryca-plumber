@@ -46,6 +46,10 @@
   AnyIO 4.14.2, PyJWT 2.15.0, GitPython 3.1.60, urllib3 2.8.0, and development
   httpx2 2.12.0; include its Emscripten-only `httpx2-jsfetch` lock closure.
 
+- **Virtualenv tooling advisory remediation** — raise `virtualenv` to 21.7.13
+  and `python-discovery` to 1.6.0 while preserving the lock-derived runtime
+  dependency profile.
+
 ## [2.0.1-rc.4] - 2026-09-27
 
 ### Added
