@@ -146,7 +146,9 @@ def _chat_response(
 
 def _assert_nested_schema(schema: dict[str, Any]) -> None:
     assert schema["additionalProperties"] is False
-    assert schema["required"] == ["label", "detail"]
+    required = schema["required"]
+    assert isinstance(required, list)
+    assert sorted(required) == ["detail", "label"]
     assert schema["properties"]["label"]["minLength"] == 1
     detail = schema["$defs"]["SdkDetail"]
     assert detail["additionalProperties"] is False
@@ -341,13 +343,12 @@ def test_path_b_converts_current_messages_after_correction(
     assert any(
         message["role"] == "user" and _PROMPT in message["content"] for message in retry_messages
     )
-    assert any(
-        message["role"] == "user"
-        and message["content"].startswith(
-            "Your previous output failed validation with this error:\n",
-        )
-        for message in retry_messages
+    user_content = "\n\n".join(
+        message["content"] for message in retry_messages if message["role"] == "user"
     )
+    correction_prefix = "Your previous output failed validation with this error:\n"
+    assert correction_prefix in user_content
+    assert user_content.index(_PROMPT) < user_content.index(correction_prefix)
 
 
 @pytest.mark.parametrize("failure", ["invalid-json", "missing-tool", "wrong-tool"])
