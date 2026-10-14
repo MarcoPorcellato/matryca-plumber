@@ -6,7 +6,7 @@ import os
 import re
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -17,6 +17,12 @@ import instructor
 from loguru import logger
 from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
 from openai.lib._pydantic import to_strict_json_schema as _openai_to_strict_json_schema
+from openai.types.chat import (
+    ChatCompletionAssistantMessageParam,
+    ChatCompletionMessageParam,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam,
+)
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from ..daemon.config_layer import inject_identity_into_system_prompt
@@ -137,6 +143,24 @@ def call_openai_with_transport_retries[T](factory: Callable[[], T]) -> T:
 
 
 MAX_SELF_CORRECTION_RETRIES = 3
+
+
+def _to_sdk_messages(messages: Sequence[ChatMessage]) -> list[ChatCompletionMessageParam]:
+    """Copy the three internal text-message roles into the SDK's typed boundary."""
+    converted: list[ChatCompletionMessageParam] = []
+    for message in messages:
+        role = message["role"]
+        content = message["content"]
+        if role == "system":
+            converted.append(ChatCompletionSystemMessageParam(role="system", content=content))
+        elif role == "user":
+            converted.append(ChatCompletionUserMessageParam(role="user", content=content))
+        elif role == "assistant":
+            converted.append(ChatCompletionAssistantMessageParam(role="assistant", content=content))
+        else:
+            msg = "Unsupported chat message role"
+            raise ValueError(msg)
+    return converted
 
 
 def _model_uses_max_completion_tokens(model: str) -> bool:
@@ -493,6 +517,7 @@ class AdaptiveStructuredOutputEngine:
         working_messages = list(messages)
 
         for attempt in range(MAX_SELF_CORRECTION_RETRIES):
+            sdk_messages = _to_sdk_messages(working_messages)
             agent_debug_log(
                 location="llm_client.py:_path_b_completion",
                 message="path_b attempt",
@@ -507,7 +532,7 @@ class AdaptiveStructuredOutputEngine:
             try:
                 parsed, completion = instructor_client.chat.completions.create_with_completion(
                     model=client.model,
-                    messages=working_messages,
+                    messages=sdk_messages,
                     response_model=response_model,
                     max_retries=1,
                     **_structured_completion_kwargs(model=client.model),
