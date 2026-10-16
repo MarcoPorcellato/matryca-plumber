@@ -45,8 +45,8 @@
 - **Frontend development dependency security** — update the lockfile to a
   compatible patched release.
 
-- **Python dependency advisory remediation** — require patched floors for
-  AnyIO 4.14.2, PyJWT 2.15.0, GitPython 3.1.62, urllib3 2.8.0, and development
+- **Python dependency advisory remediation** — require upstream-declared patched
+  floors for AnyIO 4.14.2, PyJWT 2.15.0, GitPython 3.2.1, urllib3 2.8.0, and development
   httpx2 2.12.0; include its Emscripten-only `httpx2-jsfetch` lock closure.
   Lock transitive multidict to 6.9.1.
 
