@@ -1,0 +1,452 @@
+{
+  "views": {
+    "2026-05-18": {
+      "count": 23,
+      "uniques": 1
+    },
+    "2026-05-19": {
+      "count": 60,
+      "uniques": 26
+    },
+    "2026-05-20": {
+      "count": 47,
+      "uniques": 15
+    },
+    "2026-05-21": {
+      "count": 41,
+      "uniques": 27
+    },
+    "2026-05-22": {
+      "count": 37,
+      "uniques": 20
+    },
+    "2026-05-23": {
+      "count": 63,
+      "uniques": 32
+    },
+    "2026-05-24": {
+      "count": 119,
+      "uniques": 25
+    },
+    "2026-05-25": {
+      "count": 58,
+      "uniques": 8
+    },
+    "2026-05-26": {
+      "count": 23,
+      "uniques": 11
+    },
+    "2026-05-27": {
+      "count": 19,
+      "uniques": 7
+    },
+    "2026-05-28": {
+      "count": 64,
+      "uniques": 18
+    },
+    "2026-05-29": {
+      "count": 79,
+      "uniques": 21
+    },
+    "2026-05-30": {
+      "count": 17,
+      "uniques": 10
+    },
+    "2026-05-31": {
+      "count": 49,
+      "uniques": 15
+    }
+  },
+  "clones": {
+    "2026-05-18": {
+      "count": 99,
+      "uniques": 48
+    },
+    "2026-05-19": {
+      "count": 266,
+      "uniques": 79
+    },
+    "2026-05-20": {
+      "count": 308,
+      "uniques": 40
+    },
+    "2026-05-21": {
+      "count": 179,
+      "uniques": 62
+    },
+    "2026-05-22": {
+      "count": 31,
+      "uniques": 20
+    },
+    "2026-05-23": {
+      "count": 540,
+      "uniques": 107
+    },
+    "2026-05-24": {
+      "count": 949,
+      "uniques": 202
+    },
+    "2026-05-25": {
+      "count": 320,
+      "uniques": 54
+    },
+    "2026-05-26": {
+      "count": 111,
+      "uniques": 33
+    },
+    "2026-05-27": {
+      "count": 410,
+      "uniques": 68
+    },
+    "2026-05-28": {
+      "count": 90,
+      "uniques": 39
+    },
+    "2026-05-29": {
+      "count": 167,
+      "uniques": 56
+    },
+    "2026-05-30": {
+      "count": 40,
+      "uniques": 14
+    },
+    "2026-05-31": {
+      "count": 47,
+      "uniques": 19
+    }
+  },
+  "releases": {
+    "2026-06-02": [
+      {
+        "tag": "v1.9.1",
+        "assets": [
+          {
+            "matryca_plumber-1.9.1-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.9.1.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.9.0",
+        "assets": [
+          {
+            "matryca_plumber-1.9.0-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.9.0.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.8.5",
+        "assets": [
+          {
+            "matryca_plumber-1.8.5-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.8.5.tar.gz": 1
+          }
+        ]
+      },
+      {
+        "tag": "v1.8.4",
+        "assets": [
+          {
+            "matryca_plumber-1.8.4-py3-none-any.whl": 2
+          },
+          {
+            "matryca_plumber-1.8.4.tar.gz": 1
+          }
+        ]
+      },
+      {
+        "tag": "v1.8.2",
+        "assets": [
+          {
+            "matryca_plumber-1.8.2-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.8.2.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.8.1",
+        "assets": [
+          {
+            "matryca_plumber-1.8.1-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.8.1.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.8.0",
+        "assets": [
+          {
+            "matryca_plumber-1.8.0-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.8.0.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.7.5",
+        "assets": [
+          {
+            "matryca_plumber-1.7.5-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.7.5.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.7.0",
+        "assets": [
+          {
+            "matryca_plumber-1.7.0-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.7.0.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.6.1",
+        "assets": [
+          {
+            "matryca_plumber-1.6.1-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.6.1.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.6.0",
+        "assets": [
+          {
+            "matryca_plumber-1.6.0-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.6.0.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.17",
+        "assets": [
+          {
+            "matryca_plumber-1.5.16-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.16.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.16",
+        "assets": [
+          {
+            "matryca_plumber-1.5.16-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.16.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.15",
+        "assets": [
+          {
+            "matryca_plumber-1.5.15-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.15.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.14",
+        "assets": [
+          {
+            "matryca_plumber-1.5.14-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.14.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.13",
+        "assets": [
+          {
+            "matryca_plumber-1.5.13-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.13.tar.gz": 4
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.12",
+        "assets": [
+          {
+            "matryca_plumber-1.5.12-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.12.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.11",
+        "assets": [
+          {
+            "matryca_plumber-1.5.11-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.11.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.10",
+        "assets": [
+          {
+            "matryca_plumber-1.5.10-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.10.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.9",
+        "assets": [
+          {
+            "matryca_plumber-1.5.9-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.9.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.8",
+        "assets": [
+          {
+            "matryca_plumber-1.5.8-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.8.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.6",
+        "assets": [
+          {
+            "matryca_plumber-1.5.6-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.6.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.5",
+        "assets": [
+          {
+            "matryca_plumber-1.5.5-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.5.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.4",
+        "assets": [
+          {
+            "matryca_plumber-1.5.4-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.4.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.3",
+        "assets": [
+          {
+            "matryca_plumber-1.5.3-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.3.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.5.2",
+        "assets": [
+          {
+            "matryca_plumber-1.5.2-py3-none-any.whl": 0
+          },
+          {
+            "matryca_plumber-1.5.2.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.4.6",
+        "assets": [
+          {
+            "matryca_logseq-1.4.5-py3-none-any.whl": 0
+          },
+          {
+            "matryca_logseq-1.4.5.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.4.5",
+        "assets": [
+          {
+            "matryca_logseq-1.4.5-py3-none-any.whl": 0
+          },
+          {
+            "matryca_logseq-1.4.5.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.4.4",
+        "assets": [
+          {
+            "matryca_logseq-1.4.3-py3-none-any.whl": 0
+          },
+          {
+            "matryca_logseq-1.4.3.tar.gz": 0
+          }
+        ]
+      },
+      {
+        "tag": "v1.4.3",
+        "assets": [
+          {
+            "matryca_logseq-1.4.3-py3-none-any.whl": 0
+          },
+          {
+            "matryca_logseq-1.4.3.tar.gz": 0
+          }
+        ]
+      }
+    ]
+  }
+}
