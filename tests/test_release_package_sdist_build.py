@@ -24,6 +24,64 @@ from scripts.release_qualification.sdist_build import (
 )
 
 
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        (b"uv 0.12.19\n", "0.12.19"),
+        (
+            b"uv 0.12.19 (bea138450 2026-09-24 x86_64-unknown-linux-gnu)\n",
+            "0.12.19",
+        ),
+        (
+            b"uv 0.12.19 (bea138450 2026-09-24 aarch64-apple-darwin)\n",
+            "0.12.19",
+        ),
+        (b"uv 0.12.19 (x86_64-unknown-linux-gnu)\n", "0.12.19"),
+        (
+            b"uv 0.12.16 (Homebrew 2026-09-17 aarch64-apple-darwin)\n",
+            "0.12.16",
+        ),
+        (b"uv 0.12.18 (x86_64-unknown-linux-gnu)\n", "0.12.18"),
+        (
+            b"uv 0.12.19+1 (bea138450 2026-09-24 x86_64-unknown-linux-gnu)\n",
+            "0.12.19+1",
+        ),
+    ],
+)
+def test_read_uv_version_accepts_metadata_without_changing_version(
+    output: bytes, expected: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sdist_build, "_checked_output", lambda _command: output)
+
+    assert sdist_build._read_uv_version(Path("/synthetic/uv")) == expected
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        b"",
+        b"uvx 0.12.19",
+        b"UV 0.12.19",
+        b"uv 0.12.19 extra",
+        b"uv 0.12.19 (x86_64-unknown-linux-gnu) extra",
+        b"uv 0.12.19 (x86_64-unknown-linux-gnu",
+        b"uv 0.12.19 ()",
+        b"uv 0.12.19 ((x86_64-unknown-linux-gnu))",
+        b"uv 0.12.19 (x86_64-unknown-linux-gnu)\nuv 0.12.18",
+        b"uv 0.12.19 (bea138450\n2026-09-24 x86_64-unknown-linux-gnu)",
+        b"uv 0.12.19 (\x1b[31mx86_64-unknown-linux-gnu)",
+        b"uv 0.12.19 (x86_64\tunknown-linux-gnu)",
+    ],
+)
+def test_read_uv_version_rejects_malformed_or_multiline_output(
+    output: bytes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sdist_build, "_checked_output", lambda _command: output)
+
+    with pytest.raises(ValueError, match="uv version output has an unsupported shape"):
+        sdist_build._read_uv_version(Path("/synthetic/uv"))
+
+
 def _wheel(
     path: Path,
     *,

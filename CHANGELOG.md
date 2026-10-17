@@ -14,9 +14,10 @@ separate gates; stable v2.0.0 remains the default.
 
 - **Experimental OG installed qualification** — add eight Linux x64/macOS arm64
   runtime/distribution rows, independent locked CPython 3.12 builds, complete
-  installed and operational checks, exact run/artifact bindings and fail-closed
-  aggregation. Preserve RC4 policy defaults and keep Windows refusal, publication
-  and Trama admission separate; no installed or public-artifact result is claimed.
+  installed and operational checks, version-preserving build-tool metadata
+  parsing, exact run/artifact bindings and fail-closed aggregation. Preserve RC4
+  policy defaults and keep Windows refusal, publication and Trama admission
+  separate; no installed or public-artifact result is claimed.
 
 - **OG operational test kit** — package a hash-bound resource/dependency profile,
   synthetic privacy canaries and process-owning TCK controls for identity and

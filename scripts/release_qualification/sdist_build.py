@@ -797,7 +797,11 @@ def _read_package_manifest(uv: Path, python: Path) -> tuple[tuple[str, str], ...
 
 def _read_uv_version(uv: Path) -> str:
     output = _checked_output([str(uv), "--version"]).decode("utf-8", errors="strict").strip()
-    match = re.fullmatch(r"uv ([0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*)", output)
+    match = re.fullmatch(
+        r"uv ([0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*)"
+        r"(?: \([A-Za-z0-9][A-Za-z0-9 ._+-]*\))?",
+        output,
+    )
     if match is None:
         _fail("uv version output has an unsupported shape.")
     return match.group(1)
