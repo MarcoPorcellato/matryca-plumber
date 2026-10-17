@@ -43,9 +43,9 @@
     "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a"
   },
   "resource_digests": {
-    "manifest": "8e56d7c4579fcf929dd05c31a4377f6e6641bdc12280f78ea9caee4ef85a3d23",
-    "dependency_profile": "60106bca5b7497aa7cc7e8ccbed1688d705847e1d09ab921f144a0fc68593c2c",
-    "requirements": "be81cabbcdd0c7de03ac909839de46f73503b4e562ef21d247489267bf27747f",
+    "manifest": "b164d9f940300aa11326b17c2ceec88d3bd7eb8bd01dc04eedec3eba1ebe6ba8",
+    "dependency_profile": "5c9f2c1829cd7fa44408ba9ad99401b21205aa41d920fb8841cccc22c177bea5",
+    "requirements": "291ad75b29f915a4c61b6c8177f2d3b56e0dca58696133b3be5871918ea8f612",
     "fixture_manifest": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
     "golden": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3",
     "tck_cases": "4a231586eb6838ffb2083bcb228858284d6f5b07ff507db91b5b368e6ff41aea"

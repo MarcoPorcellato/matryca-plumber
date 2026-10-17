@@ -10,6 +10,13 @@
   before environment fingerprinting or process controls; physical namespace-file
   qualification remains deferred.
 
+### Security
+
+- **MCP dependency security** — require the upstream-declared patched 1.x floor
+  of 1.30.0 for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv)
+  and rebind the OG dependency profile; unrelated lock records remain unchanged.
+  Installed-runtime qualification remains separate.
+
 ## [2.1.0-alpha.1] - 2026-10-16
 
 This is preparation for an experimental prerelease, not a publication record.

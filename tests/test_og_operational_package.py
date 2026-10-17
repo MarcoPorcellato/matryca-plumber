@@ -180,7 +180,7 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     package_prefix = profile["export"].get("package_prefix")
     native_sha256 = profile["export"].get("native_sha256")
     assert package_prefix == "--require-hashes\n"
-    assert native_sha256 == "c6fbbe6893f24167ad455e7e32797500fc3b6ee95a0c14c35e8e69d6b4db7657"
+    assert native_sha256 == "4c063bce4902af3321972a9b09bb8df021551ab3c0eb9c7c62feb5a0bf8ef26f"
     assert requirements.startswith(package_prefix.encode())
     native_requirements = requirements[len(package_prefix.encode()) :]
     assert hashlib.sha256(native_requirements).hexdigest() == native_sha256
@@ -1790,6 +1790,8 @@ def test_tck_validates_schema_descriptor_and_golden_bindings() -> None:
 
     package = _package_resources()
     values = _inputs()
+    package_version = json.loads(package.assets["dependency-profile.json"])["project"]["version"]
+    values[1]["plumber"] = package_version
     golden = json.loads(package.assets["golden/topology.result.json"])
     revision = golden["provenance"]["source_revision"]
     session, identity, topology = values[2], values[3], values[4]
@@ -1803,6 +1805,11 @@ def test_tck_validates_schema_descriptor_and_golden_bindings() -> None:
 
     checked = _validate_success_response(encoded, package)
     assert checked["topology"]["result"] == golden
+
+    output["versions"]["plumber"] = "2.0.1rc4"
+    with pytest.raises(TCKFailure, match="response_binding"):
+        _validate_success_response(_encode(output), package)
+    output["versions"]["plumber"] = package_version
 
     output["descriptor_sha256"] = "0" * 64
     with pytest.raises(TCKFailure, match="response_binding"):
@@ -1833,9 +1840,10 @@ def test_tck_refuses_origins_before_environment_inventory_or_controls(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     from matryca_plumber.graph_gateway import tck
+    from matryca_plumber.graph_gateway.resources import _load_package_resources
 
     events: list[str] = []
-    load_resources = tck._load_package_resources
+    load_resources = _load_package_resources
 
     def authenticate_resources() -> PackageResources:
         package = load_resources()
@@ -1861,7 +1869,7 @@ def test_tck_refuses_origins_before_environment_inventory_or_controls(
         prefix.mkdir()
         outside_module = tmp_path / "outside-tck.py"
         outside_module.write_text("# synthetic origin\n", encoding="utf-8")
-        monkeypatch.setattr(tck.sys, "prefix", str(prefix))
+        monkeypatch.setattr(sys, "prefix", str(prefix))
         monkeypatch.setattr(tck, "__file__", str(outside_module))
 
     code, report = tck._execute(tmp_path / "report.json")
@@ -1905,7 +1913,7 @@ def test_installed_tck_preserves_environment_failure_after_origin_admission(
         events.append("controls")
         pytest.fail("controls ran after failed environment inventory")
 
-    monkeypatch.setattr(tck.sys, "prefix", str(prefix))
+    monkeypatch.setattr(sys, "prefix", str(prefix))
     monkeypatch.setattr(tck, "__file__", str(module))
     monkeypatch.setattr(
         tck, "_installed_identity", lambda: {"installed_origin": True, "editable": False}
