@@ -797,7 +797,11 @@ def _read_package_manifest(uv: Path, python: Path) -> tuple[tuple[str, str], ...
 
 def _read_uv_version(uv: Path) -> str:
     output = _checked_output([str(uv), "--version"]).decode("utf-8", errors="strict").strip()
-    match = re.fullmatch(r"uv ([0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*)", output)
+    match = re.fullmatch(
+        r"uv ([0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*)"
+        r"(?: \([A-Za-z0-9][A-Za-z0-9 ._+-]*\))?",
+        output,
+    )
     if match is None:
         _fail("uv version output has an unsupported shape.")
     return match.group(1)
@@ -946,6 +950,7 @@ def prepare_sdist_build(
     *,
     environment_descriptor: Path,
     expected_build_environment_sha256: str,
+    policy: str = "rc4",
 ) -> SdistBuildReceipt:
     """Build one temporary wheel from an authenticated sdist in a provisioned environment.
 
@@ -954,7 +959,7 @@ def prepare_sdist_build(
     """
     if os.name == "nt":
         _fail("Windows build-process containment is not qualified for this helper.")
-    bundle_module._validate_binding(binding)
+    bundle_module._validate_binding(binding, policy=policy)
     descriptor = load_build_environment_descriptor(
         environment_descriptor, expected_sha256=expected_build_environment_sha256
     )
@@ -1000,7 +1005,7 @@ def prepare_sdist_build(
     if _sha256_file(Path(str(uv))) != uv_digest:
         _fail("Selected uv executable changed during qualification preflight.")
 
-    _payload, metadata = _authenticated_archive(artifact, binding, "sdist")
+    _payload, metadata = _authenticated_archive(artifact, binding, "sdist", policy=policy)
     pkg_info = metadata.get("METADATA")
     if pkg_info is None:
         _fail("Authenticated source distribution has no package identity metadata.")

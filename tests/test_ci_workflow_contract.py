@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ast
+import os
 import re
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -93,6 +95,162 @@ def test_all_external_actions_are_full_sha_pinned() -> None:
         references.extend(_external_uses(_load_workflow(path)))
     assert references
     assert all(PINNED_ACTION.fullmatch(reference) for reference in references)
+
+
+def test_og_alpha_workflow_is_additive_exact_source_and_least_privilege() -> None:
+    workflow = _load_workflow(WORKFLOWS / "og-profile-qualification.yml")
+    assert workflow["permissions"] == {}
+    assert set(workflow["on"]) == {"pull_request", "workflow_dispatch"}
+    assert "pull_request_target" not in workflow["on"]
+    assert workflow["on"]["workflow_dispatch"]["inputs"]["source_sha"]["required"] == "true"
+    jobs = workflow["jobs"]
+    assert set(jobs) == {
+        "build",
+        "source-controls",
+        "windows-refusal",
+        "linux312",
+        "linux313",
+        "macos312",
+        "macos313",
+        "aggregate",
+    }
+    assert jobs["build"]["runs-on"] == "ubuntu-24.04"
+    assert jobs["windows-refusal"]["runs-on"] == "windows-latest"
+    for name, system, runtime in (
+        ("linux312", "ubuntu-24.04", "3.12"),
+        ("linux313", "ubuntu-24.04", "3.13"),
+        ("macos312", "macos-15", "3.12"),
+        ("macos313", "macos-15", "3.13"),
+    ):
+        job = jobs[name]
+        assert job["runs-on"] == system and job["env"]["RUNTIME_MINOR"] == runtime
+        assert "continue-on-error" not in job
+        runs = "\n".join(step.get("run", "") for step in job["steps"])
+        assert "--require-hashes" in runs and "--no-deps" not in runs
+        assert "alpha-row" in runs and "--build-python" in runs
+        assert "--no-install-project" in runs and "--locked" in runs
+        assert "--artifact-" not in runs  # original artifacts arrive by exact upstream ID
+        download = next(
+            step for step in job["steps"] if "download-artifact@" in step.get("uses", "")
+        )
+        assert download["with"]["artifact-ids"] == "${{ needs.build.outputs.artifact-id }}"
+    for job in jobs.values():
+        assert "timeout-minutes" in job
+        permissions = job["permissions"]
+        assert not any(value == "write" for value in permissions.values())
+        for step in job["steps"]:
+            if "checkout@" in step.get("uses", ""):
+                assert step["with"]["persist-credentials"] == "false"
+                assert (
+                    step["with"]["ref"]
+                    == "${{ github.event.pull_request.head.sha || inputs.source_sha }}"
+                )
+    aggregate = jobs["aggregate"]
+    assert aggregate["if"] == "always()"
+    assert set(aggregate["needs"]) == set(jobs) - {"aggregate"}
+    assert aggregate["permissions"] == {"contents": "read", "actions": "read"}
+    runs = "\n".join(step.get("run", "") for step in aggregate["steps"])
+    assert "/attempts/${GITHUB_RUN_ATTEMPT}/jobs" in runs
+    assert "alpha-aggregate" in runs and "--jobs" in runs
+    assert all(
+        "og-profile-qualification" not in need
+        for need in _load_workflow(CI_WORKFLOW)["jobs"]["ironclad-gatekeeper"]["needs"]
+    )
+
+
+def test_og_alpha_cold_provisioning_precedes_environment_consumption(tmp_path: Path) -> None:
+    """Fresh runners need explicit interpreters before no-download sync commands."""
+    workflow = _load_workflow(WORKFLOWS / "og-profile-qualification.yml")
+    assert workflow["env"]["UV_PYTHON_DOWNLOADS"] == "never"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"
+    uv.write_text(
+        '#!/bin/sh\n[ "$UV_PYTHON_DOWNLOADS" = manual ] || exit 23\n'
+        '[ "$1" = python ] && [ "$2" = install ] || exit 24\n'
+        'printf "%s\\n" "$*" >> "$PROVISION_LOG"\n'
+    )
+    uv.chmod(0o700)
+    for name, job in workflow["jobs"].items():
+        steps = job["steps"]
+        consumers = [index for index, step in enumerate(steps) if "uv sync" in step.get("run", "")]
+        provisioners = [
+            (index, step)
+            for index, step in enumerate(steps)
+            if "uv python install" in step.get("run", "")
+        ]
+        assert consumers and provisioners, name
+        assert provisioners[0][0] < consumers[0], name
+        log = tmp_path / (name + ".log")
+        environment = {
+            "PATH": str(fake_bin) + os.pathsep + "/usr/bin:/bin",
+            "UV_PYTHON_DOWNLOADS": workflow["env"]["UV_PYTHON_DOWNLOADS"],
+            "PROVISION_LOG": str(log),
+            **job.get("env", {}),
+            **provisioners[0][1].get("env", {}),
+        }
+        result = subprocess.run(
+            ["/bin/bash", "--noprofile", "--norc", "-c", provisioners[0][1]["run"]],
+            cwd=tmp_path,
+            env=environment,
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+        assert result.returncode == 0, name
+        requested = log.read_text().split()
+        assert "3.12" in requested, name
+        if job.get("env", {}).get("RUNTIME_MINOR") == "3.13":
+            assert "3.13" in requested, name
+
+
+@pytest.mark.parametrize(
+    "job_name",
+    [
+        "build",
+        "source-controls",
+        "windows-refusal",
+        "linux312",
+        "linux313",
+        "macos312",
+        "macos313",
+        "aggregate",
+    ],
+)
+def test_og_alpha_dispatch_rejects_older_ancestor_before_work(
+    tmp_path: Path, job_name: str
+) -> None:
+    """Reachability alone must not admit a checkout different from the run SHA."""
+    workflow = _load_workflow(WORKFLOWS / "og-profile-qualification.yml")
+    step = next(
+        step
+        for step in workflow["jobs"][job_name]["steps"]
+        if step.get("name") == "Verify selected source"
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    git = fake_bin / "git"
+    git.write_text(
+        '#!/bin/sh\ncase "$1" in\n'
+        'rev-parse) printf "%s\\n" "$SELECTED_SOURCE" ;;\n'
+        "status|merge-base) exit 0 ;;\n*) exit 25 ;;\nesac\n"
+    )
+    git.chmod(0o700)
+    result = subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-c", step["run"]],
+        cwd=tmp_path,
+        env={
+            "PATH": str(fake_bin) + os.pathsep + "/usr/bin:/bin",
+            "SELECTED_SOURCE": "a" * 40,
+            "GITHUB_SHA": "b" * 40,
+            "GITHUB_EVENT_NAME": "workflow_dispatch",
+            "GITHUB_REF": "refs/heads/main",
+        },
+        capture_output=True,
+        timeout=5,
+        check=False,
+    )
+    assert result.returncode != 0
 
 
 def test_local_receipt_control_plane_is_absent() -> None:

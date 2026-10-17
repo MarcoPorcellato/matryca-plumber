@@ -8,6 +8,7 @@ import sys
 import tarfile
 import time
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -21,6 +22,64 @@ from scripts.release_qualification.sdist_build import (
     _parse_build_system,
     _verify_generated_wheel,
 )
+
+
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        (b"uv 0.12.19\n", "0.12.19"),
+        (
+            b"uv 0.12.19 (bea138450 2026-09-24 x86_64-unknown-linux-gnu)\n",
+            "0.12.19",
+        ),
+        (
+            b"uv 0.12.19 (bea138450 2026-09-24 aarch64-apple-darwin)\n",
+            "0.12.19",
+        ),
+        (b"uv 0.12.19 (x86_64-unknown-linux-gnu)\n", "0.12.19"),
+        (
+            b"uv 0.12.16 (Homebrew 2026-09-17 aarch64-apple-darwin)\n",
+            "0.12.16",
+        ),
+        (b"uv 0.12.18 (x86_64-unknown-linux-gnu)\n", "0.12.18"),
+        (
+            b"uv 0.12.19+1 (bea138450 2026-09-24 x86_64-unknown-linux-gnu)\n",
+            "0.12.19+1",
+        ),
+    ],
+)
+def test_read_uv_version_accepts_metadata_without_changing_version(
+    output: bytes, expected: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sdist_build, "_checked_output", lambda _command: output)
+
+    assert sdist_build._read_uv_version(Path("/synthetic/uv")) == expected
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        b"",
+        b"uvx 0.12.19",
+        b"UV 0.12.19",
+        b"uv 0.12.19 extra",
+        b"uv 0.12.19 (x86_64-unknown-linux-gnu) extra",
+        b"uv 0.12.19 (x86_64-unknown-linux-gnu",
+        b"uv 0.12.19 ()",
+        b"uv 0.12.19 ((x86_64-unknown-linux-gnu))",
+        b"uv 0.12.19 (x86_64-unknown-linux-gnu)\nuv 0.12.18",
+        b"uv 0.12.19 (bea138450\n2026-09-24 x86_64-unknown-linux-gnu)",
+        b"uv 0.12.19 (\x1b[31mx86_64-unknown-linux-gnu)",
+        b"uv 0.12.19 (x86_64\tunknown-linux-gnu)",
+    ],
+)
+def test_read_uv_version_rejects_malformed_or_multiline_output(
+    output: bytes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sdist_build, "_checked_output", lambda _command: output)
+
+    with pytest.raises(ValueError, match="uv version output has an unsupported shape"):
+        sdist_build._read_uv_version(Path("/synthetic/uv"))
 
 
 def _wheel(
@@ -48,6 +107,141 @@ def _wheel(
 
 def _package_set(*items: tuple[str, str]) -> dict[str, str]:
     return {name: version for name, version in items}
+
+
+def test_alpha_sdist_policy_is_explicit_and_reaches_descriptor_admission(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    binding = BundleBinding(
+        "a" * 40,
+        "b" * 40,
+        "2.1.0a1",
+        "matryca_plumber-2.1.0a1-py3-none-any.whl",
+        1,
+        "c" * 64,
+        "matryca_plumber-2.1.0a1.tar.gz",
+        1,
+        "d" * 64,
+        "e" * 64,
+        "f" * 64,
+    )
+
+    def reject_descriptor(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("descriptor admission reached")
+
+    monkeypatch.setattr(sdist_build, "load_build_environment_descriptor", reject_descriptor)
+    with pytest.raises(ValueError, match="descriptor admission reached"):
+        sdist_build.prepare_sdist_build(
+            tmp_path / binding.sdist_name,
+            binding,
+            tmp_path,
+            tmp_path / "python",
+            tmp_path / "uv",
+            "0" * 64,
+            tmp_path / "output",
+            environment_descriptor=tmp_path / "descriptor.json",
+            expected_build_environment_sha256="1" * 64,
+            policy="og-alpha1",
+        )
+
+
+def test_alpha_policy_is_preserved_by_the_complete_nested_sdist_build(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source, _commit, _tree, project = _source_checkout(tmp_path)
+    project = project.replace(b"2.0.1rc4", b"2.1.0a1")
+    (source / "pyproject.toml").write_bytes(project)
+    subprocess.run(["git", "add", "pyproject.toml"], cwd=source, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-qm",
+            "alpha fixture",
+        ],
+        cwd=source,
+        check=True,
+    )
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
+    tree = subprocess.check_output(
+        ["git", "rev-parse", "HEAD^{tree}"], cwd=source, text=True
+    ).strip()
+    artifact = tmp_path / "matryca_plumber-2.1.0a1.tar.gz"
+    with tarfile.open(artifact, "w:gz") as archive:
+        for name, data in {
+            "pyproject.toml": project,
+            "module.py": b"VALUE = 1\n",
+            "PKG-INFO": b"Metadata-Version: 2.4\nName: matryca-plumber\nVersion: 2.1.0a1\n\n",
+        }.items():
+            info = tarfile.TarInfo("matryca_plumber-2.1.0a1/" + name)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    members, _contents, _directories = bundle_module._read_sdist(
+        artifact, "matryca_plumber-2.1.0a1"
+    )
+    size, sha256 = bundle_module._archive_sha256(artifact)
+    binding = BundleBinding(
+        commit,
+        tree,
+        "2.1.0a1",
+        "matryca_plumber-2.1.0a1-py3-none-any.whl",
+        1,
+        "0" * 64,
+        artifact.name,
+        size,
+        sha256,
+        "0" * 64,
+        bundle_module._inventory_digest(members),
+    )
+    python, uv, descriptor, descriptor_sha = _build_environment_inputs(tmp_path, source, binding)
+    commands = _fake_consume_only_commands(monkeypatch)
+    original = sdist_build._run_bounded
+
+    def fake_run(
+        command: list[str], *, cwd: Path | None = None, timeout: float = 0, capture: bool = False
+    ) -> sdist_build._CommandResult:
+        if command[1:3] == ["build", "--wheel"]:
+            output = Path(command[command.index("--out-dir") + 1]) / binding.wheel_name
+            with zipfile.ZipFile(output, "w") as archive:
+                archive.writestr(
+                    "matryca_plumber-2.1.0a1.dist-info/METADATA",
+                    b"Metadata-Version: 2.4\nName: matryca-plumber\nVersion: 2.1.0a1\n\n",
+                )
+                archive.writestr(
+                    "matryca_plumber-2.1.0a1.dist-info/WHEEL",
+                    b"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+                )
+            commands.append(command)
+            return sdist_build._CommandResult(0, b"")
+        return original(command, cwd=cwd, timeout=timeout, capture=capture)
+
+    monkeypatch.setattr(sdist_build, "_run_bounded", fake_run)
+    output = tmp_path / "temporary-wheel"
+    output.mkdir()
+    result = sdist_build.prepare_sdist_build(
+        artifact,
+        binding,
+        source,
+        python,
+        uv,
+        hashlib.sha256(uv.read_bytes()).hexdigest(),
+        output,
+        environment_descriptor=descriptor,
+        expected_build_environment_sha256=descriptor_sha,
+        policy="og-alpha1",
+    )
+    assert result.sdist_sha256 == binding.sdist_sha256
+    assert result.wheel_name == binding.wheel_name and result.source_commit == commit
+    with pytest.raises(ValueError, match="version"):
+        bundle_module._validate_binding(replace(binding, wheel_sha256=result.wheel_sha256))
 
 
 def test_windows_bounded_runner_uses_shared_gate_and_raw_reader(

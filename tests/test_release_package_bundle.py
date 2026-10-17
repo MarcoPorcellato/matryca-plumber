@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -710,3 +711,131 @@ def test_build_handoff_missing_github_output_writes_no_success_value(tmp_path: P
 
     assert result.returncode != 0
     assert "GITHUB_OUTPUT is required" in result.stderr
+
+
+def _alpha_inputs(tmp_path: Path, version: str = "2.1.0a1") -> tuple[Path, str, Path, Path]:
+    """Create matching synthetic alpha source, ledger and archives; never build code."""
+    repo, _commit, _tree, ledger = _write_repo(tmp_path)
+    project = repo / "pyproject.toml"
+    project.write_bytes(SOURCE_BYTES["pyproject.toml"].replace(b"2.0.1rc4", version.encode()))
+    subprocess.run(["git", "add", "pyproject.toml"], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "user.name=Release Test",
+            "-c",
+            "user.email=release-test@example.invalid",
+            "commit",
+            "-qm",
+            "alpha fixture",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], cwd=repo, text=True).strip()
+    document = json.loads(ledger.read_bytes())
+    document.update(source_commit=commit, source_tree=tree, version=version)
+    for item in document["selected_source_files"]:
+        if item["name"] == "pyproject.toml":
+            item["sha256"] = hashlib.sha256(project.read_bytes()).hexdigest()
+    ledger.write_text(json.dumps(document), encoding="utf-8")
+    dist = tmp_path / "dist"
+    wheel, sdist = _write_pair(
+        dist,
+        wheel_members={
+            name.replace(VERSION, version): payload.replace(VERSION.encode(), version.encode())
+            for name, payload in _wheel_members().items()
+        },
+        sdist_members={
+            name.replace(VERSION, version): payload.replace(VERSION.encode(), version.encode())
+            for name, payload in _sdist_members().items()
+        },
+    )
+    wheel.rename(dist / f"matryca_plumber-{version}-py3-none-any.whl")
+    sdist.rename(dist / f"matryca_plumber-{version}.tar.gz")
+    return repo, commit, ledger, dist
+
+
+def test_alpha_policy_authenticates_source_ledger_and_handoff_without_rc_waiver(
+    tmp_path: Path,
+) -> None:
+    repo, commit, ledger, dist = _alpha_inputs(tmp_path)
+    with pytest.raises(ValueError, match="version"):
+        build_binding(repo, dist, ledger, commit)
+
+    binding = build_binding(repo, dist, ledger, commit, policy="og-alpha1")
+    assert binding.version == "2.1.0a1"
+    assert binding.wheel_name == "matryca_plumber-2.1.0a1-py3-none-any.whl"
+    assert BundleBinding.from_json(binding.to_json(), policy="og-alpha1") == binding
+    with pytest.raises(ValueError, match="version"):
+        BundleBinding.from_json(binding.to_json())
+    manifest = dist / "SHA256SUMS"
+    manifest.write_bytes(canonical_manifest(binding, policy="og-alpha1"))
+    verify_handoff(dist, manifest, binding, policy="og-alpha1")
+    with pytest.raises(ValueError, match="version"):
+        verify_handoff(dist, manifest, binding)
+    wheel = dist / binding.wheel_name
+    wheel.write_bytes(wheel.read_bytes() + b"tampered")
+    with pytest.raises(ValueError, match="differs"):
+        verify_handoff(dist, manifest, binding, policy="og-alpha1")
+
+
+@pytest.mark.parametrize("version", ["2.1.0a2", "2.1.0", "2.0.1rc4"])
+def test_alpha_policy_refuses_other_well_formed_release_versions(version: str) -> None:
+    binding = BundleBinding(
+        "a" * 40,
+        "b" * 40,
+        version,
+        f"matryca_plumber-{version}-py3-none-any.whl",
+        1,
+        "c" * 64,
+        f"matryca_plumber-{version}.tar.gz",
+        1,
+        "d" * 64,
+        "e" * 64,
+        "f" * 64,
+    )
+    with pytest.raises(ValueError, match="version"):
+        BundleBinding.from_json(binding.to_json(), policy="og-alpha1")
+
+
+@pytest.mark.parametrize("policy", ["all", "2.1.0a1", "", "rc.*"])
+def test_bundle_policy_is_closed_not_a_caller_supplied_version_rule(policy: str) -> None:
+    binding = BundleBinding(
+        "a" * 40,
+        "b" * 40,
+        "2.0.1rc4",
+        WHEEL_NAME,
+        1,
+        "c" * 64,
+        SDIST_NAME,
+        1,
+        "d" * 64,
+        "e" * 64,
+        "f" * 64,
+    )
+    with pytest.raises(ValueError, match="policy"):
+        canonical_manifest(binding, policy=policy)
+
+
+def test_alpha_binding_preserves_archive_size_and_digest_validation() -> None:
+    binding = BundleBinding(
+        "a" * 40,
+        "b" * 40,
+        "2.1.0a1",
+        "matryca_plumber-2.1.0a1-py3-none-any.whl",
+        1,
+        "c" * 64,
+        "matryca_plumber-2.1.0a1.tar.gz",
+        1,
+        "d" * 64,
+        "e" * 64,
+        "f" * 64,
+    )
+    for invalid in (replace(binding, wheel_size=True), replace(binding, sdist_sha256="invalid")):
+        with pytest.raises(ValueError):
+            BundleBinding.from_json(invalid.to_json(), policy="og-alpha1")
