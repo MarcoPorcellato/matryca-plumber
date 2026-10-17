@@ -173,18 +173,20 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     assert profile["lock_source"] == "uv.lock"
     assert profile["matrix"] == package.descriptor["matrix"]
     assert profile["qualification"] == "unqualified"
-    assert profile["export"]["entry_count"] == 83
+    assert profile["project"] == {"name": "matryca-plumber", "version": "2.1.0a1"}
+    assert profile["export"]["entry_count"] == 73
     assert profile["export"]["kind"] == "uv-export-runtime-closure"
     requirements = package.assets["requirements-og-v1-parser-1.9.0.txt"]
     package_prefix = profile["export"].get("package_prefix")
     native_sha256 = profile["export"].get("native_sha256")
     assert package_prefix == "--require-hashes\n"
-    assert native_sha256 == "6f0b43da54075ad95d3d1804a312bbbe5985b29d064bc65ca0afade165e56be8"
+    assert native_sha256 == "c6fbbe6893f24167ad455e7e32797500fc3b6ee95a0c14c35e8e69d6b4db7657"
     assert requirements.startswith(package_prefix.encode())
     native_requirements = requirements[len(package_prefix.encode()) :]
     assert hashlib.sha256(native_requirements).hexdigest() == native_sha256
-    assert b"python-discovery==1.6.0 \\\n" in requirements
-    assert b"virtualenv==21.7.13 \\\n" in requirements
+    assert b"gitpython==3.2.1 \\\n" in requirements
+    assert b"multidict==6.9.1 \\\n" in requirements
+    assert b"logseq-matryca-parser==1.9.0 \\\n" in requirements
     pinned_entries = sum(
         b"==" in line and not line.startswith(b" ") for line in requirements.splitlines()
     )
@@ -1812,6 +1814,115 @@ def test_tck_response_parser_rejects_duplicate_keys() -> None:
 
     with pytest.raises(TCKFailure, match="invalid_json"):
         _strict_document(b'{"error":"source_rejected","error":"internal"}\n')
+
+
+@pytest.mark.parametrize(
+    ("identity", "outside_prefix"),
+    [
+        ({"installed_origin": False, "editable": False}, False),
+        ({"installed_origin": False, "editable": True}, False),
+        ({"installed_origin": True, "editable": False}, True),
+    ],
+    ids=["source", "editable", "outside-prefix"],
+)
+def test_tck_refuses_origins_before_environment_inventory_or_controls(
+    identity: dict[str, bool],
+    outside_prefix: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    events: list[str] = []
+    load_resources = tck._load_package_resources
+
+    def authenticate_resources() -> PackageResources:
+        package = load_resources()
+        events.append("authenticated-resources")
+        return package
+
+    def installed_identity() -> dict[str, Any]:
+        assert events == ["authenticated-resources"]
+        events.append("identity")
+        return dict(identity)
+
+    def forbidden_later_operation(*_args: Any) -> Any:
+        events.append("forbidden-environment-or-controls")
+        raise tck.TCKFailure("environment_bounds")
+
+    monkeypatch.setattr(tck, "_load_package_resources", authenticate_resources)
+    monkeypatch.setattr(tck, "_installed_identity", installed_identity)
+    monkeypatch.setattr(tck, "_environment", forbidden_later_operation)
+    monkeypatch.setattr(tck, "_environment_fingerprint", forbidden_later_operation)
+    monkeypatch.setattr(tck, "_run_controls", forbidden_later_operation)
+    if outside_prefix:
+        prefix = tmp_path / "prefix"
+        prefix.mkdir()
+        outside_module = tmp_path / "outside-tck.py"
+        outside_module.write_text("# synthetic origin\n", encoding="utf-8")
+        monkeypatch.setattr(tck.sys, "prefix", str(prefix))
+        monkeypatch.setattr(tck, "__file__", str(outside_module))
+
+    code, report = tck._execute(tmp_path / "report.json")
+
+    assert code == 2
+    assert report["status"] == "not_run"
+    assert report["reason"] == "not_installed"
+    assert report["qualification"] == "unqualified"
+    assert report["checks"] == []
+    assert report["environment"] == {
+        "installed_origin": False,
+        "editable": identity["editable"],
+        "sha256": None,
+        "fingerprint_scope": "not collected: execution origin rejected",
+    }
+    assert events == ["authenticated-resources", "identity"]
+    assert report["resources"]["assets"]
+    assert report["resources"]["descriptor_sha256"]
+    assert report["resources"]["manifest_sha256"]
+    assert capsys.readouterr().out == ""
+    assert str(tmp_path) not in json.dumps(report)
+
+
+@pytest.mark.parametrize("reason", ["environment_bounds", "environment_unreadable"])
+def test_installed_tck_preserves_environment_failure_after_origin_admission(
+    reason: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    module = prefix / "installed-tck.py"
+    module.write_text("# synthetic installed origin\n", encoding="utf-8")
+    events: list[str] = []
+
+    def fail_inventory(_package: PackageResources) -> str:
+        events.append("environment-inventory")
+        raise tck.TCKFailure(reason)
+
+    def forbidden_controls(*_args: Any) -> Any:
+        events.append("controls")
+        pytest.fail("controls ran after failed environment inventory")
+
+    monkeypatch.setattr(tck.sys, "prefix", str(prefix))
+    monkeypatch.setattr(tck, "__file__", str(module))
+    monkeypatch.setattr(
+        tck, "_installed_identity", lambda: {"installed_origin": True, "editable": False}
+    )
+    monkeypatch.setattr(tck, "_environment_fingerprint", fail_inventory)
+    monkeypatch.setattr(tck, "_run_controls", forbidden_controls)
+
+    code, report = tck._execute(tmp_path / "report.json")
+
+    assert code == 1
+    assert report["status"] == "failed"
+    assert report["reason"] == reason
+    assert report["qualification"] == "unqualified"
+    assert report["checks"] == []
+    assert events == ["environment-inventory"]
+    assert "environment" not in report
+    assert report["resources"]["assets"]
 
 
 def test_source_tck_refuses_installed_evidence_and_emits_path_free_report(tmp_path: Path) -> None:

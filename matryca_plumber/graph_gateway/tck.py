@@ -1324,17 +1324,23 @@ def _execute(report_path: Path) -> tuple[int, dict[str, Any]]:
             "source_diagnostic_is_not_installed_qualification": True,
         }
         identity = _installed_identity()
-        report["environment"] = _environment(identity, package)
+        if identity["installed_origin"] and not identity["editable"]:
+            try:
+                Path(__file__).resolve(strict=True).relative_to(
+                    Path(sys.prefix).resolve(strict=True)
+                )
+            except (OSError, ValueError):
+                identity["installed_origin"] = False
         if not identity["installed_origin"] or identity["editable"]:
+            report["environment"] = {
+                **identity,
+                "sha256": None,
+                "fingerprint_scope": "not collected: execution origin rejected",
+            }
             report["status"] = "not_run"
             report["reason"] = "not_installed"
             return 2, report
-        try:
-            Path(__file__).resolve(strict=True).relative_to(Path(sys.prefix).resolve(strict=True))
-        except (OSError, ValueError):
-            report["status"] = "not_run"
-            report["reason"] = "not_installed"
-            return 2, report
+        report["environment"] = _environment(identity, package)
         if not _planned_row(package):
             report["reason"] = "outside_planned_matrix"
             return 1, report

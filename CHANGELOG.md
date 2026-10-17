@@ -6,6 +6,9 @@
   synthetic privacy canaries and process-owning TCK controls for identity and
   complete content-free topology. Descriptor and planned runtime rows remain
   unqualified; no installed result, public artifact or Trama admission is claimed.
+  Bind the exact alpha dependency closure and reject uninstalled TCK origins
+  before environment fingerprinting or process controls; physical namespace-file
+  qualification remains deferred.
 
 ## [2.1.0-alpha.1] - 2026-10-16
 
