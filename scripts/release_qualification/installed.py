@@ -145,10 +145,10 @@ def _payload_map(source_root: Path, tracked: set[str]) -> dict[str, Path]:
 
 
 def _authenticated_archive(
-    artifact: Path, binding: BundleBinding, kind: Literal["wheel", "sdist"]
+    artifact: Path, binding: BundleBinding, kind: Literal["wheel", "sdist"], *, policy: str = "rc4"
 ) -> tuple[dict[str, tuple[int, str]], dict[str, bytes]]:
     """Authenticate archive bytes against independent binding before using content."""
-    bundle_module._validate_binding(binding)
+    bundle_module._validate_binding(binding, policy=policy)
     if artifact.is_symlink() or not artifact.is_file():
         _fail("Bound release artifact must be an existing regular file.")
     expected_name = binding.wheel_name if kind == "wheel" else binding.sdist_name
@@ -1189,11 +1189,14 @@ def verify_installed(
     kind: Literal["wheel", "sdist"],
     *,
     artifact: Path,
+    policy: str = "rc4",
 ) -> InstalledReceipt:
     """Verify installed files, import origin, resources, RECORD, and static TCKs."""
     if kind not in {"wheel", "sdist"}:
         _fail("Installed distribution kind must be wheel or sdist.")
-    archive_payload, archive_metadata = _authenticated_archive(artifact, binding, kind)
+    archive_payload, archive_metadata = _authenticated_archive(
+        artifact, binding, kind, policy=policy
+    )
     if _IS_WINDOWS:
         _fail(
             "Windows installed-package qualification is NO-GO until generated launcher bytes "

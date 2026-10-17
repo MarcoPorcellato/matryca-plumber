@@ -13,12 +13,14 @@ import gzip
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
 import tempfile
 import tomllib
 import zipfile
+from dataclasses import dataclass
 from email.parser import BytesParser
 from pathlib import Path
 
@@ -279,13 +281,64 @@ def _write_content_ledger(path: Path, content: dict[str, object]) -> None:
             temporary.unlink(missing_ok=True)
 
 
+@dataclass(frozen=True, slots=True)
+class LockedBuildEnvironment:
+    """Independently selected tools and dedicated lock, never a resolver request."""
+
+    python: Path
+    uv: Path
+    python_sha256: str
+    uv_sha256: str
+    lock_sha256: str
+    packages: tuple[tuple[str, str], ...]
+
+
+def verify_locked_build_environment(repo_root: Path, selected: LockedBuildEnvironment) -> None:
+    """Recheck actual CPython 3.12, tool bytes and the entire locked package set."""
+    # Import lazily: the legacy builder is also the bundle module's resource authority.
+    from scripts.release_qualification import sdist_build
+
+    for digest in (selected.python_sha256, selected.uv_sha256, selected.lock_sha256):
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise ValueError("Locked build identity has an invalid digest.")
+    if not selected.python.is_absolute() or not selected.uv.is_absolute():
+        raise ValueError("Locked build executables must be absolute paths.")
+    lock = repo_root / "release-qualification-build/uv.lock"
+    if lock.is_symlink() or not lock.is_file() or lock.stat().st_size > 1_048_576:
+        raise ValueError("Dedicated build lock is missing or invalid.")
+    raw_lock = lock.read_bytes()
+    if hashlib.sha256(raw_lock).hexdigest() != selected.lock_sha256:
+        raise ValueError("Dedicated build lock identity differs from its independent binding.")
+    document = tomllib.loads(raw_lock.decode("utf-8"))
+    packages = tuple(
+        sorted(
+            (item["name"], item["version"])
+            for item in document["package"]
+            if "registry" in item.get("source", {})
+        )
+    )
+    if not packages or packages != selected.packages or len(dict(packages)) != len(packages):
+        raise ValueError("Provisioned build packages do not match the dedicated lock.")
+    python, implementation, version = sdist_build._python_identity(selected.python)
+    if implementation != "CPython" or not version.startswith("3.12."):
+        raise ValueError("Locked canonical build requires CPython 3.12.")
+    if sdist_build._sha256_file(python) != selected.python_sha256:
+        raise ValueError("Locked build Python executable changed.")
+    uv, _digest = sdist_build._safe_uv(selected.uv, selected.uv_sha256)
+    if sdist_build._read_package_manifest(uv, selected.python) != packages:
+        raise ValueError("Observed build environment differs from the locked package set.")
+
+
 def build_release_artifacts(
     repo_root: Path,
     output_dir: Path,
     *,
     content_ledger_path: Path | None = None,
+    locked_build: LockedBuildEnvironment | None = None,
 ) -> tuple[Path, Path]:
     """Build an sdist and a wheel from a disposable clean source snapshot."""
+    if locked_build is not None:
+        verify_locked_build_environment(repo_root, locked_build)
     if output_dir.exists() and any(output_dir.iterdir()):
         raise ValueError(f"Refusing to mix release artifacts with existing files in {output_dir}")
 
@@ -311,6 +364,30 @@ def build_release_artifacts(
             ["git", "rev-parse", "HEAD^{tree}"], cwd=repo_root, text=True
         ).strip()
     build_env = {**os.environ, "SOURCE_DATE_EPOCH": source_date_epoch}
+    build_prefix = ["uv", "build"]
+    build_options: list[str] = []
+    if locked_build is not None:
+        build_env = {
+            key: value
+            for key, value in build_env.items()
+            if not key.startswith(("UV_", "PIP_", "PYTHON"))
+        }
+        build_env.update(
+            UV_OFFLINE="1",
+            UV_NO_CONFIG="1",
+            UV_PYTHON_DOWNLOADS="never",
+            PYTHONDONTWRITEBYTECODE="1",
+        )
+        build_prefix = [str(locked_build.uv), "build"]
+        build_options = [
+            "--no-build-isolation",
+            "--offline",
+            "--no-config",
+            "--no-sources",
+            "--no-python-downloads",
+            "--python",
+            str(locked_build.python),
+        ]
     with tempfile.TemporaryDirectory(prefix="matryca-release-build-") as temporary:
         staging_root = Path(temporary)
         source_root = staging_root / "source"
@@ -340,18 +417,31 @@ def build_release_artifacts(
 
         artifacts = staging_root / "artifacts"
         artifacts.mkdir()
+        if locked_build is not None:
+            verify_locked_build_environment(repo_root, locked_build)
         _run(
-            ["uv", "build", "--sdist", "--out-dir", str(artifacts), str(source_root)],
+            [
+                *build_prefix,
+                "--sdist",
+                *build_options,
+                "--out-dir",
+                str(artifacts),
+                str(source_root),
+            ],
             cwd=source_root,
             env=build_env,
         )
         sdist = _single_sdist(artifacts)
         _normalize_sdist_timestamps(sdist, int(source_date_epoch))
+        if locked_build is not None:
+            verify_locked_build_environment(repo_root, locked_build)
         _run(
-            ["uv", "build", "--wheel", "--out-dir", str(artifacts), str(sdist)],
+            [*build_prefix, "--wheel", *build_options, "--out-dir", str(artifacts), str(sdist)],
             cwd=source_root,
             env=build_env,
         )
+        if locked_build is not None:
+            verify_locked_build_environment(repo_root, locked_build)
         wheel, sdist = verify_release_archives(artifacts, expected_version)
 
         output_dir.mkdir(parents=True, exist_ok=True)

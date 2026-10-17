@@ -946,6 +946,7 @@ def prepare_sdist_build(
     *,
     environment_descriptor: Path,
     expected_build_environment_sha256: str,
+    policy: str = "rc4",
 ) -> SdistBuildReceipt:
     """Build one temporary wheel from an authenticated sdist in a provisioned environment.
 
@@ -954,7 +955,7 @@ def prepare_sdist_build(
     """
     if os.name == "nt":
         _fail("Windows build-process containment is not qualified for this helper.")
-    bundle_module._validate_binding(binding)
+    bundle_module._validate_binding(binding, policy=policy)
     descriptor = load_build_environment_descriptor(
         environment_descriptor, expected_sha256=expected_build_environment_sha256
     )
@@ -1000,7 +1001,7 @@ def prepare_sdist_build(
     if _sha256_file(Path(str(uv))) != uv_digest:
         _fail("Selected uv executable changed during qualification preflight.")
 
-    _payload, metadata = _authenticated_archive(artifact, binding, "sdist")
+    _payload, metadata = _authenticated_archive(artifact, binding, "sdist", policy=policy)
     pkg_info = metadata.get("METADATA")
     if pkg_info is None:
         _fail("Authenticated source distribution has no package identity metadata.")

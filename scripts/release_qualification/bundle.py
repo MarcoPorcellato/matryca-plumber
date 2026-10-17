@@ -81,7 +81,7 @@ class BundleBinding:
         return json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
 
     @classmethod
-    def from_json(cls, value: str) -> BundleBinding:
+    def from_json(cls, value: str, *, policy: str = "rc4") -> BundleBinding:
         """Parse and validate a compact binding received across a job boundary."""
         try:
             parsed = json.loads(value)
@@ -93,7 +93,7 @@ class BundleBinding:
             result = cls(**parsed)
         except TypeError as error:
             raise ValueError("Invalid binding fields.") from error
-        _validate_binding(result)
+        _validate_binding(result, policy=policy)
         if result.to_json() != value:
             raise ValueError("Binding JSON is not canonical.")
         return result
@@ -106,7 +106,19 @@ class _Member:
     sha256: str
 
 
-def _validate_binding(binding: BundleBinding) -> None:
+def _validate_version(version: object, policy: str) -> None:
+    """Select a closed release policy; callers cannot supply version expressions."""
+    if policy not in ("rc4", "og-alpha1"):
+        raise ValueError("Unknown release qualification policy.")
+    if not isinstance(version, str) or (
+        version != "2.1.0a1"
+        if policy == "og-alpha1"
+        else re.fullmatch(r"2\.0\.1rc[0-9]+", version) is None
+    ):
+        raise ValueError("Release qualification version is invalid.")
+
+
+def _validate_binding(binding: BundleBinding, *, policy: str = "rc4") -> None:
     if (
         not isinstance(binding.source_commit, str)
         or not isinstance(binding.source_tree, str)
@@ -114,10 +126,7 @@ def _validate_binding(binding: BundleBinding) -> None:
         or not _SOURCE_ID.fullmatch(binding.source_tree)
     ):
         raise ValueError("Binding source commit and tree must be lowercase full Git IDs.")
-    if not isinstance(binding.version, str) or not re.fullmatch(
-        r"2\.0\.1rc[0-9]+", binding.version
-    ):
-        raise ValueError("Binding version is invalid.")
+    _validate_version(binding.version, policy)
     if binding.wheel_name != f"matryca_plumber-{binding.version}-py3-none-any.whl":
         raise ValueError("Binding wheel name is invalid.")
     if binding.sdist_name != f"matryca_plumber-{binding.version}.tar.gz":
@@ -402,7 +411,7 @@ def _read_sdist(
     return members, contents, directories
 
 
-def _read_ledger(path: Path) -> dict[str, Any]:
+def _read_ledger(path: Path, *, policy: str = "rc4") -> dict[str, Any]:
     try:
         if path.stat().st_size > 16 * 1024 * 1024:
             raise ValueError("Content ledger size limit exceeded.")
@@ -432,10 +441,7 @@ def _read_ledger(path: Path) -> dict[str, Any]:
         or not _SOURCE_ID.fullmatch(value["source_tree"])
     ):
         raise ValueError("Content ledger source identity is invalid.")
-    if not isinstance(value["version"], str) or not re.fullmatch(
-        r"2\.0\.1rc[0-9]+", value["version"]
-    ):
-        raise ValueError("Content ledger version is invalid.")
+    _validate_version(value["version"], policy)
     for key in ("selected_source_files", "frontend_files"):
         if not isinstance(value[key], list):
             raise ValueError(f"Content ledger {key} must be a list.")
@@ -722,7 +728,7 @@ def _git_tree_file_digests(repository: Path) -> dict[str, str]:
 
 
 def build_binding(
-    repository: Path, dist: Path, ledger: Path, expected_commit: str
+    repository: Path, dist: Path, ledger: Path, expected_commit: str, *, policy: str = "rc4"
 ) -> BundleBinding:
     """Verify one exact-commit distribution pair and bind its archive bytes."""
     if not _SOURCE_ID.fullmatch(expected_commit):
@@ -731,7 +737,7 @@ def build_binding(
     source_tree = _git_value(repository, "HEAD^{tree}")
     if source_commit != expected_commit:
         raise ValueError("Repository HEAD does not match expected source commit.")
-    content_ledger = _read_ledger(ledger)
+    content_ledger = _read_ledger(ledger, policy=policy)
     if content_ledger["source_commit"] != source_commit:
         raise ValueError("Content ledger source commit does not match repository HEAD.")
     if content_ledger["source_tree"] != source_tree:
@@ -768,22 +774,24 @@ def build_binding(
         wheel_inventory_sha256=wheel_inventory,
         sdist_inventory_sha256=sdist_inventory,
     )
-    _validate_binding(binding)
+    _validate_binding(binding, policy=policy)
     return binding
 
 
-def canonical_manifest(binding: BundleBinding) -> bytes:
+def canonical_manifest(binding: BundleBinding, *, policy: str = "rc4") -> bytes:
     """Return the canonical two-line SHA256SUMS representation."""
-    _validate_binding(binding)
+    _validate_binding(binding, policy=policy)
     return (
         f"{binding.wheel_sha256}  {binding.wheel_name}\n"
         f"{binding.sdist_sha256}  {binding.sdist_name}\n"
     ).encode("ascii")
 
 
-def verify_handoff(dist: Path, manifest: Path, expected: BundleBinding) -> None:
+def verify_handoff(
+    dist: Path, manifest: Path, expected: BundleBinding, *, policy: str = "rc4"
+) -> None:
     """Verify downloaded archives against independent build-job binding values."""
-    _validate_binding(expected)
+    _validate_binding(expected, policy=policy)
     canonical_path = dist / "SHA256SUMS"
     if (
         manifest.name != "SHA256SUMS"
@@ -792,7 +800,7 @@ def verify_handoff(dist: Path, manifest: Path, expected: BundleBinding) -> None:
         or not manifest.is_file()
     ):
         raise ValueError("Manifest must be the exact dist/SHA256SUMS regular file.")
-    expected_manifest = canonical_manifest(expected)
+    expected_manifest = canonical_manifest(expected, policy=policy)
     if (
         manifest.stat().st_size != len(expected_manifest)
         or manifest.read_bytes() != expected_manifest

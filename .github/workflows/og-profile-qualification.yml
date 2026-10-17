@@ -1,0 +1,636 @@
+name: OG alpha qualification
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/og-profile-qualification.yml
+      - scripts/release_qualification/**
+      - scripts/qualify_release_package.py
+      - scripts/build_release_artifacts.py
+      - matryca_plumber/**
+      - src/**
+      - contracts/**
+      - release-qualification-build/**
+      - pyproject.toml
+      - uv.lock
+      - MANIFEST.in
+      - setup.py
+      - frontend/**
+      - tests/test_release_package_*.py
+      - tests/test_build_release_artifacts.py
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Separately authorized protected-main full source SHA"
+        type: string
+        required: true
+
+permissions: {}
+
+env:
+  SELECTED_SOURCE: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+  PYTHONDONTWRITEBYTECODE: "1"
+  UV_NO_CONFIG: "1"
+  UV_PYTHON_DOWNLOADS: never
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: og-alpha-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.source_sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build OG alpha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+      binding: ${{ steps.build.outputs.binding_json }}
+      build-json: ${{ steps.build.outputs.build_json }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+      - name: Provision independent canonical build environment
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/canonical-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Build one canonical artifact pair
+        id: build
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-build --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --expected-commit "$SELECTED_SOURCE" --build-python "$RUNNER_TEMP/canonical-build/bin/python" --uv "$(command -v uv)"
+      - name: Preserve build evidence
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-build
+          path: ${{ runner.temp }}/bundle
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  source-controls:
+    name: Source OG controls
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Run mapped exact-source negative controls
+        timeout-minutes: 16
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-source-controls --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json"
+      - name: Preserve source-controls evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-source-controls
+          path: ${{ runner.temp }}/source-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  windows-refusal:
+    name: Windows OG refusal
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Require native refusal before graph access
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py alpha-windows-refusal --source-root "$GITHUB_WORKSPACE" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json"
+      - name: Preserve windows-refusal evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-windows-refusal
+          path: ${{ runner.temp }}/windows-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  linux312:
+    name: OG linux-x64 Python 3.12
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.12"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve linux312 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-linux312
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  linux313:
+    name: OG linux-x64 Python 3.13
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.13"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve linux313 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-linux313
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  macos312:
+    name: OG macos-arm64 Python 3.12
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.12"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve macos312 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-macos312
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  macos313:
+    name: OG macos-arm64 Python 3.13
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.13"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve macos313 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-macos313
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  aggregate:
+    name: Aggregate OG alpha
+    if: always()
+    needs: [build, source-controls, windows-refusal, linux312, linux313, macos312, macos313]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_BUILD_JSON: ${{ needs.build.outputs.build-json }}
+      EXPECTED_ARTIFACTS_JSON: '{"build":{"id":"${{ needs.build.outputs.artifact-id }}","sha256":"${{ needs.build.outputs.artifact-sha256 }}"},"source-controls":{"id":"${{ needs.source-controls.outputs.artifact-id }}","sha256":"${{ needs.source-controls.outputs.artifact-sha256 }}"},"windows-refusal":{"id":"${{ needs.windows-refusal.outputs.artifact-id }}","sha256":"${{ needs.windows-refusal.outputs.artifact-sha256 }}"},"linux312":{"id":"${{ needs.linux312.outputs.artifact-id }}","sha256":"${{ needs.linux312.outputs.artifact-sha256 }}"},"linux313":{"id":"${{ needs.linux313.outputs.artifact-id }}","sha256":"${{ needs.linux313.outputs.artifact-sha256 }}"},"macos312":{"id":"${{ needs.macos312.outputs.artifact-id }}","sha256":"${{ needs.macos312.outputs.artifact-sha256 }}"},"macos313":{"id":"${{ needs.macos313.outputs.artifact-id }}","sha256":"${{ needs.macos313.outputs.artifact-sha256 }}"}}'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+            git merge-base --is-ancestor HEAD origin/main
+          fi
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+      - name: Provision explicit qualification interpreters
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Require actual upstream jobs and retained artifact metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; value=json.loads(os.environ["NEEDS_JSON"]); assert len(value)==7 and all(job["result"]=="success" for job in value.values())'
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
+      - name: Download only the seven independently carried artifact IDs
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: "${{ needs.build.outputs.artifact-id }},${{ needs.source-controls.outputs.artifact-id }},${{ needs.windows-refusal.outputs.artifact-id }},${{ needs.linux312.outputs.artifact-id }},${{ needs.linux313.outputs.artifact-id }},${{ needs.macos312.outputs.artifact-id }},${{ needs.macos313.outputs.artifact-id }}"
+          path: ${{ runner.temp }}/downloaded
+          merge-multiple: false
+          digest-mismatch: error
+      - name: Fail-closed alpha aggregation
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-aggregate --source-root "$GITHUB_WORKSPACE" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
+      - name: Preserve aggregate (not a release or consumer admission)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-aggregate
+          path: ${{ runner.temp }}/alpha-aggregate.json
+          if-no-files-found: error
+          retention-days: 14
