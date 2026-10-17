@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+## [2.1.0-alpha.1] - 2026-10-16
+
+This is preparation for an experimental prerelease, not a publication record.
+These notes remain an incomplete draft until the operational resources and
+qualification workflow land. Before final candidate selection and tag handoff,
+consolidate their release-relevant `[Unreleased]` entries into this section and
+verify the exact extracted notes.
+It carries forward the unpublished RC4 foundation recorded below. Runtime
+qualification, exact public-artifact verification and Trama admission remain
+separate gates; stable v2.0.0 remains the default.
+
 ### Added
 
 - **Experimental OG process gateway** — add a content-free, single-capture
@@ -14,6 +25,12 @@
   gates and platform-support claims remain unchanged.
 
 ### Changed
+
+- **Experimental OG release track** — prioritize an offline, content-free OG
+  identity/topology producer for Linux x86_64 and macOS arm64 on CPython
+  3.12/3.13; preserve the unfinished RC4 Windows, full Stage A and dual-profile
+  Gate B obligations on the later full qualification track. No candidate,
+  installed runtime or Trama compatibility is qualified by this policy change.
 
 - **RC4 locked-build operator contract** — document a separately locked,
   caller-provisioned CPython 3.12 environment, independent descriptor and

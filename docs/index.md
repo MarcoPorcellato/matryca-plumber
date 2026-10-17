@@ -3,7 +3,7 @@ type: Documentation Index
 title: Matryca Plumber documentation
 description: Stable entry point for maintained Matryca Plumber documentation.
 status: active
-last_verified: 2026-08-31
+last_verified: 2026-10-16
 okf_version: "0.2"
 ---
 
@@ -19,8 +19,10 @@ okf_version: "0.2"
 - [Public quality evidence index](quality/EVIDENCE_INDEX.md)
 - [Release qualification gate map](quality/RELEASE_QUALIFICATION_GATE_MAP.md)
 - [Risk-based release qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md)
-- [v2.0.1-rc.4 release preparation](quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
-- [v2.0.1-rc.4 release qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
+- [Active experimental 2.1.0a1 qualification plan](quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md)
+- [RC4 supersession and transferred full-qualification obligations](quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
+- [Historical v2.0.1-rc.4 release preparation](quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
+- [Historical v2.0.1-rc.4 release qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
 - [Historical v2.0.1-rc.3 publication record](releases/v2.0.1-rc.3-GITHUB.md)
 - [Failed v2.0.1-rc.2 publication record](releases/v2.0.1-rc.2-FAILED-PUBLICATION.md)
 - [Historical v2.0.1-rc.1 qualification plan](quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md)

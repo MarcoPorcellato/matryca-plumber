@@ -59,9 +59,13 @@ The canonical rationale and escalation rules are in the
 
 ## Active candidate-plan registry
 
+Registry routing was reconciled on 2026-10-16. This does not refresh the evidence
+dates of unrelated gate-map rows or turn preparation into a qualification result.
+
 | Candidate plan | Risk tier | Coordination | State | Boundary |
 | --- | --- | --- | --- | --- |
-| [v2.0.1-rc.4 release qualification plan](V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) | Tier 3: Parser 1.9 snapshot/graph-I/O semantics, process timeout lifecycle, and session-bound topology; static contract/TCK packaging remains in scope. Later read-port, DB-observer, dependency, and workflow changes require fresh disposition | Planning anchor `118b265b5c6b29682c76453aad5fbde0de0c841f`; #579 implementation/preparation, #582 qualification; historical selected candidate `74884c38edb9cae445fa465969aa2c9cee5ecd1c` | `proposed` | The earlier candidate has exact-source hosted CI, build, installed-resource, and TCK evidence, but no candidate is selected for current `main`. Before separately authorized experimental RC4 publication, complete fresh source/package/platform gates; then run dual-profile Gate B for 259,200 valid seconds per profile against the exact public wheel and record a separate final qualification decision. No RC4 tag, public bundle, Gate B result, stable decision, or DB support exists. |
+| [Experimental 2.1.0a1 qualification plan](V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md) | Tier 3; limited experimental POSIX envelope, not full or stable qualification | #582; version/policy, operational resources and reviewed workflow must land before final selection | `active preparation; unqualified` | Eight required installed rows: Linux x86_64/macOS arm64, CPython 3.12/3.13, wheel/sdist. Pre-publication diagnostic bytes do not replace actual public-artifact verification. Windows refusal is a negative control only; publication and Trama admission are separate decisions. Full Windows/Stage A and dual-profile Gate B obligations remain on the later full qualification track. |
+| [Historical v2.0.1-rc.4 qualification plan](V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) | Tier 3: Parser/graph I/O, lifecycle and topology boundaries | Historical selected candidate `74884c38edb9cae445fa465969aa2c9cee5ecd1c`; #579/#582; [supersession record](RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) | `historical; superseded` | Preserve exact-source hosted CI, build, installed-resource and TCK history without transferring it to a new candidate. RC4 was not published. L, native Windows, three-platform Stage A and 259,200 valid seconds per required dual-profile Gate B remain unfinished obligations, not waived or passed gates. No RC4 tag, public bundle, stable decision or DB support exists. |
 
 Historical RC1 and RC3 records remain bound to their own artifacts. This registry does not
 represent publication, qualification, or stable-promotion results.
