@@ -3,6 +3,10 @@
 ## [2.1.0-alpha.1] - 2026-10-16
 
 This is preparation for an experimental prerelease, not a publication record.
+These notes remain an incomplete draft until the operational resources and
+qualification workflow land. Before final candidate selection and tag handoff,
+consolidate their release-relevant `[Unreleased]` entries into this section and
+verify the exact extracted notes.
 It carries forward the unpublished RC4 foundation recorded below. Runtime
 qualification, exact public-artifact verification and Trama admission remain
 separate gates; stable v2.0.0 remains the default.

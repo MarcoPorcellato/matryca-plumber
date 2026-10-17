@@ -44,6 +44,12 @@ establish stable support.
   dependency locks, fixtures and the TCK must land before final selection.
 - First exact Parser profile: `logseq-matryca-parser==1.9.0`. No range,
   intermediate version, later release or optional 1.11.0 profile is qualified.
+- The application metadata's broader Parser range is not this operational
+  profile. Provision a dedicated environment from the complete hash-locked
+  dependency profile with `--require-hashes`, then install the verified public
+  wheel with `--no-deps`; verify the installed profile and package before use.
+  An ordinary `uvx` or unconstrained package installation is not the gateway
+  bootstrap and must not be used as evidence for this exact profile.
 - No page/block text, typed properties, DB objects, direct SQLite, Shadow
   ingestion, writes, events, sync, UI, generic query, user-graph or active-desktop
   coexistence claim. Trama remains a consumer, never a second Parser gateway.
@@ -120,6 +126,11 @@ are not a substitute for standard hosted CI or installed native runtime rows.
 1. **Preparation:** land version/policy, resource integration and workflow.
    Review one frozen candidate per milestone; require exact-head hosted CI.
    Keep dependency versions frozen through `v2.1.0-alpha.1`.
+   At the workflow milestone's final handoff, consolidate every release-relevant
+   `[Unreleased]` entry into the draft `[2.1.0-alpha.1]` section, leave a fresh
+   empty `[Unreleased]` heading, and verify the literal tag's extracted notes.
+   The current draft is not final release notes. Select the final source only
+   after that consolidation and its reviewed commit have landed.
 2. **Pre-publication qualification:** select the final source only after those
    merges. Run and review the declared eight-row workflow and refusal control,
    with one canonical artifact pair and complete digest/receipt chain.

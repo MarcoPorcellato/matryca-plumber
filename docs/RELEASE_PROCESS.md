@@ -91,6 +91,12 @@ explicit scoped correction; do not opportunistically update the closure.
 
 Land the operational resources and reviewed
 `og-profile-qualification.yml` workflow before selecting the final source.
+At that workflow milestone's final handoff, consolidate all release-relevant
+`[Unreleased]` entries into `[2.1.0-alpha.1]`, retain a fresh empty
+`[Unreleased]` heading, and verify the exact extracted notes before selecting
+the final source and handing off tag/publication. The existing alpha section
+is an incomplete draft until those resource and workflow changes have landed;
+do not rely on today's draft to include future milestone entries automatically.
 Pre-publication workflow artifact hashes are diagnostic only: publication builds
 its own canonical pair. After the maintainer explicitly confirms publication,
 requalify the actual public wheel and sdist bytes, including full installed
