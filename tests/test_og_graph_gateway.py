@@ -37,6 +37,22 @@ def _descriptor() -> dict[str, Any]:
             for version in ("3.12", "3.13")
         ],
         "dependencies": {"profile_id": "og-v1-parser-1.9.0", "parser": "1.9.0"},
+        "schemas": {
+            "read": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569",
+            "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a",
+        },
+        "resource_digests": {
+            "manifest": "0" * 64,
+            "dependency_profile": "0" * 64,
+            "requirements": "0" * 64,
+            "fixture_manifest": "0" * 64,
+            "golden": "0" * 64,
+            "tck_cases": "0" * 64,
+        },
+        "code_modules": [
+            {"path": "consumer.py", "sha256": "0" * 64},
+            {"path": "tck.py", "sha256": "0" * 64},
+        ],
     }
 
 
@@ -89,9 +105,14 @@ def test_descriptor_cannot_widen_or_claim_qualified_support(fault: str) -> None:
     assert "PRIVATE-CANARY" not in str(failure.value)
 
 
-def test_absent_production_descriptor_has_no_synthetic_fallback() -> None:
-    with pytest.raises(GatewayError, match="internal"):
-        _load_descriptor(None)
+def test_production_descriptor_is_present_and_remains_unqualified() -> None:
+    profile = _load_descriptor(None)
+    assert profile.document["qualification"] == "unqualified"
+    assert profile.document["source_mode"] == "og_markdown"
+    assert profile.document["code_modules"] == [
+        {"path": "consumer.py", "sha256": profile.document["code_modules"][0]["sha256"]},
+        {"path": "tck.py", "sha256": profile.document["code_modules"][1]["sha256"]},
+    ]
 
 
 def test_gateway_delegates_exactly_one_capture_and_reuses_its_session(

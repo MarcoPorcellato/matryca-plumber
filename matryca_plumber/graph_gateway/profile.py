@@ -1,4 +1,4 @@
-"""Private data boundary; no operational descriptor is shipped by this phase."""
+"""Authenticated, deliberately unqualified OG gateway resource profile."""
 
 from __future__ import annotations
 
@@ -13,6 +13,20 @@ from .bootstrap import GatewayError
 
 PROFILE_ID = "plumber.og.operational/v1"
 MAX_DESCRIPTOR_BYTES = 65_536
+SCHEMA_DIGESTS = {
+    "read": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569",
+    "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a",
+}
+_RESOURCE_DIGEST_KEYS = {
+    "manifest",
+    "dependency_profile",
+    "requirements",
+    "fixture_manifest",
+    "golden",
+    "tck_cases",
+}
+_CODE_MODULE_PATHS = ("consumer.py", "tck.py")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 LIMITS = {
     "max_files": 1_024,
     "max_file_bytes": 1_048_576,
@@ -84,6 +98,9 @@ def _admit_descriptor(data: bytes, expected_digest: str | None) -> _Profile:
             "bounds",
             "matrix",
             "dependencies",
+            "schemas",
+            "resource_digests",
+            "code_modules",
         }
         or document["profile"] != PROFILE_ID
         or document["qualification"] != "unqualified"
@@ -109,6 +126,37 @@ def _admit_descriptor(data: bytes, expected_digest: str | None) -> _Profile:
         "profile_id": "og-v1-parser-1.9.0",
         "parser": "1.9.0",
     }:
+        raise GatewayError("internal")
+    schemas = document["schemas"]
+    if (
+        not isinstance(schemas, dict)
+        or set(schemas) != set(SCHEMA_DIGESTS)
+        or schemas != SCHEMA_DIGESTS
+    ):
+        raise GatewayError("internal")
+    resource_digests = document["resource_digests"]
+    if (
+        not isinstance(resource_digests, dict)
+        or set(resource_digests) != _RESOURCE_DIGEST_KEYS
+        or any(
+            not isinstance(value, str) or _SHA256.fullmatch(value) is None
+            for value in resource_digests.values()
+        )
+    ):
+        raise GatewayError("internal")
+    code_modules = document["code_modules"]
+    if (
+        not isinstance(code_modules, list)
+        or len(code_modules) != len(_CODE_MODULE_PATHS)
+        or any(
+            not isinstance(module, dict)
+            or set(module) != {"path", "sha256"}
+            or module["path"] != expected_path
+            or not isinstance(module["sha256"], str)
+            or _SHA256.fullmatch(module["sha256"]) is None
+            for module, expected_path in zip(code_modules, _CODE_MODULE_PATHS, strict=True)
+        )
+    ):
         raise GatewayError("internal")
     wire = document["wire"]
     if not isinstance(wire, dict) or set(wire) != {"read", "topology"}:

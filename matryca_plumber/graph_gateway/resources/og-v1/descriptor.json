@@ -1,0 +1,63 @@
+{
+  "profile": "plumber.og.operational/v1",
+  "qualification": "unqualified",
+  "source_mode": "og_markdown",
+  "operations": ["graph.identify", "graph.topology.snapshot.complete"],
+  "wire": {
+    "read": {
+      "id": "read-1",
+      "producer_profile_id": "rp",
+      "consumer_profile_id": "rc"
+    },
+    "topology": {
+      "id": "topology-1",
+      "producer_profile_id": "tp",
+      "consumer_profile_id": "tc"
+    }
+  },
+  "bounds": {
+    "max_files": 1024,
+    "max_file_bytes": 1048576,
+    "max_source_bytes": 16777216,
+    "max_nodes": 1024,
+    "max_edges": 4096,
+    "max_entries": 8192,
+    "max_directories": 1024,
+    "max_directory_depth": 32,
+    "max_block_depth": 64,
+    "max_stdout_bytes": 4194304,
+    "max_stderr_bytes": 512
+  },
+  "matrix": [
+    {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
+    {"system": "Linux", "machine": "x86_64", "python": "3.13", "state": "planned"},
+    {"system": "Darwin", "machine": "arm64", "python": "3.12", "state": "planned"},
+    {"system": "Darwin", "machine": "arm64", "python": "3.13", "state": "planned"}
+  ],
+  "dependencies": {
+    "profile_id": "og-v1-parser-1.9.0",
+    "parser": "1.9.0"
+  },
+  "schemas": {
+    "read": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569",
+    "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a"
+  },
+  "resource_digests": {
+    "manifest": "b164d9f940300aa11326b17c2ceec88d3bd7eb8bd01dc04eedec3eba1ebe6ba8",
+    "dependency_profile": "5c9f2c1829cd7fa44408ba9ad99401b21205aa41d920fb8841cccc22c177bea5",
+    "requirements": "291ad75b29f915a4c61b6c8177f2d3b56e0dca58696133b3be5871918ea8f612",
+    "fixture_manifest": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
+    "golden": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3",
+    "tck_cases": "4a231586eb6838ffb2083bcb228858284d6f5b07ff507db91b5b368e6ff41aea"
+  },
+  "code_modules": [
+    {
+      "path": "consumer.py",
+      "sha256": "2f68eda464b3b1f087bd074469840cdaf4dd53ea45fea97af36c1e9efab658d7"
+    },
+    {
+      "path": "tck.py",
+      "sha256": "2c00883d560d32c9ba4c0e56c785b1bce5c51892cf4b459d92cb69e50d6e41d9"
+    }
+  ]
+}

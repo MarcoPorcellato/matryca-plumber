@@ -1,0 +1,40 @@
+{
+  "fixture_profile": "og-v1-synthetic-structure",
+  "license": "Apache-2.0",
+  "files": {
+    "journals/2026_10_13.md": {
+      "sha256": "7a710f3e4d48069ddf00f6b6b9bde40894e2c6e6525bad4600aa6efa37fa6b7c"
+    },
+    "pages/B.md": {
+      "sha256": "83680d7150820edfd610e23e3e4b41f263337c86bccc4893f85485093d416bd9"
+    },
+    "pages/a.md": {
+      "sha256": "ca0235cea4562c62ad522b68e844ea5b02565363c35486362af7de668143e255"
+    },
+    "pages/sub/x.md": {
+      "sha256": "295fad7b5e39d9e898fedb5e8e3ef1d264e366f75328cb32d5acf0a201fb9304"
+    },
+    "pages/subA.md": {
+      "sha256": "621bf08c03e59c299ff20ef1194f44af695722b514361e396f87cc814eac0775"
+    }
+  },
+  "independent_expectations": {
+    "block_nodes": 9,
+    "explicit_page_ids": 4,
+    "page_nodes": 5,
+    "reference_edges": 2,
+    "result_complete": true
+  },
+  "privacy_canaries": {
+    "block_text": {
+      "fixture": "pages/B.md",
+      "value": "PRIVACY-CANARY-BLOCK-TEXT"
+    },
+    "property_value": {
+      "fixture": "pages/B.md",
+      "property": "test-canary",
+      "value": "PRIVACY-CANARY-PROPERTY-VALUE"
+    }
+  },
+  "schema_version": 1
+}

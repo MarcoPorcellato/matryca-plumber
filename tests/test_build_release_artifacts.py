@@ -64,6 +64,25 @@ _SYNTHETIC_GATEWAY_MEMBERS = (
     "matryca_plumber/graph_gateway/wire.py",
     "matryca_plumber/graph_gateway/runtime.py",
 )
+_SYNTHETIC_OG_OPERATIONAL_MEMBERS = (
+    "matryca_plumber/graph_gateway/consumer.py",
+    "matryca_plumber/graph_gateway/resources.py",
+    "matryca_plumber/graph_gateway/tck.py",
+    "matryca_plumber/graph_gateway/resources/og-v1/dependency-profile.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/descriptor.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/fixture-manifest.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/fixtures/journals/2026_10_13.md",
+    "matryca_plumber/graph_gateway/resources/og-v1/fixtures/pages/B.md",
+    "matryca_plumber/graph_gateway/resources/og-v1/fixtures/pages/a.md",
+    "matryca_plumber/graph_gateway/resources/og-v1/fixtures/pages/sub/x.md",
+    "matryca_plumber/graph_gateway/resources/og-v1/fixtures/pages/subA.md",
+    "matryca_plumber/graph_gateway/resources/og-v1/golden/topology.result.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/manifest.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt",
+    "matryca_plumber/graph_gateway/resources/og-v1/schemas/plumber.graph.read.v1.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/schemas/plumber.graph.topology.v1.json",
+    "matryca_plumber/graph_gateway/resources/og-v1/tck-cases.json",
+)
 
 
 def _metadata(version: str) -> bytes:
@@ -76,6 +95,7 @@ def _write_wheel(
     extra_members: tuple[str, ...] = (),
     *,
     include_public_contract_resources: bool = True,
+    include_og_operational_members: bool = True,
 ) -> None:
     with zipfile.ZipFile(path, "w") as bundle:
         bundle.writestr("src/__init__.py", "")
@@ -83,6 +103,9 @@ def _write_wheel(
         bundle.writestr(f"matryca_plumber-{version}.dist-info/METADATA", _metadata(version))
         for member in _SYNTHETIC_GATEWAY_MEMBERS:
             bundle.writestr(member, "# synthetic archive bytes, never executed\n")
+        if include_og_operational_members:
+            for member in _SYNTHETIC_OG_OPERATIONAL_MEMBERS:
+                bundle.writestr(member, "# synthetic archive bytes, never executed\n")
         if include_public_contract_resources:
             for member in _PUBLIC_CONTRACT_RESOURCE_MEMBERS:
                 bundle.writestr(member, "public static contract resource")
@@ -96,6 +119,7 @@ def _write_sdist(
     extra_members: tuple[str, ...] = (),
     *,
     include_public_contract_resources: bool = True,
+    include_og_operational_members: bool = True,
 ) -> None:
     prefix = f"matryca_plumber-{version}"
     with tarfile.open(path, "w:gz") as bundle:
@@ -104,6 +128,11 @@ def _write_sdist(
             (f"{prefix}/frontend/dist/index.html", b"<!doctype html>"),
             (f"{prefix}/PKG-INFO", _metadata(version)),
             *((f"{prefix}/{member}", b"# synthetic\n") for member in _SYNTHETIC_GATEWAY_MEMBERS),
+            *(
+                (f"{prefix}/{member}", b"# synthetic archive bytes, never executed\n")
+                for member in _SYNTHETIC_OG_OPERATIONAL_MEMBERS
+                if include_og_operational_members
+            ),
             *(
                 (f"{prefix}/{member}", b"public static contract resource")
                 for member in _SOURCE_CONTRACT_RESOURCE_MEMBERS
@@ -136,6 +165,20 @@ def test_verify_release_archives_rejects_compiled_cache_in_wheel(tmp_path: Path)
     _write_wheel(wheel, "2.0.0a5", ("frontend/dist/__pycache__/stale.pyc",))
 
     with pytest.raises(ValueError, match="compiled Python artifacts"):
+        verify_release_archives(tmp_path, "2.0.0-alpha.5")
+
+
+@pytest.mark.parametrize("missing_archive", ("wheel", "sdist"))
+def test_verify_release_archives_requires_og_operational_members(
+    tmp_path: Path, missing_archive: str
+) -> None:
+    assert len(_SYNTHETIC_OG_OPERATIONAL_MEMBERS) == 17
+    wheel = tmp_path / "matryca_plumber-2.0.0a5-py3-none-any.whl"
+    sdist = tmp_path / "matryca_plumber-2.0.0a5.tar.gz"
+    _write_wheel(wheel, "2.0.0a5", include_og_operational_members=missing_archive != "wheel")
+    _write_sdist(sdist, "2.0.0a5", include_og_operational_members=missing_archive != "sdist")
+
+    with pytest.raises(ValueError, match="missing required release content"):
         verify_release_archives(tmp_path, "2.0.0-alpha.5")
 
 

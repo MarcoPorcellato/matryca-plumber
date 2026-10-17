@@ -1,0 +1,37 @@
+{
+  "export": {
+    "arguments": [
+      "export",
+      "--frozen",
+      "--no-dev",
+      "--no-emit-project",
+      "--no-header",
+      "--no-annotate"
+    ],
+    "environment": {
+      "UV_NO_CACHE": "1",
+      "UV_OFFLINE": "1"
+    },
+    "entry_count": 73,
+    "kind": "uv-export-runtime-closure",
+    "native_sha256": "4c063bce4902af3321972a9b09bb8df021551ab3c0eb9c7c62feb5a0bf8ef26f",
+    "package_prefix": "--require-hashes\n"
+  },
+  "lock_sha256": "db5aff4bfc29e16a4f75c3f19253eb7177f7db954a156b9e78415fececf78cb9",
+  "lock_source": "uv.lock",
+  "matrix": [
+    {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
+    {"system": "Linux", "machine": "x86_64", "python": "3.13", "state": "planned"},
+    {"system": "Darwin", "machine": "arm64", "python": "3.12", "state": "planned"},
+    {"system": "Darwin", "machine": "arm64", "python": "3.13", "state": "planned"}
+  ],
+  "parser": {"name": "logseq-matryca-parser", "version": "1.9.0"},
+  "profile_id": "og-v1-parser-1.9.0",
+  "project": {"name": "matryca-plumber", "version": "2.1.0a1"},
+  "qualification": "unqualified",
+  "requirements": {
+    "path": "requirements-og-v1-parser-1.9.0.txt",
+    "sha256": "291ad75b29f915a4c61b6c8177f2d3b56e0dca58696133b3be5871918ea8f612"
+  },
+  "resolution": "The native no-header UV export preserves platform markers and locked wheel hashes. The packaged requirements prepend the recorded --require-hashes directive; no dependency was installed."
+}

@@ -1,5 +1,22 @@
 ## [Unreleased]
 
+### Added
+
+- **OG operational test kit** — package a hash-bound resource/dependency profile,
+  synthetic privacy canaries and process-owning TCK controls for identity and
+  complete content-free topology. Descriptor and planned runtime rows remain
+  unqualified; no installed result, public artifact or Trama admission is claimed.
+  Bind the exact alpha dependency closure and reject uninstalled TCK origins
+  before environment fingerprinting or process controls; physical namespace-file
+  qualification remains deferred.
+
+### Security
+
+- **MCP dependency security** — require the upstream-declared patched 1.x floor
+  of 1.30.0 for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv)
+  and rebind the OG dependency profile; unrelated lock records remain unchanged.
+  Installed-runtime qualification remains separate.
+
 ## [2.1.0-alpha.1] - 2026-10-16
 
 This is preparation for an experimental prerelease, not a publication record.

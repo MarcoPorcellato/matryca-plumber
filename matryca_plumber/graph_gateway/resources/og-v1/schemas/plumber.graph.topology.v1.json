@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://matryca.ai/contracts/plumber.graph.topology/v1/schema.json",
+  "title": "Plumber graph topology v1 synthetic fixture envelope",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/profile" },
+    { "$ref": "#/$defs/operationResult" }
+  ],
+  "$defs": {
+    "opaqueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_nodes", "max_edges"],
+      "properties": {
+        "max_nodes": { "type": "integer", "minimum": 1, "maximum": 4096 },
+        "max_edges": { "type": "integer", "minimum": 1, "maximum": 16384 }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_kind",
+        "contract_id",
+        "schema_version",
+        "profile_id",
+        "role",
+        "capabilities",
+        "limits"
+      ],
+      "properties": {
+        "fixture_kind": { "const": "profile" },
+        "contract_id": { "const": "plumber.graph.topology/v1" },
+        "schema_version": { "const": 1 },
+        "profile_id": { "$ref": "#/$defs/opaqueId" },
+        "role": { "enum": ["producer", "consumer"] },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": { "const": "graph.topology.snapshot.complete" }
+        },
+        "limits": { "$ref": "#/$defs/limits" }
+      }
+    },
+    "readSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_id", "schema_version", "id", "state"],
+      "properties": {
+        "contract_id": { "const": "plumber.graph.read/v1" },
+        "schema_version": { "const": 1 },
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "state": { "enum": ["active", "closed", "expired", "rejected"] }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "graph_id"],
+      "properties": {
+        "session_id": { "$ref": "#/$defs/opaqueId" },
+        "graph_id": { "$ref": "#/$defs/opaqueId" }
+      }
+    },
+    "topologyNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "parent_id", "ordinal"],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "kind": { "enum": ["page", "block"] },
+        "parent_id": { "anyOf": [{ "$ref": "#/$defs/opaqueId" }, { "type": "null" }] },
+        "ordinal": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "referenceEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "target_id", "kind"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/opaqueId" },
+        "target_id": { "$ref": "#/$defs/opaqueId" },
+        "kind": { "const": "reference" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "source_contract_id", "source_schema_version", "source_revision"],
+      "properties": {
+        "kind": { "const": "derived-structural" },
+        "source_contract_id": { "const": "plumber.graph.read/v1" },
+        "source_schema_version": { "const": 1 },
+        "source_revision": { "$ref": "#/$defs/opaqueId" }
+      }
+    },
+    "topologyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topology_id", "complete", "nodes", "edges", "provenance"],
+      "properties": {
+        "topology_id": { "$ref": "#/$defs/opaqueId" },
+        "complete": { "type": "boolean" },
+        "nodes": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": { "$ref": "#/$defs/topologyNode" }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 16384,
+          "items": { "$ref": "#/$defs/referenceEdge" }
+        },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "emptyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
+    "operationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_kind",
+        "id",
+        "contract_id",
+        "schema_version",
+        "producer_profile_id",
+        "consumer_profile_id",
+        "session",
+        "graph_id",
+        "source_revision",
+        "operation",
+        "request",
+        "outcome",
+        "reason",
+        "result"
+      ],
+      "properties": {
+        "fixture_kind": { "const": "operation-result" },
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "contract_id": { "const": "plumber.graph.topology/v1" },
+        "schema_version": { "const": 1 },
+        "producer_profile_id": { "$ref": "#/$defs/opaqueId" },
+        "consumer_profile_id": { "$ref": "#/$defs/opaqueId" },
+        "session": { "$ref": "#/$defs/readSession" },
+        "graph_id": { "$ref": "#/$defs/opaqueId" },
+        "source_revision": { "$ref": "#/$defs/opaqueId" },
+        "operation": { "const": "graph.topology.snapshot.complete" },
+        "requested_capability": { "$ref": "#/$defs/opaqueId" },
+        "request": { "$ref": "#/$defs/request" },
+        "outcome": { "enum": ["pass", "rejected", "unsupported"] },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "result": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "outcome": { "const": "pass" } }, "required": ["outcome"] },
+          "then": { "properties": { "result": { "$ref": "#/$defs/topologyResult" } } }
+        },
+        {
+          "if": { "properties": { "outcome": { "const": "rejected" } }, "required": ["outcome"] },
+          "then": { "properties": { "result": { "$ref": "#/$defs/emptyResult" } } }
+        },
+        {
+          "if": { "properties": { "outcome": { "const": "unsupported" } }, "required": ["outcome"] },
+          "then": { "properties": { "result": { "$ref": "#/$defs/emptyResult" } } }
+        }
+      ]
+    }
+  }
+}

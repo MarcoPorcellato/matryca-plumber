@@ -39,7 +39,7 @@ dependencies = [
     "pydantic>=2.0.0,<3.0.0",
     "python-dotenv>=1.0.0,<2.0.0",
     "loguru>=0.7.0,<1.0.0",
-    "mcp>=1.28.1,<2.0.0",
+    "mcp>=1.30.0,<2.0.0",
     "anyio>=4.14.2,<5",
     "pyyaml>=6.0.0,<7.0.0",
     "pyjwt>=2.15.0,<3",
@@ -92,6 +92,7 @@ include = ["src*", "frontend", "matryca_plumber*"]
 
 [tool.setuptools.package-data]
 frontend = ["dist/**/*"]
+"matryca_plumber.graph_gateway" = ["resources/og-v1/*", "resources/og-v1/**/*"]
 
 [tool.ruff]
 target-version = "py312"
