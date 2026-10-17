@@ -50,18 +50,28 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > the [release record](docs/releases/v2.0.1-rc.1-GITHUB.md) and
 > [historical qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md).
 
-> **RC2 terminal history; RC3 published; RC4 preparation:** `v2.0.1-rc.2` failed
+> **RC2 terminal history; RC3 published; RC4 superseded:** `v2.0.1-rc.2` failed
 > before GitHub Release creation and PyPI publication; its signed tag and workflow
 > evidence are immutable but are not a public artifact, Gate B result, or
 > stable-promotion credit. `v2.0.1-rc.3` is a published historical prerelease.
 > `v2.0.1-rc.4` / `2.0.1rc4` remains unpublished. An earlier exact candidate
 > (`74884c38`) has source, build, and installed-resource evidence, but later
-> changes require a new current-source selection and qualification. No RC4 tag,
+> changes require their own exact-source qualification. No RC4 tag,
 > public artifact, Gate B result, or stable promotion exists. See the
 > [RC2 failed-publication record](docs/releases/v2.0.1-rc.2-FAILED-PUBLICATION.md),
 > [RC3 publication record](docs/releases/v2.0.1-rc.3-GITHUB.md), and
-> [RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
+> [historical RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
 > and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md).
+
+> **Current development: experimental `2.1.0a1` preparation.** The
+> [active qualification plan](docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md)
+> prioritizes an offline OG graph-identity and complete content-free topology
+> producer. Linux x86_64 and macOS arm64, CPython 3.12/3.13, and wheel/sdist paths
+> form eight planned rows; none is qualified by this preparation. The
+> [supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
+> preserves RC4 history and transfers unfinished Windows, full Stage A and
+> dual-profile Gate B obligations. No alpha publication, installed-runtime,
+> Trama-admission or stable-support result is claimed; `v2.0.0` remains the default.
 
 **Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
 Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
@@ -125,8 +135,18 @@ published historical prerelease and may be installed only for evaluation:
 uv tool install matryca-plumber==2.0.1rc3
 ```
 
-`2.0.1rc4` is not published and must not be installed. Neither RC3 availability nor
-RC4 preparation is a claim that Gate B or stable `v2.0.1` has passed or been published.
+`2.0.1rc4` is not published and must not be installed. The experimental
+`2.1.0a1` track is preparation, not an installation recommendation or publication
+record. Neither RC3 availability nor alpha preparation proves Gate B or stable
+qualification.
+
+The ordinary quick start above is not the experimental OG gateway bootstrap.
+That gateway requires a dedicated environment with the complete hash-locked
+Parser 1.9.0 dependency profile, followed by installation of the verified public
+wheel with `--no-deps`. The broad application dependency range and an ordinary
+`uvx` resolution do not qualify this exact profile. Follow the
+[alpha plan](docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md)
+only after its public artifacts and profile pass the declared gates.
 
 ## What v2.0.0 changes
 
@@ -142,15 +162,31 @@ ownership and mutation boundaries explicit:
   back to Markdown-backed BM25 reads.
 - **Qualified parser baseline and supported range:** v2.0.0 was qualified with
   `logseq-matryca-parser` 1.7.1; package metadata accepts `>=1.7.1,<2.0.0`, so a
-  fresh install can resolve a newer compatible parser. The proposed v2.0.1 RC4
-  qualification records and tests the exact resolved version instead of silently
-  treating every installation as the historical baseline.
+  fresh install can resolve a newer parser within that declared range. The
+  experimental 2.1.0 track qualifies only its declared exact Parser profile;
+  a metadata range is not gateway qualification for other resolved versions.
 
 Biological memory, native Logseq DB Safe-Sync writes, content-aware Tana merge, and
 proactive adaptive runtime remain future work; they are not silently included in the
 v2.0.0 contract.
 
-## What the proposed v2.0.1 RC4 candidate adds
+## Experimental OG producer direction
+
+The active 2.1.0 alpha programme adds an isolated, offline process boundary for
+graph identification and complete ordered, content-free OG topology. Its planned
+installed matrix, exact dependency profile and public-artifact handoff are defined
+in the [alpha qualification plan](docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md).
+Preparation and static contracts do not prove installed support or a usable Trama
+adapter. Text/properties, Logseq DB, writes, events, sync and active-desktop
+coexistence are not included. Windows gateway refusal is a negative control,
+not Windows qualification; full qualification obligations remain separate.
+
+<a id="what-the-proposed-v201-rc4-candidate-adds"></a>
+
+## Historical v2.0.1 RC4 candidate scope
+
+This section preserves the superseded, unpublished RC4 scope. It does not define
+the current alpha scope or claim that no historical RC4 candidate was selected.
 
 `journal_day` is a narrow read target for one canonical ISO-dated Logseq journal. It
 keeps the same ownership model as v2: Markdown is authoritative, the response carries
@@ -365,7 +401,8 @@ and large-export behavior.
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
 | Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
 | Review v2.0.1-rc.1 evidence | [Historical prerelease record](docs/releases/v2.0.1-rc.1-GITHUB.md) and [artifact-bound qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md) |
-| Track the proposed v2.0.1-rc.4 path | [RC4 release preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) |
+| Track experimental 2.1.0a1 preparation | [Active alpha qualification plan](docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md) and [RC4 supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) |
+| Review the superseded v2.0.1-rc.4 path | [Historical RC4 release preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |
 | Follow the current repository reconciliation | [GitHub and repository reconciliation](docs/quality/GITHUB_REPOSITORY_RECONCILIATION_2026-08-18.md) |

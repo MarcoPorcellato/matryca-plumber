@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "matryca-plumber"
-version = "2.0.1rc4"
+version = "2.1.0a1"
 description = "Enterprise-grade, local-first autonomous background AI daemon and headless mutation plane for Logseq OG."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -43,8 +43,8 @@ dependencies = [
     "anyio>=4.14.2,<5",
     "pyyaml>=6.0.0,<7.0.0",
     "pyjwt>=2.15.0,<3",
-    "openai>=1.50.0,<3.0.0",
-    "instructor>=1.7.0,<2.0.0",
+    "openai>=2.0.0,<3.0.0",
+    "instructor>=1.15.0,<2.0.0",
     "rich>=13.9.0,<16.0.0",
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn>=0.32.0,<1.0.0",
@@ -52,7 +52,7 @@ dependencies = [
     "httpx>=0.28.0,<1.0.0",
     "packaging>=24.0,<27.0",
     "watchdog>=6.0.0",
-    "gitpython>=3.1.60",
+    "gitpython>=3.2.1",
     "ijson>=3.5.0",
     "edn-format>=0.7.5",
 ]

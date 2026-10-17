@@ -1,7 +1,7 @@
 ---
 type: Document
 ---
-# Agent onboarding (`llms.txt`) — v2.0 stable, v2.0.1rc4 preparation, and RC1/RC3 history
+# Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a1 preparation, and prerelease history
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
@@ -18,16 +18,25 @@ public wheel resolved parser 1.8.0 during the independent 2026-08-24 package che
 therefore retained incomplete Tier 2 dependency gates. That result is historical and
 does not qualify a later source revision. `v2.0.1-rc.2` is immutable terminal
 failed-publication history: no GitHub Release or PyPI package exists. `v2.0.1-rc.3` is
-a published historical prerelease. The prepared path is `v2.0.1-rc.4` / `2.0.1rc4`;
-no RC4 source, tag, workflow run, public release, package artifact, Gate B result, or
-stable-promotion decision exists. Agents must keep `v2.0.0` as the default and may
-install `2.0.1rc3` solely as an evaluation candidate. Current operator behavior belongs to the [canonical Shadow operator
+a published historical prerelease. Unpublished RC4 preparation is superseded by
+the experimental `v2.1.0-alpha.1` / `2.1.0a1` path. Historical RC4 source
+selections remain preserved; none is the current final alpha candidate.
+Preparation establishes no alpha public artifact, installed-runtime result,
+Gate B result, Trama admission or stable-promotion decision. Keep `v2.0.0` as
+the default; `2.0.1rc3` remains solely an evaluation candidate.
+The proposed OG process profile is offline and content-free, with separately
+planned POSIX qualification; Windows and full release obligations remain
+unfinished. Current operator behavior belongs to the [canonical Shadow operator
 contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the
 [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md), the
 [historical RC1 qualification plan](../quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md),
 the [RC2 failed-publication record](../releases/v2.0.1-rc.2-FAILED-PUBLICATION.md),
 the [RC3 publication record](../releases/v2.0.1-rc.3-GITHUB.md), and the
-[RC4 release preparation](../quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md).
+[historical RC4 preparation](../quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md).
+The active route is the
+[experimental alpha plan](../quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md);
+the [supersession record](../quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
+preserves the unfinished Windows, full Stage A and dual-profile Gate B gates.
 
 ---
 

@@ -638,8 +638,8 @@
     {
       "path": "docs/openspec/agent-onboarding.md",
       "type": "Specification",
-      "title": "Agent onboarding (`llms.txt`) — v2.0.0rc2",
-      "description": "**Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor",
+      "title": "Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a1 preparation, and prerelease history",
+      "description": "Current agent distribution guidance, historical prerelease limits and the separately gated experimental alpha path; no installed-runtime or consumer admission is established.",
       "audience": [
         "agent",
         "maintainer"
@@ -1857,6 +1857,26 @@
       "classification": "canonical"
     },
     {
+      "path": "docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md",
+      "type": "Decision",
+      "title": "RC4 to 2.1.0 qualification-track supersession",
+      "description": "Accepted successor-line decision preserving RC4 history and unfinished full qualification obligations while prioritizing a separately gated experimental POSIX OG producer.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Preserves historical evidence without transferring PASS credit; Windows/L, full Stage A and dual-profile Gate B remain unfinished. No release or Trama admission is established.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/READ_ONLY_IMMUTABILITY_E2E.md",
       "type": "Audit",
       "title": "Strict Read Only end-to-end immutability gate",
@@ -2154,8 +2174,8 @@
       "path": "docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md",
       "type": "Roadmap",
       "title": "v2.0.1-rc.4 release qualification plan",
-      "description": "Proposed Tier 3 RC4 plan with a separately locked, caller-provisioned CPython 3.12 build profile; no candidate source, tag, package result, Gate B result, or stable decision is selected.",
-      "classification": "active",
+      "description": "Historical Tier 3 RC4 qualification plan; the successor-line decision preserves its attempts and transfers unfinished full qualification obligations without qualification credit.",
+      "classification": "historical",
       "audience": [
         "maintainer",
         "contributor",
@@ -2167,7 +2187,7 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active proposed RC4 qualification plan; classifies Parser/graph-I/O and timeout lifecycle as Tier 3, records the consume-only build-environment boundary, keeps Windows NO-GO, and grants no workflow, Stage A, publication, qualification, or release authority.",
+      "notes": "Superseded as the active release plan by the 2026-10-16 experimental 2.1.0a1 plan. Original document and attempts remain unchanged; Windows/L, three-platform Stage A and dual-profile Gate B are retained on the full qualification track.",
       "missing": false
     },
     {
@@ -2188,6 +2208,28 @@
       "action": "archive",
       "supersedes": [],
       "notes": "Historical RC1 plan only; incomplete Tier 2 gates and publication facts do not classify or qualify later source revisions.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md",
+      "type": "Roadmap",
+      "title": "Experimental 2.1.0a1 release qualification plan",
+      "description": "Active limited-release policy for eight POSIX OG installed rows, separate maintainer publication and exact public-artifact requalification before Trama evaluation.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [
+        "docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md"
+      ],
+      "notes": "Tier 3 experimental preparation, not a selected final candidate or runtime PASS. Freeze dependency versions; preserve Windows/full qualification obligations and independent publication and Trama admission gates.",
       "missing": false
     },
     {

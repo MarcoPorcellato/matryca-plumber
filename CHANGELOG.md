@@ -2,14 +2,29 @@
 
 ### Added
 
+- **OG operational test kit** — package a hash-bound resource/dependency profile,
+  synthetic privacy canaries and process-owning TCK controls for identity and
+  complete content-free topology. Descriptor and planned runtime rows remain
+  unqualified; no installed result, public artifact or Trama admission is claimed.
+
+## [2.1.0-alpha.1] - 2026-10-16
+
+This is preparation for an experimental prerelease, not a publication record.
+These notes remain an incomplete draft until the operational resources and
+qualification workflow land. Before final candidate selection and tag handoff,
+consolidate their release-relevant `[Unreleased]` entries into this section and
+verify the exact extracted notes.
+It carries forward the unpublished RC4 foundation recorded below. Runtime
+qualification, exact public-artifact verification and Trama admission remain
+separate gates; stable v2.0.0 remains the default.
+
+### Added
+
 - **Experimental OG process gateway** — add a content-free, single-capture
   identity/topology boundary with bounded output, strict package ownership and
-  mapped audit-event rejection; include a hash-bound resource/dependency
-  profile, block-text/property-value privacy canaries, and a synthetic process
-  TCK that defines native timeout, overflow, same-group SIGKILL and separately
-  labeled cleanup-interruption controls. The descriptor remains unqualified,
-  all runtime rows remain planned, and no installed TCK result, public package,
-  Trama compatibility, or stable support is claimed.
+  tested audit-event rejection. Operational resources and installed runtime
+  qualification remain pending; no Trama compatibility or stable support is
+  claimed.
 
 - **Bounded Windows x64 launcher qualification lane** — add a separate,
   non-required hosted workflow that verifies an exact pinned template as
@@ -17,6 +32,12 @@
   gates and platform-support claims remain unchanged.
 
 ### Changed
+
+- **Experimental OG release track** — prioritize an offline, content-free OG
+  identity/topology producer for Linux x86_64 and macOS arm64 on CPython
+  3.12/3.13; preserve the unfinished RC4 Windows, full Stage A and dual-profile
+  Gate B obligations on the later full qualification track. No candidate,
+  installed runtime or Trama compatibility is qualified by this policy change.
 
 - **RC4 locked-build operator contract** — document a separately locked,
   caller-provisioned CPython 3.12 environment, independent descriptor and
@@ -39,16 +60,19 @@
 
 ### Security
 
+- **Runtime dependency security** — remove the vulnerable cache dependency and
+  obsolete tooling closure by updating the structured-output and API SDK
+  requirements; add synthetic-transport regression coverage for structured
+  responses and embeddings. Model behavior and installed release artifacts
+  remain separately qualified.
+
 - **Frontend development dependency security** — update the lockfile to a
   compatible patched release.
 
-- **Python dependency advisory remediation** — require patched floors for
-  AnyIO 4.14.2, PyJWT 2.15.0, GitPython 3.1.60, urllib3 2.8.0, and development
+- **Python dependency advisory remediation** — require upstream-declared patched
+  floors for AnyIO 4.14.2, PyJWT 2.15.0, GitPython 3.2.1, urllib3 2.8.0, and development
   httpx2 2.12.0; include its Emscripten-only `httpx2-jsfetch` lock closure.
-
-- **Virtualenv tooling advisory remediation** — raise `virtualenv` to 21.7.13
-  and `python-discovery` to 1.6.0 while preserving the lock-derived runtime
-  dependency profile.
+  Lock transitive multidict to 6.9.1.
 
 ## [2.0.1-rc.4] - 2026-09-27
 

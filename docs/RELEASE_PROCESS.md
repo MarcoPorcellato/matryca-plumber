@@ -29,7 +29,7 @@ release mechanics and maintainer authority gates. The fail-closed decision recor
 - classify the release delta before selecting operational gates, using the
   [risk-based qualification decision](quality/RISK_BASED_RELEASE_QUALIFICATION_DECISION_2026-08-24.md);
 - do not tag or publish a release candidate until its exact preparation commit
-  has passed its required pre-publication gates (Stage A in the RC4 plan);
+  has passed the pre-publication gates selected by its active qualification plan;
 - when the selected risk tier requires Gate B, bind the campaign to the exact
   installed public candidate wheel and its runner, profiles, digest, checkpoints,
   and valid elapsed time;
@@ -63,8 +63,55 @@ historical prerelease; its source, artifacts, and qualification evidence do not 
 to RC4 or stable `v2.0.1`. Its [qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
 is historical, not a proposal for the next candidate.
 
-The active [RC4 qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
-defines two stages. Stage A is pre-publication GO/NO-GO for an exact source and
+### Active experimental 2.1.0 alpha track
+
+The active [2.1.0a1 qualification plan](quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md)
+prioritizes the offline OG identity/topology producer on Linux x86_64 and macOS
+arm64, with CPython 3.12 and 3.13 and both wheel and sdist installation paths.
+These eight rows are planned, not qualified. Windows gateway refusal is a
+negative control, not Windows installed-package qualification.
+
+The [RC4 supersession record](quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
+preserves historical evidence and transfers unfinished obligations to the later
+full 2.1.0 qualification track. It does not waive native Windows, full
+three-platform Stage A or the separately governed dual-profile Gate B. The
+experimental POSIX publication decision is distinct from that full qualification
+and from Trama's independent admission.
+
+For this preparation, package metadata uses `2.1.0a1`, the signed tag is
+`v2.1.0-alpha.1`, and the changelog section is `[2.1.0-alpha.1]`. The release
+workflow compares the metadata version with both byte-identical llms surfaces;
+its changelog extractor requires the literal tag spelling without `v`. Do not
+substitute a PEP 440-normalized changelog heading.
+
+Freeze dependency versions through this alpha tag. Change only the root package
+version in `uv.lock` for the version bump and verify the locked graph without
+refreshing dependency selections. An actual security/gate failure requires an
+explicit scoped correction; do not opportunistically update the closure.
+
+Land the operational resources and reviewed
+`og-profile-qualification.yml` workflow before selecting the final source.
+At that workflow milestone's final handoff, consolidate all release-relevant
+`[Unreleased]` entries into `[2.1.0-alpha.1]`, retain a fresh empty
+`[Unreleased]` heading, and verify the exact extracted notes before selecting
+the final source and handing off tag/publication. The existing alpha section
+is an incomplete draft until those resource and workflow changes have landed;
+do not rely on today's draft to include future milestone entries automatically.
+Pre-publication workflow artifact hashes are diagnostic only: publication builds
+its own canonical pair. After the maintainer explicitly confirms publication,
+requalify the actual public wheel and sdist bytes, including full installed
+metadata, `RECORD`, resources, import-origin, static TCK and operational TCK
+checks for every required row. A green preparation PR is not this evidence.
+
+Signed tag creation, GitHub Releases and PyPI publication are maintainer actions
+outside the approved preparation milestones. Stop with an exact handoff before
+those actions. Trama receives only the independently verified public-artifact
+bundle; recording acceptance policy is not compatibility admission.
+
+### Historical RC4 qualification policy
+
+The superseded [RC4 qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
+defined two stages. Stage A was pre-publication GO/NO-GO for an exact source and
 independently built artifact, required source/platform/resource/TCK controls, and
 independent review; a GO permits only separate authorization to publish an experimental
 RC4 prerelease. Stage B begins after publication: verify the exact workflow-built public
@@ -73,7 +120,12 @@ profiles. Gate B is not a prerequisite to publish the experimental artifact, but
 terminal profile results and review of all other applicable gates are required for a
 separate final RC4 qualification decision. Neither stage authorizes stable promotion.
 
-### RC4 Stage A on-demand package qualification
+### Historical RC4 Stage A on-demand package qualification
+
+The following retained RC4 procedure is historical, not the active alpha
+dispatch route. Its outstanding acceptance criteria remain obligations of the
+full qualification track identified in the supersession record. Do not execute
+it from this documentation or relabel its attempts as 2.1.0 evidence.
 
 No Stage A workflow is currently deployed or dispatchable. Its prototype was
 initially withheld pending upstream installer/template provenance and native
@@ -203,7 +255,7 @@ the tag before publication can continue.
 - [ ] Move everything from `[Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` in `CHANGELOG.md`
 - [ ] Leave an empty `## [Unreleased]` section at the top
 - [ ] Set `version = "X.Y.Z"` in `pyproject.toml`
-- [ ] Run `uv lock`
+- [ ] Reconcile `uv.lock` with the preparation policy; for the frozen 2.1.0 alpha graph, change only the root version and use `uv lock --check --offline`, without a dependency refresh
 - [ ] Run `make check` on CI-equivalent paths, or for a fast local gate before tag: `make test-fast` plus `uv run ruff check src tests` and `uv run mypy src tests` (see `make test-fast` — default 4 workers, no coverage, skips `tests/slow/` and `test_security_remediation.py`; override with `NUM_WORKERS=auto make test-fast`)
 - [ ] For performance-heavy releases (e.g. **1.8.x**): optionally run `make perf` (`pytest -m slow`, no coverage gate) and note results in the GitHub release; see [`v1.8-OPTIMIZATION-PLAN.md`](v1.8-OPTIMIZATION-PLAN.md#verification-matrix)
 - [ ] If CLI subcommands or flags changed: sync [`llms.txt`](../llms.txt) and [`.well-known/llms.txt`](../.well-known/llms.txt) (must stay identical); see [`openspec/agent-onboarding.md`](openspec/agent-onboarding.md)
