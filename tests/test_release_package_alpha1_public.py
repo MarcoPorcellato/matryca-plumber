@@ -114,6 +114,139 @@ def test_public_metadata_accepts_only_the_actual_original_pair() -> None:
 
 
 @pytest.mark.parametrize(
+    "publisher_suffix",
+    ("", "@main", "@v2.1.0-alpha.1", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+)
+@pytest.mark.parametrize(
+    "verifier_suffix",
+    ("", "@main", "@v2.1.0-alpha.1", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+)
+def test_public_metadata_accepts_selected_source_workflow_selectors(
+    publisher_suffix: str, verifier_suffix: str
+) -> None:
+    context, metadata = _inputs()
+    metadata["publisher"]["path"] = ".github/workflows/release.yml" + publisher_suffix
+    metadata["verifier"]["path"] = (
+        ".github/workflows/og-public-artifact-qualification.yml" + verifier_suffix
+    )
+    result = _public().verify_metadata(context, metadata)
+    assert set(result) == set(NAMES)
+    assert result[NAMES[0]]["sha256"] == hashlib.sha256(NAMES[0].encode()).hexdigest()
+
+
+@pytest.mark.parametrize("role", ("publisher", "verifier"))
+@pytest.mark.parametrize(
+    "suffix",
+    (
+        "@",
+        "@other",
+        "@v2.1.0-alpha.2",
+        "@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "@refs/heads/main",
+        "@refs/tags/v2.1.0-alpha.1",
+        "@main@main",
+        "@main@v2.1.0-alpha.1",
+        "@main/",
+        "@main/..",
+        "@main?x=1",
+        "@main#fragment",
+        "@%6dain",
+        "@main\n",
+        "@main\x00",
+    ),
+)
+def test_public_metadata_rejects_unselected_workflow_suffixes(role: str, suffix: str) -> None:
+    context, metadata = _inputs()
+    public = _public()
+    public.verify_metadata(context, metadata)
+    metadata[role]["path"] += suffix
+    with pytest.raises(ValueError, match="Publication or qualification run identity mismatch"):
+        public.verify_metadata(context, metadata)
+
+
+@pytest.mark.parametrize("role", ("publisher", "verifier"))
+@pytest.mark.parametrize(
+    "bad_path",
+    (
+        None,
+        False,
+        1,
+        [],
+        {},
+        "",
+        "__missing__",
+        "/.github/workflows/release.yml@main",
+        ".github/workflows/../workflows/release.yml@main",
+        ".github/workflows/Release.yml@main",
+        "https://github.com/MarcoPorcellato/matryca-plumber/.github/workflows/release.yml@main",
+    ),
+)
+def test_public_metadata_rejects_malformed_workflow_paths(role: str, bad_path: object) -> None:
+    context, metadata = _inputs()
+    public = _public()
+    public.verify_metadata(context, metadata)
+    if bad_path == "__missing__":
+        del metadata[role]["path"]
+    else:
+        metadata[role]["path"] = bad_path
+    with pytest.raises(ValueError, match="Publication or qualification run identity mismatch"):
+        public.verify_metadata(context, metadata)
+
+
+@pytest.mark.parametrize("role", ("publisher", "verifier"))
+def test_public_metadata_rejects_swapped_qualified_workflows(role: str) -> None:
+    context, metadata = _inputs()
+    public = _public()
+    public.verify_metadata(context, metadata)
+    other = "verifier" if role == "publisher" else "publisher"
+    metadata[role]["path"] = metadata[other]["path"] + "@main"
+    with pytest.raises(ValueError, match="Publication or qualification run identity mismatch"):
+        public.verify_metadata(context, metadata)
+
+
+@pytest.mark.parametrize("role", ("publisher", "verifier"))
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    (
+        ("head_sha", "b" * 40),
+        ("head_branch", "unselected-ref"),
+        ("event", "pull_request"),
+        ("run_attempt", 2),
+        ("id", 789),
+        ("repository", {"id": 7, "full_name": "other/repository"}),
+    ),
+)
+def test_qualified_workflow_paths_preserve_run_identity_checks(
+    role: str, field: str, bad_value: object
+) -> None:
+    context, metadata = _inputs()
+    public = _public()
+    metadata["publisher"]["path"] += "@main"
+    metadata["verifier"]["path"] += "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    public.verify_metadata(context, metadata)
+    metadata[role][field] = bad_value
+    with pytest.raises(ValueError, match="Publication or qualification run identity mismatch"):
+        public.verify_metadata(context, metadata)
+
+
+@pytest.mark.parametrize("anchor", ("main", "tag-source", "tag-signature"))
+def test_qualified_workflow_paths_require_selected_source_aliases(anchor: str) -> None:
+    context, metadata = _inputs()
+    public = _public()
+    metadata["publisher"]["path"] += "@main"
+    metadata["verifier"]["path"] += "@v2.1.0-alpha.1"
+    public.verify_metadata(context, metadata)
+    if anchor == "main":
+        metadata["main"]["object"]["sha"] = "b" * 40
+    elif anchor == "tag-source":
+        metadata["tag_object"]["object"]["sha"] = "b" * 40
+    else:
+        metadata["tag_object"]["verification"]["verified"] = False
+    with pytest.raises(ValueError):
+        public.verify_metadata(context, metadata)
+
+
+@pytest.mark.parametrize(
     "mutation",
     [
         "main",

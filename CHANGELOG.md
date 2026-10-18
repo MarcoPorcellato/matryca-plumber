@@ -16,8 +16,9 @@ separate gates; stable v2.0.0 remains the default.
   assets with independently locked build provenance, stage only the original
   pair for PyPI, and add bounded public-byte admission and eight-row
   verification with distinct publication/qualification run identities,
-  pre-admission build validation and checksum-bound tool provisioning. Final
-  source qualification, publication and Trama admission remain separate gates.
+  pre-admission build validation, exact source-bound workflow selectors and
+  checksum-bound tool provisioning. Final source qualification, publication
+  and Trama admission remain separate gates.
 
 - **Experimental OG installed qualification** — add eight Linux x64/macOS arm64
   runtime/distribution rows, independent locked CPython 3.12 builds, complete
