@@ -224,6 +224,9 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
         ("verifier", context.verifier_run, "workflow_dispatch", "main", VERIFIER),
     ):
         run = metadata[key]
+        workflow_path = run.get("path")
+        # Do not equate a path suffix with the triggering branch. Only aliases
+        # already bound to the selected source above are admitted.
         _require(
             type(run.get("id")) is int
             and str(run["id"]) == run_id
@@ -232,7 +235,14 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
             and run.get("event") == event
             and run.get("head_branch") == branch
             and run.get("head_sha") == context.source_commit
-            and run.get("path") == workflow
+            and isinstance(workflow_path, str)
+            and workflow_path
+            in (
+                workflow,
+                f"{workflow}@main",
+                f"{workflow}@{TAG}",
+                f"{workflow}@{context.source_commit}",
+            )
             and run.get("repository", {}).get("id") == REPOSITORY_ID
             and run.get("repository", {}).get("full_name") == REPO,
             "Publication or qualification run identity mismatch.",
