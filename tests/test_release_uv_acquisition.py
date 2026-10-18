@@ -635,11 +635,13 @@ def test_native_report_executes_truthful_failure_ordering(tmp_path: Path, phase:
         Loader=yaml.BaseLoader,
     )
     job = workflow["jobs"]["bootstrap"]
-    assert job["env"]["MATRYCA_UV_ROOT"] == "${{ runner.temp }}/matryca-uv"
+    assert "MATRYCA_UV_ROOT" not in job["env"]
+    assert all("runner." not in value for value in job["env"].values())
     assert job["env"]["MATRYCA_UV_PLATFORM"] == "${{ matrix.platform }}"
     step = next(
         item for item in job["steps"] if item.get("name") == "Emit sanitized bootstrap evidence"
     )
+    assert step["env"]["MATRYCA_UV_ROOT"] == "${{ runner.temp }}/matryca-uv"
     outcomes = {
         "acquisition": ("failure", "skipped", "skipped"),
         "verification": ("success", "failure", "skipped"),

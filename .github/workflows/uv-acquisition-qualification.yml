@@ -35,7 +35,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     env:
-      MATRYCA_UV_ROOT: ${{ runner.temp }}/matryca-uv
       MATRYCA_UV_PLATFORM: ${{ matrix.platform }}
     strategy:
       fail-fast: false
@@ -113,6 +112,7 @@ jobs:
         if: always()
         timeout-minutes: 2
         env:
+          MATRYCA_UV_ROOT: ${{ runner.temp }}/matryca-uv
           ACQUISITION_OUTCOME: ${{ steps.acquire-uv.outcome }}
           VERIFICATION_OUTCOME: ${{ steps.setup-uv.outcome }}
           REFUSAL_OUTCOME: ${{ steps.repeat-acquisition.outcome }}
