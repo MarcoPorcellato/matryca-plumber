@@ -46,6 +46,10 @@ jobs:
           test "$(git rev-list -n 1 "$GITHUB_REF_NAME")" = "$GITHUB_SHA"
           git fetch --no-tags origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          if [ "$GITHUB_REF_NAME" = v2.1.0-alpha.1 ]; then
+            test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+            test "$GITHUB_RUN_ATTEMPT" = 1
+          fi
           REQUIRED_CHECK_COUNT="$(gh api \
             "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?check_name=Ironclad%20Gatekeeper&filter=latest" \
             --jq ".check_runs | map(select(.name == \"Ironclad Gatekeeper\" and .app.id == 15368 and .head_sha == \"${GITHUB_SHA}\" and .status == \"completed\" and .conclusion == \"success\")) | length")"
@@ -59,6 +63,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install uv and Python 3.12
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
@@ -67,7 +72,84 @@ jobs:
             **/pyproject.toml
             **/uv.lock
 
+      - name: Prepare fresh uv acquisition root
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install alpha pinned uv
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+
+      - name: Provision explicit alpha interpreter
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        timeout-minutes: 5
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12
+
+      - name: Sync locked alpha verification dependencies
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        run: uv sync --locked --extra dev --no-python-downloads
+
       - name: Sync Python dependencies
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         run: uv sync --locked --extra dev
 
       - name: Version consistency (pyproject.toml vs llms.txt)
@@ -126,6 +208,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install uv and Python 3.12
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
@@ -142,9 +225,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build release distributions
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         run: make release-build
 
       - name: Create distribution digest manifest
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         run: |
           mkdir -p release-manifest
           uv run python scripts/extract_changelog.py "$GITHUB_REF_NAME" > release-manifest/release_notes.md
@@ -155,6 +240,7 @@ jobs:
           test "$(wc -l < release-manifest/SHA256SUMS | tr -d ' ')" = 2
 
       - name: Attest release distributions
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: |
@@ -162,6 +248,7 @@ jobs:
             dist/*.tar.gz
 
       - name: Upload verified release bundle
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-bundle
@@ -172,6 +259,115 @@ jobs:
             release-manifest/release_notes.md
           if-no-files-found: error
           retention-days: 1
+          compression-level: 0
+
+
+      - name: Prepare fresh uv acquisition root
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install alpha pinned uv
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+
+      - name: Provision explicit alpha interpreter
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        timeout-minutes: 5
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12
+
+      - name: Provision independent alpha locked environments
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/alpha-tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/alpha-canonical-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+
+      - name: Build one locked alpha original pair and evidence
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/alpha-tools/bin/python" -B scripts/qualify_release_package.py alpha-build --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/alpha-bundle/dist" --expected-commit "$GITHUB_SHA" --build-python "$RUNNER_TEMP/alpha-canonical-build/bin/python" --uv "$(command -v uv)"
+          "$RUNNER_TEMP/alpha-tools/bin/python" -B scripts/extract_changelog.py "$GITHUB_REF_NAME" > "$RUNNER_TEMP/alpha-bundle/release_notes.md"
+
+      - name: Attest alpha originals and evidence
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: |
+            ${{ runner.temp }}/alpha-bundle/dist/*.whl
+            ${{ runner.temp }}/alpha-bundle/dist/*.tar.gz
+            ${{ runner.temp }}/alpha-bundle/dist/SHA256SUMS
+            ${{ runner.temp }}/alpha-bundle/binding.json
+            ${{ runner.temp }}/alpha-bundle/content-ledger.json
+            ${{ runner.temp }}/alpha-bundle/canonical-build.json
+
+      - name: Preserve alpha publication bundle
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/alpha-bundle
+          if-no-files-found: error
+          retention-days: 14
           compression-level: 0
 
   publish-release:
@@ -191,6 +387,7 @@ jobs:
           name: release-bundle
 
       - name: Verify downloaded distribution digests
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         run: |
           set -euo pipefail
           test "$(find dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 2
@@ -201,6 +398,7 @@ jobs:
           sha256sum --check ../release-manifest/SHA256SUMS
 
       - name: Verify downloaded provenance attestations
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -213,6 +411,7 @@ jobs:
             --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/release.yml"
 
       - name: Create GitHub Release
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -230,6 +429,72 @@ jobs:
             "${release_args[@]}"
 
       - name: Publish package to PyPI
+        if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist/
+
+      - name: Verify alpha bundle and exact source identities
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(find dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 3
+          test -f dist/matryca_plumber-2.1.0a1-py3-none-any.whl
+          test -f dist/matryca_plumber-2.1.0a1.tar.gz
+          test -f dist/SHA256SUMS
+          test -f binding.json
+          test -f content-ledger.json
+          test -f canonical-build.json
+          test -f release_notes.md
+          test "$(find . -type l | wc -l | tr -d ' ')" = 0
+          test "$(find . -type f | wc -l | tr -d ' ')" = 7
+          test "$(wc -l < dist/SHA256SUMS | tr -d ' ')" = 2
+          (cd dist && sha256sum --check SHA256SUMS)
+          python3 -c 'import json,os; b=json.load(open("binding.json")); c=json.load(open("canonical-build.json")); l=json.load(open("content-ledger.json")); assert b["source_commit"]==c["source_commit"]==l["source_commit"]==os.environ["GITHUB_SHA"]; assert b["source_tree"]==c["source_tree"]==l["source_tree"]; assert b["version"]=="2.1.0a1"'
+
+      - name: Verify six alpha attestations and signed publication invocation
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -m 0700 "$RUNNER_TEMP/alpha-promotion-provenance"
+          for asset in dist/matryca_plumber-2.1.0a1-py3-none-any.whl dist/matryca_plumber-2.1.0a1.tar.gz dist/SHA256SUMS binding.json content-ledger.json canonical-build.json; do
+            result="$RUNNER_TEMP/alpha-promotion-provenance/$(basename "$asset").json"
+            timeout 120s gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" --cert-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/v2.1.0-alpha.1" --source-digest "$GITHUB_SHA" --signer-digest "$GITHUB_SHA" --source-ref refs/tags/v2.1.0-alpha.1 --deny-self-hosted-runners --format json --limit 1 > "$result"
+            python3 -c 'import json,os,sys; v=json.load(open(sys.argv[1])); assert len(v)==1; c=v[0]["verificationResult"]["signature"]["certificate"]; assert c["runInvocationURI"]=="https://github.com/"+os.environ["GITHUB_REPOSITORY"]+"/actions/runs/"+os.environ["GITHUB_RUN_ID"]+"/attempts/1"; assert c["buildTrigger"]=="push" and c["sourceRepositoryIdentifier"]=="1241185104" and c["sourceRepositoryDigest"]==os.environ["GITHUB_SHA"]' "$result"
+          done
+
+      - name: Stage alpha distribution-only PyPI directory
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        run: |
+          set -euo pipefail
+          mkdir -m 0700 pypi-dist
+          cp dist/matryca_plumber-2.1.0a1-py3-none-any.whl dist/matryca_plumber-2.1.0a1.tar.gz pypi-dist/
+          test "$(find pypi-dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 2
+          (cd pypi-dist && sha256sum --check ../dist/SHA256SUMS)
+
+      - name: Publish alpha originals and durable evidence
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(timeout 30s gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
+          gh release create --repo "$GITHUB_REPOSITORY" --verify-tag v2.1.0-alpha.1 --prerelease dist/matryca_plumber-2.1.0a1-py3-none-any.whl dist/matryca_plumber-2.1.0a1.tar.gz dist/SHA256SUMS binding.json content-ledger.json canonical-build.json --notes-file release_notes.md
+
+      - name: Publish alpha originals to PyPI
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
+        with:
+          packages-dir: pypi-dist/
+
+      - name: Preserve alpha promotion verification
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: alpha-promotion-verification
+          path: ${{ runner.temp }}/alpha-promotion-provenance
+          if-no-files-found: error
+          retention-days: 14

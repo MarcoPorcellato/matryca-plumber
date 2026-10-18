@@ -165,6 +165,70 @@ an immutable evidence package to Trama #2. Trama admission remains its own gate.
 No user graph, DB/payload access, write, sync, stable claim or full Tier 3
 dual-profile campaign is authorized by this lane.
 
+#### Exact-alpha publication and public-input bridge
+
+Only the exact tag `v2.1.0-alpha.1` selects the additive publisher branch.
+It reuses `alpha-build`, the canonical Node 22 frontend → normalized original
+sdist → original wheel sequence, with uv 0.12.19 and an independently locked
+CPython 3.12 build environment. The actual publisher records the original pair
+and its `binding.json`, `content-ledger.json`, `canonical-build.json` and
+canonical `SHA256SUMS`. All six subjects are attested. The Release retains
+those six public assets, and the Actions copy is retained for at least 14 days.
+The PyPI staging directory contains only the two byte-identical original
+distributions; manifests and evidence are never uploaded as Python packages.
+Other release tags retain the existing publisher path.
+
+The exact-alpha publisher and public-input jobs authenticate uv acquisition
+before their own tool calls: each uses an independently pinned official archive
+checksum, disables the mirror and starts with a fresh non-symlink action tool
+cache. The selected executable must resolve within that cache and match the
+action's version/path outputs; its measured hash is retained in the job log.
+This does not remove the SHA-pinned action's trusted bootstrap boundary.
+CPython 3.12 is explicitly provisioned before no-download dependency use.
+
+The separate
+[`og-public-artifact-qualification.yml`](../.github/workflows/og-public-artifact-qualification.yml)
+is manual-only. Its inputs are the exact final source commit `S` and the
+successful publication run `R`. The verifier checkout, dispatch `main` and
+artifact source must all be `S`. Public qualification run `Q` is distinct
+from `R`; both must be first attempts. A later main commit, a rerun, incomplete
+publication or a changed asset is a stop, not a fallback or a rebuild request.
+
+`alpha-public-admit` authenticates the repository, signed annotated tag,
+publication workflow/run and exact GitHub/PyPI inventories. It downloads the
+six GitHub assets and the two PyPI originals once, bounds every response and
+validates every HTTPS redirect before following it. Public bytes receive no
+credential or cookie headers. Only the named repository asset routes, GitHub's
+release-asset services and the exact PyPI distribution host are admitted.
+GitHub's CLI performs six cryptographic verifications. Policy then checks the
+verified certificate's source, tag, workflow, hosted-runner and signed invocation
+`R/attempts/1`; an editable provenance predicate cannot substitute for that
+invocation. This uses the official
+[CLI verification policy](https://cli.github.com/manual/gh_attestation_verify)
+and [certificate extension fields](https://github.com/sigstore/sigstore-go/blob/main/pkg/fulcio/certificate/extensions.go).
+
+Before admission emits a successful handoff, the actual canonical-build record
+must match source-derived lock, package, CPython, uv and frontend-tool
+expectations. The aggregate independently repeats these checks.
+After the public binding, ledger and locked-build record agree with the
+selected Git tree, the same full installed and operational checks consume
+these admitted originals. Each sdist row still builds only its own private
+temporary wheel. `alpha-public-aggregate` validates the real admission,
+source-control, Windows-refusal and four runtime jobs and artifact identities
+under `Q`, while retaining `R` separately. It never rewrites public metadata
+to resemble the diagnostic build job. The pre-publication workflow and legacy
+RC4 defaults remain unchanged.
+
+This bridge defines a route, not a release result. After it lands, select and
+qualify the new full commit/tree; earlier green evidence does not transfer.
+Publication still requires explicit maintainer activation of that exact source
+and acknowledgement that pushing the signed tag triggers GitHub Releases and
+PyPI. Complete publication is followed by a separately bounded public-input
+campaign and independent review. Only then may a sanitized immutable producer
+handoff be offered to Trama #2. No consumer admission, Windows installed support,
+DB/payload access, user-graph use, stable claim or full-soak result follows from
+this bridge.
+
 ### Historical RC4 qualification policy
 
 The superseded [RC4 qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)

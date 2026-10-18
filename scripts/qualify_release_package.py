@@ -186,6 +186,56 @@ def _alpha_aggregate(args: argparse.Namespace) -> None:
     _write_new_file(args.output, canonical(result), "alpha aggregate")
 
 
+def _alpha_public_fetch(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_public import fetch_file
+
+    fetch_file(args.url, args.output, args.size, args.sha256, args.kind)
+
+
+def _alpha_public_admit(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import canonical, read_document
+    from scripts.release_qualification.alpha1_public import admit_public
+
+    output = Path(os.environ["GITHUB_OUTPUT"])
+    _regular_file(output, "GITHUB_OUTPUT")
+    if output.resolve().is_relative_to(args.output.resolve()):
+        raise ValueError("GITHUB_OUTPUT must be outside the public bundle.")
+    record = admit_public(args.source_root, args.output, args.publication_run)
+    binding = BundleBinding.from_json(
+        (args.output / "binding.json").read_text(), policy="og-alpha1"
+    )
+    _append_output(output, binding.to_json())
+    _append_output(
+        output,
+        canonical(read_document(args.output / "canonical-build.json")).decode(),
+        field="build_json",
+    )
+    _append_output(output, canonical(record).decode(), field="public_json")
+
+
+def _alpha_public_aggregate(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import (
+        MatrixContext,
+        aggregate_downloads,
+        canonical,
+        document,
+        read_document,
+    )
+
+    context = _alpha_context(args)
+    assert isinstance(context, MatrixContext)
+    result = aggregate_downloads(
+        context,
+        args.receipt_dir,
+        read_document(args.jobs),
+        read_document(args.artifacts),
+        document(os.environ["EXPECTED_ARTIFACTS_JSON"].encode()),
+        document(os.environ["EXPECTED_BUILD_JSON"].encode()),
+        expected_public=document(os.environ["EXPECTED_PUBLIC_JSON"].encode()),
+    )
+    _write_new_file(args.output, canonical(result), "public alpha aggregate")
+
+
 def _regular_file(path: Path, label: str) -> None:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"{label} must be an existing regular file: {path}")
@@ -211,7 +261,7 @@ def _write_new_file(path: Path, payload: bytes, label: str) -> None:
 
 
 def _append_output(path: Path, binding_json: str, *, field: str = "binding_json") -> None:
-    if field not in ("binding_json", "build_json"):
+    if field not in ("binding_json", "build_json", "public_json"):
         raise ValueError("Unknown qualification output field.")
     _regular_file(path, "GITHUB_OUTPUT")
     descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0))
@@ -475,6 +525,32 @@ def _parser() -> argparse.ArgumentParser:
     for name in ("source-root", "receipt-dir", "jobs", "artifacts", "output"):
         alpha_aggregate.add_argument("--" + name, type=Path, required=True)
     alpha_aggregate.set_defaults(handler=_alpha_aggregate)
+
+    public_fetch = commands.add_parser(
+        "alpha-public-fetch", help="one bounded public byte acquisition"
+    )
+    public_fetch.add_argument("--url", required=True)
+    public_fetch.add_argument("--output", type=Path, required=True)
+    public_fetch.add_argument("--size", type=int, required=True)
+    public_fetch.add_argument("--sha256", required=True)
+    public_fetch.add_argument("--kind", choices=("github", "pypi", "pypi-metadata"), required=True)
+    public_fetch.set_defaults(handler=_alpha_public_fetch)
+
+    public_admit = commands.add_parser(
+        "alpha-public-admit", help="admit the exact public alpha from a distinct publication run"
+    )
+    public_admit.add_argument("--source-root", type=Path, required=True)
+    public_admit.add_argument("--output", type=Path, required=True)
+    public_admit.add_argument("--publication-run", required=True)
+    public_admit.set_defaults(handler=_alpha_public_admit)
+
+    public_aggregate = commands.add_parser(
+        "alpha-public-aggregate",
+        help="authenticate actual public-input jobs without rewriting diagnostic metadata",
+    )
+    for name in ("source-root", "receipt-dir", "jobs", "artifacts", "output"):
+        public_aggregate.add_argument("--" + name, type=Path, required=True)
+    public_aggregate.set_defaults(handler=_alpha_public_aggregate)
 
     return parser
 
