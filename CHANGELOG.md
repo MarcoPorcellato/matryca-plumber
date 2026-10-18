@@ -54,6 +54,11 @@ separate gates; stable v2.0.0 remains the default.
 
 ### Fixed
 
+- **OG qualification portability** — suppress build-output sidecars without
+  relaxing wheel validation, resolve only TCK-owned temporary roots, and retain
+  bounded sanitized child failures, completed checks and cleanup disposition.
+  Producer root rejection and dependency profiles remain unchanged.
+
 - **Internal OG topology capture** — bound discovery and iterative projection,
   use portable logical page identities, require complete captured-page coverage,
   and reject observed source changes; no operational endpoint or Trama

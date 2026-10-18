@@ -1086,6 +1086,7 @@ def prepare_sdist_build(
             str(uv),
             "build",
             "--wheel",
+            "--no-create-gitignore",
             "--no-build-isolation",
             "--no-config",
             "--python",

@@ -873,6 +873,8 @@ def _fake_consume_only_commands(
             )
         if command[1:3] == ["build", "--wheel"]:
             out_dir = Path(command[command.index("--out-dir") + 1])
+            if "--no-create-gitignore" not in command:
+                (out_dir / ".gitignore").write_bytes(b"*")
             _wheel(out_dir / "matryca_plumber-2.0.1rc4-py3-none-any.whl")
             if tamper_sdist is not None:
                 tamper_sdist.write_bytes(tamper_sdist.read_bytes() + b"changed")
@@ -882,6 +884,85 @@ def _fake_consume_only_commands(
     monkeypatch.setattr(sdist_build, "_run_bounded", fake_run)
     monkeypatch.setattr(sdist_build, "_native_marker_target", lambda: ("linux", "x64"))
     return commands
+
+
+def test_prepare_sdist_build_suppresses_uv_output_sidecar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, commit, tree, pyproject = _source_checkout(tmp_path)
+    artifact = _sdist(tmp_path / "dist" / "matryca_plumber-2.0.1rc4.tar.gz", pyproject)
+    binding = _binding_for_sdist(source, commit, tree, artifact)
+    python, uv, descriptor, descriptor_sha256 = _build_environment_inputs(tmp_path, source, binding)
+    output_dir = tmp_path / "private-output"
+    output_dir.mkdir()
+    _fake_consume_only_commands(monkeypatch)
+
+    receipt = sdist_build.prepare_sdist_build(
+        artifact,
+        binding,
+        source,
+        python,
+        uv,
+        hashlib.sha256(uv.read_bytes()).hexdigest(),
+        output_dir,
+        environment_descriptor=descriptor,
+        expected_build_environment_sha256=descriptor_sha256,
+    )
+
+    assert receipt.wheel_name == binding.wheel_name
+    assert [path.name for path in output_dir.iterdir()] == [binding.wheel_name]
+
+
+@pytest.mark.parametrize(
+    "mutation", ["missing", "extra-file", "second-wheel", "symlink", "directory"]
+)
+def test_prepare_sdist_build_keeps_strict_output_directory(
+    mutation: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, commit, tree, pyproject = _source_checkout(tmp_path)
+    artifact = _sdist(tmp_path / "dist" / "matryca_plumber-2.0.1rc4.tar.gz", pyproject)
+    binding = _binding_for_sdist(source, commit, tree, artifact)
+    python, uv, descriptor, descriptor_sha256 = _build_environment_inputs(tmp_path, source, binding)
+    output_dir = tmp_path / "private-output"
+    output_dir.mkdir()
+    _fake_consume_only_commands(monkeypatch)
+    consume = sdist_build._run_bounded
+
+    def change_generated_output(
+        command: list[str], *, cwd: Path | None = None, timeout: float = 0, capture: bool = False
+    ) -> sdist_build._CommandResult:
+        result = consume(command, cwd=cwd, timeout=timeout, capture=capture)
+        if command[1:3] == ["build", "--wheel"]:
+            generated = Path(command[command.index("--out-dir") + 1])
+            wheel = generated / binding.wheel_name
+            if mutation == "missing":
+                wheel.unlink()
+            elif mutation == "extra-file":
+                (generated / ".gitignore").write_bytes(b"*")
+            elif mutation == "second-wheel":
+                _wheel(generated / "second.whl", name="second.whl")
+            elif mutation == "symlink":
+                outside = tmp_path / binding.wheel_name
+                wheel.rename(outside)
+                wheel.symlink_to(outside)
+            else:
+                (generated / "unexpected-directory").mkdir()
+        return result
+
+    monkeypatch.setattr(sdist_build, "_run_bounded", change_generated_output)
+    with pytest.raises(ValueError, match="did not produce exactly one wheel"):
+        sdist_build.prepare_sdist_build(
+            artifact,
+            binding,
+            source,
+            python,
+            uv,
+            hashlib.sha256(uv.read_bytes()).hexdigest(),
+            output_dir,
+            environment_descriptor=descriptor,
+            expected_build_environment_sha256=descriptor_sha256,
+        )
+    assert list(output_dir.iterdir()) == []
 
 
 def test_prepare_sdist_build_never_provisions_environment(

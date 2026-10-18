@@ -1609,6 +1609,151 @@ def test_tck_owned_root_cleanup_interruption_preserves_primary_failure(
     assert work_root.is_dir()
 
 
+def _tck_owned_alias_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    import tempfile
+
+    actual = (tmp_path / "canonical-parent").resolve()
+    actual.mkdir()
+    alias = tmp_path / "parent-alias"
+    alias.symlink_to(actual, target_is_directory=True)
+    owned_root = alias / "owned-tck-root"
+
+    def allocate_owned_root(*_args: Any, **_kwargs: Any) -> str:
+        owned_root.mkdir(mode=0o700)
+        return str(owned_root)
+
+    monkeypatch.setattr(tempfile, "mkdtemp", allocate_owned_root)
+    return owned_root
+
+
+def test_tck_canonicalizes_only_newly_owned_root_before_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    package = _package_resources()
+    lexical_root = _tck_owned_alias_root(tmp_path, monkeypatch)
+    expected_root = lexical_root.resolve()
+    observed: list[tuple[Path, Path]] = []
+
+    def stop_at_snapshot(root: Path, work_root: Path, *_args: Any, **_kwargs: Any) -> Any:
+        observed.append((root, work_root))
+        raise tck.TCKFailure("synthetic_boundary", cleanup_status="verified")
+
+    monkeypatch.setattr(tck, "_invoke_snapshot", stop_at_snapshot)
+    with pytest.raises(tck.TCKFailure, match="synthetic_boundary"):
+        tck._run_controls(package, "synthetic")
+
+    assert observed == [(expected_root / "first", expected_root)]
+    assert not lexical_root.exists()
+
+
+@pytest.mark.parametrize("interruption", [OSError, RuntimeError, KeyboardInterrupt])
+def test_tck_owned_root_resolution_failure_retains_without_children(
+    interruption: type[BaseException], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    package = _package_resources()
+    lexical_root = _tck_owned_alias_root(tmp_path, monkeypatch)
+    original_resolve = Path.resolve
+    later_calls: list[str] = []
+
+    def fail_owned_resolution(path: Path, strict: bool = False) -> Path:
+        if path == lexical_root:
+            raise interruption()
+        return original_resolve(path, strict=strict)
+
+    def forbid_fixture_copy(*_args: Any, **_kwargs: Any) -> None:
+        later_calls.append("fixture-copy")
+        raise tck.TCKFailure("unexpected_fixture_copy")
+
+    monkeypatch.setattr(Path, "resolve", fail_owned_resolution)
+    monkeypatch.setattr(tck, "_copy_private_fixtures", forbid_fixture_copy)
+    with pytest.raises(tck.TCKFailure) as failure:
+        tck._run_controls(package, "synthetic")
+
+    assert failure.value.reason == "control_interrupted"
+    assert failure.value.cleanup_status == "uncertain"
+    assert lexical_root.is_dir()
+    assert later_calls == []
+
+
+@pytest.mark.parametrize(
+    ("returncode", "stderr", "expected"),
+    [
+        (
+            4,
+            b'{"error":"source_rejected"}\n',
+            {"returncode": 4, "stderr": "gateway_error", "error": "source_rejected"},
+        ),
+        (70, b"", {"returncode": 70, "stderr": "empty"}),
+        (0, b"PRIVATE-CANARY", {"returncode": 0, "stderr": "unclassified"}),
+        (1, b'{"error":"source_rejected"}', {"returncode": 1, "stderr": "unclassified"}),
+        (4, b'{"error":"/private/PRIVATE-CANARY"}', {"returncode": 4, "stderr": "unclassified"}),
+        (
+            4,
+            b'{"error":"source_rejected","detail":"PRIVATE-CANARY"}',
+            {"returncode": 4, "stderr": "unclassified"},
+        ),
+        (
+            4,
+            b'{"error":"source_rejected","error":"internal"}',
+            {"returncode": 4, "stderr": "unclassified"},
+        ),
+        (4, b"X" * 513, {"returncode": 4, "stderr": "unclassified"}),
+        (4, b"\xff", {"returncode": 4, "stderr": "unclassified"}),
+    ],
+)
+def test_tck_failed_snapshot_report_keeps_only_sanitized_child_evidence(
+    returncode: int,
+    stderr: bytes,
+    expected: dict[str, int | str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+    from matryca_plumber.graph_gateway.consumer import ChildResult
+
+    lexical_root = _tck_owned_alias_root(tmp_path, monkeypatch)
+    prefix = tmp_path / "synthetic-installed-prefix"
+    prefix.mkdir()
+    module = prefix / "synthetic-tck.py"
+    module.write_text("# synthetic installed origin\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "prefix", str(prefix))
+    monkeypatch.setattr(tck, "__file__", str(module))
+    monkeypatch.setattr(
+        tck, "_installed_identity", lambda: {"installed_origin": True, "editable": False}
+    )
+    monkeypatch.setattr(tck, "_environment", lambda *_args: {"sha256": "synthetic"})
+    monkeypatch.setattr(tck, "_planned_row", lambda *_args: True)
+    monkeypatch.setattr(
+        tck,
+        "_invoke_snapshot",
+        lambda *_args, **_kwargs: ChildResult(returncode, b"PRIVATE-CANARY", stderr, True),
+    )
+
+    code, report = tck._execute(tmp_path / "report.json")
+
+    assert code == 1
+    assert report["status"] == "failed"
+    assert report["reason"] == "snapshot_failed"
+    assert report.get("child_failure") == expected
+    assert report["checks"] == [
+        {"id": "installed-origin", "status": "pass"},
+        {"id": "resource-and-code-byte-authentication", "status": "pass"},
+    ]
+    assert report["cleanup"] == {
+        "status": "verified",
+        "primary_failure": "snapshot_failed",
+        "events": [],
+        "retained_owned_synthetic_root": False,
+    }
+    assert not lexical_root.exists()
+    assert "PRIVATE-CANARY" not in json.dumps(report)
+    assert str(tmp_path) not in json.dumps(report)
+
+
 def test_tck_case_inventory_separates_native_and_injected_lifecycle_evidence() -> None:
     cases_path = (
         Path(__file__).resolve().parents[1]
