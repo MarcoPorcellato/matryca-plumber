@@ -343,6 +343,75 @@ def _fake_release_commands(
         _write_wheel(artifacts / "matryca_plumber-2.0.1rc4-py3-none-any.whl", "2.0.1rc4")
 
 
+def test_locked_builder_uses_exact_python_offline_and_preserves_sequence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = _release_repo(tmp_path)
+    commands: list[list[str]] = []
+    observed: list[object] = []
+    selected = release_builder.LockedBuildEnvironment(
+        python=Path("/synthetic/build/python"),
+        uv=Path("/synthetic/uv"),
+        python_sha256="a" * 64,
+        uv_sha256="b" * 64,
+        lock_sha256="c" * 64,
+        packages=(("setuptools", "84.0.0"), ("wheel", "0.48.0")),
+    )
+    monkeypatch.setattr(
+        release_builder,
+        "verify_locked_build_environment",
+        lambda root, env: observed.append((root, env)),
+    )
+
+    def fake(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> None:
+        commands.append(command)
+        if command[0] == str(selected.uv):
+            assert env is not None and env["UV_OFFLINE"] == "1"
+            assert env["UV_NO_CONFIG"] == "1"
+            assert "--no-build-isolation" in command and "--no-python-downloads" in command
+            assert command[command.index("--python") + 1] == str(selected.python)
+            kind = command[2]
+            output = command[command.index("--out-dir") + 1]
+            _fake_release_commands(
+                ["uv", "build", kind, "--out-dir", output, command[-1]], cwd=cwd, env=env
+            )
+        else:
+            _fake_release_commands(command, cwd=cwd, env=env)
+
+    monkeypatch.setattr(release_builder, "_run", fake)
+    build_release_artifacts(repo, tmp_path / "dist", locked_build=selected)
+    builds = [
+        command for command in commands if "build" in command and command[0] == str(selected.uv)
+    ]
+    assert len(builds) == 2 and len(observed) == 4
+    assert builds[0][2] == "--sdist" and builds[1][2] == "--wheel"
+    assert builds[1][-1].endswith("matryca_plumber-2.0.1rc4.tar.gz")
+
+
+def test_locked_builder_rejects_environment_before_frontend_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = _release_repo(tmp_path)
+    selected = release_builder.LockedBuildEnvironment(
+        Path("/synthetic/python"),
+        Path("/synthetic/uv"),
+        "a" * 64,
+        "b" * 64,
+        "c" * 64,
+        (("setuptools", "84.0.0"),),
+    )
+
+    def reject(_root: Path, _environment: object) -> None:
+        raise ValueError("locked environment mismatch")
+
+    monkeypatch.setattr(release_builder, "verify_locked_build_environment", reject)
+    monkeypatch.setattr(release_builder, "_run", lambda *_a, **_k: pytest.fail("build started"))
+    with pytest.raises(ValueError, match="locked environment mismatch"):
+        build_release_artifacts(repo, tmp_path / "dist", locked_build=selected)
+
+
 def test_builder_default_keeps_only_the_two_distribution_outputs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -475,3 +544,54 @@ def test_content_ledger_publication_does_not_overwrite_concurrent_destination(
 
     assert attempted
     assert ledger.read_bytes() == concurrent_payload
+
+
+@pytest.mark.parametrize("mutation", [None, "python", "packages", "lock", "executable"])
+def test_locked_environment_checks_actual_identity_and_entire_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str | None,
+) -> None:
+    from dataclasses import replace
+
+    from scripts.release_qualification import sdist_build
+
+    source = tmp_path / "source"
+    lock = source / "release-qualification-build/uv.lock"
+    lock.parent.mkdir(parents=True)
+    lock.write_text(
+        'version=1\n[[package]]\nname="setuptools"\nversion="84.0.0"\nsource={registry="https://pypi.org/simple"}\n'
+    )
+    python = tmp_path / "python"
+    uv = tmp_path / "uv"
+    python.write_bytes(b"synthetic Python")
+    uv.write_bytes(b"synthetic uv")
+    packages = (("setuptools", "84.0.0"),)
+    selected = release_builder.LockedBuildEnvironment(
+        python,
+        uv,
+        hashlib.sha256(python.read_bytes()).hexdigest(),
+        hashlib.sha256(uv.read_bytes()).hexdigest(),
+        hashlib.sha256(lock.read_bytes()).hexdigest(),
+        packages,
+    )
+    monkeypatch.setattr(
+        sdist_build,
+        "_python_identity",
+        lambda _p: (python, "CPython", "3.13.13" if mutation == "python" else "3.12.13"),
+    )
+    monkeypatch.setattr(sdist_build, "_safe_uv", lambda *_args: (uv, selected.uv_sha256))
+    monkeypatch.setattr(
+        sdist_build,
+        "_read_package_manifest",
+        lambda *_args: packages + ((("unexpected", "1"),) if mutation == "packages" else ()),
+    )
+    if mutation == "lock":
+        selected = replace(selected, lock_sha256="0" * 64)
+    elif mutation == "executable":
+        selected = replace(selected, python_sha256="0" * 64)
+    if mutation:
+        with pytest.raises(ValueError):
+            release_builder.verify_locked_build_environment(source, selected)
+    else:
+        release_builder.verify_locked_build_environment(source, selected)

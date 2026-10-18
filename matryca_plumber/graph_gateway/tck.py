@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
+from .bootstrap import ERROR_EXITS
 from .consumer import ChildFailure, ChildResult, _run_child
 from .resources import (
     PackageResourceError,
@@ -48,11 +49,29 @@ class TCKFailure(RuntimeError):
         *,
         cleanup_status: str = "not_applicable",
         cleanup_events: tuple[str, ...] = (),
+        child: ChildResult | None = None,
     ) -> None:
         super().__init__(reason)
         self.reason = reason
         self.cleanup_status = cleanup_status
         self.cleanup_events = cleanup_events
+        self.completed_checks: tuple[str, ...] = ()
+        self.child_failure: dict[str, int | str] | None = None
+        if child is not None:
+            self.child_failure = {
+                "returncode": child.returncode,
+                "stderr": "unclassified" if child.stderr else "empty",
+            }
+            try:
+                document = _document(child.stderr, 512)
+            except PackageResourceError:
+                pass
+            else:
+                for code, expected_exit in ERROR_EXITS.items():
+                    if document == {"error": code} and child.returncode == expected_exit:
+                        self.child_failure["stderr"] = "gateway_error"
+                        self.child_failure["error"] = code
+                        break
 
 
 @dataclass(frozen=True, slots=True)
@@ -900,6 +919,7 @@ def _run_controls(package: PackageResources, environment_sha256: str) -> list[di
     failure: TCKFailure | None = None
     retain_work_root = False
     try:
+        work_root = work_root.resolve(strict=True)
         os.chmod(work_root, 0o700)
         mutated_module_bytes = dict(package.module_bytes)
         first_module = next(iter(mutated_module_bytes))
@@ -938,7 +958,7 @@ def _run_controls(package: PackageResources, environment_sha256: str) -> list[di
             expected_environment_sha256=environment_sha256,
         )
         if first_child.returncode != 0 or first_child.stderr != b"":
-            raise TCKFailure("snapshot_failed")
+            raise TCKFailure("snapshot_failed", cleanup_status="verified", child=first_child)
         first = _validate_success_response(first_child.stdout, package)
         successful_session_ids: set[str] = set()
         _assert_fresh_session(first, successful_session_ids)
@@ -955,7 +975,7 @@ def _run_controls(package: PackageResources, environment_sha256: str) -> list[di
             expected_environment_sha256=environment_sha256,
         )
         if repeated_child.returncode != 0 or repeated_child.stderr != b"":
-            raise TCKFailure("repeat_failed")
+            raise TCKFailure("repeat_failed", cleanup_status="verified", child=repeated_child)
         repeated = _validate_success_response(repeated_child.stdout, package)
         _assert_fresh_session(repeated, successful_session_ids)
         successful_session_ids.add(repeated["read"]["session"]["id"])
@@ -971,7 +991,7 @@ def _run_controls(package: PackageResources, environment_sha256: str) -> list[di
             expected_environment_sha256=environment_sha256,
         )
         if relocated_child.returncode != 0 or relocated_child.stderr != b"":
-            raise TCKFailure("relocation_failed")
+            raise TCKFailure("relocation_failed", cleanup_status="verified", child=relocated_child)
         relocated = _validate_success_response(relocated_child.stdout, package)
         _assert_fresh_session(relocated, successful_session_ids)
         successful_session_ids.add(relocated["read"]["session"]["id"])
@@ -999,7 +1019,7 @@ def _run_controls(package: PackageResources, environment_sha256: str) -> list[di
             expected_environment_sha256=environment_sha256,
         )
         if changed_child.returncode != 0 or changed_child.stderr != b"":
-            raise TCKFailure("source_change_failed")
+            raise TCKFailure("source_change_failed", cleanup_status="verified", child=changed_child)
         changed = _validate_success_response(changed_child.stdout, package, require_golden=False)
         _assert_fresh_session(changed, successful_session_ids)
         successful_session_ids.add(changed["read"]["session"]["id"])
@@ -1044,7 +1064,11 @@ def _run_controls(package: PackageResources, environment_sha256: str) -> list[di
                 failure.cleanup_events = tuple(
                     dict.fromkeys((*failure.cleanup_events, "owned_work_root_cleanup_failed"))
                 )
+        else:
+            if failure is not None:
+                failure.cleanup_status = "verified"
     if failure is not None:
+        failure.completed_checks = tuple(check["id"] for check in checks)
         raise failure
     return checks
 
@@ -1348,7 +1372,7 @@ def _execute(report_path: Path) -> tuple[int, dict[str, Any]]:
             report["reason"] = "editable_install"
             return 1, report
 
-        checks: list[dict[str, str]] = []
+        checks: list[dict[str, str]] = report["checks"]
         checks.append({"id": "installed-origin", "status": "pass"})
         checks.extend(_run_controls(package, report["environment"]["sha256"]))
         report["checks"] = checks
@@ -1359,6 +1383,12 @@ def _execute(report_path: Path) -> tuple[int, dict[str, Any]]:
     except (PackageResourceError, TCKFailure):
         error = sys.exception()
         report["reason"] = error.reason if isinstance(error, TCKFailure) else "resource_rejected"
+        if isinstance(error, TCKFailure):
+            report["checks"].extend(
+                {"id": check, "status": "pass"} for check in error.completed_checks
+            )
+            if error.child_failure is not None:
+                report["child_failure"] = dict(error.child_failure)
         if isinstance(error, TCKFailure) and error.cleanup_status != "not_applicable":
             report["cleanup"] = {
                 "status": error.cleanup_status,

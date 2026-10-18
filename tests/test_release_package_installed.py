@@ -132,6 +132,61 @@ ENTRY_POINTS = (
 )
 
 
+def test_alpha_installed_authentication_requires_explicit_policy_before_file_access(
+    tmp_path: Path,
+) -> None:
+    binding = BundleBinding(
+        "a" * 40,
+        "b" * 40,
+        "2.1.0a1",
+        "matryca_plumber-2.1.0a1-py3-none-any.whl",
+        1,
+        "c" * 64,
+        "matryca_plumber-2.1.0a1.tar.gz",
+        1,
+        "d" * 64,
+        "e" * 64,
+        "f" * 64,
+    )
+    with pytest.raises(ValueError, match="version"):
+        verify_installed(
+            tmp_path / "python", binding, tmp_path, "wheel", artifact=tmp_path / binding.wheel_name
+        )
+    with pytest.raises(ValueError, match="existing regular file"):
+        verify_installed(
+            tmp_path / "python",
+            binding,
+            tmp_path,
+            "wheel",
+            artifact=tmp_path / binding.wheel_name,
+            policy="og-alpha1",
+        )
+
+
+def test_alpha_installed_policy_reaches_real_nested_archive_authentication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tests.test_release_package_bundle import _alpha_inputs
+
+    source, commit, ledger, dist = _alpha_inputs(tmp_path)
+    binding = bundle_module.build_binding(source, dist, ledger, commit, policy="og-alpha1")
+
+    def stop_after_archive(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("authenticated archive reached")
+
+    monkeypatch.setattr(installed_module, "_safe_root", stop_after_archive)
+    with pytest.raises(ValueError, match="authenticated archive reached"):
+        verify_installed(
+            tmp_path / "python",
+            binding,
+            source,
+            "wheel",
+            artifact=dist / binding.wheel_name,
+            policy="og-alpha1",
+        )
+
+
 def _hash(payload: bytes) -> str:
     digest = base64.urlsafe_b64encode(hashlib.sha256(payload).digest()).decode().rstrip("=")
     return f"sha256={digest}"

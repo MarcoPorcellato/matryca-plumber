@@ -89,14 +89,12 @@ version in `uv.lock` for the version bump and verify the locked graph without
 refreshing dependency selections. An actual security/gate failure requires an
 explicit scoped correction; do not opportunistically update the closure.
 
-Land the operational resources and reviewed
-`og-profile-qualification.yml` workflow before selecting the final source.
-At that workflow milestone's final handoff, consolidate all release-relevant
-`[Unreleased]` entries into `[2.1.0-alpha.1]`, retain a fresh empty
-`[Unreleased]` heading, and verify the exact extracted notes before selecting
-the final source and handing off tag/publication. The existing alpha section
-is an incomplete draft until those resource and workflow changes have landed;
-do not rely on today's draft to include future milestone entries automatically.
+The operational resources and additive
+[`og-profile-qualification.yml`](../.github/workflows/og-profile-qualification.yml)
+workflow must land before selecting the final source. The workflow milestone
+consolidates the release-relevant notes into `[2.1.0-alpha.1]` and leaves an empty
+`[Unreleased]` section. Verify the exact extracted notes again before final
+candidate selection; later changes are not automatically included.
 Pre-publication workflow artifact hashes are diagnostic only: publication builds
 its own canonical pair. After the maintainer explicitly confirms publication,
 requalify the actual public wheel and sdist bytes, including full installed
@@ -107,6 +105,65 @@ Signed tag creation, GitHub Releases and PyPI publication are maintainer actions
 outside the approved preparation milestones. Stop with an exact handoff before
 those actions. Trama receives only the independently verified public-artifact
 bundle; recording acceptance policy is not compatibility admission.
+
+#### Alpha qualification entrypoints and evidence
+
+The new workflow is additive: it does not replace an existing required status,
+change a legacy RC4 receipt schema or admit Windows installed packages. A pull
+request run uses that exact head as diagnostic preparation evidence. Separately
+authorized `workflow_dispatch` accepts only the exact current `main` SHA, equal
+to the dispatch event's `GITHUB_SHA`, and the workflow itself must run from `main`.
+An older reachable ancestor is rejected before provisioning or building, rather
+than being confused with the run's independent REST identity. The maintainer
+must still select that source and make the independent pre-publication decision;
+neither merging this workflow nor a green preparation PR selects the release.
+
+Use the explicit `scripts/qualify_release_package.py` alpha subcommands:
+
+| Subcommand | Boundary and output |
+| --- | --- |
+| `alpha-build` | Canonical Node 22 frontend, normalized original sdist, then wheel from that sdist; independently provisioned CPython 3.12 and the dedicated locked build packages; canonical binding and build evidence. |
+| `alpha-row` | One native original-wheel or original-sdist installed path; complete metadata, RECORD, resources, import-origin and static TCK verification, plus the complete installed operational TCK report. |
+| `alpha-source-controls` | Separately executes the versioned source-unit control map; retains actual JUnit bytes. These controls are not relabeled as installed TCK executions. |
+| `alpha-windows-refusal` | Native Windows x64 `unsupported_platform` before synthetic graph access; refusal-only evidence, not platform admission. |
+| `alpha-aggregate` | Requires all eight rows, the source controls, Windows refusal, actual completed upstream job conclusions and exact upstream artifact IDs/digests for the same run and attempt. |
+
+The legacy `build-handoff`, `verify-handoff`, `verify-installed` and
+`prepare-sdist-build` commands retain their RC-only defaults. Alpha policy is a
+closed opt-in for exactly `2.1.0a1`, not a caller-defined version expression.
+
+Provision qualification tools with the unchanged project lock and no project
+installation. Explicit interpreter provisioning uses the manual download policy
+before any no-download environment consumption; later sync, build and package
+installation commands forbid interpreter downloads. Provision each runtime from
+the packaged hash-locked OG profile
+using `--require-hashes`, then install only the authenticated package with
+`--no-deps`. Each of the four sdist rows has a separate locked CPython 3.12 build
+environment and its own temporary-wheel evidence; CPython 3.13 is tested as a
+runtime, not inferred as a supported build interpreter. The temporary wheel is
+never substituted for the original sdist or canonical manifest.
+
+The canonical build records observed Node and npm versions. Runtime CPython
+implementation is measured, not inferred from the selected minor version.
+Sanitized sdist environment and provisioning documents are uploaded even when a
+later build or installed check fails. A path-free failure marker identifies the
+failed alpha-row operation; it is not a PASS receipt or a precise cleanup claim.
+
+The aggregate binds the exact source/tree, resource/dependency/fixture/golden/TCK
+chain, original distribution identities, observed native interpreter patches,
+run/attempt/row/job identities, four sdist build instances and cleanup outcomes.
+Missing, duplicate, stale, skipped, failed, mismatched or uncertain evidence is
+NO-GO even when a receipt claims PASS. Passing operational results retain
+`qualification: "unqualified"`; descriptor matrix rows remain `planned`.
+
+Retain the workflow URL, selected source/tree, seven upstream artifact IDs and
+archive digests, complete row/source/refusal evidence and aggregate. The final
+aggregate is a preparation record, not a public producer handoff. Publication
+rebuilds its own artifacts: after the maintainer confirms M5, repeat full
+verification against the actual public wheel and original sdist before offering
+an immutable evidence package to Trama #2. Trama admission remains its own gate.
+No user graph, DB/payload access, write, sync, stable claim or full Tier 3
+dual-profile campaign is authorized by this lane.
 
 ### Historical RC4 qualification policy
 

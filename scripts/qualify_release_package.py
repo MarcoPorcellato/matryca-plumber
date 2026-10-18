@@ -31,6 +31,161 @@ from scripts.release_qualification.receipts import verify_receipts
 from scripts.release_qualification.sdist_build import prepare_sdist_build
 
 
+def _alpha_context(args: argparse.Namespace) -> object:
+    from scripts.release_qualification.alpha1_matrix import source_context
+
+    value = os.environ.get("EXPECTED_BINDING_JSON")
+    if not value:
+        raise ValueError("EXPECTED_BINDING_JSON is required for explicit alpha commands.")
+    binding = BundleBinding.from_json(value, policy="og-alpha1")
+    return source_context(
+        args.source_root.resolve(),
+        binding,
+        os.environ["GITHUB_RUN_ID"],
+        int(os.environ["GITHUB_RUN_ATTEMPT"]),
+    )
+
+
+def _alpha_build(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import build_alpha, canonical
+
+    output_path = Path(os.environ["GITHUB_OUTPUT"])
+    _regular_file(output_path, "GITHUB_OUTPUT")
+    root = args.dist_dir.parent
+    source = args.source_root.resolve()
+    if root.resolve().is_relative_to(source) or output_path.resolve().is_relative_to(
+        root.resolve()
+    ):
+        raise ValueError(
+            "Alpha build outputs must be outside source; GITHUB_OUTPUT must be outside the bundle."
+        )
+    root.mkdir(parents=True, exist_ok=True)
+    binding, record = build_alpha(
+        args.source_root.resolve(),
+        args.dist_dir,
+        root / "content-ledger.json",
+        args.build_python,
+        args.uv,
+        args.expected_commit,
+    )
+    _write_new_file(
+        args.dist_dir / "SHA256SUMS",
+        canonical_manifest(binding, policy="og-alpha1"),
+        "alpha manifest",
+    )
+    verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", binding, policy="og-alpha1")
+    _write_new_file(root / "binding.json", binding.to_json().encode(), "alpha binding")
+    _write_new_file(root / "canonical-build.json", canonical(record), "canonical build evidence")
+    _append_output(output_path, binding.to_json())
+    _append_output(output_path, canonical(record).decode(), field="build_json")
+
+
+def _alpha_row(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import MatrixContext, canonical, run_row
+
+    context = _alpha_context(args)
+    assert isinstance(context, MatrixContext)
+    try:
+        result = run_row(
+            context,
+            args.source_root.resolve(),
+            args.dist_dir,
+            args.python,
+            args.build_python,
+            args.uv,
+            args.minor,
+            args.kind,
+            args.work,
+            args.output.parent / f"{args.kind}-operational.json",
+        )
+    except BaseException as error:
+        try:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            _write_new_file(
+                args.output.parent / f"{args.kind}-failure.json",
+                canonical(
+                    {
+                        "schema_version": 1,
+                        "status": "fail",
+                        "stage": "alpha-row",
+                        "source_commit": context.binding.source_commit,
+                        "source_tree": context.binding.source_tree,
+                        "run_id": context.run_id,
+                        "run_attempt": context.run_attempt,
+                        "kind": args.kind,
+                        "runtime_minor": args.minor,
+                        "error_type": type(error).__name__,
+                    }
+                ),
+                "alpha row failure",
+            )
+        except BaseException as retention_error:
+            error.add_note("Alpha failure retention error: " + type(retention_error).__name__)
+        raise
+    _write_new_file(args.output, canonical(result), "alpha row")
+
+
+def _alpha_source_controls(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import (
+        MatrixContext,
+        canonical,
+        run_source_controls,
+    )
+
+    context = _alpha_context(args)
+    assert isinstance(context, MatrixContext)
+    verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", context.binding, policy="og-alpha1")
+    result = run_source_controls(
+        context,
+        args.source_root.resolve(),
+        args.python,
+        args.work,
+        args.output.parent / "junit.xml",
+    )
+    _write_new_file(args.output, canonical(result), "source control evidence")
+
+
+def _alpha_windows_refusal(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import canonical, run_windows_refusal
+
+    if (
+        subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=args.source_root, text=True
+        ).strip()
+        != args.expected_commit
+    ):
+        raise ValueError("Windows refusal source differs from selection.")
+    result = run_windows_refusal(
+        args.source_root.resolve(),
+        args.python,
+        os.environ["GITHUB_RUN_ID"],
+        int(os.environ["GITHUB_RUN_ATTEMPT"]),
+    )
+    _write_new_file(args.output, canonical(result), "Windows refusal evidence")
+
+
+def _alpha_aggregate(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha1_matrix import (
+        MatrixContext,
+        aggregate_downloads,
+        canonical,
+        document,
+        read_document,
+    )
+
+    context = _alpha_context(args)
+    assert isinstance(context, MatrixContext)
+    result = aggregate_downloads(
+        context,
+        args.receipt_dir,
+        read_document(args.jobs),
+        read_document(args.artifacts),
+        document(os.environ["EXPECTED_ARTIFACTS_JSON"].encode()),
+        document(os.environ["EXPECTED_BUILD_JSON"].encode()),
+    )
+    _write_new_file(args.output, canonical(result), "alpha aggregate")
+
+
 def _regular_file(path: Path, label: str) -> None:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"{label} must be an existing regular file: {path}")
@@ -55,14 +210,16 @@ def _write_new_file(path: Path, payload: bytes, label: str) -> None:
     os.close(descriptor)
 
 
-def _append_output(path: Path, binding_json: str) -> None:
+def _append_output(path: Path, binding_json: str, *, field: str = "binding_json") -> None:
+    if field not in ("binding_json", "build_json"):
+        raise ValueError("Unknown qualification output field.")
     _regular_file(path, "GITHUB_OUTPUT")
     descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0))
     try:
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
             raise ValueError("GITHUB_OUTPUT must be a regular file.")
         original_size = os.fstat(descriptor).st_size
-        payload = f"binding_json={binding_json}\n".encode()
+        payload = f"{field}={binding_json}\n".encode()
         try:
             view = memoryview(payload)
             while view:
@@ -277,6 +434,47 @@ def _parser() -> argparse.ArgumentParser:
         help="independently caller-bound descriptor SHA-256; never derived from descriptor bytes",
     )
     sdist_build.set_defaults(handler=_prepare_sdist_build)
+
+    alpha_build = commands.add_parser(
+        "alpha-build", help="build only the exact experimental OG alpha"
+    )
+    alpha_build.add_argument("--source-root", type=Path, required=True)
+    alpha_build.add_argument("--dist-dir", type=Path, required=True)
+    alpha_build.add_argument("--expected-commit", required=True)
+    alpha_build.add_argument("--build-python", type=Path, required=True)
+    alpha_build.add_argument("--uv", type=Path, required=True)
+    alpha_build.set_defaults(handler=_alpha_build)
+
+    alpha_row = commands.add_parser(
+        "alpha-row", help="verify an original wheel or sdist installed alpha row"
+    )
+    for name in ("source-root", "dist-dir", "python", "build-python", "uv", "work", "output"):
+        alpha_row.add_argument("--" + name, type=Path, required=True)
+    alpha_row.add_argument("--kind", choices=("wheel", "sdist"), required=True)
+    alpha_row.add_argument("--minor", choices=("3.12", "3.13"), required=True)
+    alpha_row.set_defaults(handler=_alpha_row)
+
+    alpha_source = commands.add_parser(
+        "alpha-source-controls", help="run the separately mapped exact-source controls"
+    )
+    for name in ("source-root", "dist-dir", "python", "work", "output"):
+        alpha_source.add_argument("--" + name, type=Path, required=True)
+    alpha_source.set_defaults(handler=_alpha_source_controls)
+
+    alpha_windows = commands.add_parser(
+        "alpha-windows-refusal", help="native Windows refusal only, not installed qualification"
+    )
+    for name in ("source-root", "python", "output"):
+        alpha_windows.add_argument("--" + name, type=Path, required=True)
+    alpha_windows.add_argument("--expected-commit", required=True)
+    alpha_windows.set_defaults(handler=_alpha_windows_refusal)
+
+    alpha_aggregate = commands.add_parser(
+        "alpha-aggregate", help="authenticate all eight alpha rows and actual upstream jobs"
+    )
+    for name in ("source-root", "receipt-dir", "jobs", "artifacts", "output"):
+        alpha_aggregate.add_argument("--" + name, type=Path, required=True)
+    alpha_aggregate.set_defaults(handler=_alpha_aggregate)
 
     return parser
 

@@ -1,6 +1,23 @@
 ## [Unreleased]
 
+## [2.1.0-alpha.1] - 2026-10-16
+
+This is preparation for an experimental prerelease, not a publication record.
+Operational resources and the additive hosted qualification workflow are included
+below. Final candidate selection, its separately authorized qualification run and
+verification of the exact extracted notes are still required before tag handoff.
+It carries forward the unpublished RC4 foundation recorded below. Runtime
+qualification, exact public-artifact verification and Trama admission remain
+separate gates; stable v2.0.0 remains the default.
+
 ### Added
+
+- **Experimental OG installed qualification** — add eight Linux x64/macOS arm64
+  runtime/distribution rows, independent locked CPython 3.12 builds, complete
+  installed and operational checks, version-preserving build-tool metadata
+  parsing, exact run/artifact bindings and fail-closed aggregation. Preserve RC4
+  policy defaults and keep Windows refusal, publication and Trama admission
+  separate; no installed or public-artifact result is claimed.
 
 - **OG operational test kit** — package a hash-bound resource/dependency profile,
   synthetic privacy canaries and process-owning TCK controls for identity and
@@ -9,26 +26,6 @@
   Bind the exact alpha dependency closure and reject uninstalled TCK origins
   before environment fingerprinting or process controls; physical namespace-file
   qualification remains deferred.
-
-### Security
-
-- **MCP dependency security** — require the upstream-declared patched 1.x floor
-  of 1.30.0 for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv)
-  and rebind the OG dependency profile; unrelated lock records remain unchanged.
-  Installed-runtime qualification remains separate.
-
-## [2.1.0-alpha.1] - 2026-10-16
-
-This is preparation for an experimental prerelease, not a publication record.
-These notes remain an incomplete draft until the operational resources and
-qualification workflow land. Before final candidate selection and tag handoff,
-consolidate their release-relevant `[Unreleased]` entries into this section and
-verify the exact extracted notes.
-It carries forward the unpublished RC4 foundation recorded below. Runtime
-qualification, exact public-artifact verification and Trama admission remain
-separate gates; stable v2.0.0 remains the default.
-
-### Added
 
 - **Experimental OG process gateway** — add a content-free, single-capture
   identity/topology boundary with bounded output, strict package ownership and
@@ -57,6 +54,11 @@ separate gates; stable v2.0.0 remains the default.
 
 ### Fixed
 
+- **OG qualification portability** — suppress build-output sidecars without
+  relaxing wheel validation, resolve only TCK-owned temporary roots, and retain
+  bounded sanitized child failures, completed checks and cleanup disposition.
+  Producer root rejection and dependency profiles remain unchanged.
+
 - **Internal OG topology capture** — bound discovery and iterative projection,
   use portable logical page identities, require complete captured-page coverage,
   and reject observed source changes; no operational endpoint or Trama
@@ -69,6 +71,11 @@ separate gates; stable v2.0.0 remains the default.
   qualification remains NO-GO.
 
 ### Security
+
+- **MCP dependency security** — require the upstream-declared patched 1.x floor
+  of 1.30.0 for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv)
+  and rebind the OG dependency profile; unrelated lock records remain unchanged.
+  Installed-runtime qualification remains separate.
 
 - **Runtime dependency security** — remove the vulnerable cache dependency and
   obsolete tooling closure by updating the structured-output and API SDK
