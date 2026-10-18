@@ -6,6 +6,23 @@ type: Roadmap
 Date: 2026-10-16. Status: **active preparation policy; no final candidate or
 runtime qualification is selected by this document**.
 
+## Publication failure and acquisition correction — 2026-10-18
+
+The exact signed alpha.1 tag at source 09f8906e36abd0ec6d29e5d554377fb7b0ba57c5
+is preserved. Publisher run 39118762754/1 stopped at acquisition-root preparation,
+before build/publication; this is not an installed-package failure. The
+[immutable failure record](../releases/v2.1.0-alpha.1-FAILED-PUBLICATION.md)
+distinguishes observed results from the inferred failed builtin. Both workflow
+families receive the same fresh, independently verified archive acquisition
+boundary without reserved runner-variable overrides. The new native lane is
+bootstrap-only; existing source/public qualification criteria are unchanged.
+
+The [recovery record](ALPHA_RELEASE_RECOVERY_2026-10-18.md) recommends a separately
+approved new alpha candidate. Version migration, fresh final-source qualification,
+publication, public-byte verification and Trama admission remain separate. This
+historical alpha.1 plan does not itself select or qualify that later candidate.
+
+
 ## Purpose and authority
 
 Deliver the smallest experimentally qualified OG producer suitable for Trama's

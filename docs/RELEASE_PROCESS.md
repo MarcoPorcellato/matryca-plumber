@@ -178,13 +178,23 @@ The PyPI staging directory contains only the two byte-identical original
 distributions; manifests and evidence are never uploaded as Python packages.
 Other release tags retain the existing publisher path.
 
-The exact-alpha publisher and public-input jobs authenticate uv acquisition
-before their own tool calls: each uses an independently pinned official archive
-checksum, disables the mirror and starts with a fresh non-symlink action tool
-cache. The selected executable must resolve within that cache and match the
-action's version/path outputs; its measured hash is retained in the job log.
-This does not remove the SHA-pinned action's trusted bootstrap boundary.
-CPython 3.12 is explicitly provisioned before no-download dependency use.
+The exact-alpha publisher and public-input jobs authenticate each fresh
+qualification-tool archive with the shared standard-library acquisition helper,
+not an override of the reserved runner tool cache. Fixed official archive size
+and SHA-256 are checked before bounded member inspection and extraction into an
+owned root. Verification recomputes archive/executable identity before tool use;
+only then does a bounded version probe run. Tooling/build CPython 3.12 selection,
+independent tested runtime minors, owned managed-Python placement and PATH
+resolution remain explicit. The separate non-publishing three-platform lane
+qualifies bootstrap only, not installed packages or consumer compatibility.
+
+The signed alpha.1 tag and failed publisher are preserved in the
+[failure record](releases/v2.1.0-alpha.1-FAILED-PUBLICATION.md). The
+[recovery decision](quality/ALPHA_RELEASE_RECOVERY_2026-10-18.md) recommends a
+separate fresh-alpha migration, source qualification and exact-source publication
+activation. A main-only repair cannot change the old-tag workflow; do not rerun,
+retarget or manually upload the failed name. No publication is performed by the
+acquisition-correction PR.
 
 The separate
 [`og-public-artifact-qualification.yml`](../.github/workflows/og-public-artifact-qualification.yml)

@@ -1208,6 +1208,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/ALPHA_RELEASE_RECOVERY_2026-10-18.md",
+      "type": "Audit",
+      "title": "Experimental alpha acquisition and release recovery",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/knowledge/quality/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/quality/BETA_EVIDENCE_REPRODUCIBILITY_RCA_2026-07-23.md",
       "type": "Audit",
       "title": "Beta evidence reproducibility root-cause analysis — draft",
@@ -4038,6 +4056,24 @@
       "supersedes": [],
       "notes": "",
       "missing": false
+    },
+    {
+      "path": "docs/releases/v2.1.0-alpha.1-FAILED-PUBLICATION.md",
+      "type": "Release Note",
+      "title": "Experimental alpha.1 publication failure",
+      "description": "---",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": "docs/knowledge/releases/",
+      "action": "archive",
+      "supersedes": [],
+      "notes": ""
     },
     {
       "path": "docs/resilience-llm-json-triz.md",
