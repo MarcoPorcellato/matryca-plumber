@@ -19,6 +19,7 @@ import zipfile
 from dataclasses import replace
 from email.message import Message
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -557,3 +558,147 @@ def test_workflow_actual_interpreter_assertions_are_independent(kind: str, minor
             check=False,
         )
         assert (result.returncode == 0) is (minor == (13 if kind == "runtime" else 12))
+
+
+@pytest.mark.parametrize(
+    "field", ["st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns", "length"]
+)
+@pytest.mark.parametrize("phase", ["opened", "after"])
+def test_changed_read_emits_only_captured_boolean_diagnostics(
+    helper: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    field: str,
+    phase: str,
+) -> None:
+    path = tmp_path / "private-secret-name"
+    path.write_bytes(PAYLOAD)
+    fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+    values = {name: 98765432101234567 for name in fields}
+    values["st_size"] = len(PAYLOAD) + (1 if field == "length" else 0)
+    before = SimpleNamespace(**values)
+    changed = dict(values)
+    if field != "length":
+        changed[field] += 1
+    opened = SimpleNamespace(**(changed if phase == "opened" else values))
+    after = SimpleNamespace(**(changed if phase == "after" else values))
+    captured = iter((before, after))
+    monkeypatch.setattr(helper, "_metadata", lambda path: next(captured))
+    monkeypatch.setattr(helper.os, "fstat", lambda fd: opened)
+    with pytest.raises(helper.AcquisitionError, match="^file_changed$"):
+        helper._read_file(path, 4096)
+    output = capsys.readouterr()
+    assert output.out == "" and len(output.err.encode()) <= 4096
+    diagnostic = json.loads(output.err)
+    assert set(diagnostic) == {
+        "code",
+        "implementation",
+        "version",
+        "before_opened",
+        "before_after",
+        "length_equal",
+    }
+    assert diagnostic["code"] == "file_changed"
+    assert diagnostic["implementation"] == sys.implementation.name
+    assert diagnostic["version"] == dict(
+        zip(("major", "minor", "micro", "releaselevel", "serial"), sys.version_info, strict=True)
+    )
+    for comparison, target in (("before_opened", "opened"), ("before_after", "after")):
+        assert set(diagnostic[comparison]) == set(fields)
+        for name in fields:
+            value = diagnostic[comparison][name]
+            assert type(value) is bool
+            assert value is not (field == name and phase == target)
+    assert diagnostic["length_equal"] is (field != "length")
+    assert "private-secret-name" not in output.err and str(tmp_path) not in output.err
+    assert "98765432101234567" not in output.err
+    with pytest.raises(StopIteration):
+        next(captured)
+
+
+def test_stable_read_emits_no_diagnostic(
+    helper: Any, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "stable"
+    path.write_bytes(PAYLOAD)
+    assert helper._read_file(path, 4096) == PAYLOAD
+    assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize(
+    "phase", ["acquisition", "verification", "refusal", "success", "missing_observation"]
+)
+def test_native_report_executes_truthful_failure_ordering(tmp_path: Path, phase: str) -> None:
+    workflow = yaml.load(
+        (ROOT / ".github/workflows/uv-acquisition-qualification.yml").read_text(),
+        Loader=yaml.BaseLoader,
+    )
+    job = workflow["jobs"]["bootstrap"]
+    assert job["env"]["MATRYCA_UV_ROOT"] == "${{ runner.temp }}/matryca-uv"
+    assert job["env"]["MATRYCA_UV_PLATFORM"] == "${{ matrix.platform }}"
+    step = next(
+        item for item in job["steps"] if item.get("name") == "Emit sanitized bootstrap evidence"
+    )
+    outcomes = {
+        "acquisition": ("failure", "skipped", "skipped"),
+        "verification": ("success", "failure", "skipped"),
+        "refusal": ("success", "success", "failure"),
+        "success": ("success", "success", "success"),
+        "missing_observation": ("success", "success", "success"),
+    }[phase]
+    marker = tmp_path / "helper-calls"
+    record = {
+        "expected_version": "0.12.19",
+        "source": "s" * 40,
+        "asset": "synthetic",
+        "archive_sha256": "a" * 64,
+        "archive_bytes": 4,
+        "executable_sha256": "b" * 64,
+    }
+    prefix = (
+        'python() { if [ "${3:-}" = scripts/release_qualification/uv_acquisition.py ]; then '
+        + 'printf called >> "$SYNTHETIC_MARKER"; '
+        + "printf '%s\\n' \"$SYNTHETIC_RECORD\"; else "
+        + shlex.quote(sys.executable)
+        + ' "$@"; fi; }\n'
+    )
+    environment = {
+        "PATH": os.defpath,
+        "RUNNER_TEMP": str(tmp_path),
+        "MATRYCA_UV_PLATFORM": "linux-x86_64",
+        "MATRYCA_UV_ROOT": str(tmp_path / "not-created"),
+        "ACQUISITION_OUTCOME": outcomes[0],
+        "VERIFICATION_OUTCOME": outcomes[1],
+        "REFUSAL_OUTCOME": outcomes[2],
+        "OBSERVED_UV_VERSION": "0.12.19" if phase in ("refusal", "success") else "",
+        "REFUSAL_STATUS": "PASS" if phase in ("success", "missing_observation") else "",
+        "SYNTHETIC_MARKER": str(marker),
+        "SYNTHETIC_RECORD": json.dumps(record),
+    }
+    result = subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-c", prefix + str(step["run"])],
+        env=environment,
+        capture_output=True,
+        timeout=5,
+        check=False,
+    )
+    if phase == "missing_observation":
+        assert result.returncode != 0
+        return
+    assert result.returncode == 0, result.stderr.decode()
+    report = json.loads((tmp_path / "bootstrap-report.json").read_text())
+    assert report["status"] == ("PASS" if phase == "success" else "FAIL")
+    assert report["acquisition"] == ("FAIL" if phase == "acquisition" else "PASS")
+    assert report["verification"] == (
+        "NOT_RUN" if phase == "acquisition" else "FAIL" if phase == "verification" else "PASS"
+    )
+    assert report["existing_root_refusal"] == (
+        "PASS" if phase == "success" else "FAIL" if phase == "refusal" else "NOT_RUN"
+    )
+    assert marker.exists() is (phase == "success")
+    if phase == "success":
+        assert report["observed_version"] == "0.12.19"
+        assert all(report[k] == v for k, v in record.items())
+    else:
+        assert "executable_sha256" not in report and "source" not in report

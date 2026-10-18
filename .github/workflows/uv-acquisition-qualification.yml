@@ -34,6 +34,9 @@ jobs:
     name: Acquire ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    env:
+      MATRYCA_UV_ROOT: ${{ runner.temp }}/matryca-uv
+      MATRYCA_UV_PLATFORM: ${{ matrix.platform }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,6 +55,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Acquire exact official uv
+        id: acquire-uv
         timeout-minutes: 2
         shell: bash
         env:
@@ -109,11 +113,20 @@ jobs:
         if: always()
         timeout-minutes: 2
         env:
+          ACQUISITION_OUTCOME: ${{ steps.acquire-uv.outcome }}
+          VERIFICATION_OUTCOME: ${{ steps.setup-uv.outcome }}
+          REFUSAL_OUTCOME: ${{ steps.repeat-acquisition.outcome }}
           OBSERVED_UV_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
           REFUSAL_STATUS: ${{ steps.repeat-acquisition.outputs.refusal }}
         run: |
           set -euo pipefail
-          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" | python -I -B -c 'import json,os,sys; r=json.load(sys.stdin); observed=os.environ["OBSERVED_UV_VERSION"]; refusal=os.environ["REFUSAL_STATUS"]; assert observed=="0.12.19" and refusal=="PASS"; result={k:r[k] for k in ("expected_version","source","asset","archive_sha256","archive_bytes","executable_sha256")}; result.update(observed_version=observed,existing_root_refusal=refusal); print(json.dumps(result,sort_keys=True))' > "$RUNNER_TEMP/bootstrap-report.json"
+          if [ "$ACQUISITION_OUTCOME" = success ] && [ "$VERIFICATION_OUTCOME" = success ] && [ "$REFUSAL_OUTCOME" = success ]; then
+            test "$OBSERVED_UV_VERSION" = 0.12.19
+            test "$REFUSAL_STATUS" = PASS
+            python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" | python -I -B -c 'import json,os,sys; r=json.load(sys.stdin); observed=os.environ["OBSERVED_UV_VERSION"]; refusal=os.environ["REFUSAL_STATUS"]; assert observed=="0.12.19" and refusal=="PASS"; result={k:r[k] for k in ("expected_version","source","asset","archive_sha256","archive_bytes","executable_sha256")}; result.update(status="PASS",acquisition="PASS",verification="PASS",observed_version=observed,existing_root_refusal=refusal); print(json.dumps(result,sort_keys=True))' > "$RUNNER_TEMP/bootstrap-report.json"
+          else
+            python -I -B -c 'import json,os; names=("ACQUISITION_OUTCOME","VERIFICATION_OUTCOME","REFUSAL_OUTCOME"); values=[os.environ[n] for n in names]; assert all(v in {"success","failure","skipped","cancelled"} for v in values); states=["PASS" if v=="success" else "NOT_RUN" if v=="skipped" else "FAIL" for v in values]; result=dict(zip(("acquisition","verification","existing_root_refusal"),states,strict=True)); result["status"]="FAIL"; print(json.dumps(result,sort_keys=True))' > "$RUNNER_TEMP/bootstrap-report.json"
+          fi
           cat "$RUNNER_TEMP/bootstrap-report.json"
       - name: Preserve sanitized bootstrap evidence
         if: always()

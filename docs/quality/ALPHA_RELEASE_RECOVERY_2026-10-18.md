@@ -27,6 +27,14 @@ The removed action's consumed uv-path and uv-version outputs are replaced by a v
 
 The new native lane does not install managed Python, dependencies or the application and establishes no Windows package support. It uploads only sanitized bootstrap identity, hash and refusal evidence, not signed download URLs, environment dumps or private paths. Operator artifact downloads require separate authority.
 
+## Native Windows diagnostic boundary
+
+The first native acquisition run passed Linux and macOS but rejected Windows with `file_changed`. Its failure report then attempted to consume success-only bindings and failed secondarily. The exact differing identity field and bootstrap runtime are not yet established; no platform or timestamp explanation is accepted from the error code alone.
+
+The diagnostic candidate preserves rejection and adds only captured before/opened and before/after equality flags for device, inode, size, modification time and change time, the read-length equality and the full running Python implementation/version. It emits no paths or raw metadata. Failure reporting records failed/not-run observations without success-only verification or version probes. A native diagnostic failure remains non-mergeable until its cause is independently reviewed and a separate cause-bound corrective candidate passes all three rows.
+
+The canonical editorial policy now permits only the exact pinned source and three archives listed above for factual qualification references. Source-license naming eligibility does not authenticate binary bytes or establish support. The original alpha.1 failure and all separate candidate, publication, public-byte and Trama gates remain unchanged.
+
 ## Later candidate: recommendation, not activation
 
 Recommend v2.1.0-alpha.2 / 2.1.0a2 rather than reuse alpha.1. A later separately approved migration must first inventory and classify active references versus immutable history, including:

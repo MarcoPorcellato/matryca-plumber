@@ -169,6 +169,31 @@ def _read_file(path: Path, limit: int) -> bytes:
         or identity(before) != identity(after)
         or len(data) != before.st_size
     ):
+        fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+        diagnostic = json.dumps(
+            {
+                "code": "file_changed",
+                "implementation": sys.implementation.name,
+                "version": dict(
+                    zip(
+                        ("major", "minor", "micro", "releaselevel", "serial"),
+                        sys.version_info,
+                        strict=True,
+                    )
+                ),
+                "before_opened": {
+                    field: getattr(before, field) == getattr(opened, field) for field in fields
+                },
+                "before_after": {
+                    field: getattr(before, field) == getattr(after, field) for field in fields
+                },
+                "length_equal": len(data) == before.st_size,
+            },
+            sort_keys=True,
+        )
+        if len(diagnostic.encode("utf-8")) + 1 <= 4096:
+            with contextlib.suppress(OSError):
+                print(diagnostic, file=sys.stderr)
         raise AcquisitionError("file_changed")
     return data
 
