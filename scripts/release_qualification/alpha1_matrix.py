@@ -527,6 +527,8 @@ def verify_matrix(
     jobs: list[dict[str, Any]],
     source: dict[str, Any],
     windows: dict[str, Any],
+    *,
+    public_input: bool = False,
 ) -> dict[str, Any]:
     """Fail closed unless all eight rows and independent upstream jobs are complete."""
     bundle._validate_binding(context.binding, policy=POLICY)
@@ -545,7 +547,10 @@ def verify_matrix(
         if expected[3] == "sdist":
             descriptors.add(row["build"]["environment_descriptor_sha256"])
     _require(len(descriptors) == 4, "Four distinct sdist build environments are required.")
-    for name in JOB_NAMES:
+    if public_input:
+        _require(context.run_attempt == 1, "Public qualification must be attempt one.")
+    job_names = ("Admit public OG alpha", *JOB_NAMES[1:]) if public_input else JOB_NAMES
+    for name in job_names:
         matching = [job for job in jobs if job.get("name") == name]
         _require(len(matching) == 1, "Missing or duplicate upstream job.")
         job = matching[0]
@@ -1063,11 +1068,17 @@ print(json.dumps({'exit_code':code,'graph_accesses':len(accesses)},separators=('
 
 
 def verify_artifacts(
-    context: MatrixContext, expected: dict[str, Any], artifacts: list[dict[str, Any]]
+    context: MatrixContext,
+    expected: dict[str, Any],
+    artifacts: list[dict[str, Any]],
+    *,
+    public_input: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Bind downloaded artifacts to independently carried upstream outputs and REST metadata."""
-    _require(set(expected) == set(ARTIFACT_KEYS), "Incomplete upstream artifact bindings.")
-    prefix = f"og-alpha-{context.run_id}-{context.run_attempt}-"
+    keys = ("admission", *ARTIFACT_KEYS[1:]) if public_input else ARTIFACT_KEYS
+    _require(set(expected) == set(keys), "Incomplete upstream artifact bindings.")
+    family = "og-public" if public_input else "og-alpha"
+    prefix = f"{family}-{context.run_id}-{context.run_attempt}-"
     selected = [
         item
         for item in artifacts
@@ -1075,7 +1086,7 @@ def verify_artifacts(
     ]
     _require(len(selected) == len(ARTIFACT_KEYS), "Missing or extra current-attempt artifacts.")
     output: dict[str, dict[str, Any]] = {}
-    for key in ARTIFACT_KEYS:
+    for key in keys:
         binding = expected[key]
         _require(
             isinstance(binding, dict)
@@ -1107,57 +1118,8 @@ def verify_artifacts(
     return output
 
 
-def aggregate_downloads(
-    context: MatrixContext,
-    downloads: Path,
-    jobs: dict[str, Any],
-    artifacts: dict[str, Any],
-    expected_artifacts: dict[str, Any],
-    expected_build: dict[str, Any],
-) -> dict[str, Any]:
-    """Compose exact downloaded evidence only after job and artifact authentication."""
-    _require(
-        type(jobs.get("total_count")) is int
-        and jobs["total_count"] == len(jobs.get("jobs", [])) <= 100,
-        "Job metadata is incomplete or paginated.",
-    )
-    _require(
-        type(artifacts.get("total_count")) is int
-        and artifacts["total_count"] == len(artifacts.get("artifacts", [])) <= 100,
-        "Artifact metadata is incomplete or paginated.",
-    )
-    identities = verify_artifacts(context, expected_artifacts, artifacts["artifacts"])
-    expected_names = {item["name"] for item in identities.values()}
-    _require(
-        downloads.is_dir()
-        and not downloads.is_symlink()
-        and {path.name for path in downloads.iterdir()} == expected_names,
-        "Downloaded artifact inventory is incomplete or unexpected.",
-    )
-    paths = {key: downloads / item["name"] for key, item in identities.items()}
-    _require(
-        all(path.is_dir() and not path.is_symlink() for path in paths.values()),
-        "Artifact directory is not regular.",
-    )
-    build_root = paths["build"]
-    _require(
-        set(path.name for path in build_root.iterdir())
-        == {"dist", "binding.json", "content-ledger.json", "canonical-build.json"},
-        "Unexpected canonical build artifact files.",
-    )
-    _require(
-        BundleBinding.from_json((build_root / "binding.json").read_text(), policy=POLICY)
-        == context.binding,
-        "Downloaded bundle binding differs from upstream output.",
-    )
-    bundle.verify_handoff(
-        build_root / "dist", build_root / "dist/SHA256SUMS", context.binding, policy=POLICY
-    )
-    build = read_document(build_root / "canonical-build.json")
-    _require(
-        build == expected_build,
-        "Canonical build evidence differs from independent upstream output.",
-    )
+def verify_canonical_build(context: MatrixContext, build: dict[str, Any]) -> None:
+    """Authenticate publisher build identities before any installed consumer runs."""
     for key, value in {
         "source_commit": context.binding.source_commit,
         "source_tree": context.binding.source_tree,
@@ -1186,6 +1148,70 @@ def aggregate_downloads(
         and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", build["npm_version"]) is not None,
         "Canonical frontend tool identity is incomplete.",
     )
+
+
+def aggregate_downloads(
+    context: MatrixContext,
+    downloads: Path,
+    jobs: dict[str, Any],
+    artifacts: dict[str, Any],
+    expected_artifacts: dict[str, Any],
+    expected_build: dict[str, Any],
+    *,
+    expected_public: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Compose exact downloaded evidence only after job and artifact authentication."""
+    _require(
+        type(jobs.get("total_count")) is int
+        and jobs["total_count"] == len(jobs.get("jobs", [])) <= 100,
+        "Job metadata is incomplete or paginated.",
+    )
+    _require(
+        type(artifacts.get("total_count")) is int
+        and artifacts["total_count"] == len(artifacts.get("artifacts", [])) <= 100,
+        "Artifact metadata is incomplete or paginated.",
+    )
+    public_input = expected_public is not None
+    identities = verify_artifacts(
+        context, expected_artifacts, artifacts["artifacts"], public_input=public_input
+    )
+    expected_names = {item["name"] for item in identities.values()}
+    _require(
+        downloads.is_dir()
+        and not downloads.is_symlink()
+        and {path.name for path in downloads.iterdir()} == expected_names,
+        "Downloaded artifact inventory is incomplete or unexpected.",
+    )
+    paths = {key: downloads / item["name"] for key, item in identities.items()}
+    _require(
+        all(path.is_dir() and not path.is_symlink() for path in paths.values()),
+        "Artifact directory is not regular.",
+    )
+    build_root = paths["admission" if public_input else "build"]
+    _require(
+        set(path.name for path in build_root.iterdir())
+        == {"dist", "binding.json", "content-ledger.json", "canonical-build.json"}
+        | ({"public-input.json", "public-provenance"} if public_input else set()),
+        "Unexpected canonical build artifact files.",
+    )
+    _require(
+        BundleBinding.from_json((build_root / "binding.json").read_text(), policy=POLICY)
+        == context.binding,
+        "Downloaded bundle binding differs from upstream output.",
+    )
+    bundle.verify_handoff(
+        build_root / "dist", build_root / "dist/SHA256SUMS", context.binding, policy=POLICY
+    )
+    if expected_public is not None:
+        from scripts.release_qualification.alpha1_public import verify_retained
+
+        verify_retained(build_root, context, expected_public)
+    build = read_document(build_root / "canonical-build.json")
+    _require(
+        build == expected_build,
+        "Canonical build evidence differs from independent upstream output.",
+    )
+    verify_canonical_build(context, build)
     rows: list[dict[str, Any]] = []
     for key in ("linux312", "linux313", "macos312", "macos313"):
         path = paths[key]
@@ -1236,7 +1262,9 @@ def aggregate_downloads(
         "Unexpected Windows refusal evidence files.",
     )
     windows = read_document(paths["windows-refusal"] / "windows.json")
-    result = verify_matrix(context, rows, jobs["jobs"], source, windows)
+    result = verify_matrix(context, rows, jobs["jobs"], source, windows, public_input=public_input)
+    if expected_public is not None:
+        result["public_input"] = expected_public
     result["artifact_bindings"] = expected_artifacts
     result["canonical_build"] = build
     return result

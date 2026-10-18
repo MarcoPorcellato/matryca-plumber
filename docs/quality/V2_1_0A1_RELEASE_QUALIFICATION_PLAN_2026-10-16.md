@@ -121,6 +121,55 @@ No skipped, missing, mismatched, timed-out or incomplete required row counts as
 PASS. Preserve terminal failures and exact run identities. Local diagnostics
 are not a substitute for standard hosted CI or installed native runtime rows.
 
+## Publication bridge prerequisite and public-byte campaign
+
+Land the exact-alpha publisher/public-input bridge before final candidate
+selection. It changes release tooling and policy only: the Parser 1.9.0
+profile, contracts, descriptor/resource/TCK chain, application dependencies,
+producer behavior and original diagnostic qualification workflow remain frozen.
+
+The publisher must use the independently locked canonical builder and retain
+its own original wheel/sdist, binding, source/frontend content ledger, actual
+tool/build-environment record and canonical manifest. Attest all six public
+subjects and attach them to the alpha Release; retain the Actions copy for at
+least 14 days. Stage only the original two distributions for PyPI. Do not
+substitute pre-publication bytes or reconstruct missing publisher evidence.
+
+Require an independent official archive checksum, a fresh non-symlink action
+tool cache and selected executable identity before workflow-owned uv calls.
+The pinned action remains a trusted bootstrap component. Explicitly provision
+CPython 3.12 before no-download consumption. Validate the source-derived
+canonical-build record before successful public admission, and again during
+aggregation; a later aggregate cannot repair premature package execution.
+
+Once that bridge is merged, select a new clean final source `S` and run fresh
+pre-publication qualification. Stop for the maintainer's explicit full
+commit/tree confirmation and acknowledgement of tag-triggered publication
+before creating or pushing `v2.1.0-alpha.1`.
+
+After publication run `R` completes, the manual public-input workflow starts a
+distinct run `Q`, from the same exact `S` on current `main`. Require first
+attempts, six exact GitHub Release assets, two non-yanked PyPI originals,
+bounded allowlisted HTTPS acquisition and cryptographic verification of all
+six subjects. Source/signer digests and the certificate's signed publication
+invocation must bind `R`; a self-declared statement field is not sufficient.
+The public copies must be byte-identical to their publisher binding, and the
+ledger must cover the selected Git tree and canonical frontend derivation.
+
+Run the complete eight-row installed/operational matrix on those actual public
+inputs, with four independent sdist build environments, source/JUnit evidence
+and native Windows refusal only. Aggregate the actual `Q` jobs/artifacts
+without replacing their names, source or run fields with diagnostic metadata.
+Retain `R`, `Q`, source/tree, original pair, evidence digests and complete
+row/cleanup outcomes separately. Failed, skipped, incomplete, mismatched or
+uncertain evidence is NO-GO; a consumed failed publication or campaign is not
+silently retried.
+
+The release process's
+[public-input bridge](../RELEASE_PROCESS.md#exact-alpha-publication-and-public-input-bridge)
+defines the maintained entrypoints. This plan does not activate publication,
+close #582, admit Trama or waive later full qualification and dual-profile Gate B.
+
 ## Ordered release and consumer handoff gates
 
 1. **Preparation:** land version/policy, resource integration and workflow.

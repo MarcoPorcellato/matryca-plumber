@@ -14,6 +14,14 @@ RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 def _load_release() -> dict[str, Any]:
     loaded = yaml.load(RELEASE_WORKFLOW.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
     assert isinstance(loaded, dict)
+    # These assertions retain the legacy release branch as a separate oracle.
+    # Exact-alpha behavior is independently tested in the public-input module.
+    for job in loaded["jobs"].values():
+        job["steps"] = [
+            step
+            for step in job["steps"]
+            if step.get("if") != "${{ github.ref_name == 'v2.1.0-alpha.1' }}"
+        ]
     return cast(dict[str, Any], loaded)
 
 

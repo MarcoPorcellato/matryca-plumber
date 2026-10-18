@@ -16,9 +16,9 @@ import pytest
 from scripts.release_qualification.bundle import BundleBinding
 
 
-def _inputs() -> tuple[
-    Any, list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]
-]:
+def _inputs(
+    *, run_attempt: int = 2
+) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     alpha = importlib.import_module("scripts.release_qualification.alpha1_matrix")
     binding = BundleBinding(
         "a" * 40,
@@ -36,7 +36,7 @@ def _inputs() -> tuple[
     context = alpha.MatrixContext(
         binding,
         "123",
-        2,
+        run_attempt,
         {
             "assets": [],
             "code_modules": [],
@@ -195,7 +195,7 @@ def _inputs() -> tuple[
                 "schema_version": 1,
                 "row": key,
                 "run_id": "123",
-                "run_attempt": 2,
+                "run_attempt": run_attempt,
                 "binding_sha256": alpha.digest(asdict(binding)),
                 "inputs_sha256": context.inputs_sha256,
                 "job_name": alpha.row_job_name(system, architecture, minor),
@@ -222,7 +222,7 @@ def _inputs() -> tuple[
         "source_commit": binding.source_commit,
         "source_tree": binding.source_tree,
         "run_id": "123",
-        "run_attempt": 2,
+        "run_attempt": run_attempt,
         "selectors": context.source_controls,
         "status": "pass",
         "qualification": "source-only",
@@ -233,7 +233,7 @@ def _inputs() -> tuple[
         "source_commit": binding.source_commit,
         "source_tree": binding.source_tree,
         "run_id": "123",
-        "run_attempt": 2,
+        "run_attempt": run_attempt,
         "system": "Windows",
         "architecture": "AMD64",
         "status": "pass",
@@ -243,6 +243,20 @@ def _inputs() -> tuple[
         "graph_accesses": 0,
     }
     return context, rows, jobs, source, windows
+
+
+def test_public_matrix_has_closed_truthful_admission_job_variant() -> None:
+    from scripts.release_qualification import alpha1_matrix as alpha
+
+    context, rows, jobs, source, windows = _inputs(run_attempt=1)
+    public_jobs = copy.deepcopy(jobs)
+    public_jobs[0]["name"] = "Admit public OG alpha"
+    result = alpha.verify_matrix(context, rows, public_jobs, source, windows, public_input=True)
+    assert result["status"] == "pass"
+    with pytest.raises(ValueError):
+        alpha.verify_matrix(context, rows, jobs, source, windows, public_input=True)
+    with pytest.raises(ValueError):
+        alpha.verify_matrix(context, rows, public_jobs, source, windows)
 
 
 def test_alpha_matrix_requires_eight_rows_and_keeps_unqualified_status() -> None:

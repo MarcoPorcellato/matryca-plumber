@@ -1,0 +1,1081 @@
+name: OG public artifact qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Separately activated exact public alpha source commit"
+        type: string
+        required: true
+      publication_run:
+        description: "Complete successful tag-push publication run R, attempt one"
+        type: string
+        required: true
+
+permissions: {}
+
+env:
+  SELECTED_SOURCE: ${{ inputs.source_sha }}
+  PUBLICATION_RUN: ${{ inputs.publication_run }}
+  PYTHONDONTWRITEBYTECODE: "1"
+  UV_NO_CONFIG: "1"
+  UV_PYTHON_DOWNLOADS: never
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: og-public-${{ inputs.source_sha }}-${{ inputs.publication_run }}
+  cancel-in-progress: false
+
+jobs:
+  admission:
+    name: Admit public OG alpha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+      binding: ${{ steps.admit.outputs.binding_json }}
+      build-json: ${{ steps.admit.outputs.build_json }}
+      public-json: ${{ steps.admit.outputs.public_json }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require the activated exact main attempt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = MarcoPorcellato/matryca-plumber
+          test "$GITHUB_REPOSITORY_ID" = 1241185104
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLICATION_RUN" =~ ^[1-9][0-9]*$ ]]
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreter
+        timeout-minutes: 5
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12
+      - name: Provision locked qualification tools without project installation
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Admit only the actual public original pair and provenance
+        id: admit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-admit --source-root "$GITHUB_WORKSPACE" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle"
+      - name: Preserve public admission evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-admission
+          path: ${{ runner.temp }}/bundle
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  source-controls:
+    name: Source OG controls
+    needs: admission
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admission.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Run mapped exact-source negative controls
+        timeout-minutes: 16
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-source-controls --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json"
+      - name: Preserve source-controls evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-source-controls
+          path: ${{ runner.temp }}/source-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  windows-refusal:
+    name: Windows OG refusal
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Require native refusal before graph access
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py alpha-windows-refusal --source-root "$GITHUB_WORKSPACE" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json"
+      - name: Preserve windows-refusal evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-windows-refusal
+          path: ${{ runner.temp }}/windows-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  linux312:
+    name: OG linux-x64 Python 3.12
+    needs: admission
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.12"
+      EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admission.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve linux312 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-linux312
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  linux313:
+    name: OG linux-x64 Python 3.13
+    needs: admission
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.13"
+      EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admission.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve linux313 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-linux313
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  macos312:
+    name: OG macos-arm64 Python 3.12
+    needs: admission
+    runs-on: macos-15
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.12"
+      EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admission.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve macos312 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-macos312
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  macos313:
+    name: OG macos-arm64 Python 3.13
+    needs: admission
+    runs-on: macos-15
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    env:
+      RUNTIME_MINOR: "3.13"
+      EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Download independently bound canonical artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admission.outputs.artifact-id }}
+          path: ${{ runner.temp }}/bundle
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Provision separate locked runtime and build environments
+        run: |
+          set -euo pipefail
+          runtime="$(uv python find --no-python-downloads "$RUNTIME_MINOR")"
+          for kind in wheel sdist; do
+            uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+          done
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+      - name: Verify original wheel and original-sdist installation paths
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          for kind in wheel sdist; do
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+          done
+      - name: Preserve macos313 evidence
+        if: always()
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-macos313
+          path: ${{ runner.temp }}/row-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+
+  aggregate:
+    name: Aggregate public OG alpha
+    if: always()
+    needs: [admission, source-controls, windows-refusal, linux312, linux313, macos312, macos313]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+      EXPECTED_BUILD_JSON: ${{ needs.admission.outputs.build-json }}
+      EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
+      EXPECTED_ARTIFACTS_JSON: '{"admission":{"id":"${{ needs.admission.outputs.artifact-id }}","sha256":"${{ needs.admission.outputs.artifact-sha256 }}"},"source-controls":{"id":"${{ needs.source-controls.outputs.artifact-id }}","sha256":"${{ needs.source-controls.outputs.artifact-sha256 }}"},"windows-refusal":{"id":"${{ needs.windows-refusal.outputs.artifact-id }}","sha256":"${{ needs.windows-refusal.outputs.artifact-sha256 }}"},"linux312":{"id":"${{ needs.linux312.outputs.artifact-id }}","sha256":"${{ needs.linux312.outputs.artifact-sha256 }}"},"linux313":{"id":"${{ needs.linux313.outputs.artifact-id }}","sha256":"${{ needs.linux313.outputs.artifact-sha256 }}"},"macos312":{"id":"${{ needs.macos312.outputs.artifact-id }}","sha256":"${{ needs.macos312.outputs.artifact-sha256 }}"},"macos313":{"id":"${{ needs.macos313.outputs.artifact-id }}","sha256":"${{ needs.macos313.outputs.artifact-sha256 }}"}}'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify selected source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Prepare fresh uv acquisition root
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
+          test ! -e "$cache"
+          test ! -L "$cache"
+          mkdir -m 700 "$cache"
+      - name: Install pinned uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: false
+          download-from-astral-mirror: false
+          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+      - name: Verify selected uv acquisition
+        shell: bash
+        timeout-minutes: 2
+        env:
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
+          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
+          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TOOL_CACHE"
+          selected="$UV_SELECTED_PATH"
+          located="$(command -v uv)"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cache="$(cygpath -u "$cache")"
+            selected="$(cygpath -u "$selected")"
+            located="$(cygpath -u "$located")"
+            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
+            case "$located" in *.exe) ;; *) located="$located.exe";; esac
+          fi
+          test -d "$cache" && test ! -L "$cache"
+          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
+          test -f "$located" && test ! -L "$located"
+          cache="$(cd -P "$cache" && pwd)"
+          selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
+          located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
+          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
+          test "$selected" = "$located"
+          test "$UV_SELECTED_VERSION" = 0.12.19
+          if [ "$RUNNER_OS" = macOS ]; then
+            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
+          else
+            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
+          fi
+          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
+          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
+          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
+      - name: Provision explicit qualification interpreters
+        timeout-minutes: 5
+        shell: bash
+        env:
+          UV_PYTHON_DOWNLOADS: manual
+        run: uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
+      - name: Provision locked qualification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+      - name: Require actual upstream jobs and retained artifact metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; value=json.loads(os.environ["NEEDS_JSON"]); assert len(value)==7 and all(job["result"]=="success" for job in value.values())'
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
+          gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" > "$RUNNER_TEMP/current-main.json"
+          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"]+"/current-main.json"))["object"]["sha"]==os.environ["SELECTED_SOURCE"]'
+      - name: Download only the seven independently carried artifact IDs
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: "${{ needs.admission.outputs.artifact-id }},${{ needs.source-controls.outputs.artifact-id }},${{ needs.windows-refusal.outputs.artifact-id }},${{ needs.linux312.outputs.artifact-id }},${{ needs.linux313.outputs.artifact-id }},${{ needs.macos312.outputs.artifact-id }},${{ needs.macos313.outputs.artifact-id }}"
+          path: ${{ runner.temp }}/downloaded
+          merge-multiple: false
+          digest-mismatch: error
+      - name: Fail-closed public alpha aggregation
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-aggregate --source-root "$GITHUB_WORKSPACE" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
+      - name: Preserve public aggregate (not consumer admission)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-aggregate
+          path: ${{ runner.temp }}/alpha-aggregate.json
+          if-no-files-found: error
+          retention-days: 14
+

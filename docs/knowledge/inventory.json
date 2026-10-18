@@ -348,7 +348,7 @@
       "path": "docs/RELEASE_PROCESS.md",
       "type": "Archive",
       "title": "Release process",
-      "description": "**Matryca Plumber** (Marco Porcellato · [Matryca.ai](https://matryca.ai)) uses a **curated** [`CHANGELOG.md`](../CHANGELOG.md) (Keep a Changelog).",
+      "description": "Maintainer release mechanics, exact-alpha canonical publisher provenance and separately gated public-artifact verification; historical RC4 procedures remain distinct.",
       "audience": [
         "maintainer",
         "contributor"
@@ -2214,7 +2214,7 @@
       "path": "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md",
       "type": "Roadmap",
       "title": "Experimental 2.1.0a1 release qualification plan",
-      "description": "Active limited-release policy for eight POSIX OG installed rows, separate maintainer publication and exact public-artifact requalification before Trama evaluation.",
+      "description": "Active eight-row POSIX alpha policy with a locked publisher/public-input bridge, fresh final-source qualification, explicit publication activation and independent public-byte verification before Trama evaluation.",
       "classification": "active",
       "audience": [
         "maintainer",
