@@ -72,6 +72,12 @@ separate gates; stable v2.0.0 remains the default.
 
 ### Security
 
+- **Frontend source-map security** — update the transitive development dependency
+  to `source-map-js` 1.2.2 for
+  [GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q),
+  preserving every unrelated package record. Installed artifact qualification
+  remains separate.
+
 - **MCP dependency security** — require the upstream-declared patched 1.x floor
   of 1.30.0 for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv)
   and rebind the OG dependency profile; unrelated lock records remain unchanged.
