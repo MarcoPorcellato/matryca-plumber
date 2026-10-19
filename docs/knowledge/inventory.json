@@ -638,7 +638,7 @@
     {
       "path": "docs/openspec/agent-onboarding.md",
       "type": "Specification",
-      "title": "Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a1 preparation, and prerelease history",
+      "title": "Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a2 preparation, and prerelease history",
       "description": "Current agent distribution guidance, historical prerelease limits and the separately gated experimental alpha path; no installed-runtime or consumer admission is established.",
       "audience": [
         "agent",
@@ -2206,7 +2206,7 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Superseded as the active release plan by the 2026-10-16 experimental 2.1.0a1 plan. Original document and attempts remain unchanged; Windows/L, three-platform Stage A and dual-profile Gate B are retained on the full qualification track.",
+      "notes": "Originally superseded by the 2026-10-16 experimental 2.1.0a1 plan; the current active experimental successor is the 2026-10-19 2.1.0a2 plan. Original document and attempts remain unchanged; Windows/L, three-platform Stage A and dual-profile Gate B are retained on the full qualification track.",
       "missing": false
     },
     {
