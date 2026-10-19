@@ -16,6 +16,7 @@ import tarfile
 import urllib.error
 import urllib.request
 import zipfile
+from collections.abc import Iterator
 from dataclasses import replace
 from email.message import Message
 from pathlib import Path
@@ -32,6 +33,16 @@ PINS = {
     "windows-x64": ("Windows", "AMD64", "uv.exe"),
 }
 PAYLOAD = b"synthetic bytes: never an executable"
+
+
+class _Runtime:
+    """Override only the backend, forwarding live streams to the real runtime."""
+
+    def __init__(self, platform_name: str) -> None:
+        self.platform = platform_name
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(sys, name)
 
 
 @pytest.fixture
@@ -572,6 +583,12 @@ def test_changed_read_emits_only_captured_boolean_diagnostics(
     field: str,
     phase: str,
 ) -> None:
+    # Characterize the unchanged POSIX comparison even on a Windows test runner.
+    monkeypatch.setattr(
+        helper,
+        "sys",
+        _Runtime("linux"),
+    )
     path = tmp_path / "private-secret-name"
     path.write_bytes(PAYLOAD)
     fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
@@ -624,6 +641,193 @@ def test_stable_read_emits_no_diagnostic(
     path.write_bytes(PAYLOAD)
     assert helper._read_file(path, 4096) == PAYLOAD
     assert capsys.readouterr().err == ""
+
+
+@pytest.fixture
+def windows_read(
+    helper: Any, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> Iterator[tuple[Path, dict[str, Any], list[str]]]:
+    """Inject Windows observations while retaining real descriptor reads and closure."""
+    path = tmp_path / "private-windows-file"
+    path.write_bytes(PAYLOAD)
+    values = {
+        "st_dev": 1,
+        "st_ino": 2,
+        "st_size": len(PAYLOAD),
+        "st_mtime_ns": 30,
+        "st_ctime_ns": 10,
+        "st_birthtime_ns": 10,
+    }
+    snapshots = {
+        phase: SimpleNamespace(**values) for phase in ("before", "opened", "read", "after")
+    }
+    # Windows path stat exposes creation time; fstat exposes metadata-change time.
+    snapshots["opened"].st_ctime_ns = 20
+    snapshots["read"].st_ctime_ns = 20
+    events: list[str] = []
+    descriptors: list[int] = []
+    real_fstat = os.fstat
+
+    def metadata(actual: Path) -> Any:
+        assert actual == path
+        phase = "before" if not events else "after"
+        events.append(phase)
+        return snapshots[phase]
+
+    def fstat(descriptor: int) -> Any:
+        real_fstat(descriptor)  # The descriptor must still be open for both observations.
+        phase = "opened" if not descriptors else "read"
+        assert not descriptors or descriptor == descriptors[0]
+        assert os.lseek(descriptor, 0, os.SEEK_CUR) == (0 if not descriptors else len(PAYLOAD))
+        descriptors.append(descriptor)
+        events.append(phase)
+        value = snapshots[phase]
+        if isinstance(value, OSError):
+            raise value
+        return value
+
+    monkeypatch.setattr(
+        helper,
+        "sys",
+        _Runtime("win32"),
+    )
+    monkeypatch.setattr(helper.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(helper, "_metadata", metadata)
+    monkeypatch.setattr(helper.os, "fstat", fstat)
+    yield path, snapshots, events
+    for descriptor in set(descriptors):
+        with pytest.raises(OSError):
+            real_fstat(descriptor)
+
+
+def test_windows_read_accepts_consistent_creation_and_change_times(
+    helper: Any,
+    windows_read: tuple[Path, dict[str, Any], list[str]],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path, _, events = windows_read
+    assert helper._read_file(path, 4096) == PAYLOAD
+    assert events == ["before", "opened", "read", "after"]
+    assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize("phase", ["before", "opened", "read", "after"])
+@pytest.mark.parametrize("field", ["st_dev", "st_ino", "st_size", "st_mtime_ns", "st_birthtime_ns"])
+def test_windows_read_rejects_changed_identity(
+    helper: Any,
+    windows_read: tuple[Path, dict[str, Any], list[str]],
+    capsys: pytest.CaptureFixture[str],
+    phase: str,
+    field: str,
+) -> None:
+    path, snapshots, _ = windows_read
+    setattr(snapshots[phase], field, getattr(snapshots[phase], field) + 1)
+    with pytest.raises(helper.AcquisitionError, match="^file_changed$"):
+        helper._read_file(path, 4096)
+    output = capsys.readouterr()
+    diagnostic = json.loads(output.err)
+    assert len(output.err.encode()) <= 4096 and output.out == ""
+    assert "st_ctime_ns" not in diagnostic["before_opened"]
+    assert set(diagnostic["before_opened"]) == {
+        "st_dev",
+        "st_ino",
+        "st_size",
+        "st_mtime_ns",
+        "st_birthtime_ns",
+    }
+    assert all(type(value) is bool for value in diagnostic["opened_after"].values())
+    assert type(diagnostic["birthtime_equal"]) is bool
+    assert "private-windows-file" not in output.err and str(path.parent) not in output.err
+
+
+@pytest.mark.parametrize("phase", ["before", "opened", "read", "after"])
+@pytest.mark.parametrize("kind", ["missing", "none", "boolean", "float", "string"])
+def test_windows_read_requires_exact_integer_birthtime(
+    helper: Any,
+    windows_read: tuple[Path, dict[str, Any], list[str]],
+    phase: str,
+    kind: str,
+) -> None:
+    path, snapshots, _ = windows_read
+    if kind == "missing":
+        del snapshots[phase].st_birthtime_ns
+    else:
+        snapshots[phase].st_birthtime_ns = {
+            "none": None,
+            "boolean": True,
+            "float": 10.0,
+            "string": "10",
+        }[kind]
+    with pytest.raises(helper.AcquisitionError, match="^unsupported_file_metadata$"):
+        helper._read_file(path, 4096)
+
+
+@pytest.mark.parametrize("phase", ["read", "after"])
+def test_windows_read_retains_each_ctime_change_guard(
+    helper: Any,
+    windows_read: tuple[Path, dict[str, Any], list[str]],
+    capsys: pytest.CaptureFixture[str],
+    phase: str,
+) -> None:
+    path, snapshots, _ = windows_read
+    snapshots[phase].st_ctime_ns += 1
+    with pytest.raises(helper.AcquisitionError, match="^file_changed$"):
+        helper._read_file(path, 4096)
+    diagnostic = json.loads(capsys.readouterr().err)
+    assert diagnostic["birthtime_equal"] is True
+    assert diagnostic["opened_after"]["st_ctime_ns"] is (phase != "read")
+    assert diagnostic["before_after"]["st_ctime_ns"] is (phase != "after")
+    assert diagnostic["opened_after"]["st_mtime_ns"] is True
+    assert diagnostic["before_after"]["st_mtime_ns"] is True
+
+
+def test_windows_read_closes_descriptor_when_post_read_stat_fails(
+    helper: Any, windows_read: tuple[Path, dict[str, Any], list[str]]
+) -> None:
+    path, snapshots, events = windows_read
+    snapshots["read"] = OSError("synthetic post-read failure")
+    with pytest.raises(helper.AcquisitionError, match="^unsafe_file_read$"):
+        helper._read_file(path, 4096)
+    assert events == ["before", "opened", "read"]
+
+
+@pytest.mark.parametrize("difference", [-1, 1])
+def test_windows_read_rejects_length_mismatch(
+    helper: Any, windows_read: tuple[Path, dict[str, Any], list[str]], difference: int
+) -> None:
+    path, snapshots, _ = windows_read
+    for value in snapshots.values():
+        value.st_size += difference
+    with pytest.raises(helper.AcquisitionError, match="^file_changed$"):
+        helper._read_file(path, 4096)
+
+
+def test_posix_read_keeps_one_fstat_and_rejects_cross_api_ctime(
+    helper: Any, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "posix"
+    path.write_bytes(PAYLOAD)
+    before = SimpleNamespace(
+        st_dev=1, st_ino=2, st_size=len(PAYLOAD), st_mtime_ns=30, st_ctime_ns=10
+    )
+    opened = SimpleNamespace(**(vars(before) | {"st_ctime_ns": 20}))
+    calls: list[int] = []
+
+    def fstat(descriptor: int) -> Any:
+        calls.append(descriptor)
+        return opened
+
+    monkeypatch.setattr(
+        helper,
+        "sys",
+        _Runtime("linux"),
+    )
+    monkeypatch.setattr(helper.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(helper, "_metadata", lambda actual: before)
+    monkeypatch.setattr(helper.os, "fstat", fstat)
+    with pytest.raises(helper.AcquisitionError, match="^file_changed$"):
+        helper._read_file(path, 4096)
+    assert len(calls) == 1
 
 
 @pytest.mark.parametrize(

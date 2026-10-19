@@ -149,6 +149,7 @@ def _root(root: Path, runner_temp: Path, *, fresh: bool) -> Path:
 
 
 def _read_file(path: Path, limit: int) -> bytes:
+    windows = sys.platform == "win32"
     before = _metadata(path)
     if before.st_size > limit:
         raise AcquisitionError("file_limit")
@@ -157,6 +158,7 @@ def _read_file(path: Path, limit: int) -> bytes:
         with os.fdopen(os.open(path, flags), "rb") as stream:
             opened = os.fstat(stream.fileno())
             data = stream.read(limit + 1)
+            opened_after = os.fstat(stream.fileno()) if windows else opened
         after = _metadata(path)
     except OSError as error:
         raise AcquisitionError("unsafe_file_read") from error
@@ -164,33 +166,48 @@ def _read_file(path: Path, limit: int) -> bytes:
     def identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
         return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
 
+    fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+    cross_fields = fields
+    birthtime_equal = True
+    if windows:
+        # Path stat uses creation time for ctime; fstat retains metadata-change time.
+        observations = (before, opened, opened_after, after)
+        birthtimes = tuple(getattr(value, "st_birthtime_ns", None) for value in observations)
+        if any(type(value) is not int for value in birthtimes):
+            raise AcquisitionError("unsupported_file_metadata")
+        birthtime_equal = all(value == birthtimes[0] for value in birthtimes[1:])
+        cross_fields = (*fields[:-1], "st_birthtime_ns")
+
     if (
-        identity(before) != identity(opened)
+        any(getattr(before, field) != getattr(opened, field) for field in cross_fields)
         or identity(before) != identity(after)
         or len(data) != before.st_size
+        or (windows and (identity(opened) != identity(opened_after) or not birthtime_equal))
     ):
-        fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
-        diagnostic = json.dumps(
-            {
-                "code": "file_changed",
-                "implementation": sys.implementation.name,
-                "version": dict(
-                    zip(
-                        ("major", "minor", "micro", "releaselevel", "serial"),
-                        sys.version_info,
-                        strict=True,
-                    )
-                ),
-                "before_opened": {
-                    field: getattr(before, field) == getattr(opened, field) for field in fields
-                },
-                "before_after": {
-                    field: getattr(before, field) == getattr(after, field) for field in fields
-                },
-                "length_equal": len(data) == before.st_size,
+        values: dict[str, object] = {
+            "code": "file_changed",
+            "implementation": sys.implementation.name,
+            "version": dict(
+                zip(
+                    ("major", "minor", "micro", "releaselevel", "serial"),
+                    sys.version_info,
+                    strict=True,
+                )
+            ),
+            "before_opened": {
+                field: getattr(before, field) == getattr(opened, field) for field in cross_fields
             },
-            sort_keys=True,
-        )
+            "before_after": {
+                field: getattr(before, field) == getattr(after, field) for field in fields
+            },
+            "length_equal": len(data) == before.st_size,
+        }
+        if windows:
+            values["opened_after"] = {
+                field: getattr(opened, field) == getattr(opened_after, field) for field in fields
+            }
+            values["birthtime_equal"] = birthtime_equal
+        diagnostic = json.dumps(values, sort_keys=True)
         if len(diagnostic.encode("utf-8")) + 1 <= 4096:
             with contextlib.suppress(OSError):
                 print(diagnostic, file=sys.stderr)
