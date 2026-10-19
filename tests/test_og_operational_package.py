@@ -164,6 +164,47 @@ def test_operational_resource_mutation_is_fail_closed(
         )
 
 
+@pytest.mark.parametrize(
+    "binding", ["manifest-profile", "descriptor-manifest", "descriptor-profile"]
+)
+def test_operational_metadata_links_reject_independent_digest_tampering(binding: str) -> None:
+    from matryca_plumber.graph_gateway.resources import (
+        PackageResourceError,
+        _verify_package_resources,
+    )
+
+    package = _package_resources()
+    _verify_package_resources(
+        package.descriptor_bytes,
+        package.manifest_bytes,
+        package.assets,
+        package.package_paths,
+        package.schema_bytes,
+        package.module_bytes,
+    )
+    descriptor = json.loads(package.descriptor_bytes)
+    manifest = json.loads(package.manifest_bytes)
+    manifest_bytes = package.manifest_bytes
+    if binding == "manifest-profile":
+        manifest["files"]["dependency-profile.json"] = "0" * 64
+        manifest_bytes = json.dumps(manifest).encode()
+        descriptor["resource_digests"]["manifest"] = hashlib.sha256(manifest_bytes).hexdigest()
+    elif binding == "descriptor-manifest":
+        descriptor["resource_digests"]["manifest"] = "0" * 64
+    else:
+        descriptor["resource_digests"]["dependency_profile"] = "0" * 64
+
+    with pytest.raises(PackageResourceError):
+        _verify_package_resources(
+            json.dumps(descriptor).encode(),
+            manifest_bytes,
+            package.assets,
+            package.package_paths,
+            package.schema_bytes,
+            package.module_bytes,
+        )
+
+
 def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     package = _package_resources()
     profile = json.loads(package.assets["dependency-profile.json"])
@@ -173,7 +214,7 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     assert profile["lock_source"] == "uv.lock"
     assert profile["matrix"] == package.descriptor["matrix"]
     assert profile["qualification"] == "unqualified"
-    assert profile["project"] == {"name": "matryca-plumber", "version": "2.1.0a1"}
+    assert profile["project"] == {"name": "matryca-plumber", "version": "2.1.0a2"}
     assert profile["export"]["entry_count"] == 73
     assert profile["export"]["kind"] == "uv-export-runtime-closure"
     requirements = package.assets["requirements-og-v1-parser-1.9.0.txt"]

@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib
 import json
 import platform
+import shutil
+import subprocess
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -23,11 +26,11 @@ def _inputs(
     binding = BundleBinding(
         "a" * 40,
         "b" * 40,
-        "2.1.0a1",
-        "matryca_plumber-2.1.0a1-py3-none-any.whl",
+        "2.1.0a2",
+        "matryca_plumber-2.1.0a2-py3-none-any.whl",
         1,
         "c" * 64,
-        "matryca_plumber-2.1.0a1.tar.gz",
+        "matryca_plumber-2.1.0a2.tar.gz",
         2,
         "d" * 64,
         "e" * 64,
@@ -65,7 +68,7 @@ def _inputs(
             operating_system="linux" if system == "linux" else "darwin",
             architecture="x86_64" if architecture == "x64" else "arm64",
             python_version=runtime["version"],
-            version="2.1.0a1",
+            version="2.1.0a2",
             location_class="isolated-venv-site-packages",
             record_sha256="6" * 64,
             resource_sha256="7" * 64,
@@ -89,7 +92,7 @@ def _inputs(
                 "operating_system": "Linux" if system == "linux" else "Darwin",
                 "architecture": installed["architecture"],
                 "python_version": runtime["version"],
-                "plumber_version": "2.1.0a1",
+                "plumber_version": "2.1.0a2",
                 "parser_version": "1.9.0",
                 "sha256": "8" * 64,
             },
@@ -245,6 +248,87 @@ def _inputs(
     return context, rows, jobs, source, windows
 
 
+@pytest.mark.parametrize("mutation", ["root-lock", "profile-lock"])
+def test_source_context_rejects_lock_profile_mismatch_after_source_authentication(
+    tmp_path: Path, mutation: str
+) -> None:
+    from scripts.release_qualification import alpha1_matrix as alpha
+
+    project = Path(__file__).resolve().parents[1]
+    source = tmp_path / "source"
+    resource_path = Path("matryca_plumber/graph_gateway/resources/og-v1")
+    shutil.copytree(project / resource_path, source / resource_path)
+    for relative in (
+        "uv.lock",
+        "matryca_plumber/graph_gateway/consumer.py",
+        "matryca_plumber/graph_gateway/tck.py",
+        "release-qualification-build/uv.lock",
+        "release-qualification-build/provisioning-recipe.json",
+    ):
+        target = source / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(project / relative, target)
+
+    def commit_source() -> tuple[str, str]:
+        subprocess.run(["git", "add", "."], cwd=source, check=True)
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "user.name=Release Test",
+                "-c",
+                "user.email=release-test@example.invalid",
+                "commit",
+                "-qm",
+                "synthetic lock binding",
+            ],
+            cwd=source,
+            check=True,
+        )
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip(),
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD^{tree}"], cwd=source, text=True
+            ).strip(),
+        )
+
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    commit, tree = commit_source()
+    binding = replace(_inputs()[0].binding, source_commit=commit, source_tree=tree)
+    assert alpha.source_context(source, binding, "123", 1).binding == binding
+
+    if mutation == "root-lock":
+        lock = source / "uv.lock"
+        lock.write_bytes(lock.read_bytes() + b"\n# synthetic root-lock change\n")
+    else:
+        root = source / resource_path
+        profile_path = root / "dependency-profile.json"
+        profile = json.loads(profile_path.read_bytes())
+        profile["lock_sha256"] = "0" * 64
+        profile_path.write_text(json.dumps(profile), encoding="utf-8")
+        manifest_path = root / "manifest.json"
+        manifest = json.loads(manifest_path.read_bytes())
+        profile_digest = hashlib.sha256(profile_path.read_bytes()).hexdigest()
+        manifest["files"]["dependency-profile.json"] = profile_digest
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        descriptor_path = root / "descriptor.json"
+        descriptor = json.loads(descriptor_path.read_bytes())
+        descriptor["resource_digests"]["dependency_profile"] = profile_digest
+        descriptor["resource_digests"]["manifest"] = hashlib.sha256(
+            manifest_path.read_bytes()
+        ).hexdigest()
+        descriptor_path.write_text(json.dumps(descriptor), encoding="utf-8")
+
+    commit, tree = commit_source()
+    rebound = replace(binding, source_commit=commit, source_tree=tree)
+    with pytest.raises(
+        ValueError, match="Source root lock differs from the packaged dependency profile"
+    ):
+        alpha.source_context(source, rebound, "123", 1)
+
+
 def test_public_matrix_has_closed_truthful_admission_job_variant() -> None:
     from scripts.release_qualification import alpha1_matrix as alpha
 
@@ -280,7 +364,7 @@ def test_alpha_accepts_the_existing_installed_probe_receipt(tmp_path: Path) -> N
         (package / "__init__.py").write_text('"""Inert synthetic probe package."""\n')
     for name, version in (
         ("logseq-matryca-parser", "1.9.0"),
-        ("matryca-plumber", "2.1.0a1"),
+        ("matryca-plumber", "2.1.0a2"),
         ("pip", "99.0"),
     ):
         metadata = site / (name.replace("-", "_") + "-" + version + ".dist-info")
@@ -305,7 +389,7 @@ def test_alpha_accepts_the_existing_installed_probe_receipt(tmp_path: Path) -> N
         operating_system=system,
         architecture=machine,
         python_version=version,
-        version="2.1.0a1",
+        version="2.1.0a2",
         location_class="isolated-venv-site-packages",
         record_sha256="6" * 64,
         resource_sha256="7" * 64,
@@ -328,7 +412,7 @@ def test_alpha_canonical_build_measures_frontend_versions(
 ) -> None:
     alpha = importlib.import_module("scripts.release_qualification.alpha1_matrix")
     context, *_rest = _inputs()
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion="2.1.0a1"\n')
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="2.1.0a2"\n')
     monkeypatch.setattr(alpha.bundle, "_git_value", lambda *_a: context.binding.source_commit)
     monkeypatch.setattr(alpha.installed, "_git_value", lambda *_a: "")
     monkeypatch.setattr(alpha, "locked_build_selection", lambda *_a: (object(), {}))
@@ -629,7 +713,7 @@ def test_mocked_row_composition_preserves_original_artifact_and_runtime_boundary
     temporary = b"synthetic temporary wheel"
 
     def prepare(original: Path, *_args: Any, **kwargs: Any) -> SimpleNamespace:
-        assert original == dist / context.binding.sdist_name and kwargs["policy"] == "og-alpha1"
+        assert original == dist / context.binding.sdist_name and kwargs["policy"] == "og-alpha2"
         if failure == "build":
             raise ValueError("Synthetic build failure")
         output = _args[-1] / context.binding.wheel_name
@@ -662,7 +746,7 @@ def test_mocked_row_composition_preserves_original_artifact_and_runtime_boundary
         artifact: Path,
         policy: str,
     ) -> SimpleNamespace:
-        assert _python == runtime and observed_kind == kind and policy == "og-alpha1"
+        assert _python == runtime and observed_kind == kind and policy == "og-alpha2"
         assert artifact == dist / (
             context.binding.wheel_name if kind == "wheel" else context.binding.sdist_name
         )

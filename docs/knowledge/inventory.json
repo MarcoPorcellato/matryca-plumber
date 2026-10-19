@@ -2233,7 +2233,29 @@
       "path": "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md",
       "type": "Roadmap",
       "title": "Experimental 2.1.0a1 release qualification plan",
-      "description": "Active eight-row POSIX alpha policy with a locked publisher/public-input bridge, fresh final-source qualification, explicit publication activation and independent public-byte verification before Trama evaluation.",
+      "description": "Historical alpha.1 qualification policy and failed-publication context; the active alpha.2 plan carries forward unchanged experimental criteria.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "archive",
+      "supersedes": [
+        "docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md"
+      ],
+      "notes": "Tier 3 experimental preparation, not a selected final candidate or runtime PASS. Freeze dependency versions; preserve Windows/full qualification obligations and independent publication and Trama admission gates. Superseded as the active plan by docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md; original plan and failure evidence remain unchanged.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md",
+      "type": "Roadmap",
+      "title": "Experimental 2.1.0a2 release qualification plan",
+      "description": "Active eight-row POSIX alpha.2 policy after the preserved alpha.1 publication failure; fresh source qualification and independent public-byte verification precede Trama evaluation.",
       "classification": "active",
       "audience": [
         "maintainer",
@@ -2246,9 +2268,9 @@
       "destination": null,
       "action": "keep",
       "supersedes": [
-        "docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md"
+        "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md"
       ],
-      "notes": "Tier 3 experimental preparation, not a selected final candidate or runtime PASS. Freeze dependency versions; preserve Windows/full qualification obligations and independent publication and Trama admission gates.",
+      "notes": "Tier 3 experimental preparation only. Closed og-alpha2 policy; frozen Parser/dependency/resource semantics; no tag/publication or Trama admission implied.",
       "missing": false
     },
     {

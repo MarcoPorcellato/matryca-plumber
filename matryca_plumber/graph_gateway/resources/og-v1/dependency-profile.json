@@ -17,7 +17,7 @@
     "native_sha256": "4c063bce4902af3321972a9b09bb8df021551ab3c0eb9c7c62feb5a0bf8ef26f",
     "package_prefix": "--require-hashes\n"
   },
-  "lock_sha256": "db5aff4bfc29e16a4f75c3f19253eb7177f7db954a156b9e78415fececf78cb9",
+  "lock_sha256": "420d17d68943442d24aade3a77a7d96f2e01bd2a45310af1840bf71e65e79ee5",
   "lock_source": "uv.lock",
   "matrix": [
     {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
@@ -27,7 +27,7 @@
   ],
   "parser": {"name": "logseq-matryca-parser", "version": "1.9.0"},
   "profile_id": "og-v1-parser-1.9.0",
-  "project": {"name": "matryca-plumber", "version": "2.1.0a1"},
+  "project": {"name": "matryca-plumber", "version": "2.1.0a2"},
   "qualification": "unqualified",
   "requirements": {
     "path": "requirements-og-v1-parser-1.9.0.txt",

@@ -23,13 +23,13 @@ from scripts.release_qualification import bundle, installed, sdist_build
 
 REPO = "MarcoPorcellato/matryca-plumber"
 REPOSITORY_ID = 1241185104
-TAG = "v2.1.0-alpha.1"
-VERSION = "2.1.0a1"
+TAG = "v2.1.0-alpha.2"
+VERSION = "2.1.0a2"
 PUBLISHER = ".github/workflows/release.yml"
 VERIFIER = ".github/workflows/og-public-artifact-qualification.yml"
 ORIGINALS = (
-    "matryca_plumber-2.1.0a1-py3-none-any.whl",
-    "matryca_plumber-2.1.0a1.tar.gz",
+    "matryca_plumber-2.1.0a2-py3-none-any.whl",
+    "matryca_plumber-2.1.0a2.tar.gz",
 )
 ASSETS = (*ORIGINALS, "binding.json", "content-ledger.json", "canonical-build.json", "SHA256SUMS")
 METADATA_LIMIT = 2_097_152

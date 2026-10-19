@@ -18,12 +18,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "MarcoPorcellato/matryca-plumber"
-TAG = "v2.1.0-alpha.1"
+TAG = "v2.1.0-alpha.2"
 SOURCE = "a" * 40
 TREE = "b" * 40
 NAMES = (
-    "matryca_plumber-2.1.0a1-py3-none-any.whl",
-    "matryca_plumber-2.1.0a1.tar.gz",
+    "matryca_plumber-2.1.0a2-py3-none-any.whl",
+    "matryca_plumber-2.1.0a2.tar.gz",
     "binding.json",
     "content-ledger.json",
     "canonical-build.json",
@@ -89,7 +89,7 @@ def _inputs() -> tuple[Any, dict[str, Any]]:
             "assets": release_assets,
         },
         "pypi": {
-            "info": {"name": "matryca-plumber", "version": "2.1.0a1"},
+            "info": {"name": "matryca-plumber", "version": "2.1.0a2"},
             "urls": [
                 {
                     "filename": name,
@@ -115,11 +115,11 @@ def test_public_metadata_accepts_only_the_actual_original_pair() -> None:
 
 @pytest.mark.parametrize(
     "publisher_suffix",
-    ("", "@main", "@v2.1.0-alpha.1", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    ("", "@main", "@v2.1.0-alpha.2", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 )
 @pytest.mark.parametrize(
     "verifier_suffix",
-    ("", "@main", "@v2.1.0-alpha.1", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    ("", "@main", "@v2.1.0-alpha.2", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 )
 def test_public_metadata_accepts_selected_source_workflow_selectors(
     publisher_suffix: str, verifier_suffix: str
@@ -140,12 +140,13 @@ def test_public_metadata_accepts_selected_source_workflow_selectors(
     (
         "@",
         "@other",
-        "@v2.1.0-alpha.2",
+        "@v2.1.0-alpha.1",
+        "@v2.1.0-alpha.3",
         "@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "@refs/heads/main",
-        "@refs/tags/v2.1.0-alpha.1",
+        "@refs/tags/v2.1.0-alpha.2",
         "@main@main",
-        "@main@v2.1.0-alpha.1",
+        "@main@v2.1.0-alpha.2",
         "@main/",
         "@main/..",
         "@main?x=1",
@@ -234,7 +235,7 @@ def test_qualified_workflow_paths_require_selected_source_aliases(anchor: str) -
     context, metadata = _inputs()
     public = _public()
     metadata["publisher"]["path"] += "@main"
-    metadata["verifier"]["path"] += "@v2.1.0-alpha.1"
+    metadata["verifier"]["path"] += "@v2.1.0-alpha.2"
     public.verify_metadata(context, metadata)
     if anchor == "main":
         metadata["main"]["object"]["sha"] = "b" * 40
@@ -307,7 +308,7 @@ def test_public_metadata_rejects_wrong_or_incomplete_identities(mutation: str) -
         "tag-object": ("tag_object", "object", "sha", "0" * 40),
         "tag-signature": ("tag_object", "verification", "verified", False),
         "tag-ref": ("tag", None, "ref", "refs/heads/main"),
-        "release-tag": ("release", None, "tag_name", "v2.1.0-alpha.2"),
+        "release-tag": ("release", None, "tag_name", "v2.1.0-alpha.3"),
         "draft": ("release", None, "draft", True),
         "prerelease": ("release", None, "prerelease", False),
     }
@@ -346,7 +347,7 @@ def test_public_metadata_rejects_wrong_or_incomplete_identities(mutation: str) -
         elif mutation == "pypi-yanked":
             urls[0]["yanked"] = True
         elif mutation == "pypi-version":
-            value["pypi"]["info"]["version"] = "2.1.0a2"
+            value["pypi"]["info"]["version"] = "2.1.0a3"
         elif mutation == "pypi-size":
             urls[0]["size"] += 1
         elif mutation == "pypi-sha":
@@ -548,7 +549,7 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
     binding = BundleBinding(
         SOURCE,
         TREE,
-        "2.1.0a1",
+        "2.1.0a2",
         NAMES[0],
         len(payloads[NAMES[0]]),
         hashlib.sha256(payloads[NAMES[0]]).hexdigest(),
@@ -593,7 +594,7 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
     if build_failure is not None:
         build[build_failure] = "unsupported"
     payloads["canonical-build.json"] = json.dumps(build).encode()
-    payloads["SHA256SUMS"] = canonical_manifest(binding, policy="og-alpha1")
+    payloads["SHA256SUMS"] = canonical_manifest(binding, policy="og-alpha2")
     for asset in metadata["release"]["assets"]:
         payload = payloads[asset["name"]]
         asset.update(size=len(payload), digest="sha256:" + hashlib.sha256(payload).hexdigest())
@@ -623,7 +624,7 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
     def synthetic_handoff(dist: Path, manifest: Path, expected: Any, *, policy: str) -> None:
         # This composition fixture is deliberately bytes, not a real wheel.
         # The unchanged archive verifier is a separately tested boundary.
-        assert policy == "og-alpha1" and expected == binding
+        assert policy == "og-alpha2" and expected == binding
         assert {path.name for path in dist.iterdir()} == {*NAMES[:2], "SHA256SUMS"}
         assert manifest.read_bytes() == payloads["SHA256SUMS"]
         for name in NAMES[:2]:
@@ -799,7 +800,7 @@ def test_qualified_workflows_authenticate_uv_before_use(
     steps = value["jobs"][job_name]["steps"]
     if workflow == "release.yml":
         steps = [
-            step for step in steps if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.1' }}"
+            step for step in steps if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.2' }}"
         ]
     acquisitions = [
         (index, step)

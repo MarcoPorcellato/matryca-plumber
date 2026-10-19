@@ -34,8 +34,8 @@ from scripts.release_qualification.build_environment import (
 )
 from scripts.release_qualification.bundle import BundleBinding
 
-POLICY = "og-alpha1"
-VERSION = "2.1.0a1"
+POLICY = "og-alpha2"
+VERSION = "2.1.0a2"
 RESOURCE_ROOT = Path("matryca_plumber/graph_gateway/resources/og-v1")
 ROWS = tuple(
     (system, architecture, minor, kind)

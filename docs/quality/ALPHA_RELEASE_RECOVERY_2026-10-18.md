@@ -53,3 +53,24 @@ Only after the migration is merged may one clean final source/tree undergo a new
 After successful publication, independently acquire and verify the actual public wheel/sdist, six release assets and their provenance; repeat the declared eight installed rows and controls against those bytes, then publish the immutable producer handoff. Trama #2 must separately evaluate the exact handoff before its adapter/test admission. Bootstrap CI, static resources, a source checkout or this recovery document is not that admission.
 
 This remains experimental OG identity plus complete content-free topology. Payload/text/properties, DB, user graphs, writes/events/sync/UI, stable compatibility and installed-Windows claims remain excluded. The separately governed full Tier 3 campaign is not launched here.
+
+## Alpha.2 migration decision — 2026-10-19
+
+The approved continuation prepares `2.1.0a2` and the prospective
+`v2.1.0-alpha.2` tag under the [new active plan](V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md).
+The alpha.1 tag, failed publisher, original plan and all earlier attempts remain
+unchanged historical evidence. The completed acquisition repair passed its
+three native bootstrap rows on protected main; it is not installed-package or
+consumer qualification.
+
+The active tooling policy becomes exactly `og-alpha2`; the internal `alpha1_*`
+module names and existing subcommands stay unchanged. Only root package/version
+metadata and its constrained dependency-profile/manifest/descriptor digest
+cascade change. Dependency selections, Parser 1.9.0, native export/requirements,
+fixtures, TCKs, contracts and producer lifecycle policy remain frozen.
+
+After this migration is merged, select and qualify one fresh actual main source
+with the existing eight-row workflow. No earlier result is transferred. Stop
+before tagging: the maintainer must separately approve the full final source/tree
+and acknowledge tag-triggered publication. Actual public-byte verification and
+the immutable producer handoff still precede Trama's independent #2 admission.

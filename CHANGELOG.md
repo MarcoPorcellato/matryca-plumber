@@ -1,5 +1,19 @@
 ## [Unreleased]
 
+## [2.1.0-alpha.2] - 2026-10-19
+
+Preparation only: no alpha.2 tag, publication or runtime admission is recorded.
+The unpublished capabilities listed in the unchanged alpha.1 section below are
+carried forward by reference, not treated as qualified artifacts. The signed
+alpha.1 tag and failed publisher remain immutable history.
+
+### Changed
+
+- **Exact alpha.2 recovery candidate** — migrate only active release bindings to
+  `2.1.0a2` / `og-alpha2`, preserve the frozen dependency and semantic profile,
+  and require fresh source qualification followed by separate publication,
+  public-byte verification and independent Trama admission.
+
 ### Fixed
 
 - **Qualification-tool acquisition** — authenticate fresh pinned archives without

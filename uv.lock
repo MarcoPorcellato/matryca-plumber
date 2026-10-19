@@ -1074,7 +1074,7 @@ wheels = [
 
 [[package]]
 name = "matryca-plumber"
-version = "2.1.0a1"
+version = "2.1.0a2"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
