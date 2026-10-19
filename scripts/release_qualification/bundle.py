@@ -108,11 +108,11 @@ class _Member:
 
 def _validate_version(version: object, policy: str) -> None:
     """Select a closed release policy; callers cannot supply version expressions."""
-    if policy not in ("rc4", "og-alpha1"):
+    if policy not in ("rc4", "og-alpha2"):
         raise ValueError("Unknown release qualification policy.")
     if not isinstance(version, str) or (
-        version != "2.1.0a1"
-        if policy == "og-alpha1"
+        version != "2.1.0a2"
+        if policy == "og-alpha2"
         else re.fullmatch(r"2\.0\.1rc[0-9]+", version) is None
     ):
         raise ValueError("Release qualification version is invalid.")

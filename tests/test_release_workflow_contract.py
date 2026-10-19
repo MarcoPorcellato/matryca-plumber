@@ -20,7 +20,7 @@ def _load_release() -> dict[str, Any]:
         job["steps"] = [
             step
             for step in job["steps"]
-            if step.get("if") != "${{ github.ref_name == 'v2.1.0-alpha.1' }}"
+            if step.get("if") != "${{ github.ref_name == 'v2.1.0-alpha.2' }}"
         ]
     return cast(dict[str, Any], loaded)
 
@@ -233,7 +233,7 @@ def test_alpha_acquisition_preserves_the_legacy_promotion_graph() -> None:
         steps = [
             step
             for step in raw["jobs"][name]["steps"]
-            if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.1' }}"
+            if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.2' }}"
         ]
         acquisition = [
             step for step in steps if "uv_acquisition.py acquire " in step.get("run", "")

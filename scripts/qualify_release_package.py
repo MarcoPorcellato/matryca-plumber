@@ -37,7 +37,7 @@ def _alpha_context(args: argparse.Namespace) -> object:
     value = os.environ.get("EXPECTED_BINDING_JSON")
     if not value:
         raise ValueError("EXPECTED_BINDING_JSON is required for explicit alpha commands.")
-    binding = BundleBinding.from_json(value, policy="og-alpha1")
+    binding = BundleBinding.from_json(value, policy="og-alpha2")
     return source_context(
         args.source_root.resolve(),
         binding,
@@ -70,10 +70,10 @@ def _alpha_build(args: argparse.Namespace) -> None:
     )
     _write_new_file(
         args.dist_dir / "SHA256SUMS",
-        canonical_manifest(binding, policy="og-alpha1"),
+        canonical_manifest(binding, policy="og-alpha2"),
         "alpha manifest",
     )
-    verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", binding, policy="og-alpha1")
+    verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", binding, policy="og-alpha2")
     _write_new_file(root / "binding.json", binding.to_json().encode(), "alpha binding")
     _write_new_file(root / "canonical-build.json", canonical(record), "canonical build evidence")
     _append_output(output_path, binding.to_json())
@@ -134,7 +134,7 @@ def _alpha_source_controls(args: argparse.Namespace) -> None:
 
     context = _alpha_context(args)
     assert isinstance(context, MatrixContext)
-    verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", context.binding, policy="og-alpha1")
+    verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", context.binding, policy="og-alpha2")
     result = run_source_controls(
         context,
         args.source_root.resolve(),
@@ -202,7 +202,7 @@ def _alpha_public_admit(args: argparse.Namespace) -> None:
         raise ValueError("GITHUB_OUTPUT must be outside the public bundle.")
     record = admit_public(args.source_root, args.output, args.publication_run)
     binding = BundleBinding.from_json(
-        (args.output / "binding.json").read_text(), policy="og-alpha1"
+        (args.output / "binding.json").read_text(), policy="og-alpha2"
     )
     _append_output(output, binding.to_json())
     _append_output(
