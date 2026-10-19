@@ -801,27 +801,18 @@ def test_qualified_workflows_authenticate_uv_before_use(
         steps = [
             step for step in steps if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.1' }}"
         ]
-    setups = [
+    acquisitions = [
         (index, step)
         for index, step in enumerate(steps)
-        if step.get("uses", "").startswith("astral-sh/setup-uv@")
+        if "uv_acquisition.py acquire " in step.get("run", "")
     ]
-    assert len(setups) == 1, "Exact-alpha uv bootstrap is missing."
-    setup_index, setup = setups[0]
-    assert setup["with"].get("checksum") == checksum, "Independent archive pin is missing."
-    assert setup["with"]["version"] == "0.12.19"
-    assert setup["with"]["download-from-astral-mirror"] == "false"
-    assert setup["with"]["enable-cache"] == "false"
-    root = "${{ runner.temp }}/alpha-uv-tool-cache"
-    assert setup["env"]["RUNNER_TOOL_CACHE"] == root
-    prepare = next(
-        (
-            i
-            for i, step in enumerate(steps)
-            if step.get("name") == "Prepare fresh uv acquisition root"
-        ),
-        -1,
-    )
+    assert len(acquisitions) == 1, "Fresh authenticated acquisition is missing."
+    acquire_index, acquire = acquisitions[0]
+    assert not any("RUNNER_TOOL_CACHE" in step.get("env", {}) for step in steps)
+    assert not any("setup-uv@" in step.get("uses", "") for step in steps)
+    assert acquire["env"]["MATRYCA_UV_ROOT"] == "${{ runner.temp }}/matryca-uv"
+    assert acquire["env"]["UV_ARCHIVE_SHA256"] == checksum
+    assert int(acquire["timeout-minutes"]) <= 2
     verify = next(
         (i for i, step in enumerate(steps) if step.get("name") == "Verify selected uv acquisition"),
         -1,
@@ -829,16 +820,13 @@ def test_qualified_workflows_authenticate_uv_before_use(
     provision = next(
         (i for i, step in enumerate(steps) if "uv python install 3.12" in step.get("run", "")), -1
     )
-    assert 0 <= prepare < setup_index < verify < provision, "Acquisition must precede provisioning."
-    assert steps[prepare]["env"]["RUNNER_TOOL_CACHE"] == root
-    assert 'test ! -e "$cache"' in steps[prepare]["run"]
-    assert 'test ! -L "$cache"' in steps[prepare]["run"]
-    assert steps[verify]["env"]["RUNNER_TOOL_CACHE"] == root
-    assert steps[verify]["env"]["UV_ARCHIVE_SHA256"] == checksum
-    assert steps[verify]["env"]["UV_SELECTED_PATH"] == "${{ steps.setup-uv.outputs.uv-path }}"
+    assert 0 <= acquire_index < verify < provision
     script = steps[verify]["run"]
-    assert 'test ! -L "$selected"' in script
-    assert '"$cache"/*)' in script and "executable_sha256" in script
-    assert "--version" in script and "0.12.19" in script
+    assert "uv_acquisition.py verify " in script and "--version" in script
+    assert 'test "$selected" = "$located"' in script
+    assert "uv-path=" in script and "uv-version=" in script
+    assert acquire["env"]["UV_PYTHON"] == "3.12"
+    assert acquire["env"]["UV_PYTHON_INSTALL_DIR"] == "${{ runner.temp }}/matryca-uv/python"
+    assert acquire["env"]["UV_PYTHON_BIN_DIR"] == "${{ runner.temp }}/matryca-uv/python-bin"
     assert int(steps[provision]["timeout-minutes"]) <= 5
     assert steps[provision]["env"]["UV_PYTHON_DOWNLOADS"] == "manual"

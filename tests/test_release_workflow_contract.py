@@ -225,3 +225,18 @@ def test_publish_verifies_manifest_and_never_rebuilds() -> None:
     )
     with pytest.raises(AssertionError, match="unexpected publish run topology"):
         _assert_publish_release_contract(duplicate_name)
+
+
+def test_alpha_acquisition_preserves_the_legacy_promotion_graph() -> None:
+    raw = yaml.load(RELEASE_WORKFLOW.read_text(), Loader=yaml.BaseLoader)
+    for name in ("verify", "build-release"):
+        steps = [
+            step
+            for step in raw["jobs"][name]["steps"]
+            if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.1' }}"
+        ]
+        acquisition = [
+            step for step in steps if "uv_acquisition.py acquire " in step.get("run", "")
+        ]
+        assert len(acquisition) == 1, "Exact-alpha acquisition must not reuse the runner cache."
+    assert _load_release()["jobs"]["publish-release"]["needs"] == "build-release"

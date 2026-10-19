@@ -72,88 +72,75 @@ jobs:
             **/pyproject.toml
             **/uv.lock
 
-      - name: Prepare fresh uv acquisition root
+      - name: Acquire exact official uv
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        timeout-minutes: 2
         shell: bash
-        timeout-minutes: 2
         env:
-          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
-        run: |
-          set -euo pipefail
-          cache="$RUNNER_TOOL_CACHE"
-          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
-          test ! -e "$cache"
-          test ! -L "$cache"
-          mkdir -m 700 "$cache"
-      - name: Install alpha pinned uv
-        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
-        id: setup-uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
-        timeout-minutes: 2
-        env:
-          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
-        with:
-          version: "0.12.19"
-          python-version: "3.12"
-          enable-cache: false
-          download-from-astral-mirror: false
-          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
-      - name: Verify selected uv acquisition
-        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
-        shell: bash
-        timeout-minutes: 2
-        env:
-          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
-          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
-          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          MATRYCA_UV_ROOT: ${{ runner.temp }}/matryca-uv
+          MATRYCA_UV_PLATFORM: linux-x86_64
+          UV_PYTHON: "3.12"
+          UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
+          UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
         run: |
           set -euo pipefail
-          cache="$RUNNER_TOOL_CACHE"
-          selected="$UV_SELECTED_PATH"
+          python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          printf 'MATRYCA_UV_ROOT=%s\nMATRYCA_UV_PLATFORM=%s\nUV_PYTHON=3.12\nUV_PYTHON_INSTALL_DIR=%s\nUV_PYTHON_BIN_DIR=%s\n' "$MATRYCA_UV_ROOT" "$MATRYCA_UV_PLATFORM" "$UV_PYTHON_INSTALL_DIR" "$UV_PYTHON_BIN_DIR" >> "$GITHUB_ENV"
+          printf '%s\n%s\n' "$UV_PYTHON_BIN_DIR" "$MATRYCA_UV_ROOT/bin" >> "$GITHUB_PATH"
+      - name: Verify selected uv acquisition
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        id: setup-uv
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$UV_PYTHON" = 3.12
+          test "$UV_PYTHON_INSTALL_DIR" = "$MATRYCA_UV_ROOT/python"
+          test "$UV_PYTHON_BIN_DIR" = "$MATRYCA_UV_ROOT/python-bin"
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          selected="$MATRYCA_UV_ROOT/bin/uv"
           located="$(command -v uv)"
           if [ "$RUNNER_OS" = Windows ]; then
-            cache="$(cygpath -u "$cache")"
-            selected="$(cygpath -u "$selected")"
+            selected="$(cygpath -u "$selected").exe"
             located="$(cygpath -u "$located")"
-            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
             case "$located" in *.exe) ;; *) located="$located.exe";; esac
           fi
-          test -d "$cache" && test ! -L "$cache"
-          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
-          test -f "$located" && test ! -L "$located"
-          cache="$(cd -P "$cache" && pwd)"
+          test -f "$selected" && test ! -L "$selected"
           selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
           located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
-          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
           test "$selected" = "$located"
-          test "$UV_SELECTED_VERSION" = 0.12.19
-          if [ "$RUNNER_OS" = macOS ]; then
-            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
-          else
-            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
-          fi
-          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
-          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
-          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
-
+          observed="$("$selected" --version | awk '{print $1" "$2}')"
+          test "$observed" = "uv 0.12.19"
+          printf 'uv-path=%s\nuv-version=%s\n' "$selected" "${observed#uv }" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$observed"
       - name: Provision explicit alpha interpreter
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
         timeout-minutes: 5
         env:
           UV_PYTHON_DOWNLOADS: manual
-        run: uv python install 3.12
+        run: |
+          set -euo pipefail
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          uv python install 3.12
 
       - name: Sync locked alpha verification dependencies
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
-        run: uv sync --locked --extra dev --no-python-downloads
+        run: |
+          set -euo pipefail
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          uv sync --locked --extra dev --no-python-downloads
+          .venv/bin/python -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Sync Python dependencies
         if: ${{ github.ref_name != 'v2.1.0-alpha.1' }}
         run: uv sync --locked --extra dev
 
       - name: Version consistency (pyproject.toml vs llms.txt)
-        run: uv run python scripts/check_version_consistency.py
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = v2.1.0-alpha.1 ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
+          uv run python scripts/check_version_consistency.py
 
       - name: Frontend quality gate
         working-directory: frontend
@@ -164,7 +151,10 @@ jobs:
           npm run build
 
       - name: Run CI gate
-        run: make ci
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = v2.1.0-alpha.1 ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
+          make ci
 
   destination-preflight:
     name: Require empty release destinations
@@ -262,89 +252,73 @@ jobs:
           compression-level: 0
 
 
-      - name: Prepare fresh uv acquisition root
+      - name: Acquire exact official uv
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        timeout-minutes: 2
         shell: bash
-        timeout-minutes: 2
         env:
-          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
-        run: |
-          set -euo pipefail
-          cache="$RUNNER_TOOL_CACHE"
-          if [ "$RUNNER_OS" = Windows ]; then cache="$(cygpath -u "$cache")"; fi
-          test ! -e "$cache"
-          test ! -L "$cache"
-          mkdir -m 700 "$cache"
-      - name: Install alpha pinned uv
-        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
-        id: setup-uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
-        timeout-minutes: 2
-        env:
-          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
-        with:
-          version: "0.12.19"
-          python-version: "3.12"
-          enable-cache: false
-          download-from-astral-mirror: false
-          checksum: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
-      - name: Verify selected uv acquisition
-        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
-        shell: bash
-        timeout-minutes: 2
-        env:
-          RUNNER_TOOL_CACHE: ${{ runner.temp }}/alpha-uv-tool-cache
-          UV_SELECTED_PATH: ${{ steps.setup-uv.outputs.uv-path }}
-          UV_SELECTED_VERSION: ${{ steps.setup-uv.outputs.uv-version }}
+          MATRYCA_UV_ROOT: ${{ runner.temp }}/matryca-uv
+          MATRYCA_UV_PLATFORM: linux-x86_64
+          UV_PYTHON: "3.12"
+          UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
+          UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
         run: |
           set -euo pipefail
-          cache="$RUNNER_TOOL_CACHE"
-          selected="$UV_SELECTED_PATH"
+          python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          printf 'MATRYCA_UV_ROOT=%s\nMATRYCA_UV_PLATFORM=%s\nUV_PYTHON=3.12\nUV_PYTHON_INSTALL_DIR=%s\nUV_PYTHON_BIN_DIR=%s\n' "$MATRYCA_UV_ROOT" "$MATRYCA_UV_PLATFORM" "$UV_PYTHON_INSTALL_DIR" "$UV_PYTHON_BIN_DIR" >> "$GITHUB_ENV"
+          printf '%s\n%s\n' "$UV_PYTHON_BIN_DIR" "$MATRYCA_UV_ROOT/bin" >> "$GITHUB_PATH"
+      - name: Verify selected uv acquisition
+        if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
+        id: setup-uv
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$UV_PYTHON" = 3.12
+          test "$UV_PYTHON_INSTALL_DIR" = "$MATRYCA_UV_ROOT/python"
+          test "$UV_PYTHON_BIN_DIR" = "$MATRYCA_UV_ROOT/python-bin"
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          selected="$MATRYCA_UV_ROOT/bin/uv"
           located="$(command -v uv)"
           if [ "$RUNNER_OS" = Windows ]; then
-            cache="$(cygpath -u "$cache")"
-            selected="$(cygpath -u "$selected")"
+            selected="$(cygpath -u "$selected").exe"
             located="$(cygpath -u "$located")"
-            case "$selected" in *.exe) ;; *) selected="$selected.exe";; esac
             case "$located" in *.exe) ;; *) located="$located.exe";; esac
           fi
-          test -d "$cache" && test ! -L "$cache"
-          test -f "$selected" && test ! -L "$selected" && test -x "$selected"
-          test -f "$located" && test ! -L "$located"
-          cache="$(cd -P "$cache" && pwd)"
+          test -f "$selected" && test ! -L "$selected"
           selected="$(cd -P "$(dirname "$selected")" && pwd)/$(basename "$selected")"
           located="$(cd -P "$(dirname "$located")" && pwd)/$(basename "$located")"
-          case "$selected" in "$cache"/*) ;; *) exit 1;; esac
           test "$selected" = "$located"
-          test "$UV_SELECTED_VERSION" = 0.12.19
-          if [ "$RUNNER_OS" = macOS ]; then
-            executable_sha256="$(shasum -a 256 "$selected" | awk '{print $1}')"
-          else
-            executable_sha256="$(sha256sum "$selected" | awk '{print $1}')"
-          fi
-          [[ "$executable_sha256" =~ ^[0-9a-f]{64}$ ]]
-          test "$("$selected" --version | awk '{print $1" "$2}')" = "uv 0.12.19"
-          printf 'uv_archive_sha256=%s\nuv_executable_sha256=%s\n' "$UV_ARCHIVE_SHA256" "$executable_sha256"
-
+          observed="$("$selected" --version | awk '{print $1" "$2}')"
+          test "$observed" = "uv 0.12.19"
+          printf 'uv-path=%s\nuv-version=%s\n' "$selected" "${observed#uv }" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$observed"
       - name: Provision explicit alpha interpreter
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
         timeout-minutes: 5
         env:
           UV_PYTHON_DOWNLOADS: manual
-        run: uv python install 3.12
+        run: |
+          set -euo pipefail
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
+          uv python install 3.12
 
       - name: Provision independent alpha locked environments
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
         run: |
           set -euo pipefail
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/alpha-tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/alpha-canonical-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          "$RUNNER_TEMP/alpha-tools/bin/python" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
+          "$RUNNER_TEMP/alpha-canonical-build/bin/python" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Build one locked alpha original pair and evidence
         if: ${{ github.ref_name == 'v2.1.0-alpha.1' }}
         run: |
           set -euo pipefail
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           "$RUNNER_TEMP/alpha-tools/bin/python" -B scripts/qualify_release_package.py alpha-build --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/alpha-bundle/dist" --expected-commit "$GITHUB_SHA" --build-python "$RUNNER_TEMP/alpha-canonical-build/bin/python" --uv "$(command -v uv)"
           "$RUNNER_TEMP/alpha-tools/bin/python" -B scripts/extract_changelog.py "$GITHUB_REF_NAME" > "$RUNNER_TEMP/alpha-bundle/release_notes.md"
 

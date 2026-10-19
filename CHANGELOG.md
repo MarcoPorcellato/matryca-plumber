@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Qualification-tool acquisition** — authenticate fresh pinned archives without
+  overriding reserved runner variables, preserve Python/PATH selection, add a
+  non-publishing native bootstrap lane with bounded identity diagnostics and truthful
+  failure reports, and record the exact naming exception, alpha.1 failure and separate
+  fresh-alpha recovery gates without retagging or publishing.
+
 ## [2.1.0-alpha.1] - 2026-10-16
 
 This is preparation for an experimental prerelease, not a publication record.
