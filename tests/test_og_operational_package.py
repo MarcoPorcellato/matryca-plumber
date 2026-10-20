@@ -221,10 +221,12 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     package_prefix = profile["export"].get("package_prefix")
     native_sha256 = profile["export"].get("native_sha256")
     assert package_prefix == "--require-hashes\n"
-    assert native_sha256 == "4c063bce4902af3321972a9b09bb8df021551ab3c0eb9c7c62feb5a0bf8ef26f"
+    assert native_sha256 == "b7d9f2565c24f4de880504dcbef5d1ad02a77e6093f8b633278ac11e380e8462"
     assert requirements.startswith(package_prefix.encode())
     native_requirements = requirements[len(package_prefix.encode()) :]
     assert hashlib.sha256(native_requirements).hexdigest() == native_sha256
+    assert b"aiohttp==3.14.4 \\\n" in requirements
+    assert b"yarl==1.25.1 \\\n" in requirements
     assert b"gitpython==3.2.1 \\\n" in requirements
     assert b"multidict==6.9.1 \\\n" in requirements
     assert b"logseq-matryca-parser==1.9.0 \\\n" in requirements
