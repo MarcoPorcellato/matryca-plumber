@@ -10,7 +10,8 @@ alpha.1 tag and failed publisher remain immutable history.
 ### Changed
 
 - **Exact alpha.2 recovery candidate** — migrate only active release bindings to
-  `2.1.0a2` / `og-alpha2`, preserve the frozen dependency and semantic profile,
+  `2.1.0a2` / `og-alpha2`, preserve the semantic profile and dependencies except
+  for the dated HTTP security correction,
   and require fresh source qualification followed by separate publication,
   public-byte verification and independent Trama admission.
 
@@ -21,6 +22,13 @@ alpha.1 tag and failed publisher remain immutable history.
   non-publishing native bootstrap lane with bounded identity diagnostics and truthful
   failure reports, and record the exact naming exception, alpha.1 failure and separate
   fresh-alpha recovery gates without retagging or publishing.
+
+### Security
+
+- **HTTP dependency profile** — update `aiohttp` to `3.14.4` and its required
+  `yarl` floor to `1.25.1`, preserving all other dependency selections. Require
+  fresh source qualification and actual-public-byte verification before
+  independent consumer admission.
 
 ## [2.1.0-alpha.1] - 2026-10-16
 

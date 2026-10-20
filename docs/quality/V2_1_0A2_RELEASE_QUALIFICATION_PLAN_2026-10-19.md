@@ -32,6 +32,30 @@ must be complete and independently reviewed. No tag or publication is authorized
 by this preparation or diagnostic campaign. Later the maintainer must approve
 that complete S/tree and explicitly acknowledge tag-triggered Releases/PyPI.
 
+## 2026-10-20 dependency security amendment
+
+The only exception to this plan's dependency freeze is `aiohttp 3.14.3 -> 3.14.4`
+and its mandatory `yarl 1.24.2 -> 1.25.1` lower bound. The official advisories
+[GHSA-2g87-pp6c-29x5](https://github.com/advisories/GHSA-2g87-pp6c-29x5),
+[GHSA-5wr8-gcqf-gqf3](https://github.com/advisories/GHSA-5wr8-gcqf-gqf3) and
+[GHSA-494j-54xm-rwp3](https://github.com/advisories/GHSA-494j-54xm-rwp3)
+identify `3.14.4` as the first patched release. Its declared dependency requires
+`yarl>=1.25.1,<2.0`; retaining the former `1.24.2` pin would not be valid.
+
+Regenerate only the canonical runtime export and affected profile, manifest and
+descriptor hashes. Preserve every other dependency selection, Parser `1.9.0`,
+the independent build lock/recipe, package version, workflow and producer
+semantics, schema/fixture/golden/TCK bytes, bounds and qualification flags.
+
+This correction invalidates qualification and publication activation for the
+earlier `b488a3dbfb328b05b5506773e33132eebf5c5d90` source. Select the new actual
+main commit/tree only after the reviewed correction and normal hosted CI pass,
+then require a fresh first-attempt eight-row source campaign and independent
+review. Diagnostic hashes do not qualify public bytes. A later explicit
+new-source acknowledgement of tag-triggered publication, actual-public-package
+verification and independent Trama admission remain separate gates. No earlier
+attempt or security finding is dismissed or silently reused.
+
 ## Purpose and authority
 
 Deliver the smallest experimentally qualified OG producer suitable for Trama's
