@@ -82,6 +82,30 @@ tag push that triggers GitHub Releases/PyPI. Actual-public-byte verification
 and independent Trama admission remain separate gates; no prior failure or
 attempt is erased or transferred.
 
+## 2026-10-21 certificate trust-store security amendment
+
+The third dated freeze exception updates only `certifi 2026.5.20 -> 2026.10.19`
+in the runtime lock and exact OG dependency export. The official advisory
+[GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)
+identifies `2026.10.19` as the first patched release. The selected release
+declares no additional dependencies. Preserve the other 91 lock records and
+72 export entries, earlier HTTP and frontend exceptions, Parser `1.9.0`,
+package version, build environment, workflows and all producer semantics.
+
+Regenerate only the canonical frozen export and its existing dependency-profile,
+manifest and descriptor digest cascade. Preserve qualification flags, matrix
+states, schemas, fixtures, golden topology, TCK cases and code-module hashes.
+Do not edit the CA bundle manually or disable certificate verification.
+
+This exception supersedes the earlier dependency-freeze wording only for
+certifi and those derived hashes. The earlier
+`f50e2a71b216777dc1e4339d04ca97183bba9960` source and older diagnostics do not
+qualify the amended source. After normal integration and complete main CI/security
+gates, record the actual new signed source/tree and require one fresh
+first-attempt eight-row source campaign with independent review. A later explicit
+source/tree and tag-trigger acknowledgement must precede publication. Actual
+public-byte verification and Trama admission remain separate gates.
+
 ## Purpose and authority
 
 Deliver the smallest experimentally qualified OG producer suitable for Trama's

@@ -14,10 +14,10 @@
     },
     "entry_count": 73,
     "kind": "uv-export-runtime-closure",
-    "native_sha256": "b7d9f2565c24f4de880504dcbef5d1ad02a77e6093f8b633278ac11e380e8462",
+    "native_sha256": "6d138edc0b82853752d22f1f118b5a13d5b6517ef12677c00360e4a98de35ff0",
     "package_prefix": "--require-hashes\n"
   },
-  "lock_sha256": "bc08e7411d52ebff6eab51e61122e815d1731db74ed6b142a2db83a5a5551b68",
+  "lock_sha256": "c263769d9061d5ea10fc732d8c90cd670358790d3e891695c5858c94fc91ea1b",
   "lock_source": "uv.lock",
   "matrix": [
     {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
@@ -31,7 +31,7 @@
   "qualification": "unqualified",
   "requirements": {
     "path": "requirements-og-v1-parser-1.9.0.txt",
-    "sha256": "6d73a576c5b9a26325cc6396aa7adf2bf94dd051fd671ccb1e6ec2ed0b30d2c6"
+    "sha256": "e4c1c4dd33f0a7220a2d8148bf4d6aeb159a7fa104ec26133961e7955a66ff4a"
   },
   "resolution": "The native no-header UV export preserves platform markers and locked wheel hashes. The packaged requirements prepend the recorded --require-hashes directive; no dependency was installed."
 }

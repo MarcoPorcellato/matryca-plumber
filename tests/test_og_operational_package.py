@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any, cast
 
@@ -205,6 +207,105 @@ def test_operational_metadata_links_reject_independent_digest_tampering(binding:
         )
 
 
+def _assert_certifi_security_record(lock: dict[str, Any], requirements: bytes) -> None:
+    """Reject a stale or unbound trust-store selection in either runtime pin."""
+    records = [item for item in lock["package"] if item["name"] == "certifi"]
+    assert len(records) == 1
+    assert records[0] == {
+        "name": "certifi",
+        "version": "2026.10.19",
+        "source": {"registry": "https://pypi.org/simple"},
+        "sdist": {
+            "url": (
+                "https://files.pythonhosted.org/packages/a6/bd/"
+                "1436c50cc46699de0230fbaacc1d1de7bfec413176099949e9d5112e88f2/"
+                "certifi-2026.10.19.tar.gz"
+            ),
+            "hash": "sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae",
+            "size": 137598,
+            "upload-time": "2026-10-20T02:24:16.604Z",
+        },
+        "wheels": [
+            {
+                "url": (
+                    "https://files.pythonhosted.org/packages/c4/51/"
+                    "29046e48f693c54e5b7412216d447a1d8362c9653148d98c02cdf65fa733/"
+                    "certifi-2026.10.19-py3-none-any.whl"
+                ),
+                "hash": "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b",
+                "size": 136464,
+                "upload-time": "2026-10-20T02:24:15.072Z",
+            }
+        ],
+    }
+    lines = requirements.splitlines()
+    starts = [index for index, line in enumerate(lines) if line.startswith(b"certifi==")]
+    assert len(starts) == 1
+    start = starts[0]
+    end = start + 1
+    while end < len(lines) and lines[end].startswith(b" "):
+        end += 1
+    assert lines[start:end] == [
+        b"certifi==2026.10.19 \\",
+        b"    --hash=sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae \\",
+        b"    --hash=sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b",
+    ]
+
+
+def test_certifi_runtime_lock_and_export_match_official_fixed_release() -> None:
+    project = Path(__file__).resolve().parents[1]
+    lock = tomllib.loads((project / "uv.lock").read_text(encoding="utf-8"))
+    requirements = (
+        project
+        / "matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+    ).read_bytes()
+    _assert_certifi_security_record(lock, requirements)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "lock-version",
+        "export-version",
+        "wheel-hash",
+        "sdist-hash",
+        "registry",
+        "artifact-url",
+        "missing-export-hash",
+        "duplicate-record",
+    ],
+)
+def test_certifi_security_record_rejects_stale_or_tampered_input(mutation: str) -> None:
+    project = Path(__file__).resolve().parents[1]
+    lock = tomllib.loads((project / "uv.lock").read_text(encoding="utf-8"))
+    requirements = (
+        project
+        / "matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+    ).read_bytes()
+    record = next(item for item in lock["package"] if item["name"] == "certifi")
+    if mutation == "lock-version":
+        record["version"] = "2026.5.20"
+    elif mutation == "export-version":
+        requirements = requirements.replace(b"certifi==2026.10.19", b"certifi==2026.5.20", 1)
+    elif mutation == "wheel-hash":
+        record["wheels"][0]["hash"] = "sha256:" + "0" * 64
+    elif mutation == "sdist-hash":
+        record["sdist"]["hash"] = "sha256:" + "0" * 64
+    elif mutation == "registry":
+        record["source"]["registry"] = "https://example.invalid/simple"
+    elif mutation == "artifact-url":
+        record["sdist"]["url"] = "https://example.invalid/certifi-2026.10.19.tar.gz"
+    elif mutation == "missing-export-hash":
+        requirements = requirements.replace(
+            b"035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae", b"", 1
+        )
+    else:
+        lock["package"].append(copy.deepcopy(record))
+
+    with pytest.raises(AssertionError):
+        _assert_certifi_security_record(lock, requirements)
+
+
 def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     package = _package_resources()
     profile = json.loads(package.assets["dependency-profile.json"])
@@ -221,12 +322,13 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     package_prefix = profile["export"].get("package_prefix")
     native_sha256 = profile["export"].get("native_sha256")
     assert package_prefix == "--require-hashes\n"
-    assert native_sha256 == "b7d9f2565c24f4de880504dcbef5d1ad02a77e6093f8b633278ac11e380e8462"
+    assert native_sha256 == "6d138edc0b82853752d22f1f118b5a13d5b6517ef12677c00360e4a98de35ff0"
     assert requirements.startswith(package_prefix.encode())
     native_requirements = requirements[len(package_prefix.encode()) :]
     assert hashlib.sha256(native_requirements).hexdigest() == native_sha256
     assert b"aiohttp==3.14.4 \\\n" in requirements
     assert b"yarl==1.25.1 \\\n" in requirements
+    assert b"certifi==2026.10.19 \\\n" in requirements
     assert b"gitpython==3.2.1 \\\n" in requirements
     assert b"multidict==6.9.1 \\\n" in requirements
     assert b"logseq-matryca-parser==1.9.0 \\\n" in requirements
