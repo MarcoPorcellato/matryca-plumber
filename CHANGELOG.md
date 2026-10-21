@@ -11,7 +11,7 @@ alpha.1 tag and failed publisher remain immutable history.
 
 - **Exact alpha.2 recovery candidate** — migrate only active release bindings to
   `2.1.0a2` / `og-alpha2`, preserve the semantic profile and dependencies except
-  for the dated HTTP security correction,
+  for the dated HTTP and frontend security corrections,
   and require fresh source qualification followed by separate publication,
   public-byte verification and independent Trama admission.
 
@@ -26,9 +26,14 @@ alpha.1 tag and failed publisher remain immutable history.
 ### Security
 
 - **HTTP dependency profile** — update `aiohttp` to `3.14.4` and its required
-  `yarl` floor to `1.25.1`, preserving all other dependency selections. Require
+  `yarl` floor to `1.25.1`, preserving unrelated Python dependency selections. Require
   fresh source qualification and actual-public-byte verification before
   independent consumer admission.
+
+- **Frontend build profile** — pin Vite to `8.3.3`, with its required Rolldown
+  `1.2.11` and types/native-binding closure, while preserving unrelated lock
+  records. Require fresh source and actual-public-byte qualification; no runtime
+  or consumer compatibility is established by the security update.
 
 ## [2.1.0-alpha.1] - 2026-10-16
 
