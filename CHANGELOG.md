@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Changed
+
+- **Operational failure diagnostics** — retain fixed, sanitized signal-error
+  categories and the original child failure reason in failed installed checks.
+  Preserve fail-closed cleanup and successful report shape; this does not establish
+  a cleanup repair, runtime qualification or consumer compatibility.
+
 ## [2.1.0-alpha.2] - 2026-10-19
 
 Preparation only: no alpha.2 tag, publication or runtime admission is recorded.
@@ -34,6 +41,12 @@ alpha.1 tag and failed publisher remain immutable history.
   `1.2.11` and types/native-binding closure, while preserving unrelated lock
   records. Require fresh source and actual-public-byte qualification; no runtime
   or consumer compatibility is established by the security update.
+
+- **Certificate trust profile** — update the experimental runtime lock and OG
+  dependency profile to `certifi 2026.10.19` for
+  [GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2).
+  Refresh the authenticated resource hashes and require fresh source and public-byte
+  qualification; unrelated dependencies and producer behavior remain unchanged.
 
 ## [2.1.0-alpha.1] - 2026-10-16
 

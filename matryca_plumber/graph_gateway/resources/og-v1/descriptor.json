@@ -43,9 +43,9 @@
     "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a"
   },
   "resource_digests": {
-    "manifest": "d2dd4a5315742d75c8b36897ea78d97c1490681b5cb8557fe71c3fb6f434d4da",
-    "dependency_profile": "67293f1c6e09e04529d33f2ba5f97c14627400dd1916ac2ee24dad82b2d9107d",
-    "requirements": "6d73a576c5b9a26325cc6396aa7adf2bf94dd051fd671ccb1e6ec2ed0b30d2c6",
+    "manifest": "fff8a6c0e43b11f1ff8526eb41e8dfd7395d44b006ff610764730ad2e9dae93f",
+    "dependency_profile": "41e6a80eda3981cf16482a2fa971a2e536481ca7d8408aa149f0324613200f46",
+    "requirements": "e4c1c4dd33f0a7220a2d8148bf4d6aeb159a7fa104ec26133961e7955a66ff4a",
     "fixture_manifest": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
     "golden": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3",
     "tck_cases": "4a231586eb6838ffb2083bcb228858284d6f5b07ff507db91b5b368e6ff41aea"
@@ -53,11 +53,11 @@
   "code_modules": [
     {
       "path": "consumer.py",
-      "sha256": "2f68eda464b3b1f087bd074469840cdaf4dd53ea45fea97af36c1e9efab658d7"
+      "sha256": "fb8d62100ef7071c8c451c9b44d95909b9b659c65d2a9df0dc74a8d64aaefe67"
     },
     {
       "path": "tck.py",
-      "sha256": "36616deb472d6f51cbd07ed88da61d0318f5f310b8e2d63437e4ec828b8e84b6"
+      "sha256": "f2d5c5f75d4a9c902bc56c3680c73df0d8ead312e25b528324d1717c3f455129"
     }
   ]
 }

@@ -47,6 +47,48 @@ def _note(events: list[str], event: str) -> None:
         events.append(event)
 
 
+def _note_term_signal_failure(events: list[str], error: BaseException) -> None:
+    """Classify an already-caught failure without exposing arbitrary exception data."""
+    _note(events, "term_signal_failed")
+    try:
+        if isinstance(error, PermissionError):
+            category = "permission_error"
+        elif isinstance(error, InterruptedError):
+            category = "interrupted_error"
+        elif isinstance(error, OSError):
+            category = "os_error"
+        elif isinstance(error, KeyboardInterrupt):
+            category = "keyboard_interrupt"
+        elif isinstance(error, SystemExit):
+            category = "system_exit"
+        elif isinstance(error, Exception):
+            category = "exception"
+        else:
+            category = "base_exception"
+        _note(events, f"term_signal_type_{category}_failed")
+
+        errno_category = "not_applicable"
+        if isinstance(error, OSError):
+            try:
+                number = error.errno
+                if number is None:
+                    errno_category = "unavailable"
+                elif type(number) is int:
+                    errno_category = {
+                        errno.EPERM: "eperm",
+                        errno.EACCES: "eacces",
+                        errno.EINTR: "eintr",
+                        errno.EINVAL: "einval",
+                    }.get(number, "other")
+                else:
+                    errno_category = "unknown"
+            except BaseException:
+                errno_category = "unknown"
+        _note(events, f"term_signal_errno_{errno_category}_failed")
+    except BaseException:
+        _note(events, "term_signal_diagnostics_failed")
+
+
 def _group_state(group_id: int) -> bool | None:
     """Return whether a process group exists, or None when the check is uncertain."""
     try:
@@ -93,10 +135,10 @@ def _cleanup_group(process: subprocess.Popen[bytes], deadline: float, events: li
     except OSError as error:
         if error.errno != errno.ESRCH:
             term_failed = True
-            _note(events, "term_signal_failed")
-    except BaseException:
+            _note_term_signal_failure(events, error)
+    except BaseException as error:
         term_failed = True
-        _note(events, "term_signal_failed")
+        _note_term_signal_failure(events, error)
 
     remaining = _remaining(deadline, events)
     kill_at = 0.0 if term_failed else remaining * 0.5
