@@ -271,6 +271,23 @@ The release process's
 defines the maintained entrypoints. This plan does not activate publication,
 close #582, admit Trama or waive later full qualification and dual-profile Gate B.
 
+## Failed installed-control diagnostics
+
+The first macOS arm64 / Python 3.12 wheel failure on the certifi correction
+reported `native-stderr-overflow-cleanup`, uncertain cleanup and
+`term_signal_failed`. It did not preserve the caught signal exception identity
+or original child failure reason. The cause is not established; earlier passing
+controls do not qualify that installed row or its unexecuted sdist counterpart.
+
+Failure-only diagnostics retain fixed exception categories, allowlisted errno
+identities and an allowlisted underlying child reason. They do not change the
+original failure event, cleanup verdict, successful report shape, lifecycle
+decisions, native fixtures, limits or dependencies. The authenticated descriptor
+must bind the changed diagnostic code. New source requires fresh exact-head
+hosted evidence; non-reproduction does not prove the historical cause repaired.
+Publication, public-byte verification and independent consumer admission remain
+separate gates.
+
 ## Ordered release and consumer handoff gates
 
 1. **Preparation:** land version/policy, resource integration and workflow.

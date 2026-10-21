@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Changed
+
+- **Operational failure diagnostics** — retain fixed, sanitized signal-error
+  categories and the original child failure reason in failed installed checks.
+  Preserve fail-closed cleanup and successful report shape; this does not establish
+  a cleanup repair, runtime qualification or consumer compatibility.
+
 ## [2.1.0-alpha.2] - 2026-10-19
 
 Preparation only: no alpha.2 tag, publication or runtime admission is recorded.

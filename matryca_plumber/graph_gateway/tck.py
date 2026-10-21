@@ -38,6 +38,27 @@ _MAX_ENVIRONMENT_ENTRIES = 100_000
 _MAX_ENVIRONMENT_FILE_BYTES = 67_108_864
 _MAX_ENVIRONMENT_FILES_TOTAL = 536_870_912
 _UUID = re.compile(rb"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+_CHILD_FAILURE_REASONS = frozenset(
+    {
+        "invalid_invocation",
+        "startup_error",
+        "timeout",
+        "internal",
+        "read_error",
+        "stdout_overflow",
+        "stderr_overflow",
+        "group_check_failed",
+        "surviving_process_group",
+        "interrupted",
+        "cleanup_error",
+        "owned_inventory_unavailable",
+        "invocation_tree_changed",
+        "environment_inventory_unavailable",
+        "child_invocation_error",
+        "child_cleanup_unverified",
+        "environment_changed",
+    }
+)
 
 
 class TCKFailure(RuntimeError):
@@ -50,12 +71,20 @@ class TCKFailure(RuntimeError):
         cleanup_status: str = "not_applicable",
         cleanup_events: tuple[str, ...] = (),
         child: ChildResult | None = None,
+        child_failure_reason: str | None = None,
     ) -> None:
         super().__init__(reason)
         self.reason = reason
         self.cleanup_status = cleanup_status
         self.cleanup_events = cleanup_events
         self.completed_checks: tuple[str, ...] = ()
+        self.child_failure_reason = (
+            None
+            if child_failure_reason is None
+            else child_failure_reason
+            if type(child_failure_reason) is str and child_failure_reason in _CHILD_FAILURE_REASONS
+            else "unclassified"
+        )
         self.child_failure: dict[str, int | str] | None = None
         if child is not None:
             self.child_failure = {
@@ -718,6 +747,7 @@ def _expect_native_child_failure(
                     case_id,
                     cleanup_status=error.cleanup_status,
                     cleanup_events=error.cleanup_events,
+                    child_failure_reason=error.reason,
                 ) from None
         else:
             raise TCKFailure(case_id)
@@ -1389,6 +1419,8 @@ def _execute(report_path: Path) -> tuple[int, dict[str, Any]]:
             )
             if error.child_failure is not None:
                 report["child_failure"] = dict(error.child_failure)
+            if error.child_failure_reason is not None:
+                report["diagnostics"] = {"child_failure_reason": error.child_failure_reason}
         if isinstance(error, TCKFailure) and error.cleanup_status != "not_applicable":
             report["cleanup"] = {
                 "status": error.cleanup_status,
