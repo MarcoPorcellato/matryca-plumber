@@ -34,7 +34,7 @@ that complete S/tree and explicitly acknowledge tag-triggered Releases/PyPI.
 
 ## 2026-10-20 dependency security amendment
 
-The only exception to this plan's dependency freeze is `aiohttp 3.14.3 -> 3.14.4`
+The 2026-10-20 exception to this plan's dependency freeze is `aiohttp 3.14.3 -> 3.14.4`
 and its mandatory `yarl 1.24.2 -> 1.25.1` lower bound. The official advisories
 [GHSA-2g87-pp6c-29x5](https://github.com/advisories/GHSA-2g87-pp6c-29x5),
 [GHSA-5wr8-gcqf-gqf3](https://github.com/advisories/GHSA-5wr8-gcqf-gqf3) and
@@ -55,6 +55,32 @@ review. Diagnostic hashes do not qualify public bytes. A later explicit
 new-source acknowledgement of tag-triggered publication, actual-public-package
 verification and independent Trama admission remain separate gates. No earlier
 attempt or security finding is dismissed or silently reused.
+
+## 2026-10-21 frontend security amendment
+
+The second dated freeze exception pins the development build dependency Vite to
+`8.3.3`, with its required Rolldown `1.2.11`, `@oxc-project/types 0.151.0` and
+fifteen existing optional native-binding records at `1.2.11`. The official
+advisories [GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm),
+[GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv) and
+[GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw)
+identify `8.3.3` as the first patched release on this branch. Development-tool
+classification does not waive the security gate or establish runtime exposure.
+
+Preserve the other 229 non-root frontend package records, every Python
+dependency/profile/descriptor byte, the earlier HTTP exception, package version,
+workflows, producer behavior and all schema/fixture/golden/TCK semantics. Static
+registry-identity and SRI consistency checks do not replace package provenance
+verification or the hosted frontend installation/build.
+
+The earlier `04ef56ce61355f4665d8798c8f00fd938116fe95` source and its diagnostic
+campaign do not qualify the amended source. After the correction merges and
+normal main CI/security gates pass, record the actual new signed commit/tree
+and require a fresh first-attempt eight-row source campaign and independent
+review. A later explicit source/tree acknowledgement must precede any signed
+tag push that triggers GitHub Releases/PyPI. Actual-public-byte verification
+and independent Trama admission remain separate gates; no prior failure or
+attempt is erased or transferred.
 
 ## Purpose and authority
 
