@@ -16,6 +16,94 @@ import pytest
 from scripts.release_qualification import focused, installed, process, sdist_build
 
 
+def test_posix_zombie_group_eperm_requires_independent_reap_and_absence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+
+    class ZombieLeader:
+        returncode: int | None = None
+
+        def poll(self) -> int:
+            self.returncode = 0
+            return 0
+
+        def wait(self, timeout: float) -> int:
+            self.returncode = 0
+            return 0
+
+        def kill(self) -> None:
+            pytest.fail("reaped zombie does not need a direct-child signal")
+
+    leader = ZombieLeader()
+    signals: list[int] = []
+
+    def zombie_group(_group: int, signum: int) -> None:
+        if leader.returncode is not None:
+            raise ProcessLookupError(errno.ESRCH, "synthetic absent group")
+        if signum:
+            signals.append(signum)
+        raise PermissionError(errno.EPERM, "synthetic zombie-only group")
+
+    monkeypatch.setattr(os, "killpg", zombie_group)
+    process.terminate_process_group(
+        4242, leader=cast(subprocess.Popen[bytes], leader), grace_seconds=0.1
+    )
+    assert leader.returncode == 0
+    assert signals == [signal.SIGTERM]
+
+
+@pytest.mark.parametrize("number", [13, 4, 22])
+def test_posix_non_eperm_signal_errors_remain_fatal(
+    number: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def failed_signal(_group: int, _signum: int) -> None:
+        raise OSError(number, "synthetic signal error")
+
+    monkeypatch.setattr(os, "killpg", failed_signal)
+    with pytest.raises(ValueError, match="Could not signal"):
+        process._signal_process_group(4242, signal.SIGTERM)
+
+
+def test_posix_live_group_eperm_cannot_pass_bounded_termination(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+    import itertools
+
+    class LiveLeader:
+        killed = False
+        waited = False
+
+        def poll(self) -> None:
+            return None
+
+        def kill(self) -> None:
+            self.killed = True
+
+        def wait(self, timeout: float) -> int:
+            self.waited = True
+            return 0
+
+    def denied(_group: int, _signum: int) -> None:
+        raise PermissionError(errno.EPERM, "synthetic inaccessible live group")
+
+    leader = LiveLeader()
+    clock = itertools.count(step=0.1)
+    monkeypatch.setattr(os, "killpg", denied)
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+    with pytest.raises(
+        ValueError, match="Could not stop an owned qualification process group"
+    ) as failure:
+        process.terminate_process_group(
+            4242, leader=cast(subprocess.Popen[bytes], leader), grace_seconds=0.1, deadline=0.6
+        )
+    assert failure.value.__cause__ is not None
+    assert "Could not stop every member" in str(failure.value.__cause__)
+    assert leader.killed and leader.waited
+
+
 def test_shared_windows_gate_is_the_focused_gate() -> None:
     assert focused._WINDOWS_GATE_CODE == process.WINDOWS_GATE_CODE
 

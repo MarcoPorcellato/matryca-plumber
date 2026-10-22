@@ -20,7 +20,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
 from .bootstrap import ERROR_EXITS
-from .consumer import ChildFailure, ChildResult, _run_child
+from .consumer import ChildFailure, ChildResult, _cleanup_snapshot_document, _run_child
 from .resources import (
     PackageResourceError,
     PackageResources,
@@ -61,6 +61,74 @@ _CHILD_FAILURE_REASONS = frozenset(
 )
 
 
+def _validated_cleanup_snapshot(value: object) -> dict[str, object]:
+    """Admit only a finite copy of failure diagnostics, never raw process identity."""
+    unavailable = _cleanup_snapshot_document(None)
+    try:
+        if type(value) is not dict or len(value) != len(unavailable):
+            return unavailable
+        if set(value) != set(unavailable):
+            return unavailable
+        if type(value["schema_version"]) is not int or value["schema_version"] != 1:
+            return unavailable
+        domains = {
+            "availability": ("complete", "partial", "unavailable"),
+            "last_phase": ("cleanup_group", "kill_reap_fallback", "not_observed"),
+            "child_poll": (
+                "returncode_observed",
+                "no_returncode_observed",
+                "failed",
+                "not_observed",
+            ),
+            "group_check": (
+                "absent_observed",
+                "present_or_denied_observed",
+                "unknown",
+                "not_observed",
+            ),
+            "deadline_check": ("not_exceeded", "exceeded", "failed", "not_observed"),
+        }
+        for key, allowed in domains.items():
+            if type(value[key]) is not str or value[key] not in allowed:
+                return unavailable
+        for key in ("group_gate", "selector_gate", "streams_gate", "cleanup_gate"):
+            if value[key] is not None and type(value[key]) is not bool:
+                return unavailable
+        if value["availability"] == "unavailable":
+            return unavailable
+        if value["availability"] == "complete" and (
+            value["last_phase"] == "not_observed"
+            or value["child_poll"] == "not_observed"
+            or value["group_check"] == "not_observed"
+            or value["deadline_check"] == "not_observed"
+            or any(
+                value[key] is None
+                for key in ("group_gate", "selector_gate", "streams_gate", "cleanup_gate")
+            )
+        ):
+            return unavailable
+        if value["group_gate"] is True and (
+            value["child_poll"] != "returncode_observed"
+            or value["group_check"] != "absent_observed"
+            or value["deadline_check"] != "not_exceeded"
+        ):
+            return unavailable
+        if value["cleanup_gate"] is True and (
+            value["availability"] != "complete"
+            or any(
+                value[key] is not True for key in ("group_gate", "selector_gate", "streams_gate")
+            )
+        ):
+            return unavailable
+        document = {key: value[key] for key in unavailable}
+        encoded = json.dumps(document, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        if type(encoded) is not str or len(encoded.encode("utf-8")) > 1_024:
+            return unavailable
+        return document
+    except BaseException:
+        return unavailable
+
+
 class TCKFailure(RuntimeError):
     """A fixed, path-free TCK failure reason."""
 
@@ -72,11 +140,15 @@ class TCKFailure(RuntimeError):
         cleanup_events: tuple[str, ...] = (),
         child: ChildResult | None = None,
         child_failure_reason: str | None = None,
+        cleanup_snapshot: object = None,
     ) -> None:
         super().__init__(reason)
         self.reason = reason
         self.cleanup_status = cleanup_status
         self.cleanup_events = cleanup_events
+        self.cleanup_snapshot = (
+            None if cleanup_snapshot is None else _validated_cleanup_snapshot(cleanup_snapshot)
+        )
         self.completed_checks: tuple[str, ...] = ()
         self.child_failure_reason = (
             None
@@ -618,6 +690,7 @@ def _invoke_child(
             child_failure.reason,
             cleanup_status="uncertain" if cleanup_uncertain else "verified",
             cleanup_events=tuple(dict.fromkeys(events)),
+            cleanup_snapshot=child_failure.cleanup_snapshot,
         ) from None
     if child_unexpected:
         events = ["child_cleanup_unverified"]
@@ -748,6 +821,7 @@ def _expect_native_child_failure(
                     cleanup_status=error.cleanup_status,
                     cleanup_events=error.cleanup_events,
                     child_failure_reason=error.reason,
+                    cleanup_snapshot=error.cleanup_snapshot,
                 ) from None
         else:
             raise TCKFailure(case_id)
@@ -862,6 +936,7 @@ def _run_interrupted_cleanup_control(
             else "injected_cleanup_interruption",
             cleanup_status="uncertain" if observation_uncertain else "verified",
             cleanup_events=tuple(dict.fromkeys(events)),
+            cleanup_snapshot=failure.cleanup_snapshot if failure is not None else None,
         ) from None
     return {
         "id": "injected-cleanup-interruption-fallback",
@@ -1419,8 +1494,13 @@ def _execute(report_path: Path) -> tuple[int, dict[str, Any]]:
             )
             if error.child_failure is not None:
                 report["child_failure"] = dict(error.child_failure)
+            diagnostics: dict[str, object] = {}
             if error.child_failure_reason is not None:
-                report["diagnostics"] = {"child_failure_reason": error.child_failure_reason}
+                diagnostics["child_failure_reason"] = error.child_failure_reason
+            if error.cleanup_snapshot is not None:
+                diagnostics["cleanup_snapshot"] = error.cleanup_snapshot
+            if diagnostics:
+                report["diagnostics"] = diagnostics
         if isinstance(error, TCKFailure) and error.cleanup_status != "not_applicable":
             report["cleanup"] = {
                 "status": error.cleanup_status,

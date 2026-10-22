@@ -467,6 +467,21 @@ jobs:
           for kind in wheel sdist; do
             "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
           done
+      - name: Stress owned macOS cleanup
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/cleanup-stress-results"
+          "$RUNNER_TEMP/runtime-wheel/bin/python" -I -B -c 'import importlib,pathlib,sys; root=pathlib.Path.cwd().resolve(); sys.path.insert(0,str(root)); names=("src","matryca_plumber"); modules=[importlib.import_module(name) for name in names]; assert all(pathlib.Path(module.__file__).resolve()==root/module.__name__/"__init__.py" and module.__spec__.origin==str(root/module.__name__/"__init__.py") for module in modules); from tests.test_og_macos_cleanup_stress import main; raise SystemExit(main())' --work "$RUNNER_TEMP/cleanup-stress-work" --output "$RUNNER_TEMP/cleanup-stress-results/report.json" --iterations 200
+      - name: Preserve cleanup stress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-cleanup-stress-${{ github.run_id }}-${{ github.run_attempt }}-macos312
+          path: ${{ runner.temp }}/cleanup-stress-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Preserve macos312 evidence
         if: always()
         id: upload
@@ -548,6 +563,21 @@ jobs:
           for kind in wheel sdist; do
             "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
           done
+      - name: Stress owned macOS cleanup
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/cleanup-stress-results"
+          "$RUNNER_TEMP/runtime-wheel/bin/python" -I -B -c 'import importlib,pathlib,sys; root=pathlib.Path.cwd().resolve(); sys.path.insert(0,str(root)); names=("src","matryca_plumber"); modules=[importlib.import_module(name) for name in names]; assert all(pathlib.Path(module.__file__).resolve()==root/module.__name__/"__init__.py" and module.__spec__.origin==str(root/module.__name__/"__init__.py") for module in modules); from tests.test_og_macos_cleanup_stress import main; raise SystemExit(main())' --work "$RUNNER_TEMP/cleanup-stress-work" --output "$RUNNER_TEMP/cleanup-stress-results/report.json" --iterations 200
+      - name: Preserve cleanup stress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: og-cleanup-stress-${{ github.run_id }}-${{ github.run_attempt }}-macos313
+          path: ${{ runner.temp }}/cleanup-stress-results
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Preserve macos313 evidence
         if: always()
         id: upload

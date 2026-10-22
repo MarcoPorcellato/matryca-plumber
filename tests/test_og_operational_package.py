@@ -3,7 +3,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
+import selectors
+import subprocess
 import sys
+import time
 import tomllib
 from pathlib import Path
 from typing import Any, cast
@@ -775,10 +779,18 @@ def test_consumer_read_and_cleanup_errors_preserve_failure_and_report_cleanup(
     assert failure.value.reason == "read_error"
     assert failure.value.cleanup_ok is False
     assert "term_signal_failed" in failure.value.cleanup_events
-    assert failure.value.cleanup_events == (
+    assert failure.value.cleanup_events[:3] == (
         "term_signal_failed",
         "term_signal_type_os_error_failed",
         "term_signal_errno_unavailable_failed",
+    )
+    assert set(failure.value.cleanup_events).issubset(
+        {
+            "term_signal_failed",
+            "term_signal_type_os_error_failed",
+            "term_signal_errno_unavailable_failed",
+            "kill_signal_failed",
+        }
     )
     assert children[0].poll() is not None
 
@@ -982,10 +994,12 @@ def test_consumer_uses_one_group_finalizer_and_keeps_primary_failure(
         children.append(child)
         return child
 
-    def cleanup_then_interrupt(process: Any, deadline: float, events: list[str]) -> Any:
+    def cleanup_then_interrupt(
+        process: Any, deadline: float, events: list[str], **kwargs: Any
+    ) -> Any:
         nonlocal calls
         calls += 1
-        real_cleanup_group(process, deadline, events)
+        real_cleanup_group(process, deadline, events, **kwargs)
         raise KeyboardInterrupt("private finalizer interruption")
 
     monkeypatch.setattr(consumer.subprocess, "Popen", capture_child)
@@ -2279,7 +2293,6 @@ def _synthetic_signal_finalization(
 @pytest.mark.parametrize(
     ("error", "category", "errno_category"),
     [
-        (PermissionError(1, "PRIVATE-CANARY"), "permission_error", "eperm"),
         (PermissionError(13, "PRIVATE-CANARY"), "permission_error", "eacces"),
         (InterruptedError(4, "PRIVATE-CANARY"), "interrupted_error", "eintr"),
         (OSError(22, "PRIVATE-CANARY"), "os_error", "einval"),
@@ -2307,6 +2320,18 @@ def test_consumer_term_failure_details_are_finite_and_never_verify_cleanup(
     )
     assert len(json.dumps(events)) < 256
     assert "PRIVATE-CANARY" not in json.dumps(events)
+
+
+def test_consumer_eperm_observation_needs_all_terminal_cleanup_gates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cleanup_ok, events = _synthetic_signal_finalization(
+        PermissionError(1, "PRIVATE-CANARY"), monkeypatch
+    )
+    # The fixture independently observes a reaped child and group absence.
+    # The live-group, interruption, reader and deadline tests retain the veto.
+    assert cleanup_ok is True
+    assert events == ()
 
 
 @pytest.mark.parametrize("kind", ["bool", "object", "raises"])
@@ -2486,6 +2511,353 @@ def test_tck_failure_report_adds_only_bounded_optional_reason(
     assert str(tmp_path) not in json.dumps(report)
 
 
+def _complete_cleanup_snapshot() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "availability": "complete",
+        "last_phase": "cleanup_group",
+        "child_poll": "returncode_observed",
+        "group_check": "absent_observed",
+        "group_gate": True,
+        "selector_gate": True,
+        "streams_gate": True,
+        "deadline_check": "not_exceeded",
+        "cleanup_gate": True,
+    }
+
+
+def _snapshot_synthetic_finalizer(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    instrumented: bool = True,
+    term_error: bool = False,
+    close_error: bool = False,
+    selector_error: bool = False,
+) -> tuple[bool, tuple[str, ...], dict[str, object] | None, list[str]]:
+    import errno
+    import signal
+
+    from matryca_plumber.graph_gateway import consumer
+
+    trace: list[str] = []
+
+    class Pipe:
+        closed = False
+
+        def close(self) -> None:
+            trace.append("close")
+            self.closed = True
+            if close_error:
+                raise OSError("PRIVATE-SNAPSHOT-CANARY")
+
+    class Child:
+        pid = 4242
+        stdout = Pipe()
+        stderr = Pipe()
+        polls = 0
+
+        def poll(self) -> int | None:
+            trace.append("poll")
+            self.polls += 1
+            return None if term_error and self.polls == 1 else 0
+
+    child = Child()
+
+    def group_state(_pid: int) -> bool:
+        trace.append("group")
+        return term_error and child.polls == 1
+
+    def killpg(pid: int, signum: int) -> None:
+        assert pid == 4242
+        assert signum == signal.SIGTERM
+        trace.append("term")
+        raise PermissionError(errno.EPERM, "PRIVATE-SNAPSHOT-CANARY")
+
+    def clock() -> float:
+        trace.append("clock")
+        return 0.0
+
+    monkeypatch.setattr(consumer, "_group_state", group_state)
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "monotonic", clock)
+    events: list[str] = []
+
+    class Selector:
+        def close(self) -> None:
+            trace.append("selector-close")
+            raise RuntimeError("PRIVATE-SNAPSHOT-CANARY")
+
+    selector = cast(Any, Selector()) if selector_error else None
+    if instrumented:
+        snapshot = consumer._CleanupSnapshot()
+        result = consumer._finalize_child(
+            cast(Any, child), selector, {}, 1.0, events, snapshot=snapshot
+        )
+        document = consumer._cleanup_snapshot_document(snapshot)
+    else:
+        result = consumer._finalize_child(cast(Any, child), selector, {}, 1.0, events)
+        document = None
+    return result, tuple(events), document, trace
+
+
+@pytest.mark.parametrize("term_error", [False, True])
+@pytest.mark.parametrize("close_error", [False, True])
+@pytest.mark.parametrize("selector_error", [False, True])
+def test_cleanup_snapshot_preserves_policy_and_operation_trace(
+    term_error: bool, close_error: bool, selector_error: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plain = _snapshot_synthetic_finalizer(
+        monkeypatch,
+        instrumented=False,
+        term_error=term_error,
+        close_error=close_error,
+        selector_error=selector_error,
+    )
+    observed = _snapshot_synthetic_finalizer(
+        monkeypatch,
+        term_error=term_error,
+        close_error=close_error,
+        selector_error=selector_error,
+    )
+
+    assert (observed[0], observed[1], observed[3]) == (plain[0], plain[1], plain[3])
+    expected = _complete_cleanup_snapshot()
+    expected["cleanup_gate"] = not close_error and not selector_error
+    expected["streams_gate"] = not close_error
+    expected["selector_gate"] = not selector_error
+    assert observed[2] == expected
+    assert "PRIVATE-SNAPSHOT-CANARY" not in json.dumps(observed[2])
+    if term_error and (close_error or selector_error):
+        assert observed[0] is False
+        assert set(
+            (
+                "term_signal_failed",
+                "term_signal_type_permission_error_failed",
+                "term_signal_errno_eperm_failed",
+            )
+        ).issubset(observed[1])
+    elif term_error:
+        assert observed[0] is True
+        assert observed[1] == ()
+
+
+def test_cleanup_snapshot_fallback_does_not_reuse_prior_samples(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from matryca_plumber.graph_gateway import consumer
+
+    snapshot = consumer._CleanupSnapshot()
+    snapshot.last_phase = "cleanup_group"
+    snapshot.child_poll = "returncode_observed"
+    snapshot.group_check = "absent_observed"
+    monkeypatch.setattr(os, "killpg", lambda *_args: None)
+
+    class InterruptedChild:
+        pid = 4242
+
+        def poll(self) -> int:
+            raise KeyboardInterrupt("PRIVATE-SNAPSHOT-CANARY")
+
+    monkeypatch.setattr(consumer, "_group_state", lambda _pid: None)
+    monkeypatch.setattr(time, "monotonic", lambda: 2.0)
+    events: list[str] = []
+    result = consumer._kill_reap_fallback(
+        cast(Any, InterruptedChild()), 1.0, events, snapshot=snapshot
+    )
+    document = consumer._cleanup_snapshot_document(snapshot)
+
+    assert result is False
+    assert document["availability"] == "partial"
+    assert document["last_phase"] == "kill_reap_fallback"
+    assert document["child_poll"] == "failed"
+    assert document["group_check"] == "unknown"
+    assert document["cleanup_gate"] is None
+    assert events == ["fallback_poll_failed", "fallback_group_check_failed"]
+
+
+@pytest.mark.parametrize("error", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_cleanup_snapshot_recording_fault_cannot_skip_cleanup(
+    error: type[BaseException], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import consumer
+
+    original_record = consumer._CleanupSnapshot.record
+    calls = 0
+
+    def fail_once(self: Any, **values: Any) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise error("PRIVATE-SNAPSHOT-CANARY")
+        original_record(self, **values)
+
+    monkeypatch.setattr(consumer._CleanupSnapshot, "record", fail_once)
+    if error is RuntimeError:
+        result = _snapshot_synthetic_finalizer(monkeypatch)
+        assert result[0] is True
+        assert result[1] == ()
+        assert result[2] is not None
+        assert result[2]["availability"] == "unavailable"
+        assert result[3].count("close") == 2
+    else:
+        closed: list[str] = []
+
+        class Pipe:
+            closed = False
+
+            def close(self) -> None:
+                self.closed = True
+                closed.append("pipe")
+
+        class Child:
+            pid = 4242
+            stdout = Pipe()
+            stderr = Pipe()
+
+            def poll(self) -> int:
+                return 0
+
+        monkeypatch.setattr(time, "monotonic", lambda: 0.0)
+        monkeypatch.setattr(consumer, "_group_state", lambda _pid: False)
+        snapshot = consumer._CleanupSnapshot()
+        events: list[str] = []
+        with pytest.raises(error):
+            consumer._finalize_child(cast(Any, Child()), None, {}, 1.0, events, snapshot=snapshot)
+        assert closed == ["pipe", "pipe"]
+        assert consumer._cleanup_snapshot_document(snapshot)["availability"] == "unavailable"
+
+
+def test_cleanup_snapshot_absent_child_has_no_terminal_evidence() -> None:
+    from matryca_plumber.graph_gateway import consumer
+
+    document = consumer._cleanup_snapshot_document(consumer._CleanupSnapshot())
+
+    assert document["availability"] == "unavailable"
+    assert document["last_phase"] == "not_observed"
+    assert document["child_poll"] == "not_observed"
+    assert document["group_check"] == "not_observed"
+    assert document["group_gate"] is None
+    assert document["selector_gate"] is None
+    assert document["streams_gate"] is None
+    assert document["cleanup_gate"] is None
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("schema_version", True),
+        ("schema_version", 2),
+        ("availability", "/private/PRIVATE-SNAPSHOT-CANARY"),
+        ("child_poll", "alive"),
+        ("group_check", True),
+        ("group_gate", 1),
+        ("selector_gate", 0),
+        ("streams_gate", "true"),
+        ("deadline_check", "PRIVATE-SNAPSHOT-CANARY"),
+        ("cleanup_gate", 1),
+        ("group_gate", None),
+        ("child_poll", "not_observed"),
+        ("deadline_check", "exceeded"),
+        ("unexpected", "PRIVATE-SNAPSHOT-CANARY"),
+    ],
+)
+def test_cleanup_snapshot_untrusted_fields_cannot_claim_completeness(
+    key: str,
+    value: Any,
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    supplied = _complete_cleanup_snapshot()
+    supplied[key] = value
+    failure = tck.TCKFailure("synthetic", cleanup_snapshot=supplied)
+
+    assert isinstance(failure.cleanup_snapshot, dict)
+    assert failure.cleanup_snapshot["availability"] == "unavailable"
+    assert failure.cleanup_snapshot["cleanup_gate"] is None
+    assert "PRIVATE-SNAPSHOT-CANARY" not in json.dumps(failure.cleanup_snapshot)
+
+
+def test_cleanup_snapshot_missing_field_cannot_claim_completeness() -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    supplied = _complete_cleanup_snapshot()
+    del supplied["child_poll"]
+    failure = tck.TCKFailure("synthetic", cleanup_snapshot=supplied)
+
+    assert isinstance(failure.cleanup_snapshot, dict)
+    assert failure.cleanup_snapshot["availability"] == "unavailable"
+
+
+def test_cleanup_snapshot_report_preserves_failure_and_retention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    _admit_synthetic_tck_report_origin(tmp_path, monkeypatch)
+    supplied = _complete_cleanup_snapshot()
+    supplied["cleanup_gate"] = False
+
+    def failed_controls(*_args: Any) -> Any:
+        raise tck.TCKFailure(
+            "native-stdout-overflow-cleanup",
+            cleanup_status="uncertain",
+            cleanup_events=("term_signal_failed",),
+            child_failure_reason="stdout_overflow",
+            cleanup_snapshot=supplied,
+        )
+
+    monkeypatch.setattr(tck, "_run_controls", failed_controls)
+    code, report = tck._execute(tmp_path / "report.json")
+
+    assert code == 1
+    assert report["status"] == "failed"
+    assert report["qualification"] == "unqualified"
+    assert report["cleanup"] == {
+        "status": "uncertain",
+        "primary_failure": "native-stdout-overflow-cleanup",
+        "events": ["term_signal_failed"],
+        "retained_owned_synthetic_root": True,
+    }
+    assert report["diagnostics"] == {
+        "child_failure_reason": "stdout_overflow",
+        "cleanup_snapshot": supplied,
+    }
+    assert len(json.dumps(report["diagnostics"]["cleanup_snapshot"]).encode()) <= 1024
+
+
+def test_cleanup_snapshot_native_wrapper_cannot_waive_event_veto(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    supplied = _complete_cleanup_snapshot()
+    supplied["cleanup_gate"] = False
+
+    def failed_child(*_args: Any, **_kwargs: Any) -> Any:
+        raise tck.TCKFailure(
+            "stdout_overflow",
+            cleanup_status="uncertain",
+            cleanup_events=("term_signal_failed",),
+            cleanup_snapshot=supplied,
+        )
+
+    monkeypatch.setattr(tck, "_invoke_child", failed_child)
+    with pytest.raises(tck.TCKFailure) as failure:
+        tck._expect_native_child_failure(
+            "native-stdout-overflow-cleanup",
+            ("synthetic",),
+            tmp_path,
+            tmp_path,
+            _validation_package(),
+            "synthetic",
+            "stdout_overflow",
+        )
+    assert failure.value.reason == "native-stdout-overflow-cleanup"
+    assert failure.value.cleanup_status == "uncertain"
+    assert failure.value.cleanup_events == ("term_signal_failed",)
+    assert failure.value.cleanup_snapshot == supplied
+
+
 def test_tck_success_report_has_no_diagnostics_and_preserves_cleanup_shape(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -2502,3 +2874,464 @@ def test_tck_success_report_has_no_diagnostics_and_preserves_cleanup_shape(
     assert report["cleanup"] == {"status": "verified", "retained_owned_synthetic_root": False}
     assert "diagnostics" not in report
     assert "child_failure" not in report
+
+
+@pytest.mark.parametrize("post_failure", ["none", "tree", "environment"])
+def test_cleanup_snapshot_survives_post_child_inventory_failure(
+    post_failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import consumer, tck
+
+    root = tmp_path / "owned" / "graph"
+    root.mkdir(parents=True)
+    supplied = _complete_cleanup_snapshot()
+    supplied["cleanup_gate"] = False
+    real_inventory = tck._invocation_inventory
+    calls = {"tree": 0, "environment": 0}
+
+    def inventory(root_arg: Path, work_root_arg: Path) -> Any:
+        calls["tree"] += 1
+        if post_failure == "tree" and calls["tree"] == 2:
+            raise KeyboardInterrupt("PRIVATE-SNAPSHOT-CANARY")
+        return real_inventory(root_arg, work_root_arg)
+
+    def environment(_package: PackageResources) -> str:
+        calls["environment"] += 1
+        if post_failure == "environment" and calls["environment"] == 2:
+            raise KeyboardInterrupt("PRIVATE-SNAPSHOT-CANARY")
+        return "stable"
+
+    def failed_child(*_args: Any, **_kwargs: Any) -> Any:
+        raise consumer.ChildFailure(
+            "stdout_overflow",
+            cleanup_ok=False,
+            cleanup_events=("term_signal_failed",),
+            cleanup_snapshot=supplied,
+        )
+
+    monkeypatch.setattr(tck, "_invocation_inventory", inventory)
+    monkeypatch.setattr(tck, "_environment_fingerprint", environment)
+    monkeypatch.setattr(tck, "_run_child", failed_child)
+    with pytest.raises(tck.TCKFailure) as failure:
+        tck._invoke_child(
+            ("synthetic",),
+            root,
+            root.parent,
+            _validation_package(),
+            expected_environment_sha256="stable",
+        )
+
+    assert failure.value.reason == "stdout_overflow"
+    assert failure.value.cleanup_status == "uncertain"
+    assert failure.value.cleanup_snapshot == supplied
+    assert failure.value.cleanup_events == (
+        ("term_signal_failed", "owned_inventory_unavailable")
+        if post_failure == "tree"
+        else ("term_signal_failed", "environment_inventory_unavailable")
+        if post_failure == "environment"
+        else ("term_signal_failed",)
+    )
+    assert calls == {"tree": 2, "environment": 2}
+
+
+@pytest.mark.parametrize("error", [ValueError, KeyboardInterrupt, SystemExit])
+def test_cleanup_snapshot_encoding_failure_cannot_mask_primary(
+    error: type[BaseException], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import tck
+
+    def broken_encoding(*_args: Any, **_kwargs: Any) -> str:
+        raise error("PRIVATE-SNAPSHOT-CANARY")
+
+    monkeypatch.setattr(json, "dumps", broken_encoding)
+    failure = tck.TCKFailure(
+        "stdout_overflow",
+        cleanup_status="uncertain",
+        cleanup_events=("term_signal_failed",),
+        cleanup_snapshot=_complete_cleanup_snapshot(),
+    )
+    assert failure.reason == "stdout_overflow"
+    assert failure.cleanup_events == ("term_signal_failed",)
+    assert isinstance(failure.cleanup_snapshot, dict)
+    assert failure.cleanup_snapshot["availability"] == "unavailable"
+
+
+@pytest.mark.parametrize("deadline", ["ok", "exceeded", "failed"])
+def test_cleanup_snapshot_deadline_observation_does_not_add_clock_samples(
+    deadline: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import consumer
+
+    class Child:
+        pid = 4242
+        stdout = None
+        stderr = None
+
+        def poll(self) -> int:
+            return 0
+
+    clocks = 0
+
+    def clock() -> float:
+        nonlocal clocks
+        clocks += 1
+        if clocks == 1 or deadline == "ok":
+            return 0.0
+        if deadline == "exceeded":
+            return 2.0
+        raise KeyboardInterrupt("PRIVATE-SNAPSHOT-CANARY")
+
+    monkeypatch.setattr(time, "monotonic", clock)
+    monkeypatch.setattr(consumer, "_group_state", lambda _pid: False)
+    snapshot = consumer._CleanupSnapshot()
+    events: list[str] = []
+    result = consumer._finalize_child(cast(Any, Child()), None, {}, 1.0, events, snapshot=snapshot)
+    document = consumer._cleanup_snapshot_document(snapshot)
+
+    assert clocks == 2
+    assert result is (deadline == "ok")
+    assert document["availability"] == "complete"
+    assert document["deadline_check"] == ("not_exceeded" if deadline == "ok" else deadline)
+    assert document["group_gate"] is (deadline == "ok")
+    assert document["cleanup_gate"] is result
+
+
+def test_cleanup_snapshot_permission_denial_is_not_physical_presence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import signal
+
+    from matryca_plumber.graph_gateway import consumer
+
+    class Child:
+        pid = 4242
+
+        def poll(self) -> None:
+            return None
+
+    def killpg(_pid: int, signum: int) -> None:
+        if signum != signal.SIGKILL:
+            raise PermissionError("PRIVATE-SNAPSHOT-CANARY")
+
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "monotonic", lambda: 2.0)
+    snapshot = consumer._CleanupSnapshot()
+    events: list[str] = []
+    result = consumer._kill_reap_fallback(cast(Any, Child()), 1.0, events, snapshot=snapshot)
+    document = consumer._cleanup_snapshot_document(snapshot)
+
+    assert result is False
+    assert document["group_check"] == "present_or_denied_observed"
+    assert document["child_poll"] == "no_returncode_observed"
+    assert document["cleanup_gate"] is None
+
+
+def test_cleanup_snapshot_interruption_preserves_owner_primary_and_readers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from matryca_plumber.graph_gateway import consumer
+
+    class Pipe:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    class Child:
+        pid = 4242
+        stdout = Pipe()
+        stderr = Pipe()
+        returncode = 0
+
+        def poll(self) -> int:
+            return 0
+
+    child = Child()
+    original = consumer._CleanupSnapshot.record
+    calls = 0
+
+    def interrupted_capture(self: Any, **values: Any) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise KeyboardInterrupt("PRIVATE-SNAPSHOT-CANARY")
+        original(self, **values)
+
+    def selector_failure() -> Any:
+        raise RuntimeError("PRIMARY-SYNTHETIC-FAILURE")
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *_args, **_kwargs: child)
+    monkeypatch.setattr(selectors, "DefaultSelector", selector_failure)
+    monkeypatch.setattr(consumer, "_group_state", lambda _pid: False)
+    monkeypatch.setattr(time, "monotonic", lambda: 0.0)
+    monkeypatch.setattr(consumer._CleanupSnapshot, "record", interrupted_capture)
+    with pytest.raises(consumer.ChildFailure) as failure:
+        consumer._run_child(("synthetic",), cwd=tmp_path, env={})
+
+    assert failure.value.reason == "internal"
+    assert failure.value.cleanup_ok is False
+    assert failure.value.cleanup_events == ("finalizer_failed",)
+    assert child.stdout.closed is True
+    assert child.stderr.closed is True
+    assert isinstance(failure.value.cleanup_snapshot, dict)
+    assert failure.value.cleanup_snapshot["availability"] == "unavailable"
+
+
+def _eperm_cleanup_fixture(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    delayed_polls: int,
+    final_deadline: bool = False,
+    reader_failure: bool = False,
+) -> tuple[bool, list[str], list[int]]:
+    """Model a zombie's delayed poll visibility without sending a native signal."""
+    import errno
+    import os
+    import signal
+    import time
+
+    from matryca_plumber.graph_gateway import consumer
+
+    signals: list[int] = []
+
+    class ZombieChild:
+        pid = 4242
+        stdout = None
+        stderr = None
+        returncode: int | None = None
+        polls = 0
+
+        def poll(self) -> int | None:
+            self.polls += 1
+            if self.polls > delayed_polls:
+                self.returncode = 0
+            return self.returncode
+
+        def wait(self, timeout: float) -> int:
+            self.returncode = 0
+            return 0
+
+    child = ZombieChild()
+
+    def killpg(_group: int, signum: int) -> None:
+        if child.returncode is not None:
+            raise ProcessLookupError(errno.ESRCH, "synthetic absent group")
+        if signum:
+            signals.append(signum)
+        raise PermissionError(errno.EPERM, "synthetic zombie-only group")
+
+    class Reader:
+        def close(self) -> None:
+            if reader_failure:
+                raise RuntimeError("synthetic reader close failure")
+
+    clock = iter((0.0, 0.0, 2.0)) if final_deadline else None
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock) if clock else 0.0)
+    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+    events: list[str] = []
+    ok = consumer._finalize_child(cast(Any, child), cast(Any, Reader()), {}, 1.0, events)
+    assert child.returncode == 0
+    assert all(value in (signal.SIGTERM, signal.SIGKILL) for value in signals)
+    return ok, events, signals
+
+
+@pytest.mark.parametrize("delayed_polls", [0, 1, 2])
+def test_eperm_zombie_race_requires_reap_and_absence(
+    delayed_polls: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ok, events, signals = _eperm_cleanup_fixture(monkeypatch, delayed_polls=delayed_polls)
+    assert ok is True
+    assert events == []
+    assert bool(signals) is (delayed_polls != 0)
+
+
+@pytest.mark.parametrize("gate", ["deadline", "reader"])
+def test_eperm_observations_survive_later_finalization_failure(
+    gate: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ok, events, _signals = _eperm_cleanup_fixture(
+        monkeypatch,
+        delayed_polls=1,
+        final_deadline=gate == "deadline",
+        reader_failure=gate == "reader",
+    )
+    assert ok is False
+    assert "term_signal_failed" in events
+    assert "term_signal_errno_eperm_failed" in events
+    assert (
+        "cleanup_deadline_exceeded" if gate == "deadline" else "selector_close_failed"
+    ) in events
+
+
+def test_eperm_observations_survive_cleanup_helper_interruption(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from matryca_plumber.graph_gateway import consumer
+
+    original = consumer._cleanup_group
+
+    def cleanup_then_interrupt(*args: Any, **kwargs: Any) -> bool:
+        original(*args, **kwargs)
+        raise KeyboardInterrupt("synthetic interruption after signal")
+
+    monkeypatch.setattr(consumer, "_cleanup_group", cleanup_then_interrupt)
+    ok, events, _signals = _eperm_cleanup_fixture(monkeypatch, delayed_polls=1)
+    assert ok is False
+    assert "group_finalize_failed" in events
+    assert "term_signal_errno_eperm_failed" in events
+
+
+def test_eperm_live_group_remains_unverified_at_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+    import itertools
+    import os
+    import subprocess
+    import time
+
+    from matryca_plumber.graph_gateway import consumer
+
+    class LiveChild:
+        pid = 4242
+        stdout = None
+        stderr = None
+        returncode = None
+
+        def poll(self) -> None:
+            return None
+
+        def wait(self, timeout: float) -> int:
+            raise subprocess.TimeoutExpired("synthetic", timeout)
+
+    def denied(_group: int, _signum: int) -> None:
+        raise PermissionError(errno.EPERM, "synthetic live permission denial")
+
+    clock = itertools.count(step=0.1)
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(os, "killpg", denied)
+    events: list[str] = []
+    ok = consumer._finalize_child(cast(Any, LiveChild()), None, {}, 0.5, events)
+    assert ok is False
+    assert "cleanup_deadline_exceeded" in events
+    assert "term_signal_errno_eperm_failed" in events
+    assert "kill_signal_failed" in events
+
+
+def test_eperm_observations_survive_final_snapshot_interruption(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+    import os
+    import time
+
+    from matryca_plumber.graph_gateway import consumer
+
+    class Child:
+        pid = 4242
+        stdout = None
+        stderr = None
+        polls = 0
+
+        def poll(self) -> int | None:
+            self.polls += 1
+            return None if self.polls == 1 else 0
+
+    def denied(_group: int, _signum: int) -> None:
+        raise PermissionError(errno.EPERM, "synthetic zombie")
+
+    record = consumer._CleanupSnapshot.record
+
+    def interrupted_final_capture(self: Any, **values: Any) -> None:
+        if "cleanup_gate" in values:
+            raise KeyboardInterrupt("synthetic final recording interruption")
+        record(self, **values)
+
+    states = iter((True, False))
+    monkeypatch.setattr(consumer, "_group_state", lambda _group: next(states))
+    monkeypatch.setattr(os, "killpg", denied)
+    monkeypatch.setattr(time, "monotonic", lambda: 0.0)
+    monkeypatch.setattr(consumer._CleanupSnapshot, "record", interrupted_final_capture)
+    events: list[str] = []
+    with pytest.raises(KeyboardInterrupt):
+        consumer._finalize_child(
+            cast(Any, Child()), None, {}, 1.0, events, snapshot=consumer._CleanupSnapshot()
+        )
+    assert "term_signal_errno_eperm_failed" in events
+
+
+@pytest.mark.parametrize("initial_eperm", [True, False])
+def test_eperm_post_wait_distinguishes_transient_denial_from_live_survivor(
+    initial_eperm: bool, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import errno
+    import os
+    import selectors
+    import subprocess
+    import time
+
+    from matryca_plumber.graph_gateway import consumer
+
+    class Pipe:
+        closed = False
+
+        def fileno(self) -> int:
+            return 0
+
+        def close(self) -> None:
+            self.closed = True
+
+    class Child:
+        pid = 4242
+        stdout = Pipe()
+        stderr = Pipe()
+        returncode: int | None = None
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+        def wait(self, timeout: float) -> int:
+            self.returncode = 0
+            return 0
+
+    class EmptySelector:
+        def register(self, *_args: Any) -> None:
+            pass
+
+        def get_map(self) -> dict[str, object]:
+            return {}
+
+        def close(self) -> None:
+            pass
+
+    probes = 0
+
+    def group_state(_group: int, signum: int) -> None:
+        nonlocal probes
+        assert signum == 0
+        probes += 1
+        if probes == 1:
+            if initial_eperm:
+                raise PermissionError(errno.EPERM, "synthetic exiting group")
+            return
+        raise ProcessLookupError(errno.ESRCH, "synthetic absent group")
+
+    child = Child()
+    monkeypatch.setattr(subprocess, "Popen", lambda *_args, **_kwargs: child)
+    monkeypatch.setattr(selectors, "DefaultSelector", EmptySelector)
+    monkeypatch.setattr(os, "set_blocking", lambda *_args: None)
+    monkeypatch.setattr(os, "killpg", group_state)
+    monkeypatch.setattr(time, "monotonic", lambda: 0.0)
+    if initial_eperm:
+        result = consumer._run_child(("synthetic",), cwd=tmp_path, env={})
+        assert result.cleanup_ok is True
+        assert result.cleanup_events == ()
+    else:
+        with pytest.raises(consumer.ChildFailure) as failure:
+            consumer._run_child(("synthetic",), cwd=tmp_path, env={})
+        assert failure.value.reason == "surviving_process_group"
+        assert failure.value.cleanup_ok is True
+    assert probes == 2
+    assert child.stdout.closed and child.stderr.closed

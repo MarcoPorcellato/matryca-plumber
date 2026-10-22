@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import errno
 import os
 import signal
 import subprocess
@@ -692,11 +693,16 @@ def process_group_exists(process_group_id: int) -> bool:
 
 
 def _signal_process_group(process_group_id: int, signal_number: int) -> None:
+    """Attempt a signal; only the caller's bounded group-exit check verifies cleanup."""
     try:
         os.killpg(process_group_id, signal_number)
     except ProcessLookupError:
         return
     except OSError as error:
+        if type(error.errno) is int and error.errno == errno.EPERM:
+            # Darwin can report EPERM for an exiting/zombie-only group. The
+            # owned caller must still reap and observe ESRCH before its deadline.
+            return
         raise ValueError("Could not signal the owned qualification process group.") from error
 
 

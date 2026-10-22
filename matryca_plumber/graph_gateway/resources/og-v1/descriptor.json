@@ -53,11 +53,11 @@
   "code_modules": [
     {
       "path": "consumer.py",
-      "sha256": "fb8d62100ef7071c8c451c9b44d95909b9b659c65d2a9df0dc74a8d64aaefe67"
+      "sha256": "8fd77567c81d72ce4959532e83b6e9a556a478565c357ef818310be432b77a0f"
     },
     {
       "path": "tck.py",
-      "sha256": "f2d5c5f75d4a9c902bc56c3680c73df0d8ead312e25b528324d1717c3f455129"
+      "sha256": "bc20953a50ea75f38502ec34aba15d4ce219d0d946f1e8d59f7a5611e102f422"
     }
   ]
 }

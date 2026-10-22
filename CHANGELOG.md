@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Fixed
+
+- **macOS process cleanup** — retain group-signal permission observations without
+  treating them as successful cleanup. Require a reaped child, an absent process
+  group within the existing deadline, and verified readers and streams; preserve
+  unresolved observations and all other failures. Add bounded native overflow
+  stress and passive failure diagnostics without admitting consumer compatibility.
+
 ## [2.1.0-alpha.2] - 2026-10-19
 
 Preparation only: no alpha.2 tag, publication or runtime admission is recorded.
