@@ -271,6 +271,49 @@ The release process's
 defines the maintained entrypoints. This plan does not activate publication,
 close #582, admit Trama or waive later full qualification and dual-profile Gate B.
 
+## 2026-10-22 public verifier provenance amendment
+
+Preserve the historical same-source procedure above and all consumed attempts.
+Publication completed from source S
+`82df37cdd4751e7cf0da9bf6372785567251c0ea`, tree T
+`e5e43299b06f780905cc16920e3ebaca701f2d8e`, through publisher run
+`39734945749`, attempt 1. The signed alpha.2 tag and exact published originals
+remain fixed. Public run `39741677332`, attempt 1, failed at metadata command
+construction before that fetch child; Windows refusal passed, but the source
+and four installed jobs skipped. No public installed result is accepted.
+
+The [dated release-process exception](../RELEASE_PROCESS.md#2026-10-22-separate-the-verifier-without-replacing-alpha2)
+permits a separately reviewed qualification-only revision C whose sole parent
+is S. It does not select or activate C by itself. Before a distinct new Q2,
+the maintainer must separately bind C's complete commit/tree/workflow hash,
+S/T, publisher R and the preserved public inventories. C must still be exact
+protected main; any drift stops. There is no arbitrary verifier input, dirty S
+overlay, server-side rerun, rebuilt original or publication fallback.
+
+Use two clean disjoint checkouts: literal producer S and verifier C selected
+from the actual event SHA. Run helpers from C, derive locks/resources,
+canonical-build and ledger expectations from S, check source-child import
+origins before collection and keep installed children isolated from both
+checkouts. Public schema 2 adds explicit verifier commit/tree/workflow fields;
+actual Q2/job/artifact metadata binds C while package, source and installed
+records remain S-bound. Reject missing/schema-1/defaulted or conflated
+identities. Producer attestations continue to bind S and signed publisher R;
+diagnostic MatrixContext, RC schemas and default source qualification stay unchanged.
+
+The argv correction changes only the metadata option encoding to
+`--sha256=`; it does not allow an empty argv element or waive distribution
+digest, source, signature, canonical-build, acquisition or cleanup controls.
+Require the entire existing public matrix and all eight report roles before
+accepting Q2. Corrected tooling, local synthetic tests and integration CI are
+not actual-public-byte evidence.
+
+The later documentary handoff H, if separately activated after accepted Q2,
+has sole parent C rather than S and still covers only its four approved
+documentary paths. It must preserve separate S/C/R/Q2 identities and cannot
+become a source for either campaign. No Q2, H, tag, publication, Trama
+admission, Windows-installed or stable support claim is authorized by this
+amendment. Issue #582 and the independent full-soak programme remain open.
+
 ## Failed installed-control diagnostics
 
 The first macOS arm64 / Python 3.12 wheel failure on the certifi correction

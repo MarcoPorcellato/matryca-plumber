@@ -335,12 +335,88 @@ def test_public_matrix_has_closed_truthful_admission_job_variant() -> None:
     context, rows, jobs, source, windows = _inputs(run_attempt=1)
     public_jobs = copy.deepcopy(jobs)
     public_jobs[0]["name"] = "Admit public OG alpha"
-    result = alpha.verify_matrix(context, rows, public_jobs, source, windows, public_input=True)
+    for job in public_jobs:
+        job["head_sha"] = "d" * 40
+    result = alpha.verify_matrix(
+        context,
+        rows,
+        public_jobs,
+        source,
+        windows,
+        public_input=True,
+        verifier_commit="d" * 40,
+    )
     assert result["status"] == "pass"
+    with pytest.raises(ValueError):
+        alpha.verify_matrix(
+            context,
+            rows,
+            jobs,
+            source,
+            windows,
+            public_input=True,
+            verifier_commit="d" * 40,
+        )
+    with pytest.raises(ValueError):
+        alpha.verify_matrix(context, rows, public_jobs, source, windows)
+
+
+def test_public_matrix_joins_verifier_jobs_to_unchanged_producer_rows() -> None:
+    from scripts.release_qualification import alpha1_matrix as alpha
+
+    context, rows, jobs, source, windows = _inputs(run_attempt=1)
+    jobs[0]["name"] = "Admit public OG alpha"
+    for job in jobs:
+        job["head_sha"] = "d" * 40
+    result = alpha.verify_matrix(
+        context, rows, jobs, source, windows, public_input=True, verifier_commit="d" * 40
+    )
+    assert result["source_commit"] == "a" * 40
+    assert result["source_tree"] == "b" * 40
+    for bad_head in ("a" * 40, "e" * 40):
+        mixed = copy.deepcopy(jobs)
+        mixed[0]["head_sha"] = bad_head
+        with pytest.raises(ValueError):
+            alpha.verify_matrix(
+                context,
+                rows,
+                mixed,
+                source,
+                windows,
+                public_input=True,
+                verifier_commit="d" * 40,
+            )
     with pytest.raises(ValueError):
         alpha.verify_matrix(context, rows, jobs, source, windows, public_input=True)
     with pytest.raises(ValueError):
-        alpha.verify_matrix(context, rows, public_jobs, source, windows)
+        alpha.verify_matrix(context, rows, jobs, source, windows, verifier_commit="d" * 40)
+
+
+def test_public_artifacts_bind_actual_verifier_head_not_package_source() -> None:
+    from scripts.release_qualification import alpha1_matrix as alpha
+
+    context = _inputs(run_attempt=1)[0]
+    keys = ("admission", *alpha.ARTIFACT_KEYS[1:])
+    expected = {key: {"id": str(index), "sha256": "1" * 64} for index, key in enumerate(keys, 1)}
+    artifacts: list[dict[str, Any]] = [
+        {
+            "id": index,
+            "name": "og-public-123-1-" + key,
+            "digest": "sha256:" + "1" * 64,
+            "expired": False,
+            "workflow_run": {"id": 123, "head_sha": "d" * 40},
+        }
+        for index, key in enumerate(keys, 1)
+    ]
+    result = alpha.verify_artifacts(
+        context, expected, artifacts, public_input=True, verifier_commit="d" * 40
+    )
+    assert set(result) == set(keys)
+    artifacts[0]["workflow_run"]["head_sha"] = "a" * 40
+    with pytest.raises(ValueError):
+        alpha.verify_artifacts(
+            context, expected, artifacts, public_input=True, verifier_commit="d" * 40
+        )
 
 
 def test_alpha_matrix_requires_eight_rows_and_keeps_unqualified_status() -> None:

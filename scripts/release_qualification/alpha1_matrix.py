@@ -16,7 +16,7 @@ import tomllib
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from packaging.markers import default_environment
 from packaging.requirements import Requirement
@@ -33,6 +33,9 @@ from scripts.release_qualification.build_environment import (
     _parse_json_object,
 )
 from scripts.release_qualification.bundle import BundleBinding
+
+if TYPE_CHECKING:
+    from scripts.release_qualification.alpha1_public import PublicContext
 
 POLICY = "og-alpha2"
 VERSION = "2.1.0a2"
@@ -75,6 +78,27 @@ _ROW_FIELDS = {
     "operational",
     "build",
 }
+PUBLIC_SOURCE_BOOTSTRAP = """import importlib,importlib.util,pathlib,sys
+root=pathlib.Path(sys.argv[1]).resolve(strict=True)
+sys.path.insert(0,str(root))
+for name,relative in (
+    ('src','src/__init__.py'),
+    ('matryca_plumber','matryca_plumber/__init__.py'),
+    ('src.agent.og_parser_topology_adapter','src/agent/og_parser_topology_adapter.py'),
+):
+    expected=root/relative
+    spec=importlib.util.find_spec(name)
+    if spec is None or spec.origin is None or pathlib.Path(spec.origin).resolve()!=expected:
+        raise ValueError('Source control import origin mismatch before import')
+    module=importlib.import_module(name)
+    if (module.__file__ is None or module.__spec__ is None
+            or module.__spec__.origin is None
+            or pathlib.Path(module.__file__).resolve()!=expected
+            or pathlib.Path(module.__spec__.origin).resolve()!=expected):
+        raise ValueError('Source control import origin mismatch after import')
+import pytest
+raise SystemExit(pytest.main(sys.argv[2:]))
+"""
 
 
 def row_job_name(system: str, architecture: str, minor: str) -> str:
@@ -521,6 +545,21 @@ def verify_row(
         _verify_build(context, row["build"], key, system, architecture)
 
 
+def _job_head(context: MatrixContext, public_input: bool, verifier_commit: str | None) -> str:
+    if public_input:
+        _require(
+            context.run_attempt == 1
+            and isinstance(verifier_commit, str)
+            and re.fullmatch(r"[0-9a-f]{40}", verifier_commit) is not None
+            and verifier_commit != context.binding.source_commit,
+            "Public qualification requires a distinct independently selected verifier.",
+        )
+        assert verifier_commit is not None
+        return verifier_commit
+    _require(verifier_commit is None, "A diagnostic matrix must retain its source identity.")
+    return context.binding.source_commit
+
+
 def verify_matrix(
     context: MatrixContext,
     rows: list[dict[str, Any]],
@@ -529,9 +568,11 @@ def verify_matrix(
     windows: dict[str, Any],
     *,
     public_input: bool = False,
+    verifier_commit: str | None = None,
 ) -> dict[str, Any]:
     """Fail closed unless all eight rows and independent upstream jobs are complete."""
     bundle._validate_binding(context.binding, policy=POLICY)
+    job_head = _job_head(context, public_input, verifier_commit)
     _require(
         type(context.run_attempt) is int and context.run_attempt > 0, "Invalid expected attempt."
     )
@@ -559,7 +600,7 @@ def verify_matrix(
             and job.get("conclusion") == "success"
             and type(job.get("run_id")) is int
             and str(job["run_id"]) == context.run_id
-            and job.get("head_sha") == context.binding.source_commit,
+            and job.get("head_sha") == job_head,
             "An upstream job did not succeed on the exact source.",
         )
     for report in (source, windows):
@@ -939,7 +980,13 @@ def source_selectors(context: MatrixContext) -> list[str]:
 
 
 def run_source_controls(
-    context: MatrixContext, source: Path, python: Path, work: Path, report: Path
+    context: MatrixContext,
+    source: Path,
+    python: Path,
+    work: Path,
+    report: Path,
+    *,
+    public_input: bool = False,
 ) -> dict[str, Any]:
     """Use ordinary pytest and JUnit, not a private execution observer."""
     _require(not work.exists() and not work.is_symlink(), "Source-control output must be fresh.")
@@ -947,21 +994,23 @@ def run_source_controls(
     selectors = source_selectors(context)
     report.parent.mkdir(parents=True, exist_ok=True)
     _require(not report.exists() and not report.is_symlink(), "Source JUnit must be fresh.")
+    arguments = [
+        "-q",
+        "-o",
+        "addopts=",
+        "--junitxml",
+        str(report),
+        "--basetemp",
+        str(work / "pytest"),
+        *selectors,
+    ]
+    command = (
+        [str(python), "-I", "-B", "-c", PUBLIC_SOURCE_BOOTSTRAP, str(source), *arguments]
+        if public_input
+        else [str(python), "-B", "-m", "pytest", *arguments]
+    )
     result = sdist_build._run_bounded(
-        [
-            str(python),
-            "-B",
-            "-m",
-            "pytest",
-            "-q",
-            "-o",
-            "addopts=",
-            "--junitxml",
-            str(report),
-            "--basetemp",
-            str(work / "pytest"),
-            *selectors,
-        ],
+        command,
         cwd=source,
         timeout=900,
         capture=True,
@@ -1073,8 +1122,10 @@ def verify_artifacts(
     artifacts: list[dict[str, Any]],
     *,
     public_input: bool = False,
+    verifier_commit: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Bind downloaded artifacts to independently carried upstream outputs and REST metadata."""
+    job_head = _job_head(context, public_input, verifier_commit)
     keys = ("admission", *ARTIFACT_KEYS[1:]) if public_input else ARTIFACT_KEYS
     _require(set(expected) == set(keys), "Incomplete upstream artifact bindings.")
     family = "og-public" if public_input else "og-alpha"
@@ -1107,7 +1158,7 @@ def verify_artifacts(
             and item.get("expired") is False
             and type(run.get("id")) is int
             and str(run["id"]) == context.run_id
-            and run.get("head_sha") == context.binding.source_commit,
+            and run.get("head_sha") == job_head,
             "Artifact ID, digest, run or source identity mismatch.",
         )
         output[key] = item
@@ -1159,6 +1210,7 @@ def aggregate_downloads(
     expected_build: dict[str, Any],
     *,
     expected_public: dict[str, Any] | None = None,
+    verifier: PublicContext | None = None,
 ) -> dict[str, Any]:
     """Compose exact downloaded evidence only after job and artifact authentication."""
     _require(
@@ -1172,8 +1224,17 @@ def aggregate_downloads(
         "Artifact metadata is incomplete or paginated.",
     )
     public_input = expected_public is not None
+    _require(
+        public_input == (verifier is not None),
+        "Public aggregation requires an independently selected verifier context.",
+    )
+    verifier_commit = verifier.verifier_commit if verifier is not None else None
     identities = verify_artifacts(
-        context, expected_artifacts, artifacts["artifacts"], public_input=public_input
+        context,
+        expected_artifacts,
+        artifacts["artifacts"],
+        public_input=public_input,
+        verifier_commit=verifier_commit,
     )
     expected_names = {item["name"] for item in identities.values()}
     _require(
@@ -1205,7 +1266,8 @@ def aggregate_downloads(
     if expected_public is not None:
         from scripts.release_qualification.alpha1_public import verify_retained
 
-        verify_retained(build_root, context, expected_public)
+        assert verifier is not None
+        verify_retained(build_root, context, expected_public, verifier=verifier)
     build = read_document(build_root / "canonical-build.json")
     _require(
         build == expected_build,
@@ -1262,7 +1324,15 @@ def aggregate_downloads(
         "Unexpected Windows refusal evidence files.",
     )
     windows = read_document(paths["windows-refusal"] / "windows.json")
-    result = verify_matrix(context, rows, jobs["jobs"], source, windows, public_input=public_input)
+    result = verify_matrix(
+        context,
+        rows,
+        jobs["jobs"],
+        source,
+        windows,
+        public_input=public_input,
+        verifier_commit=verifier_commit,
+    )
     if expected_public is not None:
         result["public_input"] = expected_public
     result["artifact_bindings"] = expected_artifacts

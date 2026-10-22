@@ -11,6 +11,10 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from scripts.release_qualification.alpha1_matrix import MatrixContext
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -44,6 +48,32 @@ def _alpha_context(args: argparse.Namespace) -> object:
         os.environ["GITHUB_RUN_ID"],
         int(os.environ["GITHUB_RUN_ATTEMPT"]),
     )
+
+
+def _alpha_public_inputs(args: argparse.Namespace, context: MatrixContext, root: Path) -> bool:
+    """Authenticate public originals before any installed or source-test execution."""
+    from scripts.release_qualification.alpha1_matrix import document
+    from scripts.release_qualification.alpha1_public import context_from_roots, verify_retained
+
+    verifier_root = getattr(args, "verifier_root", None)
+    if verifier_root is None:
+        if os.environ.get("EXPECTED_PUBLIC_JSON"):
+            raise ValueError("Public inputs require an explicit verifier checkout.")
+        return False
+    value = os.environ.get("EXPECTED_PUBLIC_JSON")
+    if not value:
+        raise ValueError("EXPECTED_PUBLIC_JSON is required for public execution.")
+    verifier = context_from_roots(
+        args.source_root, verifier_root, os.environ.get("PUBLICATION_RUN", "")
+    )
+    if (
+        root.is_symlink()
+        or root.resolve().is_relative_to(args.source_root.resolve())
+        or root.resolve().is_relative_to(verifier_root.resolve())
+    ):
+        raise ValueError("Public bundle must be outside the two selected checkouts.")
+    verify_retained(root, context, document(value.encode()), verifier=verifier)
+    return True
 
 
 def _alpha_build(args: argparse.Namespace) -> None:
@@ -85,6 +115,7 @@ def _alpha_row(args: argparse.Namespace) -> None:
 
     context = _alpha_context(args)
     assert isinstance(context, MatrixContext)
+    _alpha_public_inputs(args, context, args.dist_dir.parent)
     try:
         result = run_row(
             context,
@@ -134,6 +165,7 @@ def _alpha_source_controls(args: argparse.Namespace) -> None:
 
     context = _alpha_context(args)
     assert isinstance(context, MatrixContext)
+    public_input = _alpha_public_inputs(args, context, args.dist_dir.parent)
     verify_handoff(args.dist_dir, args.dist_dir / "SHA256SUMS", context.binding, policy="og-alpha2")
     result = run_source_controls(
         context,
@@ -141,12 +173,20 @@ def _alpha_source_controls(args: argparse.Namespace) -> None:
         args.python,
         args.work,
         args.output.parent / "junit.xml",
+        public_input=public_input,
     )
     _write_new_file(args.output, canonical(result), "source control evidence")
 
 
 def _alpha_windows_refusal(args: argparse.Namespace) -> None:
     from scripts.release_qualification.alpha1_matrix import canonical, run_windows_refusal
+
+    if getattr(args, "verifier_root", None) is not None:
+        from scripts.release_qualification.alpha1_public import context_from_roots
+
+        context_from_roots(
+            args.source_root, args.verifier_root, os.environ.get("PUBLICATION_RUN", "")
+        )
 
     if (
         subprocess.check_output(
@@ -200,7 +240,9 @@ def _alpha_public_admit(args: argparse.Namespace) -> None:
     _regular_file(output, "GITHUB_OUTPUT")
     if output.resolve().is_relative_to(args.output.resolve()):
         raise ValueError("GITHUB_OUTPUT must be outside the public bundle.")
-    record = admit_public(args.source_root, args.output, args.publication_run)
+    record = admit_public(
+        args.source_root, args.output, args.publication_run, verifier=args.verifier_root
+    )
     binding = BundleBinding.from_json(
         (args.output / "binding.json").read_text(), policy="og-alpha2"
     )
@@ -221,9 +263,13 @@ def _alpha_public_aggregate(args: argparse.Namespace) -> None:
         document,
         read_document,
     )
+    from scripts.release_qualification.alpha1_public import context_from_roots
 
     context = _alpha_context(args)
     assert isinstance(context, MatrixContext)
+    verifier = context_from_roots(
+        args.source_root, args.verifier_root, os.environ.get("PUBLICATION_RUN", "")
+    )
     result = aggregate_downloads(
         context,
         args.receipt_dir,
@@ -232,6 +278,7 @@ def _alpha_public_aggregate(args: argparse.Namespace) -> None:
         document(os.environ["EXPECTED_ARTIFACTS_JSON"].encode()),
         document(os.environ["EXPECTED_BUILD_JSON"].encode()),
         expected_public=document(os.environ["EXPECTED_PUBLIC_JSON"].encode()),
+        verifier=verifier,
     )
     _write_new_file(args.output, canonical(result), "public alpha aggregate")
 
@@ -502,6 +549,7 @@ def _parser() -> argparse.ArgumentParser:
         alpha_row.add_argument("--" + name, type=Path, required=True)
     alpha_row.add_argument("--kind", choices=("wheel", "sdist"), required=True)
     alpha_row.add_argument("--minor", choices=("3.12", "3.13"), required=True)
+    alpha_row.add_argument("--verifier-root", type=Path)
     alpha_row.set_defaults(handler=_alpha_row)
 
     alpha_source = commands.add_parser(
@@ -509,6 +557,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     for name in ("source-root", "dist-dir", "python", "work", "output"):
         alpha_source.add_argument("--" + name, type=Path, required=True)
+    alpha_source.add_argument("--verifier-root", type=Path)
     alpha_source.set_defaults(handler=_alpha_source_controls)
 
     alpha_windows = commands.add_parser(
@@ -517,6 +566,7 @@ def _parser() -> argparse.ArgumentParser:
     for name in ("source-root", "python", "output"):
         alpha_windows.add_argument("--" + name, type=Path, required=True)
     alpha_windows.add_argument("--expected-commit", required=True)
+    alpha_windows.add_argument("--verifier-root", type=Path)
     alpha_windows.set_defaults(handler=_alpha_windows_refusal)
 
     alpha_aggregate = commands.add_parser(
@@ -542,6 +592,7 @@ def _parser() -> argparse.ArgumentParser:
     public_admit.add_argument("--source-root", type=Path, required=True)
     public_admit.add_argument("--output", type=Path, required=True)
     public_admit.add_argument("--publication-run", required=True)
+    public_admit.add_argument("--verifier-root", type=Path, required=True)
     public_admit.set_defaults(handler=_alpha_public_admit)
 
     public_aggregate = commands.add_parser(
@@ -550,6 +601,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     for name in ("source-root", "receipt-dir", "jobs", "artifacts", "output"):
         public_aggregate.add_argument("--" + name, type=Path, required=True)
+    public_aggregate.add_argument("--verifier-root", type=Path, required=True)
     public_aggregate.set_defaults(handler=_alpha_public_aggregate)
 
     return parser
