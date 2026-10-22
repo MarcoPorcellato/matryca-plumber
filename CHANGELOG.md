@@ -1,12 +1,5 @@
 ## [Unreleased]
 
-### Changed
-
-- **Operational failure diagnostics** — retain fixed, sanitized signal-error
-  categories and the original child failure reason in failed installed checks.
-  Preserve fail-closed cleanup and successful report shape; this does not establish
-  a cleanup repair, runtime qualification or consumer compatibility.
-
 ## [2.1.0-alpha.2] - 2026-10-19
 
 Preparation only: no alpha.2 tag, publication or runtime admission is recorded.
@@ -15,6 +8,11 @@ carried forward by reference, not treated as qualified artifacts. The signed
 alpha.1 tag and failed publisher remain immutable history.
 
 ### Changed
+
+- **Operational failure diagnostics** — retain fixed, sanitized signal-error
+  categories and the original child failure reason in failed installed checks.
+  Preserve fail-closed cleanup and successful report shape; this does not establish
+  a cleanup repair, runtime qualification or consumer compatibility.
 
 - **Exact alpha.2 recovery candidate** — migrate only active release bindings to
   `2.1.0a2` / `og-alpha2`, preserve the semantic profile and dependencies except
