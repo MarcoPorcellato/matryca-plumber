@@ -128,7 +128,7 @@ jobs:
       - name: Preserve public admission evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-admission
           path: ${{ runner.temp }}/bundle
@@ -226,7 +226,7 @@ jobs:
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.admission.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -240,7 +240,7 @@ jobs:
       - name: Preserve source-controls evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-source-controls
           path: ${{ runner.temp }}/source-results
@@ -344,7 +344,7 @@ jobs:
       - name: Preserve windows-refusal evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-windows-refusal
           path: ${{ runner.temp }}/windows-results
@@ -444,7 +444,7 @@ jobs:
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.admission.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -472,7 +472,7 @@ jobs:
       - name: Preserve linux312 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-linux312
           path: ${{ runner.temp }}/row-results
@@ -572,7 +572,7 @@ jobs:
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.admission.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -600,7 +600,7 @@ jobs:
       - name: Preserve linux313 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-linux313
           path: ${{ runner.temp }}/row-results
@@ -700,7 +700,7 @@ jobs:
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.admission.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -728,7 +728,7 @@ jobs:
       - name: Preserve macos312 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-macos312
           path: ${{ runner.temp }}/row-results
@@ -828,7 +828,7 @@ jobs:
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.admission.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -856,7 +856,7 @@ jobs:
       - name: Preserve macos313 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-macos313
           path: ${{ runner.temp }}/row-results
@@ -969,7 +969,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" > "$RUNNER_TEMP/current-main.json"
           "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"]+"/current-main.json"))["object"]["sha"]==os.environ["SELECTED_SOURCE"]'
       - name: Download only the seven independently carried artifact IDs
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: "${{ needs.admission.outputs.artifact-id }},${{ needs.source-controls.outputs.artifact-id }},${{ needs.windows-refusal.outputs.artifact-id }},${{ needs.linux312.outputs.artifact-id }},${{ needs.linux313.outputs.artifact-id }},${{ needs.macos312.outputs.artifact-id }},${{ needs.macos313.outputs.artifact-id }}"
           path: ${{ runner.temp }}/downloaded
@@ -980,7 +980,7 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-aggregate --source-root "$GITHUB_WORKSPACE" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
       - name: Preserve public aggregate (not consumer admission)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-public-${{ github.run_id }}-${{ github.run_attempt }}-aggregate
           path: ${{ runner.temp }}/alpha-aggregate.json
