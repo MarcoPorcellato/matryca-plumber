@@ -63,10 +63,11 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > [historical RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
 > and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md).
 
-> **Current development: experimental `2.1.0a2` preparation.** Alpha.1's
+> **Current development: experimental `2.1.0a3` preparation.** Alpha.1's
 > [failed publication](docs/releases/v2.1.0-alpha.1-FAILED-PUBLICATION.md)
-> remains immutable; its earlier source evidence does not qualify alpha.2. The
-> [active qualification plan](docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md)
+> and alpha.2's published assets and failed public verification remain unchanged;
+> their evidence does not qualify alpha.3. The
+> [active qualification plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md)
 > prioritizes an offline OG graph-identity and complete content-free topology
 > producer. Linux x86_64 and macOS arm64, CPython 3.12/3.13, and wheel/sdist paths
 > form eight planned rows; none is qualified by this preparation. The
@@ -138,7 +139,7 @@ uv tool install matryca-plumber==2.0.1rc3
 ```
 
 `2.0.1rc4` is not published and must not be installed. The experimental
-`2.1.0a2` track is preparation, not an installation recommendation or publication
+`2.1.0a3` track is preparation, not an installation recommendation or publication
 record. Neither RC3 availability nor alpha preparation proves Gate B or stable
 qualification.
 
@@ -147,7 +148,7 @@ That gateway requires a dedicated environment with the complete hash-locked
 Parser 1.9.0 dependency profile, followed by installation of the verified public
 wheel with `--no-deps`. The broad application dependency range and an ordinary
 `uvx` resolution do not qualify this exact profile. Follow the
-[alpha plan](docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md)
+[alpha plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md)
 only after its public artifacts and profile pass the declared gates.
 
 ## What v2.0.0 changes
@@ -177,7 +178,7 @@ v2.0.0 contract.
 The active 2.1.0 alpha programme adds an isolated, offline process boundary for
 graph identification and complete ordered, content-free OG topology. Its planned
 installed matrix, exact dependency profile and public-artifact handoff are defined
-in the [alpha qualification plan](docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md).
+in the [alpha qualification plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md).
 Preparation and static contracts do not prove installed support or a usable Trama
 adapter. Text/properties, Logseq DB, writes, events, sync and active-desktop
 coexistence are not included. Windows gateway refusal is a negative control,
@@ -403,7 +404,7 @@ and large-export behavior.
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
 | Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
 | Review v2.0.1-rc.1 evidence | [Historical prerelease record](docs/releases/v2.0.1-rc.1-GITHUB.md) and [artifact-bound qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md) |
-| Track experimental 2.1.0a2 preparation | [Active alpha qualification plan](docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md) and [RC4 supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) |
+| Track experimental 2.1.0a3 preparation | [Active alpha qualification plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md) and [RC4 supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) |
 | Review the superseded v2.0.1-rc.4 path | [Historical RC4 release preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |

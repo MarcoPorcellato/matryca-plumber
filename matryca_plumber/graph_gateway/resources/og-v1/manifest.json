@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "files": {
-    "dependency-profile.json": "41e6a80eda3981cf16482a2fa971a2e536481ca7d8408aa149f0324613200f46",
+    "dependency-profile.json": "9064e339a2fa5e58ce2d49e64b896865dd3a80615b8f5dbd5391c404cde83e92",
     "fixture-manifest.json": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
     "fixtures/journals/2026_10_13.md": "7a710f3e4d48069ddf00f6b6b9bde40894e2c6e6525bad4600aa6efa37fa6b7c",
     "fixtures/pages/B.md": "83680d7150820edfd610e23e3e4b41f263337c86bccc4893f85485093d416bd9",

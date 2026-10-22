@@ -5,7 +5,7 @@ description: Records the prepared OG operational resource package and its unqual
 resource: docs/quality/
 tags: [graph, operational-profile, qualification]
 audience: [maintainer, contributor, operator, agent]
-last_verified: 2026-10-17
+last_verified: 2026-10-22
 stale_after: 2027-04-13
 status: draft
 classification: active
@@ -20,7 +20,7 @@ This document records the prepared source package for the experimental OG proces
 
 The packaged descriptor identifies `plumber.og.operational/v1` and remains `unqualified`. Its four declared rows—Linux x86_64 with Python 3.12 and 3.13, and macOS arm64 with Python 3.12 and 3.13—remain `planned`. The profile advertises only graph identification and a complete topology snapshot from an OG Markdown source.
 
-The dependency profile records an offline no-header UV export of the approved alpha lock with its MCP-only security amendment: the 73-entry native export has a pinned SHA-256, and the packaged requirements prepend the recorded `--require-hashes` policy line without changing those native bytes. The exact closure includes `mcp` 1.30.0 for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv), `GitPython` 3.2.1, `multidict` 6.9.1 and `logseq-matryca-parser` 1.9.0. Only MCP and its root requirement changed; all unrelated lock records remain byte-identical. The older branch's virtualenv and python-discovery closure remains excluded. The profile binds project version `2.1.0a2`, root-lock bytes, native export, packaged requirements and the complete resource digest chain. The export does not install dependencies. The root-only alpha.2 bump changes the profile's lock binding and the manifest/descriptor digest references, not the native export, packaged requirements or dependency selections. This remains preparation metadata, not proof that an installed package has been qualified or that future dependency versions are compatible.
+The dependency profile records the approved lock's 73-entry offline no-header UV runtime export. Packaged requirements prepend the recorded `--require-hashes` policy line without changing those native bytes. The exact Parser profile remains `logseq-matryca-parser` 1.9.0. The earlier MCP, HTTP and certificate security exceptions remain recorded in the historical [alpha.2 plan](V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md); they are not new dependency changes in alpha.3. The older branch's virtualenv and python-discovery closure remains excluded. The root-only alpha.3 bump binds project version `2.1.0a3` and new root-lock bytes through the dependency-profile, manifest and descriptor digest chain. It changes neither the native export, packaged requirements nor any dependency selection, and performs no installation. This is preparation metadata, not proof of an installed result or future dependency compatibility.
 
 ## Package contents and bounds
 

@@ -2233,7 +2233,7 @@
       "path": "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md",
       "type": "Roadmap",
       "title": "Experimental 2.1.0a1 release qualification plan",
-      "description": "Historical alpha.1 qualification policy and failed-publication context; the active alpha.2 plan carries forward unchanged experimental criteria.",
+      "description": "Historical alpha.1 qualification policy and failed-publication context; later alpha plans carry forward the unchanged experimental criteria.",
       "classification": "historical",
       "audience": [
         "maintainer",
@@ -2255,7 +2255,29 @@
       "path": "docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md",
       "type": "Roadmap",
       "title": "Experimental 2.1.0a2 release qualification plan",
-      "description": "Active eight-row POSIX alpha.2 policy after the preserved alpha.1 publication failure; fresh source qualification and independent public-byte verification precede Trama evaluation.",
+      "description": "Historical eight-row POSIX alpha.2 policy, dated security exceptions and failed public-qualification boundary; the active alpha.3 plan requires fresh evidence.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "archive",
+      "supersedes": [
+        "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md"
+      ],
+      "notes": "Superseded as the active policy by docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md. Preserve the original plan, signed alpha.2 tag, public assets and failed verification without transferring evidence or admitting Trama.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md",
+      "type": "Roadmap",
+      "title": "Experimental 2.1.0a3 release qualification plan",
+      "description": "Active eight-row POSIX alpha.3 recovery policy after the macOS cleanup repair; fresh source, explicit publication and actual-public-byte verification precede independent Trama evaluation.",
       "classification": "active",
       "audience": [
         "maintainer",
@@ -2268,9 +2290,9 @@
       "destination": null,
       "action": "keep",
       "supersedes": [
-        "docs/quality/V2_1_0A1_RELEASE_QUALIFICATION_PLAN_2026-10-16.md"
+        "docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md"
       ],
-      "notes": "Tier 3 experimental preparation only. Closed og-alpha2 policy; frozen Parser/dependency/resource semantics; no tag/publication or Trama admission implied.",
+      "notes": "Tier 3 preparation only. Closed og-alpha3 policy; dependencies, producer behavior, fixtures, TCK and RC4 defaults stay frozen. Preserve older releases and failures. No tag, publication, runtime or Trama admission is granted.",
       "missing": false
     },
     {

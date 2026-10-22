@@ -713,7 +713,7 @@ def test_build_handoff_missing_github_output_writes_no_success_value(tmp_path: P
     assert "GITHUB_OUTPUT is required" in result.stderr
 
 
-def _alpha_inputs(tmp_path: Path, version: str = "2.1.0a2") -> tuple[Path, str, Path, Path]:
+def _alpha_inputs(tmp_path: Path, version: str = "2.1.0a3") -> tuple[Path, str, Path, Path]:
     """Create matching synthetic alpha source, ledger and archives; never build code."""
     repo, _commit, _tree, ledger = _write_repo(tmp_path)
     project = repo / "pyproject.toml"
@@ -767,24 +767,24 @@ def test_alpha_policy_authenticates_source_ledger_and_handoff_without_rc_waiver(
     with pytest.raises(ValueError, match="version"):
         build_binding(repo, dist, ledger, commit)
 
-    binding = build_binding(repo, dist, ledger, commit, policy="og-alpha2")
-    assert binding.version == "2.1.0a2"
-    assert binding.wheel_name == "matryca_plumber-2.1.0a2-py3-none-any.whl"
-    assert BundleBinding.from_json(binding.to_json(), policy="og-alpha2") == binding
+    binding = build_binding(repo, dist, ledger, commit, policy="og-alpha3")
+    assert binding.version == "2.1.0a3"
+    assert binding.wheel_name == "matryca_plumber-2.1.0a3-py3-none-any.whl"
+    assert BundleBinding.from_json(binding.to_json(), policy="og-alpha3") == binding
     with pytest.raises(ValueError, match="version"):
         BundleBinding.from_json(binding.to_json())
     manifest = dist / "SHA256SUMS"
-    manifest.write_bytes(canonical_manifest(binding, policy="og-alpha2"))
-    verify_handoff(dist, manifest, binding, policy="og-alpha2")
+    manifest.write_bytes(canonical_manifest(binding, policy="og-alpha3"))
+    verify_handoff(dist, manifest, binding, policy="og-alpha3")
     with pytest.raises(ValueError, match="version"):
         verify_handoff(dist, manifest, binding)
     wheel = dist / binding.wheel_name
     wheel.write_bytes(wheel.read_bytes() + b"tampered")
     with pytest.raises(ValueError, match="differs"):
-        verify_handoff(dist, manifest, binding, policy="og-alpha2")
+        verify_handoff(dist, manifest, binding, policy="og-alpha3")
 
 
-@pytest.mark.parametrize("version", ["2.1.0a1", "2.1.0a3", "2.1.0", "2.0.1rc4"])
+@pytest.mark.parametrize("version", ["2.1.0a1", "2.1.0a2", "2.1.0a4", "2.1.0", "2.0.1rc4"])
 def test_alpha_policy_refuses_other_well_formed_release_versions(version: str) -> None:
     binding = BundleBinding(
         "a" * 40,
@@ -800,10 +800,10 @@ def test_alpha_policy_refuses_other_well_formed_release_versions(version: str) -
         "f" * 64,
     )
     with pytest.raises(ValueError, match="version"):
-        BundleBinding.from_json(binding.to_json(), policy="og-alpha2")
+        BundleBinding.from_json(binding.to_json(), policy="og-alpha3")
 
 
-@pytest.mark.parametrize("policy", ["og-alpha1", "all", "2.1.0a2", "", "rc.*"])
+@pytest.mark.parametrize("policy", ["og-alpha1", "og-alpha2", "all", "2.1.0a3", "", "rc.*"])
 def test_bundle_policy_is_closed_not_a_caller_supplied_version_rule(policy: str) -> None:
     binding = BundleBinding(
         "a" * 40,
@@ -826,11 +826,11 @@ def test_alpha_binding_preserves_archive_size_and_digest_validation() -> None:
     binding = BundleBinding(
         "a" * 40,
         "b" * 40,
-        "2.1.0a2",
-        "matryca_plumber-2.1.0a2-py3-none-any.whl",
+        "2.1.0a3",
+        "matryca_plumber-2.1.0a3-py3-none-any.whl",
         1,
         "c" * 64,
-        "matryca_plumber-2.1.0a2.tar.gz",
+        "matryca_plumber-2.1.0a3.tar.gz",
         1,
         "d" * 64,
         "e" * 64,
@@ -838,4 +838,4 @@ def test_alpha_binding_preserves_archive_size_and_digest_validation() -> None:
     )
     for invalid in (replace(binding, wheel_size=True), replace(binding, sdist_sha256="invalid")):
         with pytest.raises(ValueError):
-            BundleBinding.from_json(invalid.to_json(), policy="og-alpha2")
+            BundleBinding.from_json(invalid.to_json(), policy="og-alpha3")

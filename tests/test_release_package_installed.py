@@ -138,11 +138,11 @@ def test_alpha_installed_authentication_requires_explicit_policy_before_file_acc
     binding = BundleBinding(
         "a" * 40,
         "b" * 40,
-        "2.1.0a2",
-        "matryca_plumber-2.1.0a2-py3-none-any.whl",
+        "2.1.0a3",
+        "matryca_plumber-2.1.0a3-py3-none-any.whl",
         1,
         "c" * 64,
-        "matryca_plumber-2.1.0a2.tar.gz",
+        "matryca_plumber-2.1.0a3.tar.gz",
         1,
         "d" * 64,
         "e" * 64,
@@ -159,7 +159,7 @@ def test_alpha_installed_authentication_requires_explicit_policy_before_file_acc
             tmp_path,
             "wheel",
             artifact=tmp_path / binding.wheel_name,
-            policy="og-alpha2",
+            policy="og-alpha3",
         )
 
 
@@ -170,7 +170,7 @@ def test_alpha_installed_policy_reaches_real_nested_archive_authentication(
     from tests.test_release_package_bundle import _alpha_inputs
 
     source, commit, ledger, dist = _alpha_inputs(tmp_path)
-    binding = bundle_module.build_binding(source, dist, ledger, commit, policy="og-alpha2")
+    binding = bundle_module.build_binding(source, dist, ledger, commit, policy="og-alpha3")
 
     def stop_after_archive(*_args: object, **_kwargs: object) -> None:
         raise ValueError("authenticated archive reached")
@@ -183,7 +183,7 @@ def test_alpha_installed_policy_reaches_real_nested_archive_authentication(
             source,
             "wheel",
             artifact=dist / binding.wheel_name,
-            policy="og-alpha2",
+            policy="og-alpha3",
         )
 
 
