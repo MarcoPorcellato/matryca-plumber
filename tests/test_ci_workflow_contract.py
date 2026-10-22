@@ -32,6 +32,11 @@ def test_og_macos_cleanup_stress_is_bounded_and_outside_row_artifacts() -> None:
         assert upload["with"]["if-no-files-found"] == "error"
 
 
+def test_og_macos_cleanup_stress_driver_triggers_qualification() -> None:
+    workflow = _load_workflow(WORKFLOWS / "og-profile-qualification.yml")
+    assert "tests/test_og_macos_cleanup_stress.py" in workflow["on"]["pull_request"]["paths"]
+
+
 CI_WORKFLOW = WORKFLOWS / "ci.yml"
 CODEQL_WORKFLOW = WORKFLOWS / "codeql.yml"
 MAKEFILE = ROOT / "Makefile"

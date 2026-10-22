@@ -18,6 +18,7 @@ on:
       - frontend/**
       - tests/test_release_package_*.py
       - tests/test_build_release_artifacts.py
+      - tests/test_og_macos_cleanup_stress.py
   workflow_dispatch:
     inputs:
       source_sha:
