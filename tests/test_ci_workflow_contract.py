@@ -13,6 +13,30 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
+
+
+def test_og_macos_cleanup_stress_is_bounded_and_outside_row_artifacts() -> None:
+    workflow = _load_workflow(WORKFLOWS / "og-profile-qualification.yml")
+    for key in ("macos312", "macos313"):
+        steps = workflow["jobs"][key]["steps"]
+        stress = next(step for step in steps if step.get("name") == "Stress owned macOS cleanup")
+        assert stress["timeout-minutes"] == "3"
+        assert "--iterations 200" in stress["run"]
+        assert "runtime-wheel/bin/python" in stress["run"]
+        upload = next(
+            step for step in steps if step.get("name") == "Preserve cleanup stress evidence"
+        )
+        assert upload["if"] == "always()"
+        assert upload["with"]["name"].startswith("og-cleanup-stress-")
+        assert "row-results" not in upload["with"]["path"]
+        assert upload["with"]["if-no-files-found"] == "error"
+
+
+def test_og_macos_cleanup_stress_driver_triggers_qualification() -> None:
+    workflow = _load_workflow(WORKFLOWS / "og-profile-qualification.yml")
+    assert "tests/test_og_macos_cleanup_stress.py" in workflow["on"]["pull_request"]["paths"]
+
+
 CI_WORKFLOW = WORKFLOWS / "ci.yml"
 CODEQL_WORKFLOW = WORKFLOWS / "codeql.yml"
 MAKEFILE = ROOT / "Makefile"
