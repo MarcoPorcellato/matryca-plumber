@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import importlib
 import importlib.util
 import io
 import json
+import subprocess
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
@@ -37,9 +39,55 @@ def _public() -> Any:
     return importlib.import_module(name)
 
 
+def test_metadata_acquisition_preserves_the_real_nonempty_argv_guard(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts import qualify_release_package as cli
+    from scripts.release_qualification import process
+
+    class SpawnReached(RuntimeError):
+        pass
+
+    commands: list[list[str]] = []
+
+    def intercept_spawn(command: list[str], **_kwargs: Any) -> Any:
+        commands.append(command)
+        raise SpawnReached
+
+    # Replace only the OS spawn, not _acquire, _run_bounded or its real guard.
+    # No child, network request or downloaded code can execute in this test.
+    monkeypatch.setattr(subprocess, "Popen", intercept_spawn)
+    with pytest.raises(SpawnReached):
+        _public()._acquire(
+            "https://pypi.org/pypi/matryca-plumber/2.1.0a2/json",
+            tmp_path / "pypi.json",
+            0,
+            "",
+            "pypi-metadata",
+        )
+    assert len(commands) == 1
+    command = commands[0]
+    assert all(isinstance(token, str) and token for token in command)
+    parsed = cli._parser().parse_args(command[3:])
+    assert parsed.command == "alpha-public-fetch"
+    assert parsed.sha256 == "" and parsed.size == 0
+    assert parsed.kind == "pypi-metadata"
+    with pytest.raises(ValueError, match="nonempty shell-free argv"):
+        process.start_process(["synthetic", ""])
+
+
 def _inputs() -> tuple[Any, dict[str, Any]]:
     public = _public()
-    context = public.PublicContext(SOURCE, TREE, "123", "456")
+    workflow = b"name: synthetic verifier\n"
+    context = public.PublicContext(
+        SOURCE,
+        TREE,
+        "123",
+        "456",
+        "d" * 40,
+        "e" * 40,
+        hashlib.sha256(workflow).hexdigest(),
+    )
     release_assets = [
         {
             "id": index + 1,
@@ -53,7 +101,7 @@ def _inputs() -> tuple[Any, dict[str, Any]]:
         for index, name in enumerate(NAMES)
     ]
     metadata = {
-        "main": {"object": {"sha": SOURCE}},
+        "main": {"object": {"sha": "d" * 40}},
         "tag": {"ref": "refs/tags/" + TAG, "object": {"type": "tag", "sha": "c" * 40}},
         "tag_object": {
             "sha": "c" * 40,
@@ -71,18 +119,40 @@ def _inputs() -> tuple[Any, dict[str, Any]]:
             "status": "completed",
             "conclusion": "success",
             "repository": {"id": 1241185104, "full_name": REPO},
+            "actor": {"id": 220745401, "login": "MarcoPorcellato"},
+            "triggering_actor": {"id": 220745401, "login": "MarcoPorcellato"},
         },
         "verifier": {
             "id": 456,
             "run_attempt": 1,
             "event": "workflow_dispatch",
-            "head_sha": SOURCE,
+            "head_sha": "d" * 40,
             "head_branch": "main",
             "path": ".github/workflows/og-public-artifact-qualification.yml",
             "status": "in_progress",
             "repository": {"id": 1241185104, "full_name": REPO},
+            "actor": {"id": 220745401, "login": "MarcoPorcellato"},
+            "triggering_actor": {"id": 220745401, "login": "MarcoPorcellato"},
+        },
+        "verifier_commit": {
+            "sha": "d" * 40,
+            "tree": {"sha": "e" * 40},
+            "parents": [{"sha": SOURCE}],
+            "verification": {"verified": True, "reason": "valid"},
+        },
+        "verifier_workflow": {
+            "type": "file",
+            "path": ".github/workflows/og-public-artifact-qualification.yml",
+            "encoding": "base64",
+            "size": len(workflow),
+            "content": base64.b64encode(workflow).decode(),
+            "sha": hashlib.sha1(
+                b"blob " + str(len(workflow)).encode() + b"\0" + workflow,
+                usedforsecurity=False,
+            ).hexdigest(),
         },
         "release": {
+            "id": 17,
             "tag_name": TAG,
             "draft": False,
             "prerelease": True,
@@ -113,13 +183,249 @@ def test_public_metadata_accepts_only_the_actual_original_pair() -> None:
     assert result[NAMES[0]]["sha256"] == hashlib.sha256(NAMES[0].encode()).hexdigest()
 
 
+def _separated_inputs() -> tuple[Any, dict[str, Any]]:
+    _, metadata = _inputs()
+    workflow = b"name: synthetic verifier\n"
+    verifier = "d" * 40
+    context = _public().PublicContext(
+        SOURCE, TREE, "123", "456", verifier, "e" * 40, hashlib.sha256(workflow).hexdigest()
+    )
+    metadata["main"]["object"]["sha"] = verifier
+    metadata["verifier"]["head_sha"] = verifier
+    for role in ("publisher", "verifier"):
+        metadata[role]["actor"] = {"id": 220745401, "login": "MarcoPorcellato"}
+        metadata[role]["triggering_actor"] = {"id": 220745401, "login": "MarcoPorcellato"}
+    metadata["verifier_commit"] = {
+        "sha": verifier,
+        "tree": {"sha": "e" * 40},
+        "parents": [{"sha": SOURCE}],
+        "verification": {"verified": True, "reason": "valid"},
+    }
+    metadata["verifier_workflow"] = {
+        "type": "file",
+        "path": ".github/workflows/og-public-artifact-qualification.yml",
+        "encoding": "base64",
+        "size": len(workflow),
+        "content": base64.b64encode(workflow).decode(),
+        "sha": hashlib.sha1(
+            b"blob " + str(len(workflow)).encode() + b"\0" + workflow,
+            usedforsecurity=False,
+        ).hexdigest(),
+    }
+    return context, metadata
+
+
+def test_public_metadata_binds_separate_verifier_without_relabeling_publisher() -> None:
+    context, metadata = _separated_inputs()
+    assets = _public().verify_metadata(context, metadata)
+    assert set(assets) == set(NAMES)
+    assert metadata["publisher"]["head_sha"] == SOURCE
+    assert metadata["verifier"]["head_sha"] == "d" * 40
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "main-source",
+        "verifier-source",
+        "publisher-verifier",
+        "publisher-main-alias",
+        "verifier-tag-alias",
+        "verifier-tree",
+        "verifier-parent",
+        "verifier-signature",
+        "verifier-workflow",
+        "verifier-workflow-size",
+        "verifier-workflow-blob",
+        "verifier-workflow-path",
+        "verifier-actor",
+        "publisher-actor",
+        "missing-commit",
+    ),
+)
+def test_public_metadata_rejects_conflated_or_unauthenticated_verifier(mutation: str) -> None:
+    context, metadata = _separated_inputs()
+    public = _public()
+    public.verify_metadata(context, metadata)
+    if mutation == "main-source":
+        metadata["main"]["object"]["sha"] = SOURCE
+    elif mutation == "verifier-source":
+        metadata["verifier"]["head_sha"] = SOURCE
+    elif mutation == "publisher-verifier":
+        metadata["publisher"]["head_sha"] = "d" * 40
+    elif mutation == "publisher-main-alias":
+        metadata["publisher"]["path"] += "@main"
+    elif mutation == "verifier-tag-alias":
+        metadata["verifier"]["path"] += "@" + TAG
+    elif mutation == "verifier-tree":
+        metadata["verifier_commit"]["tree"]["sha"] = TREE
+    elif mutation == "verifier-parent":
+        metadata["verifier_commit"]["parents"] = [{"sha": "f" * 40}]
+    elif mutation == "verifier-signature":
+        metadata["verifier_commit"]["verification"]["verified"] = False
+    elif mutation == "verifier-workflow":
+        metadata["verifier_workflow"]["content"] = base64.b64encode(b"foreign").decode()
+    elif mutation == "verifier-workflow-size":
+        metadata["verifier_workflow"]["size"] = True
+    elif mutation == "verifier-workflow-blob":
+        metadata["verifier_workflow"]["sha"] = "0" * 40
+    elif mutation == "verifier-workflow-path":
+        metadata["verifier_workflow"]["path"] = ".github/workflows/release.yml"
+    elif mutation in ("verifier-actor", "publisher-actor"):
+        metadata[mutation.removesuffix("-actor")]["actor"]["id"] = 7
+    else:
+        del metadata["verifier_commit"]
+    with pytest.raises(ValueError):
+        public.verify_metadata(context, metadata)
+
+
+@pytest.mark.parametrize(
+    "bad_root",
+    (None, "same", "nested", "symlink", "dirty", "parent", "scope", "mode", "actor"),
+)
+def test_public_roots_require_disjoint_clean_source_and_actual_tooling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bad_root: str | None
+) -> None:
+    public = _public()
+    source, verifier = tmp_path / "producer", tmp_path / "verifier"
+    source.mkdir()
+    verifier.mkdir()
+    workflow = b"name: synthetic verifier\n"
+    release = b"name: synthetic producer\n"
+    for root in (source, verifier):
+        (root / ".github/workflows").mkdir(parents=True)
+        (root / ".github/workflows/og-public-artifact-qualification.yml").write_bytes(workflow)
+        (root / ".github/workflows/release.yml").write_bytes(release)
+    for module, filename in (
+        (public, "alpha1_public.py"),
+        (public.matrix, "alpha1_matrix.py"),
+        (public.bundle, "bundle.py"),
+        (public.installed, "installed.py"),
+        (public.sdist_build, "sdist_build.py"),
+    ):
+        path = verifier / "scripts/release_qualification" / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"# inert synthetic origin\n")
+        monkeypatch.setattr(module, "__file__", str(path))
+        monkeypatch.setattr(module.__spec__, "origin", str(path))
+    monkeypatch.setattr(public, "PRODUCER_COMMIT", SOURCE, raising=False)
+    monkeypatch.setattr(public, "PRODUCER_TREE", TREE, raising=False)
+    monkeypatch.setattr(public, "PUBLISHER_RUN", "123", raising=False)
+    monkeypatch.setattr(
+        public,
+        "PRODUCER_RELEASE_WORKFLOW_SHA256",
+        hashlib.sha256(release).hexdigest(),
+        raising=False,
+    )
+    for key, value in {
+        "GITHUB_REPOSITORY": REPO,
+        "GITHUB_REPOSITORY_ID": "1241185104",
+        "GITHUB_REF": "refs/heads/main",
+        "GITHUB_EVENT_NAME": "workflow_dispatch",
+        "GITHUB_RUN_ATTEMPT": "1",
+        "GITHUB_RUN_ID": "456",
+        "GITHUB_SHA": "d" * 40,
+        "GITHUB_ACTOR": "MarcoPorcellato",
+        "GITHUB_ACTOR_ID": "220745401",
+        "GITHUB_TRIGGERING_ACTOR": "MarcoPorcellato",
+        "GITHUB_WORKSPACE": str(tmp_path),
+    }.items():
+        monkeypatch.setenv(key, value)
+
+    def git_value(root: Path, *args: str) -> str:
+        if args[0] == "rev-parse":
+            return (
+                (SOURCE if root == source else "d" * 40)
+                if args[1] == "HEAD"
+                else (TREE if root == source else "e" * 40)
+            )
+        if args[0] == "status":
+            return " M synthetic" if bad_root == "dirty" else ""
+        if args[0] == "show":
+            return "f" * 40 if bad_root == "parent" else SOURCE
+        if args[0] == "diff":
+            return (
+                "src/forbidden.py"
+                if bad_root == "scope"
+                else ("scripts/release_qualification/alpha1_public.py")
+            )
+        if args[0] == "ls-tree":
+            mode = "100755" if bad_root == "mode" else "100644"
+            return mode + " blob " + "0" * 40 + "\t" + args[-1]
+        raise AssertionError(args)
+
+    monkeypatch.setattr(public.installed, "_git_value", git_value)
+    if bad_root == "actor":
+        monkeypatch.setenv("GITHUB_ACTOR_ID", "7")
+    if bad_root == "same":
+        verifier = source
+    elif bad_root == "nested":
+        verifier = source / "verifier"
+        verifier.mkdir()
+    elif bad_root == "symlink":
+        link = tmp_path / "producer-link"
+        link.symlink_to(source, target_is_directory=True)
+        source = link
+    if bad_root is not None:
+        with pytest.raises(ValueError):
+            public.context_from_roots(source, verifier, "123")
+    else:
+        context = public.context_from_roots(source, verifier, "123")
+        assert context.source_commit == SOURCE and context.verifier_commit == "d" * 40
+        assert context.verifier_workflow_sha256 == hashlib.sha256(workflow).hexdigest()
+
+
+@pytest.mark.parametrize("foreign", (False, True))
+def test_public_source_child_checks_origins_before_loading_product_or_pytest(
+    tmp_path: Path, foreign: bool
+) -> None:
+    import sys
+
+    from scripts.release_qualification import alpha1_matrix as alpha
+    from scripts.release_qualification import sdist_build
+
+    source = tmp_path / "producer"
+    source.mkdir()
+    marker = tmp_path / "foreign-import"
+    package = source / "src"
+    if foreign:
+        outside = tmp_path / "foreign-src"
+        outside.mkdir()
+        (outside / "__init__.py").write_text(
+            "from pathlib import Path\nPath(" + repr(str(marker)) + ").touch()\n"
+        )
+        package.symlink_to(outside, target_is_directory=True)
+    else:
+        package.mkdir()
+        (package / "__init__.py").write_text("")
+        (package / "agent").mkdir()
+        (package / "agent/__init__.py").write_text("")
+        (package / "agent/og_parser_topology_adapter.py").write_text("")
+    (source / "matryca_plumber").mkdir()
+    (source / "matryca_plumber/__init__.py").write_text("")
+    (source / "pytest.py").write_text(
+        "def main(args):\n print('SOURCE_COLLECTION', flush=True)\n return 0\n"
+    )
+    result = sdist_build._run_bounded(
+        [sys.executable, "-I", "-B", "-c", alpha.PUBLIC_SOURCE_BOOTSTRAP, str(source)],
+        cwd=tmp_path,
+        timeout=15,
+        capture=True,
+    )
+    assert not marker.exists()
+    if foreign:
+        assert result.returncode != 0 and b"SOURCE_COLLECTION" not in result.stdout
+    else:
+        assert result.returncode == 0 and b"SOURCE_COLLECTION" in result.stdout
+
+
 @pytest.mark.parametrize(
     "publisher_suffix",
-    ("", "@main", "@v2.1.0-alpha.2", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    ("", "@v2.1.0-alpha.2", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 )
 @pytest.mark.parametrize(
     "verifier_suffix",
-    ("", "@main", "@v2.1.0-alpha.2", "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    ("", "@main", "@dddddddddddddddddddddddddddddddddddddddd"),
 )
 def test_public_metadata_accepts_selected_source_workflow_selectors(
     publisher_suffix: str, verifier_suffix: str
@@ -222,8 +528,8 @@ def test_qualified_workflow_paths_preserve_run_identity_checks(
 ) -> None:
     context, metadata = _inputs()
     public = _public()
-    metadata["publisher"]["path"] += "@main"
-    metadata["verifier"]["path"] += "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    metadata["publisher"]["path"] += "@" + TAG
+    metadata["verifier"]["path"] += "@dddddddddddddddddddddddddddddddddddddddd"
     public.verify_metadata(context, metadata)
     metadata[role][field] = bad_value
     with pytest.raises(ValueError, match="Publication or qualification run identity mismatch"):
@@ -234,8 +540,8 @@ def test_qualified_workflow_paths_preserve_run_identity_checks(
 def test_qualified_workflow_paths_require_selected_source_aliases(anchor: str) -> None:
     context, metadata = _inputs()
     public = _public()
-    metadata["publisher"]["path"] += "@main"
-    metadata["verifier"]["path"] += "@v2.1.0-alpha.2"
+    metadata["publisher"]["path"] += "@" + TAG
+    metadata["verifier"]["path"] += "@main"
     public.verify_metadata(context, metadata)
     if anchor == "main":
         metadata["main"]["object"]["sha"] = "b" * 40
@@ -449,6 +755,55 @@ def test_attestation_uses_signed_certificate_invocation_not_predicate(field: str
         public.verify_attestation(context, NAMES[0], sha, json.dumps(value).encode())
 
 
+@pytest.mark.parametrize("field", ("buildSignerDigest", "sourceRepositoryDigest"))
+def test_verifier_revision_cannot_replace_producer_attestation_source(field: str) -> None:
+    context, _ = _inputs()
+    value = json.loads(_attestation(NAMES[0]))
+    value[0]["verificationResult"]["signature"]["certificate"][field] = "d" * 40
+    with pytest.raises(ValueError, match="certificate"):
+        _public().verify_attestation(
+            context,
+            NAMES[0],
+            hashlib.sha256(NAMES[0].encode()).hexdigest(),
+            json.dumps(value).encode(),
+        )
+
+
+@pytest.mark.parametrize("mutation", ("id", "size", "digest", "release", "tag"))
+def test_frozen_publication_rejects_two_matching_but_replaced_inventories(
+    monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    public = _public()
+    context, metadata = _inputs()
+    assets = public.verify_metadata(context, metadata)
+    monkeypatch.setattr(public, "PUBLISHED_RELEASE_ID", 17)
+    monkeypatch.setattr(public, "PUBLISHED_TAG_OBJECT", "c" * 40)
+    monkeypatch.setattr(
+        public,
+        "PUBLISHED_SUBJECTS",
+        {name: (item["id"], item["size"], item["sha256"]) for name, item in assets.items()},
+    )
+    public.verify_frozen_publication(metadata, assets)
+    asset, pypi = metadata["release"]["assets"][0], metadata["pypi"]["urls"][0]
+    if mutation == "id":
+        asset["id"] = 100
+        asset["url"] = f"https://api.github.com/repos/{REPO}/releases/assets/100"
+    elif mutation == "size":
+        asset["size"] += 1
+        pypi["size"] += 1
+    elif mutation == "digest":
+        asset["digest"] = "sha256:" + "0" * 64
+        pypi["digests"]["sha256"] = "0" * 64
+    elif mutation == "release":
+        metadata["release"]["id"] = 18
+    else:
+        metadata["tag"]["object"]["sha"] = "f" * 40
+        metadata["tag_object"]["sha"] = "f" * 40
+    replacement = public.verify_metadata(context, metadata)
+    with pytest.raises(ValueError, match="preserved publication"):
+        public.verify_frozen_publication(metadata, replacement)
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -544,7 +899,7 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
     from scripts.release_qualification.bundle import BundleBinding, canonical_manifest
 
     public = _public()
-    _, metadata = _inputs()
+    public_context, metadata = _inputs()
     payloads = {name: name.encode() for name in NAMES}
     binding = BundleBinding(
         SOURCE,
@@ -607,10 +962,26 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
     gh = tmp_path / "synthetic-gh"
     gh.write_bytes(b"not-executed")
     monkeypatch.setattr(public.shutil, "which", lambda _name: str(gh))
+    monkeypatch.setattr(public, "PRODUCER_COMMIT", SOURCE)
+    monkeypatch.setattr(public, "PRODUCER_TREE", TREE)
+    monkeypatch.setattr(public, "PUBLISHER_RUN", "123")
+    monkeypatch.setattr(public, "PUBLISHED_TAG_OBJECT", "c" * 40)
+    monkeypatch.setattr(public, "PUBLISHED_RELEASE_ID", 17)
     monkeypatch.setattr(
-        public.bundle, "_git_value", lambda _path, arg: SOURCE if arg == "HEAD" else TREE
+        public,
+        "PUBLISHED_SUBJECTS",
+        {
+            asset["name"]: (asset["id"], asset["size"], asset["digest"][7:])
+            for asset in metadata["release"]["assets"]
+        },
     )
-    monkeypatch.setattr(public, "installed_status", lambda _source: "")
+
+    def selected_roots(source_root: Path, verifier_root: Path, run: str) -> Any:
+        assert source_root == tmp_path / "source"
+        assert verifier_root == tmp_path / "verifier" and run == "123"
+        return public_context
+
+    monkeypatch.setattr(public, "context_from_roots", selected_roots)
     monkeypatch.setattr(public.bundle, "build_binding", lambda *_args, **_kwargs: binding)
 
     def source_context(root: Path, actual: Any, run_id: str, attempt: int) -> Any:
@@ -646,6 +1017,8 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
                 f"repos/{REPO}/actions/runs/123": "publisher",
                 f"repos/{REPO}/actions/runs/456": "verifier",
                 f"repos/{REPO}/releases/tags/{TAG}": "release",
+                f"repos/{REPO}/git/commits/" + "d" * 40: "verifier_commit",
+                f"repos/{REPO}/contents/{public.VERIFIER}?ref=" + "d" * 40: "verifier_workflow",
             }[route]
             raw = json.dumps(metadata[key]).encode()
         else:
@@ -680,27 +1053,51 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
         "GITHUB_EVENT_NAME": "workflow_dispatch",
         "GITHUB_RUN_ATTEMPT": "1",
         "GITHUB_RUN_ID": "456",
-        "GITHUB_SHA": SOURCE,
+        "GITHUB_SHA": "d" * 40,
     }.items():
         monkeypatch.setenv(key, value)
     source = tmp_path / "source"
     source.mkdir()
+    verifier_root = tmp_path / "verifier"
+    verifier_root.mkdir()
     output = tmp_path / "public-bundle"
     if build_failure is not None:
         with pytest.raises(ValueError, match="Canonical build|Canonical frontend"):
-            public.admit_public(source, output, "123")
+            public.admit_public(source, output, "123", verifier=verifier_root)
         assert not (output / "public-input.json").exists()
         assert handoffs == []
         return
-    record = public.admit_public(source, output, "123")
+    record = public.admit_public(source, output, "123", verifier=verifier_root)
     assert handoffs == [output / "dist"]
     assert len(acquisitions) == len(set(acquisitions)) == 9
     assert sum(argv[1:3] == ["attestation", "verify"] for argv in calls) == 6
     context = SimpleNamespace(binding=binding, run_id="456", run_attempt=1)
-    public.verify_retained(output, context, record)
+    public.verify_retained(output, context, record, verifier=public_context)
+    assert record["schema_version"] == 2 and record["verifier_commit"] == "d" * 40
+    for field, replacement in (
+        ("schema_version", 1),
+        ("schema_version", True),
+        ("verifier_commit", SOURCE),
+        ("verifier_tree", TREE),
+        ("verifier_workflow_sha256", "0" * 64),
+        ("verifier_attempt", True),
+        ("source_commit", "d" * 40),
+        ("publisher_run", "456"),
+        ("future-field", None),
+    ):
+        changed = {**record, field: replacement}
+        (output / "public-input.json").write_bytes(public.matrix.canonical(changed))
+        with pytest.raises(ValueError):
+            public.verify_retained(output, context, changed, verifier=public_context)
+    for field in ("verifier_commit", "verifier_tree", "verifier_workflow_sha256"):
+        changed = {key: value for key, value in record.items() if key != field}
+        (output / "public-input.json").write_bytes(public.matrix.canonical(changed))
+        with pytest.raises(ValueError):
+            public.verify_retained(output, context, changed, verifier=public_context)
+    (output / "public-input.json").write_bytes(public.matrix.canonical(record))
     (output / "dist" / NAMES[0]).write_bytes(b"tampered")
     with pytest.raises(ValueError):
-        public.verify_retained(output, context, record)
+        public.verify_retained(output, context, record, verifier=public_context)
 
 
 def test_public_workflow_has_no_rebuild_or_diagnostic_substitution() -> None:
@@ -730,6 +1127,37 @@ def test_public_workflow_has_no_rebuild_or_diagnostic_substitution() -> None:
     assert jobs["admission"]["name"] == "Admit public OG alpha"
     assert all(int(job["timeout-minutes"]) <= 35 for job in jobs.values())
     assert "actions: read" in text and "attestations: read" in text
+    assert value["defaults"]["run"]["working-directory"] == "verifier"
+    for name, job in jobs.items():
+        checkouts = [
+            step for step in job["steps"] if step.get("uses", "").startswith("actions/checkout@")
+        ]
+        assert len(checkouts) == 2
+        assert checkouts[0]["with"]["ref"] == "${{ github.sha }}"
+        assert checkouts[0]["with"]["path"] == "verifier"
+        assert checkouts[1]["with"]["ref"] == "82df37cdd4751e7cf0da9bf6372785567251c0ea"
+        assert checkouts[1]["with"]["path"] == "producer"
+        assert all(step["with"]["persist-credentials"] == "false" for step in checkouts)
+        if name == "windows-refusal":
+            git_overrides = {
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.autocrlf",
+                "GIT_CONFIG_VALUE_0": "false",
+            }
+            assert all(step.get("env") == git_overrides for step in checkouts)
+        if name in ("source-controls", "linux312", "linux313", "macos312", "macos313"):
+            assert (
+                job["env"]["EXPECTED_PUBLIC_JSON"] == "${{ needs.admission.outputs.public-json }}"
+            )
+        invocations = [
+            line
+            for step in job["steps"]
+            for line in step.get("run", "").splitlines()
+            if "scripts/qualify_release_package.py alpha-" in line
+        ]
+        assert len(invocations) == 1
+        assert '--source-root "$GITHUB_WORKSPACE/producer"' in invocations[0]
+        assert '--verifier-root "$GITHUB_WORKSPACE/verifier"' in invocations[0]
 
 
 def test_publisher_stages_six_attested_assets_but_only_two_distributions() -> None:

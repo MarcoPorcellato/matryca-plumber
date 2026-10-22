@@ -199,6 +199,10 @@ remain unchanged. Active tooling rejects stale alpha.1 and future versions. A ma
 retarget or manually upload the failed name. No publication is performed by the
 acquisition-correction PR.
 
+The original same-source procedure below is retained for publication history.
+The dated verifier amendment that follows is the only exception; it does not
+authorize a new campaign.
+
 The separate
 [`og-public-artifact-qualification.yml`](../.github/workflows/og-public-artifact-qualification.yml)
 is manual-only. Its inputs are the exact final source commit `S` and the
@@ -241,6 +245,83 @@ campaign and independent review. Only then may a sanitized immutable producer
 handoff be offered to Trama #2. No consumer admission, Windows installed support,
 DB/payload access, user-graph use, stable claim or full-soak result follows from
 this bridge.
+
+##### 2026-10-22: separate the verifier without replacing alpha.2
+
+The published producer is commit
+`82df37cdd4751e7cf0da9bf6372785567251c0ea`, tree
+`e5e43299b06f780905cc16920e3ebaca701f2d8e` (S/T). Its signed
+`v2.1.0-alpha.2` tag and successful publisher run
+[`39734945749`](https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39734945749)
+remain fixed. The public verifier
+[`39741677332`, attempt 1](https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39741677332)
+failed before the public metadata-fetch child: a standalone empty digest
+argument was correctly rejected by the generic shell-free argv guard.
+That failure does not qualify or reject the package's graph behavior. Preserve
+it; do not rerun it, replace the tag, rebuild the originals or republish.
+
+A separately reviewed verifier revision C may qualify those same public bytes
+only under all of the following conditions:
+
+- C is a signed protected-main commit with sole parent S. Its reviewed delta
+  is confined to the public qualification modules, CLI, public workflow, their
+  two regression files, this release process, the active alpha.2 plan,
+  Unreleased changelog and generated documentation inventory. Producer code,
+  dependency/build locks, Parser 1.9.0, contracts, descriptors, fixtures,
+  goldens, TCK resources, the publisher and diagnostic workflows remain unchanged.
+- The maintainer separately freezes and activates the complete C commit, tree
+  and verifier-workflow SHA-256 together with S/T, publisher R and the six
+  preserved public subject identities. No future identity is an executable
+  placeholder. Integration CI alone does not activate public qualification.
+- A new public run Q2 is a distinct first attempt, dispatched from exact
+  current main C. The workflow retains only `source_sha=S` and
+  `publication_run=R` as inputs. The producer checkout uses literal S; the
+  verifier checkout uses the validated event SHA, never a moving ref or an
+  arbitrary caller-selected verifier. Do not embed a workflow's own future
+  commit or containing workflow hash into itself.
+- Every relevant job uses clean, regular, disjoint `producer` and `verifier`
+  checkouts. Qualification helpers originate in C. Source-control children
+  check their exact S import origins before collection under isolated Python;
+  Windows refusal loads the S bootstrap. Installed verification and the
+  operational TCK continue to select only authenticated installed packages.
+- Public input schema 2 explicitly carries `verifier_commit`, `verifier_tree`
+  and `verifier_workflow_sha256`. It is checked against the clean roots,
+  signed C parent/tree, actual run metadata and workflow bytes. Missing fields,
+  old schema 1, inferred verifier defaults and source/verifier role swaps are
+  rejected. Diagnostic MatrixContext, receipt schemas and RC defaults do not change.
+- Main, the event, actual jobs and Actions artifacts bind C; producer bindings,
+  source/resource/ledger expectations and installed rows bind S/T. Publisher
+  selectors bind the tag/S, verifier selectors bind main/C. All six cryptographic
+  attestations retain producer source/signer digest S and the original
+  release workflow/tag and signed publisher invocation R. C must never replace
+  an attestation's producer digest.
+- Fresh GitHub and PyPI inventories must equal the preserved publication,
+  not merely agree with each other. Admission authenticates the exact originals,
+  ledger and canonical-build record before any package execution; public-row
+  preflight and aggregation repeat the checks. The empty metadata digest is
+  encoded as one nonempty argv token, `--sha256=`; distribution digests,
+  byte limits, redirects, process ownership and cleanup rules remain unchanged.
+
+The original wheel is 754,128 bytes with SHA-256
+`77e224f5f16fa06e98855cb79df00763e092b63c09a6b3adb2f7f659e298918e`.
+The original sdist is 1,041,123 bytes with SHA-256
+`ddeecbd974bd625b025b5c5f2f6064b4b684c9309a0399d70744f6b30970a501`.
+The Release currently reports `immutable=false`; content identities and the
+signed tag are verified, not asserted as service-enforced immutability.
+
+The public campaign still requires eight installed wheel/sdist rows, four
+independent CPython 3.12 builders, CPython 3.12/3.13 runtimes, source/JUnit
+negatives, all static and operational controls, native Windows refusal and
+verified cleanup. Its eight report roles include the aggregate; none may be
+replaced with diagnostic evidence. Missing, failed, skipped, replayed, mixed
+or uncertain evidence is NO-GO.
+
+Only after actual Q2 passes independent review may a separately activated,
+four-path documentary handoff H have sole parent C. H must name S, C, R and Q2
+separately; it is neither package nor verifier source. This amendment activates
+neither Q2 nor H and closes no issue. Trama #2/ADR-0007 admission, a consumer
+adapter/test, payload/DB access, stable support and the full dual-profile soak
+remain separate.
 
 ### Historical RC4 qualification policy
 

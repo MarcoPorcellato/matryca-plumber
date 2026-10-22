@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Public artifact verifier provenance** — preserve the published alpha.2
+  producer inputs while authenticating the corrected verifier independently,
+  enforce separate checkout and import origins, and encode the metadata digest
+  without weakening the shell-free process guard. Public-byte qualification
+  and consumer admission remain separate gates.
+
 ## [2.1.0-alpha.2] - 2026-10-19
 
 Preparation only: no alpha.2 tag, publication or runtime admission is recorded.

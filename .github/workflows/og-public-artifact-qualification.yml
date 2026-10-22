@@ -14,6 +14,10 @@ on:
 
 permissions: {}
 
+defaults:
+  run:
+    working-directory: verifier
+
 env:
   SELECTED_SOURCE: ${{ inputs.source_sha }}
   PUBLICATION_RUN: ${{ inputs.publication_run }}
@@ -42,9 +46,18 @@ jobs:
       build-json: ${{ steps.admit.outputs.build_json }}
       public-json: ${{ steps.admit.outputs.public_json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Require the activated exact main attempt
@@ -58,8 +71,16 @@ jobs:
           test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$PUBLICATION_RUN" =~ ^[1-9][0-9]*$ ]]
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -113,7 +134,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -124,7 +145,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-admit --source-root "$GITHUB_WORKSPACE" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle"
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-admit --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle"
       - name: Preserve public admission evidence
         if: always()
         id: upload
@@ -148,10 +169,20 @@ jobs:
       artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
     env:
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+      EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -159,13 +190,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -220,7 +259,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -236,7 +275,7 @@ jobs:
         timeout-minutes: 16
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-source-controls --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json"
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-source-controls --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json"
       - name: Preserve source-controls evidence
         if: always()
         id: upload
@@ -259,9 +298,26 @@ jobs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
       artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -269,13 +325,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -330,7 +394,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -340,7 +404,7 @@ jobs:
         timeout-minutes: 2
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py alpha-windows-refusal --source-root "$GITHUB_WORKSPACE" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json"
+          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py alpha-windows-refusal --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json"
       - name: Preserve windows-refusal evidence
         if: always()
         id: upload
@@ -366,10 +430,20 @@ jobs:
     env:
       RUNTIME_MINOR: "3.12"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+      EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -377,13 +451,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -438,7 +520,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -458,16 +540,16 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/producer/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$GITHUB_WORKSPACE/producer/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
           done
       - name: Preserve linux312 evidence
         if: always()
@@ -494,10 +576,20 @@ jobs:
     env:
       RUNTIME_MINOR: "3.13"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+      EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -505,13 +597,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -566,7 +666,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -586,16 +686,16 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/producer/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$GITHUB_WORKSPACE/producer/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
           done
       - name: Preserve linux313 evidence
         if: always()
@@ -622,10 +722,20 @@ jobs:
     env:
       RUNTIME_MINOR: "3.12"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+      EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -633,13 +743,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -694,7 +812,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -714,16 +832,16 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/producer/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$GITHUB_WORKSPACE/producer/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
           done
       - name: Preserve macos312 evidence
         if: always()
@@ -750,10 +868,20 @@ jobs:
     env:
       RUNTIME_MINOR: "3.13"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
+      EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -761,13 +889,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -822,7 +958,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -842,16 +978,16 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/producer/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$GITHUB_WORKSPACE/producer/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
           done
       - name: Preserve macos313 evidence
         if: always()
@@ -880,9 +1016,18 @@ jobs:
       EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
       EXPECTED_ARTIFACTS_JSON: '{"admission":{"id":"${{ needs.admission.outputs.artifact-id }}","sha256":"${{ needs.admission.outputs.artifact-sha256 }}"},"source-controls":{"id":"${{ needs.source-controls.outputs.artifact-id }}","sha256":"${{ needs.source-controls.outputs.artifact-sha256 }}"},"windows-refusal":{"id":"${{ needs.windows-refusal.outputs.artifact-id }}","sha256":"${{ needs.windows-refusal.outputs.artifact-sha256 }}"},"linux312":{"id":"${{ needs.linux312.outputs.artifact-id }}","sha256":"${{ needs.linux312.outputs.artifact-sha256 }}"},"linux313":{"id":"${{ needs.linux313.outputs.artifact-id }}","sha256":"${{ needs.linux313.outputs.artifact-sha256 }}"},"macos312":{"id":"${{ needs.macos312.outputs.artifact-id }}","sha256":"${{ needs.macos312.outputs.artifact-sha256 }}"},"macos313":{"id":"${{ needs.macos313.outputs.artifact-id }}","sha256":"${{ needs.macos313.outputs.artifact-sha256 }}"}}'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout reviewed verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ github.sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Checkout preserved producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          path: producer
           persist-credentials: false
           fetch-depth: 0
       - name: Verify selected source
@@ -890,13 +1035,21 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD origin/main
+          test "$SELECTED_SOURCE" = 82df37cdd4751e7cf0da9bf6372785567251c0ea
+          test "$PUBLICATION_RUN" = 39734945749
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" != "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git show -s --format=%P HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git -C "$GITHUB_WORKSPACE/producer" rev-parse HEAD^{tree})" = e5e43299b06f780905cc16920e3ebaca701f2d8e
+          test -z "$(git -C "$GITHUB_WORKSPACE/producer" status --porcelain --untracked-files=all)"
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -951,7 +1104,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --project "$GITHUB_WORKSPACE/producer" --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
           tooling="$RUNNER_TEMP/tools/bin/python"
           if [ "$RUNNER_OS" = Windows ]; then tooling="$RUNNER_TEMP/tools/Scripts/python.exe"; fi
           "$tooling" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
@@ -967,7 +1120,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
           gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" > "$RUNNER_TEMP/current-main.json"
-          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"]+"/current-main.json"))["object"]["sha"]==os.environ["SELECTED_SOURCE"]'
+          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"]+"/current-main.json"))["object"]["sha"]==os.environ["GITHUB_SHA"]'
       - name: Download only the seven independently carried artifact IDs
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
@@ -978,7 +1131,7 @@ jobs:
       - name: Fail-closed public alpha aggregation
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-aggregate --source-root "$GITHUB_WORKSPACE" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-aggregate --source-root "$GITHUB_WORKSPACE/producer" --verifier-root "$GITHUB_WORKSPACE/verifier" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
       - name: Preserve public aggregate (not consumer admission)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
