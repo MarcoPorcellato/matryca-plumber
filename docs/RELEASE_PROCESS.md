@@ -65,7 +65,7 @@ is historical, not a proposal for the next candidate.
 
 ### Active experimental 2.1.0 alpha track
 
-The active [2.1.0a2 qualification plan](quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md)
+The active [2.1.0a3 qualification plan](quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md)
 prioritizes the offline OG identity/topology producer on Linux x86_64 and macOS
 arm64, with CPython 3.12 and 3.13 and both wheel and sdist installation paths.
 These eight rows are planned, not qualified. Windows gateway refusal is a
@@ -78,8 +78,8 @@ three-platform Stage A or the separately governed dual-profile Gate B. The
 experimental POSIX publication decision is distinct from that full qualification
 and from Trama's independent admission.
 
-For this preparation, package metadata uses `2.1.0a2`, the signed tag is
-prospective `v2.1.0-alpha.2`, and the changelog section is `[2.1.0-alpha.2]`. The release
+For this preparation, package metadata uses `2.1.0a3`, the signed tag is
+prospective `v2.1.0-alpha.3`, and the changelog section is `[2.1.0-alpha.3]`. The release
 workflow compares the metadata version with both byte-identical llms surfaces;
 its changelog extractor requires the literal tag spelling without `v`. Do not
 substitute a PEP 440-normalized changelog heading.
@@ -92,9 +92,9 @@ explicit scoped correction; do not opportunistically update the closure.
 The operational resources and additive
 [`og-profile-qualification.yml`](../.github/workflows/og-profile-qualification.yml)
 workflow must land before selecting the final source. The migration milestone
-records new preparation notes in `[2.1.0-alpha.2]`, preserves the entire
-alpha.1 section and references its unpublished capabilities rather than
-rewriting that history, and leaves an empty
+records the macOS cleanup repair and version preparation in `[2.1.0-alpha.3]`,
+preserves the entire alpha.1 and alpha.2 changelog sections rather than
+rewriting their history, and leaves an empty
 `[Unreleased]` section. Verify the exact extracted notes again before final
 candidate selection; later changes are not automatically included.
 Pre-publication workflow artifact hashes are diagnostic only: publication builds
@@ -132,7 +132,7 @@ Use the explicit `scripts/qualify_release_package.py` alpha subcommands:
 
 The legacy `build-handoff`, `verify-handoff`, `verify-installed` and
 `prepare-sdist-build` commands retain their RC-only defaults. Alpha policy is a
-closed opt-in for exactly `2.1.0a2`, not a caller-defined version expression.
+closed opt-in for exactly `2.1.0a3`, not a caller-defined version expression.
 
 Provision qualification tools with the unchanged project lock and no project
 installation. Explicit interpreter provisioning uses the manual download policy
@@ -169,7 +169,7 @@ dual-profile campaign is authorized by this lane.
 
 #### Exact-alpha publication and public-input bridge
 
-Only the exact tag `v2.1.0-alpha.2` selects the additive publisher branch.
+Only the exact tag `v2.1.0-alpha.3` selects the additive publisher branch.
 It reuses `alpha-build`, the canonical Node 22 frontend → normalized original
 sdist → original wheel sequence, with uv 0.12.19 and an independently locked
 CPython 3.12 build environment. The actual publisher records the original pair
@@ -192,12 +192,15 @@ qualifies bootstrap only, not installed packages or consumer compatibility.
 
 The signed alpha.1 tag and failed publisher are preserved in the
 [failure record](releases/v2.1.0-alpha.1-FAILED-PUBLICATION.md). The
-[recovery decision](quality/ALPHA_RELEASE_RECOVERY_2026-10-18.md) records the separately approved alpha.2 migration, fresh source qualification
-and later exact-source publication activation. The active closed policy is
-`og-alpha2`; historical internal `alpha1_*` filenames and alpha subcommands
-remain unchanged. Active tooling rejects stale alpha.1 and future versions. A main-only repair cannot change the old-tag workflow; do not rerun,
-retarget or manually upload the failed name. No publication is performed by the
-acquisition-correction PR.
+[recovery decision](quality/ALPHA_RELEASE_RECOVERY_2026-10-18.md) and
+[alpha.2 plan](quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md)
+remain historical authorities for that separately published candidate. Preserve
+alpha.2's tag, public assets and failed verification; no rerun is part of alpha.3
+preparation. The active closed policy is `og-alpha3`; historical internal
+`alpha1_*` filenames and alpha subcommands remain unchanged. Active tooling
+rejects stale alpha.1, alpha.2 and future versions. A main-only repair cannot
+change an old-tag workflow; do not retarget a tag or manually replace assets.
+The alpha.3 preparation PR performs no publication.
 
 The separate
 [`og-public-artifact-qualification.yml`](../.github/workflows/og-public-artifact-qualification.yml)

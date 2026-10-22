@@ -26,11 +26,11 @@ def _inputs(
     binding = BundleBinding(
         "a" * 40,
         "b" * 40,
-        "2.1.0a2",
-        "matryca_plumber-2.1.0a2-py3-none-any.whl",
+        "2.1.0a3",
+        "matryca_plumber-2.1.0a3-py3-none-any.whl",
         1,
         "c" * 64,
-        "matryca_plumber-2.1.0a2.tar.gz",
+        "matryca_plumber-2.1.0a3.tar.gz",
         2,
         "d" * 64,
         "e" * 64,
@@ -68,7 +68,7 @@ def _inputs(
             operating_system="linux" if system == "linux" else "darwin",
             architecture="x86_64" if architecture == "x64" else "arm64",
             python_version=runtime["version"],
-            version="2.1.0a2",
+            version="2.1.0a3",
             location_class="isolated-venv-site-packages",
             record_sha256="6" * 64,
             resource_sha256="7" * 64,
@@ -92,7 +92,7 @@ def _inputs(
                 "operating_system": "Linux" if system == "linux" else "Darwin",
                 "architecture": installed["architecture"],
                 "python_version": runtime["version"],
-                "plumber_version": "2.1.0a2",
+                "plumber_version": "2.1.0a3",
                 "parser_version": "1.9.0",
                 "sha256": "8" * 64,
             },
@@ -364,7 +364,7 @@ def test_alpha_accepts_the_existing_installed_probe_receipt(tmp_path: Path) -> N
         (package / "__init__.py").write_text('"""Inert synthetic probe package."""\n')
     for name, version in (
         ("logseq-matryca-parser", "1.9.0"),
-        ("matryca-plumber", "2.1.0a2"),
+        ("matryca-plumber", "2.1.0a3"),
         ("pip", "99.0"),
     ):
         metadata = site / (name.replace("-", "_") + "-" + version + ".dist-info")
@@ -389,7 +389,7 @@ def test_alpha_accepts_the_existing_installed_probe_receipt(tmp_path: Path) -> N
         operating_system=system,
         architecture=machine,
         python_version=version,
-        version="2.1.0a2",
+        version="2.1.0a3",
         location_class="isolated-venv-site-packages",
         record_sha256="6" * 64,
         resource_sha256="7" * 64,
@@ -412,7 +412,7 @@ def test_alpha_canonical_build_measures_frontend_versions(
 ) -> None:
     alpha = importlib.import_module("scripts.release_qualification.alpha1_matrix")
     context, *_rest = _inputs()
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion="2.1.0a2"\n')
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="2.1.0a3"\n')
     monkeypatch.setattr(alpha.bundle, "_git_value", lambda *_a: context.binding.source_commit)
     monkeypatch.setattr(alpha.installed, "_git_value", lambda *_a: "")
     monkeypatch.setattr(alpha, "locked_build_selection", lambda *_a: (object(), {}))
@@ -713,7 +713,7 @@ def test_mocked_row_composition_preserves_original_artifact_and_runtime_boundary
     temporary = b"synthetic temporary wheel"
 
     def prepare(original: Path, *_args: Any, **kwargs: Any) -> SimpleNamespace:
-        assert original == dist / context.binding.sdist_name and kwargs["policy"] == "og-alpha2"
+        assert original == dist / context.binding.sdist_name and kwargs["policy"] == "og-alpha3"
         if failure == "build":
             raise ValueError("Synthetic build failure")
         output = _args[-1] / context.binding.wheel_name
@@ -746,7 +746,7 @@ def test_mocked_row_composition_preserves_original_artifact_and_runtime_boundary
         artifact: Path,
         policy: str,
     ) -> SimpleNamespace:
-        assert _python == runtime and observed_kind == kind and policy == "og-alpha2"
+        assert _python == runtime and observed_kind == kind and policy == "og-alpha3"
         assert artifact == dist / (
             context.binding.wheel_name if kind == "wheel" else context.binding.sdist_name
         )

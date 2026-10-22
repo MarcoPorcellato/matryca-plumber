@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+## [2.1.0-alpha.3] - 2026-10-22
+
+Preparation only: no alpha.3 tag, publication or runtime admission is recorded.
+The published alpha.2 tag, assets and failed public-qualification evidence remain
+unchanged. Earlier diagnostics do not qualify the new version or its public bytes.
+
+### Changed
+
+- **Exact alpha.3 recovery candidate** — move active publisher, verifier and
+  package bindings to `2.1.0a3` / `og-alpha3`, retaining all dependency versions,
+  contracts, fixtures, TCK cases and RC4 defaults. Require fresh source and
+  actual-public-byte qualification before an independent Trama evaluation.
+
 ### Fixed
 
 - **macOS process cleanup** — retain group-signal permission observations without

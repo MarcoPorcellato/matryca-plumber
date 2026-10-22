@@ -319,7 +319,7 @@ def test_hash_locked_dependency_profile_matches_parser_lock_closure() -> None:
     assert profile["lock_source"] == "uv.lock"
     assert profile["matrix"] == package.descriptor["matrix"]
     assert profile["qualification"] == "unqualified"
-    assert profile["project"] == {"name": "matryca-plumber", "version": "2.1.0a2"}
+    assert profile["project"] == {"name": "matryca-plumber", "version": "2.1.0a3"}
     assert profile["export"]["entry_count"] == 73
     assert profile["export"]["kind"] == "uv-export-runtime-closure"
     requirements = package.assets["requirements-og-v1-parser-1.9.0.txt"]

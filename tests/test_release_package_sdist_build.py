@@ -116,11 +116,11 @@ def test_alpha_sdist_policy_is_explicit_and_reaches_descriptor_admission(
     binding = BundleBinding(
         "a" * 40,
         "b" * 40,
-        "2.1.0a2",
-        "matryca_plumber-2.1.0a2-py3-none-any.whl",
+        "2.1.0a3",
+        "matryca_plumber-2.1.0a3-py3-none-any.whl",
         1,
         "c" * 64,
-        "matryca_plumber-2.1.0a2.tar.gz",
+        "matryca_plumber-2.1.0a3.tar.gz",
         1,
         "d" * 64,
         "e" * 64,
@@ -142,7 +142,7 @@ def test_alpha_sdist_policy_is_explicit_and_reaches_descriptor_admission(
             tmp_path / "output",
             environment_descriptor=tmp_path / "descriptor.json",
             expected_build_environment_sha256="1" * 64,
-            policy="og-alpha2",
+            policy="og-alpha3",
         )
 
 
@@ -151,7 +151,7 @@ def test_alpha_policy_is_preserved_by_the_complete_nested_sdist_build(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     source, _commit, _tree, project = _source_checkout(tmp_path)
-    project = project.replace(b"2.0.1rc4", b"2.1.0a2")
+    project = project.replace(b"2.0.1rc4", b"2.1.0a3")
     (source / "pyproject.toml").write_bytes(project)
     subprocess.run(["git", "add", "pyproject.toml"], cwd=source, check=True)
     subprocess.run(
@@ -174,25 +174,25 @@ def test_alpha_policy_is_preserved_by_the_complete_nested_sdist_build(
     tree = subprocess.check_output(
         ["git", "rev-parse", "HEAD^{tree}"], cwd=source, text=True
     ).strip()
-    artifact = tmp_path / "matryca_plumber-2.1.0a2.tar.gz"
+    artifact = tmp_path / "matryca_plumber-2.1.0a3.tar.gz"
     with tarfile.open(artifact, "w:gz") as archive:
         for name, data in {
             "pyproject.toml": project,
             "module.py": b"VALUE = 1\n",
-            "PKG-INFO": b"Metadata-Version: 2.4\nName: matryca-plumber\nVersion: 2.1.0a2\n\n",
+            "PKG-INFO": b"Metadata-Version: 2.4\nName: matryca-plumber\nVersion: 2.1.0a3\n\n",
         }.items():
-            info = tarfile.TarInfo("matryca_plumber-2.1.0a2/" + name)
+            info = tarfile.TarInfo("matryca_plumber-2.1.0a3/" + name)
             info.size = len(data)
             archive.addfile(info, io.BytesIO(data))
     members, _contents, _directories = bundle_module._read_sdist(
-        artifact, "matryca_plumber-2.1.0a2"
+        artifact, "matryca_plumber-2.1.0a3"
     )
     size, sha256 = bundle_module._archive_sha256(artifact)
     binding = BundleBinding(
         commit,
         tree,
-        "2.1.0a2",
-        "matryca_plumber-2.1.0a2-py3-none-any.whl",
+        "2.1.0a3",
+        "matryca_plumber-2.1.0a3-py3-none-any.whl",
         1,
         "0" * 64,
         artifact.name,
@@ -212,11 +212,11 @@ def test_alpha_policy_is_preserved_by_the_complete_nested_sdist_build(
             output = Path(command[command.index("--out-dir") + 1]) / binding.wheel_name
             with zipfile.ZipFile(output, "w") as archive:
                 archive.writestr(
-                    "matryca_plumber-2.1.0a2.dist-info/METADATA",
-                    b"Metadata-Version: 2.4\nName: matryca-plumber\nVersion: 2.1.0a2\n\n",
+                    "matryca_plumber-2.1.0a3.dist-info/METADATA",
+                    b"Metadata-Version: 2.4\nName: matryca-plumber\nVersion: 2.1.0a3\n\n",
                 )
                 archive.writestr(
-                    "matryca_plumber-2.1.0a2.dist-info/WHEEL",
+                    "matryca_plumber-2.1.0a3.dist-info/WHEEL",
                     b"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
                 )
             commands.append(command)
@@ -236,7 +236,7 @@ def test_alpha_policy_is_preserved_by_the_complete_nested_sdist_build(
         output,
         environment_descriptor=descriptor,
         expected_build_environment_sha256=descriptor_sha,
-        policy="og-alpha2",
+        policy="og-alpha3",
     )
     assert result.sdist_sha256 == binding.sdist_sha256
     assert result.wheel_name == binding.wheel_name and result.source_commit == commit
