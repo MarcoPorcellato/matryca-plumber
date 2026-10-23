@@ -854,7 +854,18 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
         public.bundle, "_git_value", lambda _path, arg: SOURCE if arg == "HEAD" else TREE
     )
     monkeypatch.setattr(public, "installed_status", lambda _source: "")
-    monkeypatch.setattr(public.bundle, "build_binding", lambda *_args, **_kwargs: binding)
+
+    def synthetic_binding(
+        root: Path, dist: Path, ledger: Path, expected_commit: str, *, policy: str
+    ) -> Any:
+        # The real inventory verifier accepts only the two original archives.
+        assert root == tmp_path / "source" and expected_commit == SOURCE
+        assert policy == "og-alpha3"
+        assert {path.name for path in dist.iterdir()} == set(NAMES[:2])
+        assert ledger.read_bytes() == payloads["content-ledger.json"]
+        return binding
+
+    monkeypatch.setattr(public.bundle, "build_binding", synthetic_binding)
 
     def source_context(root: Path, actual: Any, run_id: str, attempt: int) -> Any:
         assert root == tmp_path / "source" and actual == binding
@@ -937,6 +948,7 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
         return
     record = public.admit_public(source, output, "123")
     assert handoffs == [output / "dist"]
+    assert not (output / "SHA256SUMS").exists()
     assert len(acquisitions) == len(set(acquisitions)) == 9
     assert sum(argv[1:3] == ["attestation", "verify"] for argv in calls) == 6
     context = SimpleNamespace(binding=binding, run_id="456", run_attempt=1)

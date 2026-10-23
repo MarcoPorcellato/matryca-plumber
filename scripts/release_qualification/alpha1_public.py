@@ -534,7 +534,7 @@ def admit_public(
     dist.mkdir()
     for name in ASSETS:
         expected = assets[name]
-        target = dist / name if name in (*ORIGINALS, "SHA256SUMS") else output / name
+        target = dist / name if name in ORIGINALS else output / name
         _acquire(expected["url"], target, expected["size"], expected["sha256"], "github")
         raw = gh_read(
             [
@@ -576,7 +576,6 @@ def admit_public(
     matrix.verify_canonical_build(
         expected_context, matrix.read_document(output / "canonical-build.json")
     )
-    bundle.verify_handoff(dist, dist / "SHA256SUMS", binding, policy=matrix.POLICY)
     observed = bundle.build_binding(
         source, dist, output / "content-ledger.json", context.source_commit, policy=matrix.POLICY
     )
@@ -584,6 +583,13 @@ def admit_public(
         observed == binding,
         "Public ledger or original artifact inventory differs from selected source.",
     )
+    manifest = dist / "SHA256SUMS"
+    _require(
+        not manifest.exists() and not manifest.is_symlink(),
+        "Refusing to replace checksum evidence.",
+    )
+    (output / "SHA256SUMS").rename(manifest)
+    bundle.verify_handoff(dist, manifest, binding, policy=matrix.POLICY)
     record = {
         "schema_version": 1,
         "status": "pass",
