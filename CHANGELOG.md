@@ -10,6 +10,9 @@
   Retain compact signed verifier metadata within the existing capture limit and
   carry canonical Git conversion settings into recovery qualification without
   replacing inherited settings or relaxing tool-byte checks.
+  Stage the authenticated checksum manifest separately until the strict
+  two-archive inventory check completes, then verify the unchanged three-file
+  handoff without weakening either directory boundary.
 
 ## [2.1.0-alpha.3] - 2026-10-22
 
