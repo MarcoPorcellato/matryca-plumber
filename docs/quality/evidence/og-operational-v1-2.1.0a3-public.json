@@ -1,0 +1,630 @@
+{
+  "evidence_record_version": 1,
+  "record_type": "experimental-og-public-producer-evidence",
+  "recorded_on": "2026-10-23",
+  "repository": "https://github.com/MarcoPorcellato/matryca-plumber",
+  "version": "2.1.0a3",
+  "profile": "plumber.og.operational/v1",
+  "disposition": {
+    "result": "PASS_WITH_NOTES",
+    "scope": "Bounded experimental public-byte evidence for owner evaluation only.",
+    "independent_review": "accepted",
+    "trama_admission": "not_granted",
+    "descriptor_qualification": "unqualified",
+    "packaged_matrix_status": "planned",
+    "contract_change": false
+  },
+  "producer": {
+    "commit": "8c30f70e217722e719c5aedc322219ebccb87e68",
+    "tree": "de80d0473aa281c52d0fed10b4561024dd12d76f",
+    "tag": "v2.1.0-alpha.3",
+    "tag_object": "c093e9e8aa735b7c37a0c1a56a601a9c31cbdf24",
+    "publisher_run": {
+      "id": "39887297548",
+      "attempt": 1,
+      "event": "push",
+      "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39887297548"
+    }
+  },
+  "public_artifacts": [
+    {
+      "github_url": "https://github.com/MarcoPorcellato/matryca-plumber/releases/download/v2.1.0-alpha.3/binding.json",
+      "id": 667692842,
+      "name": "binding.json",
+      "sha256": "0fbbeba19880e320931dd8923504a8401379b39dfec753afef740c306487b189",
+      "size": 628
+    },
+    {
+      "github_url": "https://github.com/MarcoPorcellato/matryca-plumber/releases/download/v2.1.0-alpha.3/canonical-build.json",
+      "id": 667692870,
+      "name": "canonical-build.json",
+      "sha256": "b4d2fee81d17a2005e2cf336ba079062b53cf3fbd2d974ba3a2e42caa32e8a80",
+      "size": 770
+    },
+    {
+      "github_url": "https://github.com/MarcoPorcellato/matryca-plumber/releases/download/v2.1.0-alpha.3/content-ledger.json",
+      "id": 667692841,
+      "name": "content-ledger.json",
+      "sha256": "d541dc404a9657a1178e911961c1c17d0b3dc32cf34d5fde3bed5bcf76ec7f6b",
+      "size": 154735
+    },
+    {
+      "github_url": "https://github.com/MarcoPorcellato/matryca-plumber/releases/download/v2.1.0-alpha.3/matryca_plumber-2.1.0a3-py3-none-any.whl",
+      "id": 667692843,
+      "name": "matryca_plumber-2.1.0a3-py3-none-any.whl",
+      "sha256": "e5bc586a3da76d8e11760b39c9d7ac45b62b1240f085a8a96a573b9902bfea12",
+      "size": 756248,
+      "pypi_url": "https://files.pythonhosted.org/packages/51/32/02a43cfd337d8ec60edd1eee4298413faa91472c8a35eee59259372d5471/matryca_plumber-2.1.0a3-py3-none-any.whl",
+      "pypi_byte_equivalence": "verified",
+      "yanked": false
+    },
+    {
+      "github_url": "https://github.com/MarcoPorcellato/matryca-plumber/releases/download/v2.1.0-alpha.3/matryca_plumber-2.1.0a3.tar.gz",
+      "id": 667692838,
+      "name": "matryca_plumber-2.1.0a3.tar.gz",
+      "sha256": "cbf6f47dece7266c0ec69820ca3ef84e6519ff5d12f5d057c851e5b9c453ed9c",
+      "size": 1050099,
+      "pypi_url": "https://files.pythonhosted.org/packages/1b/3b/8db19b1ad90ddd29502f881db4be00483bb7216acdf16561bcfaf45b9a56/matryca_plumber-2.1.0a3.tar.gz",
+      "pypi_byte_equivalence": "verified",
+      "yanked": false
+    },
+    {
+      "github_url": "https://github.com/MarcoPorcellato/matryca-plumber/releases/download/v2.1.0-alpha.3/SHA256SUMS",
+      "id": 667692840,
+      "name": "SHA256SUMS",
+      "sha256": "3a577517fbc96022c7b7f627a747ccd9116d2d204579ad5ab01e053f5e16cb34",
+      "size": 204
+    }
+  ],
+  "public_qualification": {
+    "run_id": "39999081040",
+    "attempt": 1,
+    "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040",
+    "verifier_commit": "15a79076932491b588cedc43f5e6497edc87e16b",
+    "verifier_tree": "055004897d5adbbec480ad8f5095f10a0f6368af",
+    "workflow": ".github/workflows/og-public-artifact-qualification.yml",
+    "workflow_sha256": "e5bdb4cc9e83d5f83577f509601c95cda83f369ad896cc58ae4a4fa8ba881c81",
+    "jobs": {
+      "expected": 8,
+      "successful": 8,
+      "skipped": 0
+    },
+    "inputs_sha256": "ac40d3b0e2a8f9e4fa3718ea32a09004dd1e3a0b24a334af273f8c6f03f28083",
+    "primary_reconciliation_sha256": "6cd69e0f3f014845534eec28327b7f8ddcc1fde37db1a1e46d3ddfc0fe7869a3",
+    "report_member_count": 51,
+    "reports": [
+      {
+        "role": "macos312",
+        "id": 12521417686,
+        "name": "og-public-39999081040-1-macos312",
+        "size": 44635,
+        "sha256": "b2f376b9f22dd87a9c2943d3e2c1e777c9db327dd5da3486249641e61cefd8b2",
+        "expires_at": "2026-11-06T17:57:27Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12521417686"
+      },
+      {
+        "role": "windows-refusal",
+        "id": 12521057549,
+        "name": "og-public-39999081040-1-windows-refusal",
+        "size": 447,
+        "sha256": "ac9281b1da95d650c66edf7ec241ccbeaf827280f6b44c493d74bf86c612591a",
+        "expires_at": "2026-11-06T17:56:19Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12521057549"
+      },
+      {
+        "role": "admission",
+        "id": 12520783151,
+        "name": "og-public-39999081040-1-admission",
+        "size": 3952813,
+        "sha256": "1c875806033b80ca396f7f692d000f4c80452e040e063c2520c6cfaa6ec1443f",
+        "expires_at": "2026-11-06T17:56:28Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12520783151"
+      },
+      {
+        "role": "source-controls",
+        "id": 12520444156,
+        "name": "og-public-39999081040-1-source-controls",
+        "size": 9374,
+        "sha256": "007ec03e7d9538c1faf538f9ab164a5ad3779c1aae1c9f969ad8ee716248eee7",
+        "expires_at": "2026-11-06T17:56:55Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12520444156"
+      },
+      {
+        "role": "linux313",
+        "id": 12520323651,
+        "name": "og-public-39999081040-1-linux313",
+        "size": 44607,
+        "sha256": "d12b8d28159b779ae7bc9a24f0870a40759b151953811099ad52a1e2ce7bf587",
+        "expires_at": "2026-11-06T17:57:21Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12520323651"
+      },
+      {
+        "role": "aggregate",
+        "id": 12520154472,
+        "name": "og-public-39999081040-1-aggregate",
+        "size": 5368,
+        "sha256": "c53ec2f7784df2951bf94c3edf4bdc4117396ed6b6dffa233bdb4c1868764533",
+        "expires_at": "2026-11-06T17:57:53Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12520154472"
+      },
+      {
+        "role": "macos313",
+        "id": 12520129089,
+        "name": "og-public-39999081040-1-macos313",
+        "size": 44635,
+        "sha256": "8bee0006df5fcf2615747f726e9125d370de964826b72f925af8932d71bb2909",
+        "expires_at": "2026-11-06T17:57:30Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12520129089"
+      },
+      {
+        "role": "linux312",
+        "id": 12520009436,
+        "name": "og-public-39999081040-1-linux312",
+        "size": 44607,
+        "sha256": "db7abbfd164b2af75d49d9c39fdb67be7a855be80b69f2f0a9daf559f9e44a19",
+        "expires_at": "2026-11-06T17:57:20Z",
+        "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39999081040/artifacts/12520009436"
+      }
+    ],
+    "rows": [
+      {
+        "build": null,
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "e06e1e1fedf1ca836994b58447e7724e2052b55010201db9aa047798ac35e9a8",
+        "installed_origin": true,
+        "installed_record_sha256": "ea61f947d08eabc014f45174d80fb35a3f41e6df7423a96c4c30ee5da6d9b070",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "linux-x64-3.12-wheel",
+        "runtime": {
+          "architecture": "x64",
+          "executable_sha256": "edffa803e5c4d73a1357f7f2c6c9fd38e9693712b2c06793e6a5e5cc1090d03a",
+          "implementation": "CPython",
+          "system": "linux",
+          "version": "3.12.14"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": {
+          "build_lock_sha256": "72b95c7c4d89d0a1382882078914094b08be25acbf47da4a14ecb6f4d6972d9f",
+          "environment_descriptor_sha256": "c78f26e733ad247ad4c4a57b50356de82b772e930b8b550f076eb26e839dced8",
+          "provisioning_evidence_sha256": "d4b0a28fff2167af4194c8d8238db31df9f89caf5b6a3e2b6e21a5abc3007de8",
+          "python_version": "3.12.14",
+          "uv_sha256": "242e462a63f5a3c0421d68557006193ecbfb61321cba0fe8542213ac62d92563",
+          "wheel_sha256": "a78f6df4bd3838a21d500d5d2196ca039e24cb8785942ba655fae053bde08054"
+        },
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "eadd9d223425936d6cec2702c2eaca29568938f778e64cb14e17d5078a0b5f0f",
+        "installed_origin": true,
+        "installed_record_sha256": "a502df174c593ea4c1bf314f81e164b90015518561c5f36028b1f74800c3815f",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "linux-x64-3.12-sdist",
+        "runtime": {
+          "architecture": "x64",
+          "executable_sha256": "edffa803e5c4d73a1357f7f2c6c9fd38e9693712b2c06793e6a5e5cc1090d03a",
+          "implementation": "CPython",
+          "system": "linux",
+          "version": "3.12.14"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": null,
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "1fd39cf73dba3995920f20a57421710240d137245ea5ce2b94c97b0f82043e41",
+        "installed_origin": true,
+        "installed_record_sha256": "b35a03c9825582e7c354ac3e6ff52a531bd1af5d0b9881edeea6f6889e02f26a",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "linux-x64-3.13-wheel",
+        "runtime": {
+          "architecture": "x64",
+          "executable_sha256": "20a5569a1bac8de02122347777b6cf2ae12ec1eafd42db990c6a0c5407f96b8e",
+          "implementation": "CPython",
+          "system": "linux",
+          "version": "3.13.15"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": {
+          "build_lock_sha256": "72b95c7c4d89d0a1382882078914094b08be25acbf47da4a14ecb6f4d6972d9f",
+          "environment_descriptor_sha256": "fa36b2624de876fb2175bc25a462c07e96e3d209ea1374b7132bba7c1e62dc9e",
+          "provisioning_evidence_sha256": "398f5396a2c51713a2fcb41f1ceebf47c078e85a00f33cb97acc21636717180c",
+          "python_version": "3.12.14",
+          "uv_sha256": "242e462a63f5a3c0421d68557006193ecbfb61321cba0fe8542213ac62d92563",
+          "wheel_sha256": "a78f6df4bd3838a21d500d5d2196ca039e24cb8785942ba655fae053bde08054"
+        },
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "2ca169012c7e937c24ccd1a36ae2b5e5990c2e20a66e1a1557cc30dc5f4dee5b",
+        "installed_origin": true,
+        "installed_record_sha256": "721863dd37de64cf82bef8d1ec0499925c66f4799a05a1ee737cf13ee860d554",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "linux-x64-3.13-sdist",
+        "runtime": {
+          "architecture": "x64",
+          "executable_sha256": "20a5569a1bac8de02122347777b6cf2ae12ec1eafd42db990c6a0c5407f96b8e",
+          "implementation": "CPython",
+          "system": "linux",
+          "version": "3.13.15"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": null,
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "f6c33f37a2255660b78d5b88821269e439a8013ba61229893ffdbca98652c343",
+        "installed_origin": true,
+        "installed_record_sha256": "076b60057b4aa9e9ba4b761267d6c6b2ef509a33000ffc0e3d4778d9d32a1c4b",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "macos-arm64-3.12-wheel",
+        "runtime": {
+          "architecture": "arm64",
+          "executable_sha256": "042454a41d6c32f2be126c4bbae2a4b8a54488c66f4b07379cd24dee75f93abb",
+          "implementation": "CPython",
+          "system": "macos",
+          "version": "3.12.14"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": {
+          "build_lock_sha256": "72b95c7c4d89d0a1382882078914094b08be25acbf47da4a14ecb6f4d6972d9f",
+          "environment_descriptor_sha256": "4ad0fac92f86a16bffe80ddd68146c838373b7dd1bad66b139fb7724b54d4e74",
+          "provisioning_evidence_sha256": "94609de9a3ceae6e9ac2d9647f9f758322864752fcfcf61a4bd939ab37372b81",
+          "python_version": "3.12.14",
+          "uv_sha256": "1bd368f1bdd1fc4067a9f9d5d7394363e83490e47c86b26056760abe1c4155fb",
+          "wheel_sha256": "43e9c21c5c9cfd03da30450eb743a4cd9aa08e81d60c86485799ca6729358e1f"
+        },
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "c0884575a99c956a924fdec14c38a993b31a7bb4ad523bd98d90d424b9af01ae",
+        "installed_origin": true,
+        "installed_record_sha256": "540311dc63f4881a49d35f40b0314d29d2bc32dbc8669974bd89aa2136976ba4",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "macos-arm64-3.12-sdist",
+        "runtime": {
+          "architecture": "arm64",
+          "executable_sha256": "042454a41d6c32f2be126c4bbae2a4b8a54488c66f4b07379cd24dee75f93abb",
+          "implementation": "CPython",
+          "system": "macos",
+          "version": "3.12.14"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": null,
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "743a9b7a2adf37080a6b15d34249bc2d454611c19c3abd8a7d62ed9dde7bd239",
+        "installed_origin": true,
+        "installed_record_sha256": "10242518f36dc74b90c1dc9c5218bb0059dc2ee68b3121d8a1e4ddfd9fe48163",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "macos-arm64-3.13-wheel",
+        "runtime": {
+          "architecture": "arm64",
+          "executable_sha256": "c08e98f93f3cd19201fbd63496ded495b08544e01aab2f4a8f3a8ed4917fa0c6",
+          "implementation": "CPython",
+          "system": "macos",
+          "version": "3.13.15"
+        },
+        "static_tcks": 3
+      },
+      {
+        "build": {
+          "build_lock_sha256": "72b95c7c4d89d0a1382882078914094b08be25acbf47da4a14ecb6f4d6972d9f",
+          "environment_descriptor_sha256": "c51079e16ec6231dfaa39db016d7ae5596e069e3dac803af132fafe8f79a16e4",
+          "provisioning_evidence_sha256": "3154e11cf0254080f92c0dc63ec88556e6c0646f5f4e960abbc7cec8f1e3b80c",
+          "python_version": "3.12.14",
+          "uv_sha256": "1bd368f1bdd1fc4067a9f9d5d7394363e83490e47c86b26056760abe1c4155fb",
+          "wheel_sha256": "a1fb11130d743413289a6a762713cdf2c1e2c8f287e15477e2dfaccb5cb83408"
+        },
+        "cleanup": "verified",
+        "dependency_sha256": "5c944748539671e4687882c7568089e7a299b40e923018dd41dd33192c39474f",
+        "editable": false,
+        "environment_sha256": "6e74c1a59717ef0aec7a51703c335ffe2c36c18c86968239417c06dac4db6ac1",
+        "installed_origin": true,
+        "installed_record_sha256": "aa0fe0d80322f68946a0db884b1676cfa56be418fd93479666af088ffbd4495a",
+        "installed_resource_sha256": "87c0da5514cd6de8246c3db80bca3f2ad8608be95d03d4cc4aa09ae6ae774dbb",
+        "operational_controls": 13,
+        "parser_version": "1.9.0",
+        "row": "macos-arm64-3.13-sdist",
+        "runtime": {
+          "architecture": "arm64",
+          "executable_sha256": "c08e98f93f3cd19201fbd63496ded495b08544e01aab2f4a8f3a8ed4917fa0c6",
+          "implementation": "CPython",
+          "system": "macos",
+          "version": "3.13.15"
+        },
+        "static_tcks": 3
+      }
+    ],
+    "distinct_sdist_build_environments": 4,
+    "source_cases": 38,
+    "windows_refusal": {
+      "architecture": "AMD64",
+      "error": "unsupported_platform",
+      "exit_code": 7,
+      "graph_accesses": 0,
+      "qualification": "refusal-only",
+      "run_attempt": 1,
+      "run_id": "39999081040",
+      "source_commit": "8c30f70e217722e719c5aedc322219ebccb87e68",
+      "source_tree": "de80d0473aa281c52d0fed10b4561024dd12d76f",
+      "status": "pass",
+      "system": "Windows"
+    }
+  },
+  "provenance": {
+    "verified_subjects": [
+      {
+        "name": "SHA256SUMS",
+        "sha256": "3a577517fbc96022c7b7f627a747ccd9116d2d204579ad5ab01e053f5e16cb34",
+        "size": 204
+      },
+      {
+        "name": "binding.json",
+        "sha256": "0fbbeba19880e320931dd8923504a8401379b39dfec753afef740c306487b189",
+        "size": 628
+      },
+      {
+        "name": "canonical-build.json",
+        "sha256": "b4d2fee81d17a2005e2cf336ba079062b53cf3fbd2d974ba3a2e42caa32e8a80",
+        "size": 770
+      },
+      {
+        "name": "content-ledger.json",
+        "sha256": "d541dc404a9657a1178e911961c1c17d0b3dc32cf34d5fde3bed5bcf76ec7f6b",
+        "size": 154735
+      },
+      {
+        "name": "matryca_plumber-2.1.0a3-py3-none-any.whl",
+        "sha256": "e5bc586a3da76d8e11760b39c9d7ac45b62b1240f085a8a96a573b9902bfea12",
+        "size": 756248
+      },
+      {
+        "name": "matryca_plumber-2.1.0a3.tar.gz",
+        "sha256": "cbf6f47dece7266c0ec69820ca3ef84e6519ff5d12f5d057c851e5b9c453ed9c",
+        "size": 1050099
+      }
+    ],
+    "cryptographic_verification": "Performed by the hosted verification CLI; independently inspected retained authenticated outputs, not a new local signature-verification run.",
+    "attestation_scope": "Six subject checks share a multi-subject attestation bundle.",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "signer_workflow": "https://github.com/MarcoPorcellato/matryca-plumber/.github/workflows/release.yml@refs/tags/v2.1.0-alpha.3",
+    "source_commit": "8c30f70e217722e719c5aedc322219ebccb87e68",
+    "publisher_invocation": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39887297548/attempts/1",
+    "binding": {
+      "sdist_inventory_sha256": "5f44630e540123077e660227c56e8d2dc62f2bb041969704e673f1ae0b68e4ee",
+      "sdist_name": "matryca_plumber-2.1.0a3.tar.gz",
+      "sdist_sha256": "cbf6f47dece7266c0ec69820ca3ef84e6519ff5d12f5d057c851e5b9c453ed9c",
+      "sdist_size": 1050099,
+      "source_commit": "8c30f70e217722e719c5aedc322219ebccb87e68",
+      "source_tree": "de80d0473aa281c52d0fed10b4561024dd12d76f",
+      "version": "2.1.0a3",
+      "wheel_inventory_sha256": "31bf49124e436f8f95fa807aed366cfddb5d2b79fc0857b1e6ef3167f4527391",
+      "wheel_name": "matryca_plumber-2.1.0a3-py3-none-any.whl",
+      "wheel_sha256": "e5bc586a3da76d8e11760b39c9d7ac45b62b1240f085a8a96a573b9902bfea12",
+      "wheel_size": 756248
+    },
+    "canonical_build": {
+      "binding_sha256": "0fbbeba19880e320931dd8923504a8401379b39dfec753afef740c306487b189",
+      "build_lock_sha256": "72b95c7c4d89d0a1382882078914094b08be25acbf47da4a14ecb6f4d6972d9f",
+      "node_version": "v22.23.3",
+      "npm_version": "10.9.9",
+      "packages": [
+        {
+          "name": "packaging",
+          "version": "26.3"
+        },
+        {
+          "name": "setuptools",
+          "version": "84.0.0"
+        },
+        {
+          "name": "wheel",
+          "version": "0.48.0"
+        }
+      ],
+      "python_executable_sha256": "edffa803e5c4d73a1357f7f2c6c9fd38e9693712b2c06793e6a5e5cc1090d03a",
+      "python_implementation": "CPython",
+      "python_version": "3.12.14",
+      "source_commit": "8c30f70e217722e719c5aedc322219ebccb87e68",
+      "source_tree": "de80d0473aa281c52d0fed10b4561024dd12d76f",
+      "target_architecture": "x64",
+      "target_os": "linux",
+      "uv_sha256": "242e462a63f5a3c0421d68557006193ecbfb61321cba0fe8542213ac62d92563",
+      "uv_version": "0.12.19"
+    }
+  },
+  "resources": {
+    "assets": [
+      {
+        "path": "dependency-profile.json",
+        "sha256": "9064e339a2fa5e58ce2d49e64b896865dd3a80615b8f5dbd5391c404cde83e92"
+      },
+      {
+        "path": "fixture-manifest.json",
+        "sha256": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4"
+      },
+      {
+        "path": "fixtures/journals/2026_10_13.md",
+        "sha256": "7a710f3e4d48069ddf00f6b6b9bde40894e2c6e6525bad4600aa6efa37fa6b7c"
+      },
+      {
+        "path": "fixtures/pages/B.md",
+        "sha256": "83680d7150820edfd610e23e3e4b41f263337c86bccc4893f85485093d416bd9"
+      },
+      {
+        "path": "fixtures/pages/a.md",
+        "sha256": "ca0235cea4562c62ad522b68e844ea5b02565363c35486362af7de668143e255"
+      },
+      {
+        "path": "fixtures/pages/sub/x.md",
+        "sha256": "295fad7b5e39d9e898fedb5e8e3ef1d264e366f75328cb32d5acf0a201fb9304"
+      },
+      {
+        "path": "fixtures/pages/subA.md",
+        "sha256": "621bf08c03e59c299ff20ef1194f44af695722b514361e396f87cc814eac0775"
+      },
+      {
+        "path": "golden/topology.result.json",
+        "sha256": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3"
+      },
+      {
+        "path": "requirements-og-v1-parser-1.9.0.txt",
+        "sha256": "e4c1c4dd33f0a7220a2d8148bf4d6aeb159a7fa104ec26133961e7955a66ff4a"
+      },
+      {
+        "path": "schemas/plumber.graph.read.v1.json",
+        "sha256": "250438c57580c811c3e10b2a59089ffbb23ea2f1f66c4c53acc8ace0a9ee8569"
+      },
+      {
+        "path": "schemas/plumber.graph.topology.v1.json",
+        "sha256": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a"
+      },
+      {
+        "path": "tck-cases.json",
+        "sha256": "4a231586eb6838ffb2083bcb228858284d6f5b07ff507db91b5b368e6ff41aea"
+      }
+    ],
+    "code_modules": [
+      {
+        "path": "consumer.py",
+        "sha256": "8fd77567c81d72ce4959532e83b6e9a556a478565c357ef818310be432b77a0f"
+      },
+      {
+        "path": "tck.py",
+        "sha256": "bc20953a50ea75f38502ec34aba15d4ce219d0d946f1e8d59f7a5611e102f422"
+      }
+    ],
+    "descriptor_sha256": "bcc6ac607706e934e5df4e044802aa74c7d7455e7711220df116080f1ab0cc70",
+    "manifest_sha256": "a630e5cb3c70eaa8441e63916b6b0e31e2b8f1f7a6457d5c2c8c1a04b1da9ef9"
+  },
+  "compatibility": {
+    "parser": {
+      "name": "logseq-matryca-parser",
+      "version": "1.9.0",
+      "scope": "Exact producer environment only; no Trama dependency."
+    },
+    "source_mode": "Offline or quiescent Logseq OG Markdown fixtures.",
+    "capabilities": [
+      "graph identification",
+      "complete ordered content-free topology"
+    ],
+    "payload": "excluded",
+    "native_db": "excluded",
+    "windows": "refusal-only; no installed support",
+    "physical_namespace_file_qualification": "excluded"
+  },
+  "invocation_boundary": {
+    "interpreter": "Explicit independently provisioned producer virtual environment; never an in-process consumer import.",
+    "entry_point": "matryca_plumber.graph_gateway snapshot",
+    "flags": [
+      "-I",
+      "-B"
+    ],
+    "graph_root": "Explicit canonical root; no ambient discovery.",
+    "descriptor": "Independently authenticate the exact descriptor SHA-256 before invocation.",
+    "installation": "Full exact hash-locked profile and authenticated original package with no dependency resolution.",
+    "execution_seconds": 180,
+    "stdout_bytes": 4194304,
+    "stderr_bytes": 512,
+    "finalization_seconds": 5,
+    "consumer_controls": [
+      "Incremental stdout and stderr bounds.",
+      "Direct-child reaping and process-group ESRCH within the existing finalization deadline.",
+      "Every reader, stream and selector gate must pass.",
+      "EPERM is a retained observation, never cleanup success.",
+      "Preserve primary errors and cleanup observations on exceptions and deadline failures.",
+      "No automatic retry of source_rejected (exit 4)."
+    ],
+    "audit_hook_limit": "Best-effort event rejection, not an operating-system sandbox."
+  },
+  "separate_source_qualification": {
+    "run_id": "39831820252",
+    "attempt": 1,
+    "source_commit": "8c30f70e217722e719c5aedc322219ebccb87e68",
+    "source_tree": "de80d0473aa281c52d0fed10b4561024dd12d76f",
+    "url": "https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/39831820252",
+    "retained_source_evidence_freeze_sha256": "6a10a66a7286560310c896c551f33bc17fb3df1bfb7041f2b04ee36abe6670f7",
+    "native_macos_stress_controls": 800,
+    "cleanup_failures": 0,
+    "scope": "Separate source qualification; never substitutes for installed public-byte controls."
+  },
+  "handoff_source_boundary": {
+    "parent_commit": "15a79076932491b588cedc43f5e6497edc87e16b",
+    "parent_tree": "055004897d5adbbec480ad8f5095f10a0f6368af",
+    "comparison_url": "https://github.com/MarcoPorcellato/matryca-plumber/compare/8c30f70e217722e719c5aedc322219ebccb87e68...15a79076932491b588cedc43f5e6497edc87e16b",
+    "retained_comparison_sha256": "532ffc23fba8c43c89362a8d392474d1121c995d6e61992be26e856ce3e327ae",
+    "changed_paths": [
+      ".github/workflows/og-public-artifact-qualification.yml",
+      "CHANGELOG.md",
+      "docs/RELEASE_PROCESS.md",
+      "scripts/qualify_release_package.py",
+      "scripts/release_qualification/alpha1_matrix.py",
+      "scripts/release_qualification/alpha1_public.py",
+      "scripts/release_qualification/alpha3_recovery.py",
+      "tests/test_release_package_alpha1_matrix.py",
+      "tests/test_release_package_alpha1_public.py",
+      "tests/test_release_package_alpha3_recovery.py"
+    ],
+    "packaged_runtime_resources_contracts_and_build_inputs_changed": false,
+    "scope": "The documentary handoff commit is not a new producer or package source."
+  },
+  "security_boundary": {
+    "alerts": [
+      {
+        "number": 103,
+        "advisory": "GHSA-xp26-3454-mjgp"
+      },
+      {
+        "number": 104,
+        "advisory": "GHSA-qxg6-89mg-rqv8"
+      }
+    ],
+    "component": "Development-only @vitest/mocker 5.0.1 in frontend/package-lock.json",
+    "status": "open",
+    "exception_scope": "M6 Python-only OG qualification of unchanged alpha.3 source/packages/provenance only.",
+    "prohibited_execution": "No frontend, development-server or mock-server execution in that campaign.",
+    "repository_wide_security_clearance": false
+  },
+  "preserved_failure": {
+    "run_id": "39991012206",
+    "attempt": 1,
+    "status": "failed",
+    "disposition": "Preserved; verifier layout correction integrated by PR #652. This record cites a distinct successful campaign, not a rerun or replacement."
+  },
+  "evidence_limits": [
+    "Observed synthetic fixtures only; no user graph or active-desktop coexistence qualification.",
+    "No text/properties payload, native DB, writes, events, sync or UI qualification.",
+    "No installed Windows support, stable-support or full RC4/Stage A/Gate B claim.",
+    "CI report archives are retention-limited; this committed record preserves their exact identities and reviewed outcome.",
+    "Trama #2 owns admission; Trama adapter implementation and real consumer tests remain separate decisions."
+  ]
+}
