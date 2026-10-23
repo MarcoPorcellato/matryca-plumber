@@ -8,7 +8,11 @@ import importlib
 import importlib.util
 import io
 import json
+import shutil
+import threading
+from collections.abc import Iterator
 from dataclasses import asdict
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, NoReturn
@@ -29,6 +33,142 @@ NAMES = (
     "canonical-build.json",
     "SHA256SUMS",
 )
+
+
+@pytest.fixture
+def commit_api(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[tuple[str, str, dict[str, bytes], list[str]]]:
+    """Exercise the installed CLI's real projection against loopback bytes only."""
+    gh = shutil.which("gh")
+    assert gh is not None, "The installed provenance CLI is required for this boundary test."
+    documents: dict[str, bytes] = {}
+    requests: list[str] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            requests.append(self.path)
+            body = documents[self.path]
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *args: Any) -> None:
+            return
+
+    for name in (
+        "GH_DEBUG",
+        "GH_HOST",
+        "GITHUB_TOKEN",
+        "GH_ENTERPRISE_TOKEN",
+        "GITHUB_ENTERPRISE_TOKEN",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("GH_TOKEN", "synthetic-loopback-token")
+    monkeypatch.setenv("GH_CONFIG_DIR", str(tmp_path / "empty-cli-config"))
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+    monkeypatch.setenv("no_proxy", "127.0.0.1")
+    with HTTPServer(("127.0.0.1", 0), Handler) as server:
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05})
+        thread.start()
+        try:
+            yield gh, f"http://127.0.0.1:{server.server_port}/commit", documents, requests
+        finally:
+            server.shutdown()
+            thread.join(timeout=3)
+            assert not thread.is_alive(), "Synthetic HTTP reader did not stop."
+
+
+@pytest.mark.parametrize(
+    "mutation", [None, "sha", "tree", "signature", "reason", "missing", "oversized"]
+)
+def test_recovery_commit_projection_uses_real_cli_and_preserves_signature_gates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    commit_api: tuple[str, str, dict[str, bytes], list[str]],
+    mutation: str | None,
+) -> None:
+    from tests.test_release_package_alpha3_recovery import _public_inputs
+
+    public = _public()
+    context, metadata = _public_inputs()
+    gh, endpoint, documents, requests = commit_api
+    full = copy.deepcopy(metadata["verifier_commit"])
+    full["files"] = [{"filename": "synthetic.py", "patch": "x" * 100_000}]
+    full["commit"]["verification"].update(signature="synthetic-signature", payload="signed-payload")
+    if mutation == "sha":
+        full["sha"] = "f" * 40
+    elif mutation == "tree":
+        full["commit"]["tree"]["sha"] = "f" * 40
+    elif mutation == "signature":
+        full["commit"]["verification"]["verified"] = False
+    elif mutation == "reason":
+        full["commit"]["verification"]["reason"] = "invalid"
+    elif mutation == "missing":
+        full.pop("sha")
+    elif mutation == "oversized":
+        full["commit"]["verification"]["payload"] = "x" * 100_000
+    documents["/commit"] = json.dumps(full).encode()
+    assert len(documents["/commit"]) > 65_536
+    actual_command = public._command
+
+    class CommitObserved(Exception):
+        pass
+
+    def command(argv: list[str], path: Path, timeout: int = 30) -> bytes:
+        if path.stem == "verifier_commit":
+            assert argv[:3] == [
+                gh,
+                "api",
+                f"repos/{REPO}/commits/{context.recovery.verifier_commit}",
+            ]
+            actual_command([gh, "api", endpoint, *argv[3:]], path, timeout)
+            raise CommitObserved
+        raw = json.dumps(metadata[path.stem]).encode()
+        path.write_bytes(raw)
+        return raw
+
+    monkeypatch.setattr(public, "_command", command)
+    monkeypatch.setattr(
+        public.bundle,
+        "_git_value",
+        lambda _root, arg: context.source_commit if arg == "HEAD" else context.source_tree,
+    )
+    monkeypatch.setattr(public, "installed_status", lambda _root: "")
+    for name, value in {
+        "GITHUB_REPOSITORY": REPO,
+        "GITHUB_REPOSITORY_ID": "1241185104",
+        "GITHUB_REF": "refs/heads/main",
+        "GITHUB_EVENT_NAME": "workflow_dispatch",
+        "GITHUB_RUN_ATTEMPT": "1",
+        "GITHUB_RUN_ID": context.verifier_run,
+        "GITHUB_SHA": context.workflow_commit,
+    }.items():
+        monkeypatch.setenv(name, value)
+    source = tmp_path / "source"
+    source.mkdir()
+    output = tmp_path / "public-bundle"
+    if mutation == "oversized":
+        with pytest.raises(ValueError, match="capture limit"):
+            public.admit_public(source, output, context.publisher_run, recovery=context.recovery)
+    else:
+        with pytest.raises(CommitObserved):
+            public.admit_public(source, output, context.publisher_run, recovery=context.recovery)
+        raw = (output / "public-provenance/verifier_commit.json").read_bytes()
+        assert len(raw) < 65_536
+        projected = json.loads(raw)
+        assert set(projected) == {"sha", "commit"}
+        assert projected["commit"] == full["commit"]
+        metadata["verifier_commit"] = projected
+        if mutation is None:
+            assert len(public.verify_metadata(context, metadata)) == 6
+        else:
+            with pytest.raises(ValueError, match="Recovery verifier"):
+                public.verify_metadata(context, metadata)
+    assert requests == ["/commit"]
+    assert not (output / "public-input.json").exists()
 
 
 def _public() -> Any:
