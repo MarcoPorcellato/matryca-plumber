@@ -10,6 +10,7 @@ import re
 import stat
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 if __package__ in {None, ""}:
@@ -31,6 +32,42 @@ from scripts.release_qualification.receipts import verify_receipts
 from scripts.release_qualification.sdist_build import prepare_sdist_build
 
 
+def _recovery_binding(args: argparse.Namespace) -> object:
+    from scripts.release_qualification.alpha3_recovery import (
+        FAILED_QUALIFICATION,
+        PUBLISHER,
+        checkout_binding,
+    )
+
+    if not getattr(args, "alpha3_recovery", False):
+        return None
+    if not (
+        os.environ.get("GITHUB_REPOSITORY") == "MarcoPorcellato/matryca-plumber"
+        and os.environ.get("GITHUB_REPOSITORY_ID") == "1241185104"
+        and os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+        and os.environ.get("GITHUB_REF") == "refs/heads/main"
+        and os.environ.get("GITHUB_RUN_ATTEMPT") == "1"
+        and os.environ.get("GITHUB_RUN_ID") not in (None, FAILED_QUALIFICATION, PUBLISHER)
+        and os.environ.get("GITHUB_SHA") == args.verifier_commit
+        and os.environ.get("PUBLICATION_RUN") == PUBLISHER
+    ):
+        raise ValueError("Recovery requires the exact activated main/verifier/publication session.")
+    verifier = args.verifier_root.resolve()
+    if Path(__file__).resolve() != verifier / "scripts/qualify_release_package.py":
+        raise ValueError("Recovery entry point is not from the selected verifier.")
+    return checkout_binding(
+        args.source_root, args.verifier_root, args.verifier_commit, args.verifier_tree
+    )
+
+
+def _alpha3_recovery_checkout(args: argparse.Namespace) -> None:
+    from scripts.release_qualification.alpha3_recovery import RecoveryBinding
+
+    binding = _recovery_binding(args)
+    assert isinstance(binding, RecoveryBinding)
+    print(json.dumps(binding.to_dict(), sort_keys=True, separators=(",", ":")))
+
+
 def _alpha_context(args: argparse.Namespace) -> object:
     from scripts.release_qualification.alpha1_matrix import source_context
 
@@ -38,12 +75,17 @@ def _alpha_context(args: argparse.Namespace) -> object:
     if not value:
         raise ValueError("EXPECTED_BINDING_JSON is required for explicit alpha commands.")
     binding = BundleBinding.from_json(value, policy="og-alpha3")
-    return source_context(
+    context = source_context(
         args.source_root.resolve(),
         binding,
         os.environ["GITHUB_RUN_ID"],
         int(os.environ["GITHUB_RUN_ATTEMPT"]),
     )
+    from scripts.release_qualification.alpha3_recovery import RecoveryBinding
+
+    recovery = _recovery_binding(args)
+    assert recovery is None or isinstance(recovery, RecoveryBinding)
+    return context if recovery is None else replace(context, recovery=recovery)
 
 
 def _alpha_build(args: argparse.Namespace) -> None:
@@ -146,6 +188,7 @@ def _alpha_source_controls(args: argparse.Namespace) -> None:
 
 
 def _alpha_windows_refusal(args: argparse.Namespace) -> None:
+    _recovery_binding(args)
     from scripts.release_qualification.alpha1_matrix import canonical, run_windows_refusal
 
     if (
@@ -200,7 +243,13 @@ def _alpha_public_admit(args: argparse.Namespace) -> None:
     _regular_file(output, "GITHUB_OUTPUT")
     if output.resolve().is_relative_to(args.output.resolve()):
         raise ValueError("GITHUB_OUTPUT must be outside the public bundle.")
-    record = admit_public(args.source_root, args.output, args.publication_run)
+    from scripts.release_qualification.alpha3_recovery import RecoveryBinding
+
+    recovery = _recovery_binding(args)
+    assert recovery is None or isinstance(recovery, RecoveryBinding)
+    if recovery is not None and args.output.resolve().is_relative_to(args.verifier_root.resolve()):
+        raise ValueError("Recovery outputs must be outside both source roots.")
+    record = admit_public(args.source_root, args.output, args.publication_run, recovery=recovery)
     binding = BundleBinding.from_json(
         (args.output / "binding.json").read_text(), policy="og-alpha3"
     )
@@ -551,6 +600,31 @@ def _parser() -> argparse.ArgumentParser:
     for name in ("source-root", "receipt-dir", "jobs", "artifacts", "output"):
         public_aggregate.add_argument("--" + name, type=Path, required=True)
     public_aggregate.set_defaults(handler=_alpha_public_aggregate)
+
+    recovery_checkout = commands.add_parser(
+        "alpha3-recovery-checkout", help="bind disjoint alpha.3 recovery sources"
+    )
+    recovery_checkout.add_argument("--source-root", type=Path, required=True)
+    recovery_checkout.set_defaults(handler=_alpha3_recovery_checkout, alpha3_recovery=True)
+    recovery_commands = [recovery_checkout]
+    for name in (
+        "alpha-row",
+        "alpha-source-controls",
+        "alpha-windows-refusal",
+        "alpha-public-admit",
+        "alpha-public-aggregate",
+    ):
+        command = commands.add_parser(
+            "alpha3-recovery-" + name.removeprefix("alpha-"),
+            parents=[commands.choices[name]],
+            add_help=False,
+        )
+        command.set_defaults(alpha3_recovery=True)
+        recovery_commands.append(command)
+    for command in recovery_commands:
+        command.add_argument("--verifier-root", type=Path, required=True)
+        command.add_argument("--verifier-commit", required=True)
+        command.add_argument("--verifier-tree", required=True)
 
     return parser
 

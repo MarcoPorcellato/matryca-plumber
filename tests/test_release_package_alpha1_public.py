@@ -11,7 +11,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, NoReturn
 
 import pytest
 import yaml
@@ -520,6 +520,108 @@ def test_download_enforces_byte_and_redirect_limits_without_network(
 
 
 @pytest.mark.parametrize(
+    ("url", "size", "sha256", "kind"),
+    [
+        ("https://pypi.org/pypi/matryca-plumber/2.1.0a3/json", 0, "", "pypi-metadata"),
+        (
+            f"https://api.github.com/repos/{REPO}/releases/assets/1",
+            9,
+            hashlib.sha256(b"synthetic").hexdigest(),
+            "github",
+        ),
+        (
+            "https://files.pythonhosted.org/packages/synthetic.whl",
+            9,
+            hashlib.sha256(b"synthetic").hexdigest(),
+            "pypi",
+        ),
+    ],
+)
+def test_acquisition_digest_reaches_real_process_guard_and_cli_parser(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    url: str,
+    size: int,
+    sha256: str,
+    kind: str,
+) -> None:
+    from scripts import qualify_release_package as qualification
+
+    public = _public()
+    commands: list[list[str]] = []
+
+    class ChildLaunchIntercepted(Exception):
+        pass
+
+    def intercept_launch(command: list[str], **_kwargs: Any) -> NoReturn:
+        commands.append(command)
+        raise ChildLaunchIntercepted
+
+    # Keep _acquire, _run_bounded and start_process real; stop only at Popen.
+    monkeypatch.setattr(public.sdist_build.process_module.subprocess, "Popen", intercept_launch)
+    path = tmp_path / "download"
+    with pytest.raises(ChildLaunchIntercepted):
+        public._acquire(url, path, size, sha256, kind)
+    assert len(commands) == 1
+    command = commands[0]
+    assert all(isinstance(argument, str) and argument for argument in command)
+    assert command[:3] == [
+        public.sys.executable,
+        "-B",
+        str(ROOT / "scripts/qualify_release_package.py"),
+    ]
+    args = qualification._parser().parse_args(command[3:])
+    assert (args.url, args.output, args.size, args.sha256, args.kind) == (
+        url,
+        path,
+        size,
+        sha256,
+        kind,
+    )
+    response = io.BytesIO(b"synthetic")
+    response.status = 200  # type: ignore[attr-defined]
+    monkeypatch.setattr(public, "_open", lambda *_args, **_kwargs: response)
+    qualification._alpha_public_fetch(args)
+    assert path.read_bytes() == b"synthetic"
+
+
+@pytest.mark.parametrize("command", [[], [""], ["synthetic", ""]])
+def test_public_acquisition_keeps_empty_argv_rejection(
+    monkeypatch: pytest.MonkeyPatch, command: list[str]
+) -> None:
+    public = _public()
+
+    def unexpected_launch(*_args: Any, **_kwargs: Any) -> NoReturn:
+        pytest.fail("Invalid argv must be rejected before a process is created.")
+
+    monkeypatch.setattr(public.sdist_build.process_module.subprocess, "Popen", unexpected_launch)
+    with pytest.raises(ValueError, match="nonempty shell-free argv"):
+        public.sdist_build.process_module.start_process(command, windows=False)
+
+
+@pytest.mark.parametrize(("size", "sha256"), [(1, ""), (0, "a" * 64)])
+def test_metadata_acquisition_preserves_empty_digest_and_zero_size_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, size: int, sha256: str
+) -> None:
+    public = _public()
+
+    def unexpected_open(*_args: Any, **_kwargs: Any) -> NoReturn:
+        pytest.fail("Invalid metadata expectations must fail before network access.")
+
+    monkeypatch.setattr(public, "_open", unexpected_open)
+    path = tmp_path / "pypi.json"
+    with pytest.raises(ValueError, match="Invalid acquisition expectations"):
+        public.fetch_file(
+            "https://pypi.org/pypi/matryca-plumber/2.1.0a3/json",
+            path,
+            size,
+            sha256,
+            "pypi-metadata",
+        )
+    assert not path.exists()
+
+
+@pytest.mark.parametrize(
     "build_failure",
     [
         None,
@@ -709,7 +811,13 @@ def test_public_workflow_has_no_rebuild_or_diagnostic_substitution() -> None:
     assert path.is_file(), "Public-input workflow is missing."
     value = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
     assert set(value["on"]) == {"workflow_dispatch"}
-    assert set(value["on"]["workflow_dispatch"]["inputs"]) == {"source_sha", "publication_run"}
+    assert set(value["on"]["workflow_dispatch"]["inputs"]) == {
+        "source_sha",
+        "publication_run",
+        "alpha3_recovery",
+        "verifier_sha",
+        "verifier_tree",
+    }
     jobs = value["jobs"]
     assert set(jobs) == {
         "admission",
