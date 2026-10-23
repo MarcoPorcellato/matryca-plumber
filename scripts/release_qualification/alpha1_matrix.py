@@ -28,6 +28,7 @@ from scripts.build_release_artifacts import (
     verify_locked_build_environment,
 )
 from scripts.release_qualification import bundle, installed, sdist_build
+from scripts.release_qualification.alpha3_recovery import RecoveryBinding
 from scripts.release_qualification.build_environment import (
     BuildEnvironmentDescriptor,
     _parse_json_object,
@@ -148,11 +149,27 @@ class MatrixContext:
     recipe_sha256: str
     build_packages: tuple[tuple[str, str], ...]
     requirements: tuple[str, ...]
+    recovery: RecoveryBinding | None = None
+
+    def __post_init__(self) -> None:
+        if self.recovery is not None:
+            _require(isinstance(self.recovery, RecoveryBinding), "Invalid recovery matrix binding.")
+            self.recovery.require_producer(self.binding.source_commit, self.binding.source_tree)
+
+    @property
+    def workflow_commit(self) -> str:
+        """Authenticate real jobs against verifier identity, not producer identity."""
+        return (
+            self.binding.source_commit if self.recovery is None else self.recovery.verifier_commit
+        )
 
     @property
     def inputs_sha256(self) -> str:
         """Bind resources, fixtures, golden bytes, exact dependencies and run identity."""
-        return digest(asdict(self))
+        value = asdict(self)
+        if self.recovery is None:
+            value.pop("recovery")
+        return digest(value)
 
 
 def source_context(
@@ -533,6 +550,10 @@ def verify_matrix(
     """Fail closed unless all eight rows and independent upstream jobs are complete."""
     bundle._validate_binding(context.binding, policy=POLICY)
     _require(
+        context.recovery is None or public_input,
+        "Recovery requires the explicit public-input route.",
+    )
+    _require(
         type(context.run_attempt) is int and context.run_attempt > 0, "Invalid expected attempt."
     )
     _require(len(rows) == len(ROWS), "Alpha requires exactly eight installed rows.")
@@ -559,7 +580,7 @@ def verify_matrix(
             and job.get("conclusion") == "success"
             and type(job.get("run_id")) is int
             and str(job["run_id"]) == context.run_id
-            and job.get("head_sha") == context.binding.source_commit,
+            and job.get("head_sha") == context.workflow_commit,
             "An upstream job did not succeed on the exact source.",
         )
     for report in (source, windows):
@@ -593,7 +614,7 @@ def verify_matrix(
         and windows["graph_accesses"] == 0,
         "Windows refusal is not proven before graph access.",
     )
-    return {
+    result: dict[str, Any] = {
         "schema_version": 1,
         "status": "pass",
         "qualification": "unqualified",
@@ -609,6 +630,9 @@ def verify_matrix(
             "no publication, stable support or Trama admission"
         ),
     }
+    if context.recovery is not None:
+        result["recovery"] = context.recovery.to_dict()
+    return result
 
 
 def locked_build_selection(
@@ -1075,6 +1099,10 @@ def verify_artifacts(
     public_input: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Bind downloaded artifacts to independently carried upstream outputs and REST metadata."""
+    _require(
+        context.recovery is None or public_input,
+        "Recovery requires the explicit public-input route.",
+    )
     keys = ("admission", *ARTIFACT_KEYS[1:]) if public_input else ARTIFACT_KEYS
     _require(set(expected) == set(keys), "Incomplete upstream artifact bindings.")
     family = "og-public" if public_input else "og-alpha"
@@ -1107,7 +1135,7 @@ def verify_artifacts(
             and item.get("expired") is False
             and type(run.get("id")) is int
             and str(run["id"]) == context.run_id
-            and run.get("head_sha") == context.binding.source_commit,
+            and run.get("head_sha") == context.workflow_commit,
             "Artifact ID, digest, run or source identity mismatch.",
         )
         output[key] = item

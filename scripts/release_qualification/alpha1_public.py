@@ -20,6 +20,7 @@ from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_ope
 
 from scripts.release_qualification import alpha1_matrix as matrix
 from scripts.release_qualification import bundle, installed, sdist_build
+from scripts.release_qualification.alpha3_recovery import TAG_OBJECT, RecoveryBinding
 
 REPO = "MarcoPorcellato/matryca-plumber"
 REPOSITORY_ID = 1241185104
@@ -49,6 +50,7 @@ class PublicContext:
     source_tree: str
     publisher_run: str
     verifier_run: str
+    recovery: RecoveryBinding | None = None
 
     def __post_init__(self) -> None:
         _require(
@@ -63,6 +65,17 @@ class PublicContext:
             and self.publisher_run != self.verifier_run,
             "Invalid or conflated public source/run selection.",
         )
+        if self.recovery is not None:
+            _require(isinstance(self.recovery, RecoveryBinding), "Invalid recovery binding.")
+            self.recovery.require_producer(self.source_commit, self.source_tree, self.publisher_run)
+            _require(
+                self.verifier_run != "39888823938", "Consumed qualification cannot be retried."
+            )
+
+    @property
+    def workflow_commit(self) -> str:
+        """The actual verifier head; the producer remains bound separately."""
+        return self.source_commit if self.recovery is None else self.recovery.verifier_commit
 
 
 def validate_url(url: str, kind: str, *, initial: bool = False) -> None:
@@ -200,14 +213,27 @@ def fetch_file(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
 def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """Authenticate source/tag/R/Q and exact six-plus-two public inventories."""
     _require(
-        set(metadata) == {"main", "tag", "tag_object", "publisher", "verifier", "release", "pypi"},
+        set(metadata)
+        == {"main", "tag", "tag_object", "publisher", "verifier", "release", "pypi"}
+        | ({"verifier_commit"} if context.recovery is not None else set()),
         "Incomplete public metadata.",
     )
     _require(
-        metadata["main"].get("object", {}).get("sha") == context.source_commit,
+        metadata["main"].get("object", {}).get("sha") == context.workflow_commit,
         "Public main advanced.",
     )
     tag, tag_object = metadata["tag"], metadata["tag_object"]
+    if context.recovery is not None:
+        commit = metadata["verifier_commit"]
+        _require(
+            commit.get("sha") == context.recovery.verifier_commit
+            and commit.get("commit", {}).get("tree", {}).get("sha")
+            == context.recovery.verifier_tree
+            and commit.get("commit", {}).get("verification", {}).get("verified") is True
+            and commit.get("commit", {}).get("verification", {}).get("reason") == "valid"
+            and tag_object.get("sha") == TAG_OBJECT,
+            "Recovery verifier signature/tree or original tag identity mismatch.",
+        )
     _require(
         tag.get("ref") == "refs/tags/" + TAG
         and tag.get("object", {}).get("type") == "tag"
@@ -225,6 +251,23 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
     ):
         run = metadata[key]
         workflow_path = run.get("path")
+        expected_sha = context.workflow_commit if key == "verifier" else context.source_commit
+        selectors: tuple[str, ...] = (
+            workflow,
+            f"{workflow}@main",
+            f"{workflow}@{TAG}",
+            f"{workflow}@{expected_sha}",
+        )
+        if context.recovery is not None:
+            _require(
+                all(
+                    run.get(actor, {}).get("id") == 220745401
+                    for actor in ("actor", "triggering_actor")
+                ),
+                "Recovery workflow actor mismatch.",
+            )
+            if key == "verifier":
+                selectors = (workflow, f"{workflow}@main", f"{workflow}@{expected_sha}")
         # Do not equate a path suffix with the triggering branch. Only aliases
         # already bound to the selected source above are admitted.
         _require(
@@ -234,15 +277,9 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
             and run["run_attempt"] == 1
             and run.get("event") == event
             and run.get("head_branch") == branch
-            and run.get("head_sha") == context.source_commit
+            and run.get("head_sha") == expected_sha
             and isinstance(workflow_path, str)
-            and workflow_path
-            in (
-                workflow,
-                f"{workflow}@main",
-                f"{workflow}@{TAG}",
-                f"{workflow}@{context.source_commit}",
-            )
+            and workflow_path in selectors
             and run.get("repository", {}).get("id") == REPOSITORY_ID
             and run.get("repository", {}).get("full_name") == REPO,
             "Publication or qualification run identity mismatch.",
@@ -394,8 +431,7 @@ def _acquire(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
             str(path),
             "--size",
             str(size),
-            "--sha256",
-            sha256,
+            f"--sha256={sha256}",
             "--kind",
             kind,
         ],
@@ -416,7 +452,9 @@ def _inventory(root: Path) -> dict[str, str]:
     return result
 
 
-def admit_public(source: Path, output: Path, publication_run: str) -> dict[str, Any]:
+def admit_public(
+    source: Path, output: Path, publication_run: str, *, recovery: RecoveryBinding | None = None
+) -> dict[str, Any]:
     """One hosted admission, after complete publication; no build or fallback route."""
     source = source.resolve()
     context = PublicContext(
@@ -424,6 +462,7 @@ def admit_public(source: Path, output: Path, publication_run: str) -> dict[str, 
         bundle._git_value(source, "HEAD^{tree}"),
         publication_run,
         os.environ["GITHUB_RUN_ID"],
+        recovery,
     )
     _require(
         os.environ.get("GITHUB_REPOSITORY") == REPO
@@ -431,7 +470,7 @@ def admit_public(source: Path, output: Path, publication_run: str) -> dict[str, 
         and os.environ.get("GITHUB_REF") == "refs/heads/main"
         and os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
         and os.environ.get("GITHUB_RUN_ATTEMPT") == "1"
-        and os.environ.get("GITHUB_SHA") == context.source_commit
+        and os.environ.get("GITHUB_SHA") == context.workflow_commit
         and not installed_status(source),
         "Public qualification is not the clean selected main attempt.",
     )
@@ -473,6 +512,12 @@ def admit_public(source: Path, output: Path, publication_run: str) -> dict[str, 
     metadata["tag_object"] = matrix.document(
         gh_read(["api", f"repos/{REPO}/git/tags/{tag_sha}"], "tag_object.json")
     )
+    if recovery is not None:
+        metadata["verifier_commit"] = matrix.document(
+            gh_read(
+                ["api", f"repos/{REPO}/commits/{recovery.verifier_commit}"], "verifier_commit.json"
+            )
+        )
     pypi_path = provenance / "pypi.json"
     _acquire(
         f"https://pypi.org/pypi/matryca-plumber/{VERSION}/json", pypi_path, 0, "", "pypi-metadata"
@@ -546,6 +591,8 @@ def admit_public(source: Path, output: Path, publication_run: str) -> dict[str, 
         "provenance_sha256": _inventory(provenance),
         "assets": assets,
     }
+    if recovery is not None:
+        record["recovery"] = recovery.to_dict()
     _write(output / "public-input.json", matrix.canonical(record))
     return record
 
@@ -567,6 +614,15 @@ def verify_retained(root: Path, context: matrix.MatrixContext, expected: dict[st
         context.binding.source_tree,
         record["publisher_run"],
         context.run_id,
+        getattr(context, "recovery", None),
+    )
+    _require(
+        (
+            record.get("recovery") == public.recovery.to_dict()
+            if public.recovery is not None
+            else "recovery" not in record
+        ),
+        "Retained recovery verifier differs from independently reconstructed expectations.",
     )
     _require(
         type(record.get("publisher_attempt")) is int
@@ -589,6 +645,7 @@ def verify_retained(root: Path, context: matrix.MatrixContext, expected: dict[st
     metadata = {
         key: matrix.read_document(provenance / (key + ".json"))
         for key in ("main", "tag", "tag_object", "publisher", "verifier", "release", "pypi")
+        + (("verifier_commit",) if public.recovery is not None else ())
     }
     assets = verify_metadata(public, metadata)
     _require(assets == record["assets"], "Retained public asset expectation changed.")

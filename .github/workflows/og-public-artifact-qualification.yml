@@ -11,12 +11,30 @@ on:
         description: "Complete successful tag-push publication run R, attempt one"
         type: string
         required: true
+      alpha3_recovery:
+        description: "Explicit verifier-only recovery of the immutable published alpha.3"
+        type: boolean
+        default: false
+      verifier_sha:
+        description: "Separately activated exact verifier commit; recovery only"
+        type: string
+        default: ""
+      verifier_tree:
+        description: "Separately activated exact verifier tree; recovery only"
+        type: string
+        default: ""
 
 permissions: {}
 
 env:
   SELECTED_SOURCE: ${{ inputs.source_sha }}
   PUBLICATION_RUN: ${{ inputs.publication_run }}
+  ALPHA3_RECOVERY: ${{ inputs.alpha3_recovery && 'true' || 'false' }}
+  SELECTED_VERIFIER: ${{ inputs.verifier_sha }}
+  SELECTED_VERIFIER_TREE: ${{ inputs.verifier_tree }}
+  SELECTED_WORKFLOW: ${{ inputs.alpha3_recovery && inputs.verifier_sha || inputs.source_sha }}
+  QUALIFICATION_TOOL_ROOT: ${{ github.workspace }}${{ inputs.alpha3_recovery && '/verifier' || '' }}
+  PRODUCER_ROOT: ${{ github.workspace }}${{ inputs.alpha3_recovery && '/producer' || '' }}
   PYTHONDONTWRITEBYTECODE: "1"
   UV_NO_CONFIG: "1"
   UV_PYTHON_DOWNLOADS: never
@@ -42,13 +60,37 @@ jobs:
       build-json: ${{ steps.admit.outputs.build_json }}
       public-json: ${{ steps.admit.outputs.public_json }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Require the activated exact main attempt
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = MarcoPorcellato/matryca-plumber
@@ -58,9 +100,23 @@ jobs:
           test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$PUBLICATION_RUN" =~ ^[1-9][0-9]*$ ]]
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
       - name: Acquire exact official uv
         timeout-minutes: 2
         shell: bash
@@ -71,6 +127,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -80,6 +137,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -105,11 +163,13 @@ jobs:
         timeout-minutes: 5
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12
       - name: Provision locked qualification tools without project installation
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -122,9 +182,16 @@ jobs:
         id: admit
         env:
           GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-admit --source-root "$GITHUB_WORKSPACE" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle"
+          qualification_command=alpha-public-admit
+          recovery_args=()
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+            recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+          fi
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle" "${recovery_args[@]}"
       - name: Preserve public admission evidence
         if: always()
         id: upload
@@ -149,22 +216,60 @@ jobs:
     env:
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -176,6 +281,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -185,6 +291,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -211,12 +318,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -234,9 +343,16 @@ jobs:
           digest-mismatch: error
       - name: Run mapped exact-source negative controls
         timeout-minutes: 16
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-source-controls --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json"
+          qualification_command=alpha-source-controls
+          recovery_args=()
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+            recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+          fi
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json" "${recovery_args[@]}"
       - name: Preserve source-controls evidence
         if: always()
         id: upload
@@ -259,22 +375,60 @@ jobs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
       artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -286,6 +440,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -295,6 +450,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -321,12 +477,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -338,9 +496,16 @@ jobs:
       - name: Require native refusal before graph access
         shell: bash
         timeout-minutes: 2
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py alpha-windows-refusal --source-root "$GITHUB_WORKSPACE" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json"
+          qualification_command=alpha-windows-refusal
+          recovery_args=()
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+            recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+          fi
+          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json" "${recovery_args[@]}"
       - name: Preserve windows-refusal evidence
         if: always()
         id: upload
@@ -367,22 +532,60 @@ jobs:
       RUNTIME_MINOR: "3.12"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -394,6 +597,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -403,6 +607,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -429,12 +634,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -451,6 +658,7 @@ jobs:
           merge-multiple: true
           digest-mismatch: error
       - name: Provision separate locked runtime and build environments
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -458,16 +666,23 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            qualification_command=alpha-row
+            recovery_args=()
+            if [ "$ALPHA3_RECOVERY" = true ]; then
+              qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+              recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+            fi
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
           done
       - name: Preserve linux312 evidence
         if: always()
@@ -495,22 +710,60 @@ jobs:
       RUNTIME_MINOR: "3.13"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -522,6 +775,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -531,6 +785,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -557,12 +812,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -579,6 +836,7 @@ jobs:
           merge-multiple: true
           digest-mismatch: error
       - name: Provision separate locked runtime and build environments
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -586,16 +844,23 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            qualification_command=alpha-row
+            recovery_args=()
+            if [ "$ALPHA3_RECOVERY" = true ]; then
+              qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+              recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+            fi
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
           done
       - name: Preserve linux313 evidence
         if: always()
@@ -623,22 +888,60 @@ jobs:
       RUNTIME_MINOR: "3.12"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -650,6 +953,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -659,6 +963,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -685,12 +990,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -707,6 +1014,7 @@ jobs:
           merge-multiple: true
           digest-mismatch: error
       - name: Provision separate locked runtime and build environments
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -714,16 +1022,23 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            qualification_command=alpha-row
+            recovery_args=()
+            if [ "$ALPHA3_RECOVERY" = true ]; then
+              qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+              recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+            fi
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
           done
       - name: Preserve macos312 evidence
         if: always()
@@ -751,22 +1066,60 @@ jobs:
       RUNTIME_MINOR: "3.13"
       EXPECTED_BINDING_JSON: ${{ needs.admission.outputs.binding }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -778,6 +1131,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -787,6 +1141,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -813,12 +1168,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -835,6 +1192,7 @@ jobs:
           merge-multiple: true
           digest-mismatch: error
       - name: Provision separate locked runtime and build environments
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -842,16 +1200,23 @@ jobs:
           "$runtime" -I -B -c 'import sys; assert ".".join(map(str,sys.version_info[:2]))==sys.argv[1]' "$RUNTIME_MINOR"
           for kind in wheel sdist; do
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
-            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$GITHUB_WORKSPACE/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
+            uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           for kind in wheel sdist; do
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-row --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json"
+            qualification_command=alpha-row
+            recovery_args=()
+            if [ "$ALPHA3_RECOVERY" = true ]; then
+              qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+              recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+            fi
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
           done
       - name: Preserve macos313 evidence
         if: always()
@@ -880,22 +1245,60 @@ jobs:
       EXPECTED_PUBLIC_JSON: ${{ needs.admission.outputs.public-json }}
       EXPECTED_ARTIFACTS_JSON: '{"admission":{"id":"${{ needs.admission.outputs.artifact-id }}","sha256":"${{ needs.admission.outputs.artifact-sha256 }}"},"source-controls":{"id":"${{ needs.source-controls.outputs.artifact-id }}","sha256":"${{ needs.source-controls.outputs.artifact-sha256 }}"},"windows-refusal":{"id":"${{ needs.windows-refusal.outputs.artifact-id }}","sha256":"${{ needs.windows-refusal.outputs.artifact-sha256 }}"},"linux312":{"id":"${{ needs.linux312.outputs.artifact-id }}","sha256":"${{ needs.linux312.outputs.artifact-sha256 }}"},"linux313":{"id":"${{ needs.linux313.outputs.artifact-id }}","sha256":"${{ needs.linux313.outputs.artifact-sha256 }}"},"macos312":{"id":"${{ needs.macos312.outputs.artifact-id }}","sha256":"${{ needs.macos312.outputs.artifact-sha256 }}"},"macos313":{"id":"${{ needs.macos313.outputs.artifact-id }}","sha256":"${{ needs.macos313.outputs.artifact-sha256 }}"}}'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - if: ${{ !inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
           fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.verifier_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - if: ${{ inputs.alpha3_recovery }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: producer
+          persist-credentials: false
+          fetch-depth: 0
       - name: Verify selected source
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
+            test "$PUBLICATION_RUN" = 39887297548
+            test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
+            test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
+          else
+            test -z "$SELECTED_VERIFIER"
+            test -z "$SELECTED_VERIFIER_TREE"
+          fi
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$SELECTED_SOURCE" = "$GITHUB_SHA"
+          test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           git merge-base --is-ancestor HEAD origin/main
       - name: Acquire exact official uv
         timeout-minutes: 2
@@ -907,6 +1310,7 @@ jobs:
           UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/matryca-uv/python
           UV_PYTHON_BIN_DIR: ${{ runner.temp }}/matryca-uv/python-bin
           UV_ARCHIVE_SHA256: "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8"
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -916,6 +1320,7 @@ jobs:
         id: setup-uv
         timeout-minutes: 2
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           test "$UV_PYTHON" = 3.12
@@ -942,12 +1347,14 @@ jobs:
         shell: bash
         env:
           UV_PYTHON_DOWNLOADS: manual
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
           uv python install 3.12 "${RUNTIME_MINOR:-3.12}"
       - name: Provision locked qualification tools
         shell: bash
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -961,13 +1368,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NEEDS_JSON: ${{ toJSON(needs) }}
         timeout-minutes: 2
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; value=json.loads(os.environ["NEEDS_JSON"]); assert len(value)==7 and all(job["result"]=="success" for job in value.values())'
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
           gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" > "$RUNNER_TEMP/current-main.json"
-          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"]+"/current-main.json"))["object"]["sha"]==os.environ["SELECTED_SOURCE"]'
+          "$RUNNER_TEMP/tools/bin/python" -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"]+"/current-main.json"))["object"]["sha"]==os.environ["SELECTED_WORKFLOW"]'
       - name: Download only the seven independently carried artifact IDs
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
@@ -976,9 +1384,16 @@ jobs:
           merge-multiple: false
           digest-mismatch: error
       - name: Fail-closed public alpha aggregation
+        working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-public-aggregate --source-root "$GITHUB_WORKSPACE" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
+          qualification_command=alpha-public-aggregate
+          recovery_args=()
+          if [ "$ALPHA3_RECOVERY" = true ]; then
+            qualification_command="alpha3-recovery-${qualification_command#alpha-}"
+            recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
+          fi
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json" "${recovery_args[@]}"
       - name: Preserve public aggregate (not consumer admission)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:

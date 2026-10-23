@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Immutable alpha.3 public qualification** — transport the empty metadata digest
+  without an empty process argument, and add an explicitly selected recovery route
+  that independently authenticates verifier code while preserving the original
+  producer, published bytes and attestations. Public-byte qualification and Trama
+  admission remain separate gates; no retagging or republication is implied.
+
 ## [2.1.0-alpha.3] - 2026-10-22
 
 Preparation only: no alpha.3 tag, publication or runtime admission is recorded.

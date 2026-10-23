@@ -20,10 +20,10 @@ from scripts.release_qualification.bundle import BundleBinding
 
 
 def _inputs(
-    *, run_attempt: int = 2
+    *, run_attempt: int = 2, binding_override: BundleBinding | None = None, recovery: Any = None
 ) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     alpha = importlib.import_module("scripts.release_qualification.alpha1_matrix")
-    binding = BundleBinding(
+    binding = binding_override or BundleBinding(
         "a" * 40,
         "b" * 40,
         "2.1.0a3",
@@ -52,6 +52,8 @@ def _inputs(
         (("setuptools", "84.0.0"), ("wheel", "0.48.0")),
         ("logseq-matryca-parser==1.9.0",),
     )
+    if recovery is not None:
+        context = replace(context, recovery=recovery)
     rows: list[dict[str, Any]] = []
     for system, architecture, minor, kind in alpha.ROWS:
         target = f"{system}-{architecture}"

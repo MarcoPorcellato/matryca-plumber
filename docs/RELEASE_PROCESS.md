@@ -245,6 +245,42 @@ handoff be offered to Trama #2. No consumer admission, Windows installed support
 DB/payload access, user-graph use, stable claim or full-soak result follows from
 this bridge.
 
+### Explicit verifier-only recovery for immutable alpha.3
+
+The same-source route above remains the default. A separate, manually selected
+`alpha3_recovery: true` route repairs qualification tooling without changing the
+published producer. It is closed to producer commit
+`8c30f70e217722e719c5aedc322219ebccb87e68`, tree
+`de80d0473aa281c52d0fed10b4561024dd12d76f`, tag object
+`c093e9e8aa735b7c37a0c1a56a601a9c31cbdf24`, and publisher run `39887297548/1`.
+The failed public campaign `39888823938/1` remains evidence, not a reusable attempt.
+
+Activation requires the exact separately reviewed, signed verifier commit and
+tree through `verifier_sha` and `verifier_tree`. The dispatch, current main,
+actual qualification run and jobs, artifact metadata, imported qualification
+modules and committed tool inventory must all bind to that verifier. The original
+tag, publisher, signed attestation source/signer digests, source/resource ledger,
+canonical build and public archive inventories remain bound to the producer.
+Both identities are recorded and independently rechecked during aggregation;
+no metadata is rewritten and no report's self-declared success supplies an expectation.
+
+Recovery uses disjoint `verifier` and `producer` checkouts, with canonical LF
+tooling bytes on every runner. Dedicated `alpha3-recovery-*` commands require
+the verifier root, full commit and tree; existing commands expose no generic
+identity override. Wrong roots, code origins, signatures, identities or bytes
+fail closed. The original eight installed rows, full package/operational TCKs,
+independent sdist build environments, source controls, Windows refusal, output
+limits and cleanup gates are unchanged. No dependency resolution or package
+rebuild may replace an original published artifact.
+
+This route requires its own explicit integration and bounded campaign approval.
+A new qualification run must be separately authorized, distinct from the publisher
+and failed campaign, and attempt 1; calling it a new run does not grant retry authority.
+No tag, package upload, publication-workflow rerun or version migration is needed.
+Preserve alpha.3, all original assets and historical evidence. Only accepted
+actual-public-byte evidence and independent review can support a producer handoff;
+Trama's admission decision remains separate.
+
 ### Historical RC4 qualification policy
 
 The superseded [RC4 qualification plan](quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md)
