@@ -188,6 +188,11 @@ jobs:
           qualification_command=alpha-public-admit
           recovery_args=()
           if [ "$ALPHA3_RECOVERY" = true ]; then
+            git_config_count="${GIT_CONFIG_COUNT:-0}"
+            [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+            export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+            export "GIT_CONFIG_VALUE_${git_config_count}=false"
+            export GIT_CONFIG_COUNT="$((git_config_count + 1))"
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
@@ -349,6 +354,11 @@ jobs:
           qualification_command=alpha-source-controls
           recovery_args=()
           if [ "$ALPHA3_RECOVERY" = true ]; then
+            git_config_count="${GIT_CONFIG_COUNT:-0}"
+            [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+            export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+            export "GIT_CONFIG_VALUE_${git_config_count}=false"
+            export GIT_CONFIG_COUNT="$((git_config_count + 1))"
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
@@ -502,6 +512,11 @@ jobs:
           qualification_command=alpha-windows-refusal
           recovery_args=()
           if [ "$ALPHA3_RECOVERY" = true ]; then
+            git_config_count="${GIT_CONFIG_COUNT:-0}"
+            [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+            export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+            export "GIT_CONFIG_VALUE_${git_config_count}=false"
+            export GIT_CONFIG_COUNT="$((git_config_count + 1))"
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
@@ -679,6 +694,11 @@ jobs:
             qualification_command=alpha-row
             recovery_args=()
             if [ "$ALPHA3_RECOVERY" = true ]; then
+              git_config_count="${GIT_CONFIG_COUNT:-0}"
+              [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+              export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+              export "GIT_CONFIG_VALUE_${git_config_count}=false"
+              export GIT_CONFIG_COUNT="$((git_config_count + 1))"
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
@@ -857,6 +877,11 @@ jobs:
             qualification_command=alpha-row
             recovery_args=()
             if [ "$ALPHA3_RECOVERY" = true ]; then
+              git_config_count="${GIT_CONFIG_COUNT:-0}"
+              [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+              export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+              export "GIT_CONFIG_VALUE_${git_config_count}=false"
+              export GIT_CONFIG_COUNT="$((git_config_count + 1))"
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
@@ -1035,6 +1060,11 @@ jobs:
             qualification_command=alpha-row
             recovery_args=()
             if [ "$ALPHA3_RECOVERY" = true ]; then
+              git_config_count="${GIT_CONFIG_COUNT:-0}"
+              [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+              export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+              export "GIT_CONFIG_VALUE_${git_config_count}=false"
+              export GIT_CONFIG_COUNT="$((git_config_count + 1))"
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
@@ -1213,6 +1243,11 @@ jobs:
             qualification_command=alpha-row
             recovery_args=()
             if [ "$ALPHA3_RECOVERY" = true ]; then
+              git_config_count="${GIT_CONFIG_COUNT:-0}"
+              [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+              export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+              export "GIT_CONFIG_VALUE_${git_config_count}=false"
+              export GIT_CONFIG_COUNT="$((git_config_count + 1))"
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
@@ -1390,6 +1425,11 @@ jobs:
           qualification_command=alpha-public-aggregate
           recovery_args=()
           if [ "$ALPHA3_RECOVERY" = true ]; then
+            git_config_count="${GIT_CONFIG_COUNT:-0}"
+            [[ "$git_config_count" =~ ^(0|[1-9][0-9]{0,8})$ ]]
+            export "GIT_CONFIG_KEY_${git_config_count}=core.autocrlf"
+            export "GIT_CONFIG_VALUE_${git_config_count}=false"
+            export GIT_CONFIG_COUNT="$((git_config_count + 1))"
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi

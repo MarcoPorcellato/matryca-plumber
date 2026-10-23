@@ -6,9 +6,11 @@ import copy
 import hashlib
 import importlib
 import importlib.util
+import io
 import os
 import shutil
 import subprocess
+import tarfile
 from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -29,6 +31,146 @@ TOOL_FILES = (
     ("scripts/release_qualification/alpha3_recovery.py", "3" * 64),
 )
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture
+def conversion_repository(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A committed LF tool with ambient archive conversion, never executed."""
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "0")
+    root = tmp_path / "synthetic-git"
+    root.mkdir()
+    tool = root / "scripts/qualify_release_package.py"
+    tool.parent.mkdir()
+    tool.write_bytes(b"# synthetic tool\n")
+    for arguments in (
+        ["init", "--quiet"],
+        ["config", "core.autocrlf", "false"],
+        ["add", "scripts/qualify_release_package.py"],
+        [
+            "-c",
+            "user.name=Synthetic",
+            "-c",
+            "user.email=synthetic@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--quiet",
+            "-m",
+            "Synthetic fixture",
+        ],
+        ["config", "core.autocrlf", "true"],
+    ):
+        result = subprocess.run(
+            ["git", *arguments], cwd=root, capture_output=True, timeout=5, check=False
+        )
+        assert result.returncode == 0, result.stderr
+        assert len(result.stdout) <= 4096 and len(result.stderr) <= 4096
+    return root
+
+
+def test_git_archive_characterizes_worktree_conversion(conversion_repository: Path) -> None:
+    from scripts.release_qualification import bundle
+
+    tool = conversion_repository / "scripts/qualify_release_package.py"
+    assert tool.read_bytes() == b"# synthetic tool\n"
+    catalog = bundle._git_tree_file_digests(conversion_repository)
+    assert (
+        catalog["scripts/qualify_release_package.py"]
+        == hashlib.sha256(b"# synthetic tool\r\n").hexdigest()
+    )
+    assert (
+        catalog["scripts/qualify_release_package.py"]
+        != hashlib.sha256(tool.read_bytes()).hexdigest()
+    )
+
+
+@pytest.mark.parametrize(
+    "job",
+    [
+        "admission",
+        "source-controls",
+        "windows-refusal",
+        "linux312",
+        "linux313",
+        "macos312",
+        "macos313",
+        "aggregate",
+    ],
+)
+@pytest.mark.parametrize("recovery", [False, True])
+def test_recovery_qualification_git_environment_preserves_bytes_and_other_settings(
+    conversion_repository: Path, job: str, recovery: bool
+) -> None:
+    workflow = yaml.load(
+        (ROOT / ".github/workflows/og-public-artifact-qualification.yml").read_text(),
+        Loader=yaml.BaseLoader,
+    )
+    scripts = [
+        step["run"]
+        for step in workflow["jobs"][job]["steps"]
+        if 'qualification_command="alpha3-recovery-' in step.get("run", "")
+    ]
+    assert len(scripts) == 1
+    before_command = scripts[0].split('qualification_command="alpha3-recovery-', 1)[0]
+    guard = 'if [ "$ALPHA3_RECOVERY" = true ]; then'
+    setup = guard + "\n:\n" + before_command.rsplit(guard, 1)[1] + "fi\n"
+    environment = dict(os.environ)
+    environment.pop("BASH_ENV", None)
+    environment.pop("ENV", None)
+    environment.update(
+        {
+            "ALPHA3_RECOVERY": str(recovery).lower(),
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "synthetic.marker",
+            "GIT_CONFIG_VALUE_0": "keep",
+        }
+    )
+    result = subprocess.run(
+        [
+            "bash",
+            "--noprofile",
+            "--norc",
+            "-euc",
+            setup + "git config --get synthetic.marker >&2\nexec git archive --format=tar HEAD\n",
+        ],
+        cwd=conversion_repository,
+        env=environment,
+        capture_output=True,
+        timeout=5,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == b"keep\n"
+    assert len(result.stdout) < 65_536
+    with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
+        stream = archive.extractfile("scripts/qualify_release_package.py")
+        assert stream is not None
+        with stream:
+            observed = stream.read(4096)
+    assert observed == (b"# synthetic tool\n" if recovery else b"# synthetic tool\r\n")
+
+
+def test_canonical_git_bytes_still_reject_a_modified_loaded_tool(
+    conversion_repository: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts.release_qualification import bundle
+
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.autocrlf")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
+    catalog = bundle._git_tree_file_digests(conversion_repository)
+    tool = conversion_repository / "scripts/qualify_release_package.py"
+    module = SimpleNamespace(__file__=str(tool), __spec__=SimpleNamespace(origin=str(tool)))
+    _recovery().verify_tool_origins(
+        conversion_repository, {"scripts.qualify_release_package": module}, catalog
+    )
+    tool.write_bytes(b"# changed synthetic tool\n")
+    with pytest.raises(ValueError, match="Recovery loaded tool differs"):
+        _recovery().verify_tool_origins(
+            conversion_repository, {"scripts.qualify_release_package": module}, catalog
+        )
 
 
 def _recovery() -> Any:

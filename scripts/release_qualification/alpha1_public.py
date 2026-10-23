@@ -515,7 +515,13 @@ def admit_public(
     if recovery is not None:
         metadata["verifier_commit"] = matrix.document(
             gh_read(
-                ["api", f"repos/{REPO}/commits/{recovery.verifier_commit}"], "verifier_commit.json"
+                [
+                    "api",
+                    f"repos/{REPO}/commits/{recovery.verifier_commit}",
+                    "--jq",
+                    "{sha: .sha, commit: {tree: .commit.tree, verification: .commit.verification}}",
+                ],
+                "verifier_commit.json",
             )
         )
     pypi_path = provenance / "pypi.json"

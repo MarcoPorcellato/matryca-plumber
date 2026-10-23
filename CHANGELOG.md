@@ -7,6 +7,9 @@
   that independently authenticates verifier code while preserving the original
   producer, published bytes and attestations. Public-byte qualification and Trama
   admission remain separate gates; no retagging or republication is implied.
+  Retain compact signed verifier metadata within the existing capture limit and
+  carry canonical Git conversion settings into recovery qualification without
+  replacing inherited settings or relaxing tool-byte checks.
 
 ## [2.1.0-alpha.3] - 2026-10-22
 
