@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Added
+
+- **OG gateway operator reference** — document the exact alpha.3 invocation and
+  error/exit mapping with a source drift check, preserving synthetic-only
+  consumer admission and separate real-vault, payload and publication gates.
+
 ### Fixed
 
 - **Immutable alpha.3 public qualification** — transport the empty metadata digest
