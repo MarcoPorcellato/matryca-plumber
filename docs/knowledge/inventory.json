@@ -384,6 +384,26 @@
       "missing": false
     },
     {
+      "path": "docs/contracts/og-graph-gateway-alpha3.md",
+      "type": "Reference",
+      "title": "OG graph gateway: alpha.3 invocation reference",
+      "description": "Exact alpha.3 gateway invocation and error/exit mapping without new runtime or user-graph authority.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "integration",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Source-bound operator reference; original alpha.3 evidence and scoped synthetic consumer admission remain separate.",
+      "missing": false
+    },
+    {
       "path": "docs/contracts/plumber-consumer-package-v1.md",
       "type": "Specification",
       "title": "`plumber.consumer.package/v1` static profile artifact",
