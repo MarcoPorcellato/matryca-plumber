@@ -2,6 +2,12 @@
 
 ### Added
 
+- **Release target binding** — derive hardened publication routing and artifact
+  names from validated tags, keep immutable producer identities separate from
+  verifier checkouts, and reject incomplete dependency-profile digest chains.
+  Preserve original alpha.3 evidence, RC4 defaults and separate publication and
+  consumer-admission gates.
+
 - **OG gateway operator reference** — document the exact alpha.3 invocation and
   error/exit mapping with a source drift check, preserving synthetic-only
   consumer admission and separate real-vault, payload and publication gates.

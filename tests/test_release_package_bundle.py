@@ -784,7 +784,7 @@ def test_alpha_policy_authenticates_source_ledger_and_handoff_without_rc_waiver(
         verify_handoff(dist, manifest, binding, policy="og-alpha3")
 
 
-@pytest.mark.parametrize("version", ["2.1.0a1", "2.1.0a2", "2.1.0a4", "2.1.0", "2.0.1rc4"])
+@pytest.mark.parametrize("version", ["2.1.0a1", "2.1.0a2", "2.0.1rc4"])
 def test_alpha_policy_refuses_other_well_formed_release_versions(version: str) -> None:
     binding = BundleBinding(
         "a" * 40,
@@ -801,6 +801,27 @@ def test_alpha_policy_refuses_other_well_formed_release_versions(version: str) -
     )
     with pytest.raises(ValueError, match="version"):
         BundleBinding.from_json(binding.to_json(), policy="og-alpha3")
+
+
+@pytest.mark.parametrize("version", ["2.1.0a4", "2.1.0b1", "2.1.0rc1", "2.1.0", "2.2.0a1"])
+def test_hardened_successor_bundle_preserves_authentication_gates(
+    tmp_path: Path, version: str
+) -> None:
+    repo, commit, ledger, dist = _alpha_inputs(tmp_path, version)
+    binding = build_binding(repo, dist, ledger, commit, policy="og-alpha3")
+
+    assert binding.version == version
+    assert BundleBinding.from_json(binding.to_json(), policy="og-alpha3") == binding
+    with pytest.raises(ValueError, match="version"):
+        BundleBinding.from_json(binding.to_json())
+
+    manifest = dist / "SHA256SUMS"
+    manifest.write_bytes(canonical_manifest(binding, policy="og-alpha3"))
+    verify_handoff(dist, manifest, binding, policy="og-alpha3")
+    wheel = dist / binding.wheel_name
+    wheel.write_bytes(wheel.read_bytes() + b"tampered")
+    with pytest.raises(ValueError, match="differs"):
+        verify_handoff(dist, manifest, binding, policy="og-alpha3")
 
 
 @pytest.mark.parametrize("policy", ["og-alpha1", "og-alpha2", "all", "2.1.0a3", "", "rc.*"])

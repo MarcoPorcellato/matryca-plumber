@@ -20,19 +20,22 @@ from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_ope
 
 from scripts.release_qualification import alpha1_matrix as matrix
 from scripts.release_qualification import bundle, installed, sdist_build
-from scripts.release_qualification.alpha3_recovery import TAG_OBJECT, RecoveryBinding
+from scripts.release_qualification.alpha3_recovery import RecoveryBinding
+from scripts.release_qualification.release_target import (
+    ALPHA3_TARGET,
+    ReleaseRoute,
+    ReleaseTarget,
+    selected_target,
+)
 
 REPO = "MarcoPorcellato/matryca-plumber"
 REPOSITORY_ID = 1241185104
-TAG = "v2.1.0-alpha.3"
-VERSION = "2.1.0a3"
+TAG = ALPHA3_TARGET.tag
+VERSION = ALPHA3_TARGET.version
 PUBLISHER = ".github/workflows/release.yml"
 VERIFIER = ".github/workflows/og-public-artifact-qualification.yml"
-ORIGINALS = (
-    "matryca_plumber-2.1.0a3-py3-none-any.whl",
-    "matryca_plumber-2.1.0a3.tar.gz",
-)
-ASSETS = (*ORIGINALS, "binding.json", "content-ledger.json", "canonical-build.json", "SHA256SUMS")
+ORIGINALS = ALPHA3_TARGET.route.originals
+ASSETS = ALPHA3_TARGET.route.assets
 METADATA_LIMIT = 2_097_152
 DISTRIBUTION_LIMIT = 33_554_432
 
@@ -51,6 +54,7 @@ class PublicContext:
     publisher_run: str
     verifier_run: str
     recovery: RecoveryBinding | None = None
+    target: ReleaseTarget | None = None
 
     def __post_init__(self) -> None:
         _require(
@@ -65,7 +69,18 @@ class PublicContext:
             and self.publisher_run != self.verifier_run,
             "Invalid or conflated public source/run selection.",
         )
+        _require(
+            self.recovery is None or isinstance(self.recovery, RecoveryBinding),
+            "Invalid recovery binding.",
+        )
+        target = self.release_target
+        _require(
+            (target.source_commit, target.source_tree, target.publisher_run)
+            == (self.source_commit, self.source_tree, self.publisher_run),
+            "Selected public target differs from the producer.",
+        )
         if self.recovery is not None:
+            _require(target == self.recovery.target, "Recovery producer target differs.")
             _require(isinstance(self.recovery, RecoveryBinding), "Invalid recovery binding.")
             self.recovery.require_producer(self.source_commit, self.source_tree, self.publisher_run)
             _require(
@@ -73,13 +88,24 @@ class PublicContext:
             )
 
     @property
+    def release_target(self) -> ReleaseTarget:
+        """Resolve only an explicit target or the preserved original historical tuple."""
+        if self.target is not None:
+            _require(isinstance(self.target, ReleaseTarget), "Invalid public release target.")
+            return self.target
+        if self.recovery is not None:
+            return self.recovery.target
+        return selected_target(self.source_commit, self.source_tree, self.publisher_run, {})
+
+    @property
     def workflow_commit(self) -> str:
         """The actual verifier head; the producer remains bound separately."""
         return self.source_commit if self.recovery is None else self.recovery.verifier_commit
 
 
-def validate_url(url: str, kind: str, *, initial: bool = False) -> None:
+def validate_url(url: str, kind: str, *, initial: bool = False, release_tag: str = TAG) -> None:
     """Allow HTTPS only; never forward authentication or accept foreign redirects."""
+    route = ReleaseRoute.from_tag(release_tag)
     parts = urlsplit(url)
     _require(
         parts.scheme == "https"
@@ -97,7 +123,7 @@ def validate_url(url: str, kind: str, *, initial: bool = False) -> None:
             and re.fullmatch(rf"/repos/{REPO}/releases/assets/[1-9][0-9]*", parts.path) is not None
         )
         browser = parts.hostname == "github.com" and parts.path.startswith(
-            f"/{REPO}/releases/download/{TAG}/"
+            f"/{REPO}/releases/download/{route.tag}/"
         )
         redirect = not initial and parts.hostname in (
             "release-assets.githubusercontent.com",
@@ -112,13 +138,14 @@ def validate_url(url: str, kind: str, *, initial: bool = False) -> None:
         )
     elif kind == "pypi-metadata":
         _require(
-            url == f"https://pypi.org/pypi/matryca-plumber/{VERSION}/json", "Foreign PyPI metadata."
+            url == f"https://pypi.org/pypi/matryca-plumber/{route.version}/json",
+            "Foreign PyPI metadata.",
         )
     else:
         raise ValueError("Unknown public acquisition kind.")
 
 
-def _redirect_url(url: str, kind: str) -> None:
+def _redirect_url(url: str, kind: str, *, release_tag: str = TAG) -> None:
     # GitHub's signed asset-service URL has a query. Only those exact hosts may
     # carry it, and neither userinfo, fragments nor a different port is accepted.
     parts = urlsplit(url)
@@ -126,10 +153,10 @@ def _redirect_url(url: str, kind: str) -> None:
         "release-assets.githubusercontent.com",
         "objects.githubusercontent.com",
     ):
-        validate_url(parts._replace(query="").geturl(), kind)
+        validate_url(parts._replace(query="").geturl(), kind, release_tag=release_tag)
         _require(not any(ord(character) < 33 for character in url), "Invalid redirect characters.")
     else:
-        validate_url(url, kind)
+        validate_url(url, kind, release_tag=release_tag)
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -144,10 +171,13 @@ def _open(request: Request) -> Any:
     return build_opener(ProxyHandler({}), _NoRedirect()).open(request, timeout=30)
 
 
-def fetch_file(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
+def fetch_file(
+    url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str = TAG
+) -> None:
     """Stream one bounded acquisition; the caller owns its 120-second process deadline."""
+    route = ReleaseRoute.from_tag(release_tag)
     metadata = kind == "pypi-metadata"
-    limit = METADATA_LIMIT if metadata or path.name not in ORIGINALS else DISTRIBUTION_LIMIT
+    limit = METADATA_LIMIT if metadata or path.name not in route.originals else DISTRIBUTION_LIMIT
     _require(
         (metadata and size == 0 and sha256 == "")
         or (
@@ -157,7 +187,7 @@ def fetch_file(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
         ),
         "Invalid acquisition expectations.",
     )
-    validate_url(url, kind, initial=True)
+    validate_url(url, kind, initial=True, release_tag=release_tag)
     _require(
         path.parent.is_dir()
         and not path.parent.is_symlink()
@@ -190,7 +220,7 @@ def fetch_file(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
                     "Missing public redirect location.",
                 )
                 url = urljoin(url, location)
-                _redirect_url(url, kind)
+                _redirect_url(url, kind, release_tag=release_tag)
             finally:
                 error.close()
     if response is None:
@@ -212,6 +242,7 @@ def fetch_file(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
 
 def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """Authenticate source/tag/R/Q and exact six-plus-two public inventories."""
+    route = context.release_target.route
     _require(
         set(metadata)
         == {"main", "tag", "tag_object", "publisher", "verifier", "release", "pypi"}
@@ -231,22 +262,23 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
             == context.recovery.verifier_tree
             and commit.get("commit", {}).get("verification", {}).get("verified") is True
             and commit.get("commit", {}).get("verification", {}).get("reason") == "valid"
-            and tag_object.get("sha") == TAG_OBJECT,
+            and tag_object.get("sha") == context.release_target.tag_object,
             "Recovery verifier signature/tree or original tag identity mismatch.",
         )
     _require(
-        tag.get("ref") == "refs/tags/" + TAG
+        tag.get("ref") == "refs/tags/" + route.tag
         and tag.get("object", {}).get("type") == "tag"
         and tag.get("object", {}).get("sha") == tag_object.get("sha")
         and re.fullmatch(r"[0-9a-f]{40}", str(tag_object.get("sha"))) is not None
-        and tag_object.get("tag") == TAG
+        and tag_object.get("sha") == context.release_target.tag_object
+        and tag_object.get("tag") == route.tag
         and tag_object.get("object", {}).get("type") == "commit"
         and tag_object.get("object", {}).get("sha") == context.source_commit
         and tag_object.get("verification", {}).get("verified") is True,
         "Signed annotated tag does not bind the selected source.",
     )
     for key, run_id, event, branch, workflow in (
-        ("publisher", context.publisher_run, "push", TAG, PUBLISHER),
+        ("publisher", context.publisher_run, "push", route.tag, PUBLISHER),
         ("verifier", context.verifier_run, "workflow_dispatch", "main", VERIFIER),
     ):
         run = metadata[key]
@@ -255,7 +287,7 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
         selectors: tuple[str, ...] = (
             workflow,
             f"{workflow}@main",
-            f"{workflow}@{TAG}",
+            f"{workflow}@{route.tag}",
             f"{workflow}@{expected_sha}",
         )
         if context.recovery is not None:
@@ -291,9 +323,9 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
     )
     release = metadata["release"]
     _require(
-        release.get("tag_name") == TAG
+        release.get("tag_name") == route.tag
         and release.get("draft") is False
-        and release.get("prerelease") is True
+        and release.get("prerelease") is route.prerelease
         and isinstance(release.get("assets"), list)
         and len(release["assets"]) == 6,
         "Release identity or asset cardinality mismatch.",
@@ -303,7 +335,8 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
     for asset in release["assets"]:
         name = asset.get("name")
         _require(
-            name in ASSETS and name not in assets, "Missing, extra or duplicate release asset."
+            name in route.assets and name not in assets,
+            "Missing, extra or duplicate release asset.",
         )
         identifier, size, digest = asset.get("id"), asset.get("size"), asset.get("digest")
         _require(
@@ -311,27 +344,27 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
             and identifier > 0
             and identifier not in asset_ids
             and type(size) is int
-            and 0 < size <= (DISTRIBUTION_LIMIT if name in ORIGINALS else METADATA_LIMIT)
+            and 0 < size <= (DISTRIBUTION_LIMIT if name in route.originals else METADATA_LIMIT)
             and isinstance(digest, str)
             and re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is not None
             and asset.get("state") == "uploaded"
             and asset.get("url")
             == f"https://api.github.com/repos/{REPO}/releases/assets/{identifier}"
             and asset.get("browser_download_url")
-            == f"https://github.com/{REPO}/releases/download/{TAG}/{name}",
+            == f"https://github.com/{REPO}/releases/download/{route.tag}/{name}",
             "Release asset size, digest or identity mismatch.",
         )
         asset_ids.add(identifier)
         assets[name] = {"id": identifier, "size": size, "sha256": digest[7:], "url": asset["url"]}
-    _require(set(assets) == set(ASSETS), "Incomplete release assets.")
+    _require(set(assets) == set(route.assets), "Incomplete release assets.")
     _require(
-        sum(assets[name]["size"] for name in ORIGINALS) <= 67_108_864,
+        sum(assets[name]["size"] for name in route.originals) <= 67_108_864,
         "Original pair exceeds aggregate bound.",
     )
     pypi = metadata["pypi"]
     _require(
         pypi.get("info", {}).get("name") == "matryca-plumber"
-        and pypi.get("info", {}).get("version") == VERSION
+        and pypi.get("info", {}).get("version") == route.version
         and isinstance(pypi.get("urls"), list)
         and len(pypi["urls"]) == 2,
         "PyPI version or inventory mismatch.",
@@ -340,7 +373,8 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
     for item in pypi["urls"]:
         name = item.get("filename")
         _require(
-            name in ORIGINALS and name not in seen, "Extra, duplicate or missing PyPI original."
+            name in route.originals and name not in seen,
+            "Extra, duplicate or missing PyPI original.",
         )
         seen.add(name)
         expected = assets[name]
@@ -349,7 +383,8 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
             and type(item.get("size")) is int
             and item["size"] == expected["size"]
             and item.get("digests", {}).get("sha256") == expected["sha256"]
-            and item.get("packagetype") == ("bdist_wheel" if name == ORIGINALS[0] else "sdist")
+            and item.get("packagetype")
+            == ("bdist_wheel" if name == route.originals[0] else "sdist")
             and isinstance(item.get("url"), str),
             "PyPI original differs from its GitHub counterpart.",
         )
@@ -361,12 +396,13 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
 
 def verify_attestation(context: PublicContext, name: str, sha256: str, raw: bytes) -> None:
     """Check the cryptographically verified CLI result, not an editable predicate."""
+    route = context.release_target.route
     result = matrix.document(b'{"entries":' + raw + b"}").get("entries")
     if not isinstance(result, list) or len(result) != 1 or not isinstance(result[0], dict):
         raise ValueError("Ambiguous verified attestation result.")
     verified = result[0].get("verificationResult", {})
     certificate = verified.get("signature", {}).get("certificate", {})
-    workflow_identity = f"https://github.com/{REPO}/{PUBLISHER}@refs/tags/{TAG}"
+    workflow_identity = f"https://github.com/{REPO}/{PUBLISHER}@refs/tags/{route.tag}"
     expected = {
         "issuer": "https://token.actions.githubusercontent.com",
         "subjectAlternativeName": workflow_identity,
@@ -374,7 +410,7 @@ def verify_attestation(context: PublicContext, name: str, sha256: str, raw: byte
         "buildSignerDigest": context.source_commit,
         "sourceRepositoryURI": "https://github.com/" + REPO,
         "sourceRepositoryDigest": context.source_commit,
-        "sourceRepositoryRef": "refs/tags/" + TAG,
+        "sourceRepositoryRef": "refs/tags/" + route.tag,
         "sourceRepositoryIdentifier": str(REPOSITORY_ID),
         "sourceRepositoryOwnerIdentifier": "220745401",
         "sourceRepositoryVisibilityAtSigning": "public",
@@ -417,7 +453,9 @@ def _command(command: list[str], output: Path, timeout: int = 30) -> bytes:
     return result.stdout
 
 
-def _acquire(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
+def _acquire(
+    url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str = TAG
+) -> None:
     # Reuse the reviewed process-tree owner for the *entire* streaming deadline.
     result = sdist_build._run_bounded(
         [
@@ -434,6 +472,8 @@ def _acquire(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
             f"--sha256={sha256}",
             "--kind",
             kind,
+            "--release-tag",
+            release_tag,
         ],
         timeout=120,
         capture=True,
@@ -457,13 +497,25 @@ def admit_public(
 ) -> dict[str, Any]:
     """One hosted admission, after complete publication; no build or fallback route."""
     source = source.resolve()
+    producer_target = (
+        recovery.target
+        if recovery is not None
+        else selected_target(
+            bundle._git_value(source, "HEAD"),
+            bundle._git_value(source, "HEAD^{tree}"),
+            publication_run,
+            os.environ,
+        )
+    )
     context = PublicContext(
         bundle._git_value(source, "HEAD"),
         bundle._git_value(source, "HEAD^{tree}"),
         publication_run,
         os.environ["GITHUB_RUN_ID"],
         recovery,
+        target=producer_target,
     )
+    route = context.release_target.route
     _require(
         os.environ.get("GITHUB_REPOSITORY") == REPO
         and os.environ.get("GITHUB_REPOSITORY_ID") == str(REPOSITORY_ID)
@@ -498,10 +550,10 @@ def admit_public(
     metadata: dict[str, Any] = {}
     for key, endpoint in (
         ("main", "git/ref/heads/main"),
-        ("tag", "git/ref/tags/" + TAG),
+        ("tag", "git/ref/tags/" + route.tag),
         ("publisher", "actions/runs/" + context.publisher_run),
         ("verifier", "actions/runs/" + context.verifier_run),
-        ("release", "releases/tags/" + TAG),
+        ("release", "releases/tags/" + route.tag),
     ):
         metadata[key] = matrix.document(gh_read(["api", f"repos/{REPO}/{endpoint}"], key + ".json"))
     tag_sha = metadata["tag"].get("object", {}).get("sha")
@@ -526,16 +578,28 @@ def admit_public(
         )
     pypi_path = provenance / "pypi.json"
     _acquire(
-        f"https://pypi.org/pypi/matryca-plumber/{VERSION}/json", pypi_path, 0, "", "pypi-metadata"
+        f"https://pypi.org/pypi/matryca-plumber/{route.version}/json",
+        pypi_path,
+        0,
+        "",
+        "pypi-metadata",
+        release_tag=route.tag,
     )
     metadata["pypi"] = matrix.read_document(pypi_path)
     assets = verify_metadata(context, metadata)
     dist = output / "dist"
     dist.mkdir()
-    for name in ASSETS:
+    for name in route.assets:
         expected = assets[name]
-        target = dist / name if name in ORIGINALS else output / name
-        _acquire(expected["url"], target, expected["size"], expected["sha256"], "github")
+        target = dist / name if name in route.originals else output / name
+        _acquire(
+            expected["url"],
+            target,
+            expected["size"],
+            expected["sha256"],
+            "github",
+            release_tag=route.tag,
+        )
         raw = gh_read(
             [
                 "attestation",
@@ -544,7 +608,7 @@ def admit_public(
                 "--repo",
                 REPO,
                 "--cert-identity",
-                f"https://github.com/{REPO}/{PUBLISHER}@refs/tags/{TAG}",
+                f"https://github.com/{REPO}/{PUBLISHER}@refs/tags/{route.tag}",
                 "--source-digest",
                 context.source_commit,
                 "--signer-digest",
@@ -559,10 +623,15 @@ def admit_public(
             120,
         )
         verify_attestation(context, name, expected["sha256"], raw)
-    for name in ORIGINALS:
+    for name in route.originals:
         expected = assets[name]
         _acquire(
-            expected["pypi_url"], provenance / name, expected["size"], expected["sha256"], "pypi"
+            expected["pypi_url"],
+            provenance / name,
+            expected["size"],
+            expected["sha256"],
+            "pypi",
+            release_tag=route.tag,
         )
     binding = bundle.BundleBinding.from_json(
         (output / "binding.json").read_text(), policy=matrix.POLICY
@@ -593,6 +662,7 @@ def admit_public(
     record = {
         "schema_version": 1,
         "status": "pass",
+        "target": context.release_target.to_dict(),
         "source_commit": context.source_commit,
         "source_tree": context.source_tree,
         "publisher_run": context.publisher_run,
@@ -627,7 +697,9 @@ def verify_retained(root: Path, context: matrix.MatrixContext, expected: dict[st
         record["publisher_run"],
         context.run_id,
         getattr(context, "recovery", None),
+        target=(ReleaseTarget.from_dict(record["target"]) if "target" in record else None),
     )
+    route = public.release_target.route
     _require(
         (
             record.get("recovery") == public.recovery.to_dict()
@@ -661,8 +733,8 @@ def verify_retained(root: Path, context: matrix.MatrixContext, expected: dict[st
     }
     assets = verify_metadata(public, metadata)
     _require(assets == record["assets"], "Retained public asset expectation changed.")
-    for name in ASSETS:
-        path = root / "dist" / name if name in (*ORIGINALS, "SHA256SUMS") else root / name
+    for name in route.assets:
+        path = root / "dist" / name if name in (*route.originals, "SHA256SUMS") else root / name
         _require(
             not path.is_symlink()
             and path.is_file()
@@ -679,7 +751,7 @@ def verify_retained(root: Path, context: matrix.MatrixContext, expected: dict[st
             assets[name]["sha256"],
             (provenance / (name + ".verification.json")).read_bytes(),
         )
-    for name in ORIGINALS:
+    for name in route.originals:
         _require(
             hashlib.sha256((provenance / name).read_bytes()).hexdigest() == assets[name]["sha256"],
             "PyPI original differs from GitHub original.",

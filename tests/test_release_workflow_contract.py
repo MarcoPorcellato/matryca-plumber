@@ -18,9 +18,7 @@ def _load_release() -> dict[str, Any]:
     # Exact-alpha behavior is independently tested in the public-input module.
     for job in loaded["jobs"].values():
         job["steps"] = [
-            step
-            for step in job["steps"]
-            if step.get("if") != "${{ github.ref_name == 'v2.1.0-alpha.3' }}"
+            step for step in job["steps"] if "outputs.hardened == 'true'" not in step.get("if", "")
         ]
     return cast(dict[str, Any], loaded)
 
@@ -45,8 +43,8 @@ def test_release_job_graph_builds_once_then_promotes() -> None:
     jobs = workflow["jobs"]
     assert set(jobs) == {"verify", "destination-preflight", "build-release", "publish-release"}
     assert jobs["destination-preflight"]["needs"] == "verify"
-    assert jobs["build-release"]["needs"] == "destination-preflight"
-    assert jobs["publish-release"]["needs"] == "build-release"
+    assert jobs["build-release"]["needs"] == ["verify", "destination-preflight"]
+    assert jobs["publish-release"]["needs"] == ["verify", "build-release"]
     rendered = RELEASE_WORKFLOW.read_text(encoding="utf-8")
     assert rendered.count("make release-build") == 1
 
@@ -101,7 +99,7 @@ def test_build_writes_manifest_attests_and_uploads_one_day_artifact() -> None:
 
 
 def _assert_publish_release_contract(publish: dict[str, Any]) -> None:
-    assert publish["needs"] == "build-release"
+    assert publish["needs"] == ["verify", "build-release"]
     assert publish["runs-on"] == "ubuntu-latest"
     assert publish["timeout-minutes"] == "15"
     assert "environment" not in publish
@@ -233,10 +231,10 @@ def test_alpha_acquisition_preserves_the_legacy_promotion_graph() -> None:
         steps = [
             step
             for step in raw["jobs"][name]["steps"]
-            if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.3' }}"
+            if "outputs.hardened == 'true'" in step.get("if", "")
         ]
         acquisition = [
             step for step in steps if "uv_acquisition.py acquire " in step.get("run", "")
         ]
         assert len(acquisition) == 1, "Exact-alpha acquisition must not reuse the runner cache."
-    assert _load_release()["jobs"]["publish-release"]["needs"] == "build-release"
+    assert _load_release()["jobs"]["publish-release"]["needs"] == ["verify", "build-release"]
