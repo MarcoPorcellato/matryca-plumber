@@ -55,6 +55,27 @@ async def test_read_tool_metadata_explains_read_only_bootstrap_limits() -> None:
 
 
 @pytest.mark.asyncio
+async def test_search_tool_metadata_explains_read_only_bootstrap_limits() -> None:
+    app = FastMCP("matryca-search-guidance-test")
+    register_mcp_tools(app)
+
+    tools = await app.list_tools()
+
+    search = next(tool for tool in tools if tool.name == "search_graph")
+    assert search.description is not None
+    guidance = " ".join(search.description.split())
+    assert "``read_only=true``" in guidance
+    assert "In writable mode only" in guidance
+    assert "observer cannot create missing graph-local catalog artifacts" in guidance
+    assert "``shadow_status``" in guidance
+    assert "explicit user authorization before uncatalogued discovery" in guidance
+    assert "Graph writes remain blocked" in guidance
+    assert (
+        "Disabled ``recall`` returns its explicit feature-gate state before graph setup" in guidance
+    )
+
+
+@pytest.mark.asyncio
 async def test_guard_mcp_tool_returns_graph_read_only_error() -> None:
     @guard_mcp_tool
     async def sample() -> dict[str, Any]:

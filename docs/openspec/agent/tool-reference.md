@@ -112,6 +112,15 @@ X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the gra
 
 ### 2. `search_graph`
 
+For graph-search methods other than `recall`, first check `bootstrap_status`
+and read an existing Master Index. With `read_only=true`, the observer cannot
+create a missing graph-local catalog: do not offer catalog bootstrap or Cloud
+Indexing. Read `shadow_status` separately, preserve graph-write restrictions,
+and obtain explicit user authorization before uncatalogued discovery. A ready
+cache does not satisfy the catalog gate or grant discovery permission. Offer
+Local Daemon / Blind Search / Cloud Indexing only in writable mode. Disabled
+`recall` continues to return its feature-gate state before graph setup.
+
 ```json
 { "method": "bm25", "query": "redis cache invalidation" }
 ```

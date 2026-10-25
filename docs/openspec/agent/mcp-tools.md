@@ -30,6 +30,16 @@ Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
 
+The `search_graph` prerequisite follows the same mode-aware Soft Gate: inspect
+`bootstrap_status` and read the Master Index only when present. With
+`read_only=true`, do not recommend catalog-building daemon bootstrap or Cloud
+Indexing; check `shadow_status` separately and obtain explicit user authorization
+before uncatalogued discovery. A ready cache does not complete the catalog or
+grant permission, and graph writes remain blocked. The three writable-mode
+fallbacks apply only when `read_only=false`. Disabled `recall` still returns its
+feature-gate state before graph setup; this guidance does not enable a search
+method or change search execution.
+
 `read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
 
 `read_graph_data(target_type="journal_day", query="YYYY-MM-DD")` reads exactly the canonical

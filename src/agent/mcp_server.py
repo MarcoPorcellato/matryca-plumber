@@ -218,10 +218,16 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         it returns an explicit structured state and never falls back to another search method.
 
         PREREQUISITE for graph-search methods other than ``recall``: Check ``bootstrap_status``
-        and scan ``[[Matryca Master Index]]`` via ``read_graph_data(page)`` first. If index is
-        unavailable, pause and present fallback options (Local Daemon, Blind Search, Cloud
-        Indexing) to the operator for authorization before blind ``bm25`` discovery. Disabled
-        ``recall`` returns its explicit feature-gate state before graph setup.
+        and scan an existing ``[[Matryca Master Index]]`` via ``read_graph_data(page)`` first.
+        With ``read_only=true``, the observer cannot create missing graph-local catalog artifacts.
+        Do not recommend starting catalog bootstrap or Cloud Indexing. Read ``shadow_status``
+        separately; a ready cache neither completes the catalog nor authorizes discovery.
+        Use only authorized targeted reads and obtain explicit user authorization before
+        uncatalogued discovery. Graph writes remain blocked.
+        In writable mode only, if the index is unavailable, pause and present Local Daemon,
+        Blind Search and Cloud Indexing to the operator for authorization before blind
+        ``bm25`` discovery. Disabled ``recall`` returns its explicit feature-gate state before
+        graph setup.
         """
         if method == "bm25":
             await mcp_tool_info(

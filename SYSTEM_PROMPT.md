@@ -1,6 +1,6 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: 15bb6458b30c5c642b17bfa2755fc9f03de92c7ba2dd2781e7055bb4c18b96e9 -->
+<!-- build-hash: 8931413ccfb697cfabef42104733f166c0623ab4d8471c7dc683c8597f2baa10 -->
 
 <!-- package-version: v2.1.0a3 -->
 
@@ -191,6 +191,16 @@ targeted reads and require explicit authorization before uncatalogued discovery.
 Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
+
+The `search_graph` prerequisite follows the same mode-aware Soft Gate: inspect
+`bootstrap_status` and read the Master Index only when present. With
+`read_only=true`, do not recommend catalog-building daemon bootstrap or Cloud
+Indexing; check `shadow_status` separately and obtain explicit user authorization
+before uncatalogued discovery. A ready cache does not complete the catalog or
+grant permission, and graph writes remain blocked. The three writable-mode
+fallbacks apply only when `read_only=false`. Disabled `recall` still returns its
+feature-gate state before graph setup; this guidance does not enable a search
+method or change search execution.
 
 `read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
 
@@ -454,6 +464,15 @@ X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the gra
 ---
 
 ### 2. `search_graph`
+
+For graph-search methods other than `recall`, first check `bootstrap_status`
+and read an existing Master Index. With `read_only=true`, the observer cannot
+create a missing graph-local catalog: do not offer catalog bootstrap or Cloud
+Indexing. Read `shadow_status` separately, preserve graph-write restrictions,
+and obtain explicit user authorization before uncatalogued discovery. A ready
+cache does not satisfy the catalog gate or grant discovery permission. Offer
+Local Daemon / Blind Search / Cloud Indexing only in writable mode. Disabled
+`recall` continues to return its feature-gate state before graph setup.
 
 ```json
 { "method": "bm25", "query": "redis cache invalidation" }
