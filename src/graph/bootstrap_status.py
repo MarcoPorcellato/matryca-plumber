@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from .master_catalog import is_bootstrap_catalog_complete, master_index_page_path
+from .safety.write_policy import is_graph_read_only
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +28,7 @@ class BootstrapStatusSnapshot:
     daemon_status: str | None
     checkpoint_recovery_source: Literal["missing", "primary", "backup", "reset"]
     checkpoint_reset_event: bool
+    read_only: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -43,11 +45,13 @@ class BootstrapStatusSnapshot:
             "daemon_status": self.daemon_status,
             "checkpoint_recovery_source": self.checkpoint_recovery_source,
             "checkpoint_reset_event": self.checkpoint_reset_event,
+            "read_only": self.read_only,
         }
 
 
 def collect_bootstrap_status(graph_root: str | Path) -> BootstrapStatusSnapshot:
     """Merge daemon checkpoint fields with on-disk catalog completeness."""
+    read_only = is_graph_read_only()
     root = Path(graph_root).expanduser().resolve(strict=False)
     from .daemon_checkpoint import read_daemon_checkpoint
 
@@ -84,6 +88,7 @@ def collect_bootstrap_status(graph_root: str | Path) -> BootstrapStatusSnapshot:
         daemon_status=checkpoint.status,
         checkpoint_recovery_source=checkpoint.recovery_source,
         checkpoint_reset_event=checkpoint.reset_event,
+        read_only=read_only,
     )
 
 
@@ -94,7 +99,18 @@ def format_bootstrap_status_markdown(graph_root: str | Path) -> str:
     payload["ok"] = True
     payload["graph_root"] = str(Path(graph_root).expanduser().resolve(strict=False))
 
-    if snapshot.soft_gate_active:
+    if snapshot.read_only:
+        hint = (
+            "STRICT READ ONLY: this is graph-local catalog status, not external Shadow readiness. "
+            "Bootstrap progress comes from the graph-local checkpoint; missing checkpoint 0/0 "
+            "is not a Shadow indexing count. The read-only observer cannot create missing "
+            "Master Index/catalog artifacts; starting it will not satisfy a missing catalog gate. "
+            "Read shadow_status separately without initializing the cache. Use an existing "
+            "catalog when complete; otherwise explain its absence and use only authorized "
+            "targeted reads. Uncatalogued discovery still requires explicit authorization. "
+            "Do not propose graph writes or Cloud Indexing under this policy."
+        )
+    elif snapshot.soft_gate_active:
         hint = (
             "SOFT GATE ACTIVE: pause and present Local Daemon / Blind Search / Cloud Indexing "
             "options; wait for explicit authorization before blind search or cloud indexing."

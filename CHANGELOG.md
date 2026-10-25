@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Read-only bootstrap guidance** — distinguish graph-local catalog progress from external Shadow readiness in bootstrap status and MCP/CLI agent guidance, without changing catalog truth, write policy or writable-mode behavior.
+
 ### Added
 
 - **Release target binding** — derive hardened publication routing and artifact

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -123,3 +124,114 @@ def test_state_path_written(tmp_path: Path) -> None:
         DaemonState(bootstrap_failed=True, bootstrap_failed_reason="test"),
     )
     assert state_path(tmp_path).is_file()
+
+
+def _graph_fingerprint(root: Path) -> dict[str, tuple[int, int, int, str | None]]:
+    """Include directory changes as well as every tiny synthetic file's bytes."""
+    result: dict[str, tuple[int, int, int, str | None]] = {}
+    for path in (root, *sorted(root.rglob("*"))):
+        metadata = path.stat()
+        result[path.relative_to(root).as_posix()] = (
+            metadata.st_mode,
+            metadata.st_size,
+            metadata.st_mtime_ns,
+            hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None,
+        )
+    return result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("read_only", [False, True])
+@pytest.mark.parametrize("catalog_ready", [False, True])
+async def test_bootstrap_guidance_matches_write_policy_without_changing_catalog(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    read_only: bool,
+    catalog_ready: bool,
+) -> None:
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "false")
+    pages = tmp_path / "pages"
+    pages.mkdir()
+    page = pages / "Alpha.md"
+    page.write_text(
+        "- ### Matryca Semantic Index\n- summary:: Synthetic summary\n", encoding="utf-8"
+    )
+    if catalog_ready:
+        catalog = MasterCatalog(graph_root=tmp_path)
+        catalog.upsert(
+            "Alpha",
+            CatalogEntry(
+                summary="Synthetic summary",
+                domain="risorsa",
+                last_mtime=int(page.stat().st_mtime),
+            ),
+        )
+        catalog.save()
+        write_master_index_page(tmp_path, catalog)
+    monkeypatch.setenv("MATRYCA_READ_ONLY", str(read_only).lower())
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    before = _graph_fingerprint(tmp_path)
+
+    output = await dispatch_read(MatrycaWikiConfig(), "bootstrap_status", "")
+
+    payload = json.loads(output.split("```json\n", 1)[1].split("\n```", 1)[0])
+    assert payload["read_only"] is read_only
+    assert payload["catalog_complete"] is catalog_ready
+    assert payload["bootstrap_complete"] is catalog_ready
+    assert payload["soft_gate_active"] is not catalog_ready
+    if read_only:
+        # Writable catalog reads retain their existing backup-refresh behavior.
+        assert _graph_fingerprint(tmp_path) == before
+        assert "STRICT READ ONLY" in output
+        assert "shadow_status" in output
+        assert "graph-local" in output
+        assert "explicit authorization" in output
+        assert "Local Daemon / Blind Search / Cloud Indexing" not in output
+        assert "GREEN: proceed" not in output
+    elif catalog_ready:
+        assert "GREEN: proceed with Master Index scan" in output
+    else:
+        assert "Local Daemon / Blind Search / Cloud Indexing" in output
+
+
+@pytest.mark.asyncio
+async def test_read_only_catalog_status_does_not_confuse_ready_external_shadow(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.shadow.bootstrap import rebuild_shadow_from_graph
+    from src.shadow.state_api import resolve_shadow_db_state_for_api
+
+    (tmp_path / "pages").mkdir()
+    (tmp_path / "pages/Alpha.md").write_text(
+        "- Synthetic\n  id:: 11111111-1111-4111-8111-111111111111\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "true")
+    monkeypatch.setenv("MATRYCA_SHADOW_DB_ENABLED", "true")
+    monkeypatch.setenv("LOGSEQ_GRAPH_PATH", str(tmp_path))
+    before = _graph_fingerprint(tmp_path)
+    # Fixture provisioning is separate from the subsequent status-only call.
+    rebuild_shadow_from_graph(tmp_path)
+    shadow = resolve_shadow_db_state_for_api(tmp_path)
+    assert shadow.state == "ready"
+    assert shadow.indexed_page_count == 1
+
+    output = await dispatch_read(MatrycaWikiConfig(), "bootstrap_status", "")
+
+    payload = json.loads(output.split("```json\n", 1)[1].split("\n```", 1)[0])
+    assert payload["read_only"] is True
+    assert payload["bootstrap_complete"] is False
+    assert payload["bootstrap_scanned"] == payload["bootstrap_total"] == 0
+    assert payload["checkpoint_recovery_source"] == "missing"
+    assert "not external Shadow readiness" in output
+    assert _graph_fingerprint(tmp_path) == before
+
+
+def test_bootstrap_status_refuses_invalid_write_policy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MATRYCA_READ_ONLY", "invalid")
+    with pytest.raises(ValueError, match="invalid boolean token"):
+        format_bootstrap_status_markdown(tmp_path)

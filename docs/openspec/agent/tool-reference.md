@@ -81,7 +81,20 @@ BFS over wikilinks, tags, light `type::` / `domain::` rings. Optional JSON query
 { "target_type": "bootstrap_status", "query": "" }
 ```
 
-Phase 1 semaphore: `bootstrap_complete`, `soft_gate_active`, harvest progress. `query` ignored. Call before the Master Index Soft Gate.
+Graph-local catalog semaphore: `bootstrap_complete`, `soft_gate_active`, checkpoint
+progress and informational `read_only`. `query` ignored. Call before the Master
+Index Soft Gate. In Strict Read Only, the observer cannot create missing catalog
+artifacts; do not suggest graph-local bootstrap or Cloud Indexing. Existing
+complete catalogs remain readable; uncatalogued discovery still needs explicit
+authorization. Missing-checkpoint 0/0 is not a Shadow indexing count.
+
+```json
+{ "target_type": "shadow_status", "query": "" }
+```
+
+Separate content-free external-cache status. It does not initialize, migrate or
+rebuild Shadow. A ready cache does not make the graph-local catalog complete or
+grant additional read/write permission.
 
 ```json
 { "target_type": "dashboard", "query": "" }

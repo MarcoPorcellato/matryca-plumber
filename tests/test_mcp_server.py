@@ -40,6 +40,21 @@ def test_mcp_registers_five_mega_tools() -> None:
 
 
 @pytest.mark.asyncio
+async def test_read_tool_metadata_explains_read_only_bootstrap_limits() -> None:
+    app = FastMCP("matryca-guidance-test")
+    register_mcp_tools(app)
+
+    tools = await app.list_tools()
+
+    read = next(tool for tool in tools if tool.name == "read_graph_data")
+    assert read.description is not None
+    assert "read_only" in read.description
+    assert "writable mode" in read.description
+    assert "shadow_status" in read.description
+    assert "cannot create" in read.description
+
+
+@pytest.mark.asyncio
 async def test_guard_mcp_tool_returns_graph_read_only_error() -> None:
     @guard_mcp_tool
     async def sample() -> dict[str, Any]:

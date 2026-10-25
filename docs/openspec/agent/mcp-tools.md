@@ -20,6 +20,16 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 `target_type="memory"` and disabled `search_graph(method="recall")`, which returns its
 explicit feature-gate state before graph setup.
 
+`read_graph_data(target_type="bootstrap_status")` reports graph-local catalog and
+checkpoint state, with an informational `read_only` boolean. Existing catalog
+fields are unchanged; missing-checkpoint 0/0 is not Shadow progress. When
+`read_only=true`, the observer cannot create a missing Master Index/catalog:
+do not recommend catalog bootstrap or Cloud Indexing. Use only authorized
+targeted reads and require explicit authorization before uncatalogued discovery.
+Read `target_type="shadow_status"` separately for external-cache readiness; that
+content-free status call performs no initialization or migration. Neither status
+grants permission, proves graph completeness or resolves dashboard failures.
+
 `read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
 
 `read_graph_data(target_type="journal_day", query="YYYY-MM-DD")` reads exactly the canonical
