@@ -10,6 +10,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from scripts.release_qualification import bundle, installed
+from scripts.release_qualification.release_target import ALPHA3_TARGET, ReleaseTarget
 
 SOURCE = "8c30f70e217722e719c5aedc322219ebccb87e68"
 TREE = "de80d0473aa281c52d0fed10b4561024dd12d76f"
@@ -39,6 +40,7 @@ class RecoveryBinding:
     verifier_commit: str
     verifier_tree: str
     tool_files: tuple[tuple[str, str], ...]
+    target: ReleaseTarget = ALPHA3_TARGET
 
     def __post_init__(self) -> None:
         _require(
@@ -46,8 +48,9 @@ class RecoveryBinding:
                 isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value)
                 for value in (self.verifier_commit, self.verifier_tree)
             )
-            and self.verifier_commit != SOURCE
-            and self.verifier_tree != TREE,
+            and isinstance(self.target, ReleaseTarget)
+            and self.verifier_commit != self.target.source_commit
+            and self.verifier_tree != self.target.source_tree,
             "Invalid or conflated recovery verifier identity.",
         )
         _require(
@@ -73,21 +76,25 @@ class RecoveryBinding:
             "Missing, duplicate or unordered recovery tools.",
         )
 
-    def require_producer(self, commit: str, tree: str, publisher: str = PUBLISHER) -> None:
-        """Admit only the existing original producer and its first publisher."""
+    def require_producer(self, commit: str, tree: str, publisher: str | None = None) -> None:
+        """Admit only the separately selected producer and its first publisher."""
         _require(
-            (commit, tree, publisher) == (SOURCE, TREE, PUBLISHER),
-            "Recovery must preserve the exact alpha.3 producer and publisher.",
+            (commit, tree, self.target.publisher_run if publisher is None else publisher)
+            == (self.target.source_commit, self.target.source_tree, self.target.publisher_run),
+            "Recovery must preserve the exact selected producer and publisher.",
         )
 
     def to_dict(self) -> dict[str, Any]:
         """Canonical JSON-compatible verifier evidence, separate from the producer."""
-        return {
+        result: dict[str, Any] = {
             "policy": POLICY,
             "verifier_commit": self.verifier_commit,
             "verifier_tree": self.verifier_tree,
             "tool_files": [{"path": name, "sha256": digest} for name, digest in self.tool_files],
         }
+        if self.target != ALPHA3_TARGET:
+            result["producer_target"] = self.target.to_dict()
+        return result
 
 
 def verify_tool_origins(verifier: Path, modules: dict[str, Any], committed: dict[str, str]) -> None:
@@ -133,7 +140,9 @@ def verify_tool_origins(verifier: Path, modules: dict[str, Any], committed: dict
         )
 
 
-def checkout_binding(source: Path, verifier: Path, commit: str, tree: str) -> RecoveryBinding:
+def checkout_binding(
+    source: Path, verifier: Path, commit: str, tree: str, *, target: ReleaseTarget = ALPHA3_TARGET
+) -> RecoveryBinding:
     """Bind disjoint clean producer/verifier checkouts and committed tool bytes."""
     for path in (source, verifier):
         _require(
@@ -145,7 +154,10 @@ def checkout_binding(source: Path, verifier: Path, commit: str, tree: str) -> Re
         not source.is_relative_to(verifier) and not verifier.is_relative_to(source),
         "Recovery checkouts must not overlap.",
     )
-    for root, expected_commit, expected_tree in ((source, SOURCE, TREE), (verifier, commit, tree)):
+    for root, expected_commit, expected_tree in (
+        (source, target.source_commit, target.source_tree),
+        (verifier, commit, tree),
+    ):
         _require(
             bundle._git_value(root, "HEAD") == expected_commit
             and bundle._git_value(root, "HEAD^{tree}") == expected_tree
@@ -182,10 +194,10 @@ def checkout_binding(source: Path, verifier: Path, commit: str, tree: str) -> Re
         )
         observed.append((name, digest))
     verify_tool_origins(verifier, sys.modules, committed)
-    for root, expected in ((source, SOURCE), (verifier, commit)):
+    for root, expected in ((source, target.source_commit), (verifier, commit)):
         _require(
             bundle._git_value(root, "HEAD") == expected
             and not installed._git_value(root, "status", "--porcelain", "--untracked-files=all"),
             "Recovery checkout changed during admission.",
         )
-    return RecoveryBinding(commit, tree, tuple(observed))
+    return RecoveryBinding(commit, tree, tuple(observed), target=target)

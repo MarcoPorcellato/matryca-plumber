@@ -19,12 +19,22 @@ jobs:
     permissions:
       checks: read
       contents: read
+    outputs:
+      hardened: ${{ steps.release-target.outputs.hardened }}
+      version: ${{ steps.release-target.outputs.version }}
+      prerelease: ${{ steps.release-target.outputs.prerelease }}
+      wheel: ${{ steps.release-target.outputs.wheel }}
+      sdist: ${{ steps.release-target.outputs.sdist }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+
+      - name: Select fail-closed release route
+        id: release-target
+        run: python3 -I -B scripts/release_qualification/release_target.py --tag "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Verify signed tag and protected-main reachability
         env:
@@ -46,7 +56,7 @@ jobs:
           test "$(git rev-list -n 1 "$GITHUB_REF_NAME")" = "$GITHUB_SHA"
           git fetch --no-tags origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-          if [ "$GITHUB_REF_NAME" = v2.1.0-alpha.3 ]; then
+          if [ '${{ steps.release-target.outputs.hardened }}' = true ]; then
             test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
             test "$GITHUB_RUN_ATTEMPT" = 1
           fi
@@ -63,7 +73,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install uv and Python 3.12
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ steps.release-target.outputs.hardened != 'true' }}
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
@@ -73,7 +83,7 @@ jobs:
             **/uv.lock
 
       - name: Acquire exact official uv
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ steps.release-target.outputs.hardened == 'true' }}
         timeout-minutes: 2
         shell: bash
         env:
@@ -89,7 +99,7 @@ jobs:
           printf 'MATRYCA_UV_ROOT=%s\nMATRYCA_UV_PLATFORM=%s\nUV_PYTHON=3.12\nUV_PYTHON_INSTALL_DIR=%s\nUV_PYTHON_BIN_DIR=%s\n' "$MATRYCA_UV_ROOT" "$MATRYCA_UV_PLATFORM" "$UV_PYTHON_INSTALL_DIR" "$UV_PYTHON_BIN_DIR" >> "$GITHUB_ENV"
           printf '%s\n%s\n' "$UV_PYTHON_BIN_DIR" "$MATRYCA_UV_ROOT/bin" >> "$GITHUB_PATH"
       - name: Verify selected uv acquisition
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ steps.release-target.outputs.hardened == 'true' }}
         id: setup-uv
         timeout-minutes: 2
         shell: bash
@@ -115,7 +125,7 @@ jobs:
           printf 'uv-path=%s\nuv-version=%s\n' "$selected" "${observed#uv }" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$observed"
       - name: Provision explicit alpha interpreter
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ steps.release-target.outputs.hardened == 'true' }}
         timeout-minutes: 5
         env:
           UV_PYTHON_DOWNLOADS: manual
@@ -125,7 +135,7 @@ jobs:
           uv python install 3.12
 
       - name: Sync locked alpha verification dependencies
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ steps.release-target.outputs.hardened == 'true' }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -133,13 +143,13 @@ jobs:
           .venv/bin/python -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Sync Python dependencies
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ steps.release-target.outputs.hardened != 'true' }}
         run: uv sync --locked --extra dev
 
       - name: Version consistency (pyproject.toml vs llms.txt)
         run: |
           set -euo pipefail
-          if [ "$GITHUB_REF_NAME" = v2.1.0-alpha.3 ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
+          if [ '${{ steps.release-target.outputs.hardened }}' = true ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
           uv run python scripts/check_version_consistency.py
 
       - name: Frontend quality gate
@@ -153,7 +163,7 @@ jobs:
       - name: Run CI gate
         run: |
           set -euo pipefail
-          if [ "$GITHUB_REF_NAME" = v2.1.0-alpha.3 ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
+          if [ '${{ steps.release-target.outputs.hardened }}' = true ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
           make ci
 
   destination-preflight:
@@ -169,7 +179,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ needs.verify.outputs.version }}"
           TAG_PATH="$(python3 -c 'from urllib.parse import quote; import sys; print(quote(sys.argv[1], safe=""))' "$GITHUB_REF_NAME")"
           VERSION_PATH="$(python3 -c 'from urllib.parse import quote; import sys; print(quote(sys.argv[1], safe=""))' "$VERSION")"
           GITHUB_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
@@ -183,7 +193,7 @@ jobs:
 
   build-release:
     name: Build and attest release distributions
-    needs: destination-preflight
+    needs: [verify, destination-preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -198,7 +208,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install uv and Python 3.12
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
@@ -215,11 +225,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build release distributions
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         run: make release-build
 
       - name: Create distribution digest manifest
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         run: |
           mkdir -p release-manifest
           uv run python scripts/extract_changelog.py "$GITHUB_REF_NAME" > release-manifest/release_notes.md
@@ -230,7 +240,7 @@ jobs:
           test "$(wc -l < release-manifest/SHA256SUMS | tr -d ' ')" = 2
 
       - name: Attest release distributions
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: |
@@ -238,7 +248,7 @@ jobs:
             dist/*.tar.gz
 
       - name: Upload verified release bundle
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-bundle
@@ -253,7 +263,7 @@ jobs:
 
 
       - name: Acquire exact official uv
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         timeout-minutes: 2
         shell: bash
         env:
@@ -269,7 +279,7 @@ jobs:
           printf 'MATRYCA_UV_ROOT=%s\nMATRYCA_UV_PLATFORM=%s\nUV_PYTHON=3.12\nUV_PYTHON_INSTALL_DIR=%s\nUV_PYTHON_BIN_DIR=%s\n' "$MATRYCA_UV_ROOT" "$MATRYCA_UV_PLATFORM" "$UV_PYTHON_INSTALL_DIR" "$UV_PYTHON_BIN_DIR" >> "$GITHUB_ENV"
           printf '%s\n%s\n' "$UV_PYTHON_BIN_DIR" "$MATRYCA_UV_ROOT/bin" >> "$GITHUB_PATH"
       - name: Verify selected uv acquisition
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         id: setup-uv
         timeout-minutes: 2
         shell: bash
@@ -295,7 +305,7 @@ jobs:
           printf 'uv-path=%s\nuv-version=%s\n' "$selected" "${observed#uv }" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$observed"
       - name: Provision explicit alpha interpreter
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         timeout-minutes: 5
         env:
           UV_PYTHON_DOWNLOADS: manual
@@ -305,7 +315,7 @@ jobs:
           uv python install 3.12
 
       - name: Provision independent alpha locked environments
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -315,7 +325,7 @@ jobs:
           "$RUNNER_TEMP/alpha-canonical-build/bin/python" -I -B -c 'import platform,sys; assert platform.python_implementation()=="CPython" and sys.version_info[:2]==(3,12)'
 
       - name: Build one locked alpha original pair and evidence
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         run: |
           set -euo pipefail
           python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null
@@ -323,7 +333,7 @@ jobs:
           "$RUNNER_TEMP/alpha-tools/bin/python" -B scripts/extract_changelog.py "$GITHUB_REF_NAME" > "$RUNNER_TEMP/alpha-bundle/release_notes.md"
 
       - name: Attest alpha originals and evidence
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
           subject-path: |
@@ -335,7 +345,7 @@ jobs:
             ${{ runner.temp }}/alpha-bundle/canonical-build.json
 
       - name: Preserve alpha publication bundle
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: release-bundle
@@ -346,7 +356,12 @@ jobs:
 
   publish-release:
     name: Publish verified release
-    needs: build-release
+    needs: [verify, build-release]
+    env:
+      RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+      RELEASE_WHEEL: ${{ needs.verify.outputs.wheel }}
+      RELEASE_SDIST: ${{ needs.verify.outputs.sdist }}
+      RELEASE_PRERELEASE: ${{ needs.verify.outputs.prerelease }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -361,7 +376,7 @@ jobs:
           name: release-bundle
 
       - name: Verify downloaded distribution digests
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         run: |
           set -euo pipefail
           test "$(find dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 2
@@ -372,7 +387,7 @@ jobs:
           sha256sum --check ../release-manifest/SHA256SUMS
 
       - name: Verify downloaded provenance attestations
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -385,7 +400,7 @@ jobs:
             --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/release.yml"
 
       - name: Create GitHub Release
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -403,19 +418,19 @@ jobs:
             "${release_args[@]}"
 
       - name: Publish package to PyPI
-        if: ${{ github.ref_name != 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened != 'true' }}
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist/
 
       - name: Verify alpha bundle and exact source identities
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
           test "$(find dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 3
-          test -f dist/matryca_plumber-2.1.0a3-py3-none-any.whl
-          test -f dist/matryca_plumber-2.1.0a3.tar.gz
+          test -f "dist/$RELEASE_WHEEL"
+          test -f "dist/$RELEASE_SDIST"
           test -f dist/SHA256SUMS
           test -f binding.json
           test -f content-ledger.json
@@ -425,47 +440,49 @@ jobs:
           test "$(find . -type f | wc -l | tr -d ' ')" = 7
           test "$(wc -l < dist/SHA256SUMS | tr -d ' ')" = 2
           (cd dist && sha256sum --check SHA256SUMS)
-          python3 -c 'import json,os; b=json.load(open("binding.json")); c=json.load(open("canonical-build.json")); l=json.load(open("content-ledger.json")); assert b["source_commit"]==c["source_commit"]==l["source_commit"]==os.environ["GITHUB_SHA"]; assert b["source_tree"]==c["source_tree"]==l["source_tree"]; assert b["version"]=="2.1.0a3"'
+          python3 -c 'import json,os; b=json.load(open("binding.json")); c=json.load(open("canonical-build.json")); l=json.load(open("content-ledger.json")); assert b["source_commit"]==c["source_commit"]==l["source_commit"]==os.environ["GITHUB_SHA"]; assert b["source_tree"]==c["source_tree"]==l["source_tree"]; assert b["version"]==os.environ["RELEASE_VERSION"]'
 
       - name: Verify six alpha attestations and signed publication invocation
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -m 0700 "$RUNNER_TEMP/alpha-promotion-provenance"
-          for asset in dist/matryca_plumber-2.1.0a3-py3-none-any.whl dist/matryca_plumber-2.1.0a3.tar.gz dist/SHA256SUMS binding.json content-ledger.json canonical-build.json; do
+          for asset in "dist/$RELEASE_WHEEL" "dist/$RELEASE_SDIST" dist/SHA256SUMS binding.json content-ledger.json canonical-build.json; do
             result="$RUNNER_TEMP/alpha-promotion-provenance/$(basename "$asset").json"
-            timeout 120s gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" --cert-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/v2.1.0-alpha.3" --source-digest "$GITHUB_SHA" --signer-digest "$GITHUB_SHA" --source-ref refs/tags/v2.1.0-alpha.3 --deny-self-hosted-runners --format json --limit 1 > "$result"
+            timeout 120s gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" --cert-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/${GITHUB_REF_NAME}" --source-digest "$GITHUB_SHA" --signer-digest "$GITHUB_SHA" --source-ref "refs/tags/${GITHUB_REF_NAME}" --deny-self-hosted-runners --format json --limit 1 > "$result"
             python3 -c 'import json,os,sys; v=json.load(open(sys.argv[1])); assert len(v)==1; c=v[0]["verificationResult"]["signature"]["certificate"]; assert c["runInvocationURI"]=="https://github.com/"+os.environ["GITHUB_REPOSITORY"]+"/actions/runs/"+os.environ["GITHUB_RUN_ID"]+"/attempts/1"; assert c["buildTrigger"]=="push" and c["sourceRepositoryIdentifier"]=="1241185104" and c["sourceRepositoryDigest"]==os.environ["GITHUB_SHA"]' "$result"
           done
 
       - name: Stage alpha distribution-only PyPI directory
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         run: |
           set -euo pipefail
           mkdir -m 0700 pypi-dist
-          cp dist/matryca_plumber-2.1.0a3-py3-none-any.whl dist/matryca_plumber-2.1.0a3.tar.gz pypi-dist/
+          cp "dist/$RELEASE_WHEEL" "dist/$RELEASE_SDIST" pypi-dist/
           test "$(find pypi-dist -maxdepth 1 -type f | wc -l | tr -d ' ')" = 2
           (cd pypi-dist && sha256sum --check ../dist/SHA256SUMS)
 
       - name: Publish alpha originals and durable evidence
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$(timeout 30s gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
-          gh release create --repo "$GITHUB_REPOSITORY" --verify-tag v2.1.0-alpha.3 --prerelease dist/matryca_plumber-2.1.0a3-py3-none-any.whl dist/matryca_plumber-2.1.0a3.tar.gz dist/SHA256SUMS binding.json content-ledger.json canonical-build.json --notes-file release_notes.md
+          release_args=()
+          if [ "$RELEASE_PRERELEASE" = true ]; then release_args+=(--prerelease); fi
+          gh release create --repo "$GITHUB_REPOSITORY" --verify-tag "$GITHUB_REF_NAME" "${release_args[@]}" "dist/$RELEASE_WHEEL" "dist/$RELEASE_SDIST" dist/SHA256SUMS binding.json content-ledger.json canonical-build.json --notes-file release_notes.md
 
       - name: Publish alpha originals to PyPI
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
         with:
           packages-dir: pypi-dist/
 
       - name: Preserve alpha promotion verification
-        if: ${{ github.ref_name == 'v2.1.0-alpha.3' }}
+        if: ${{ needs.verify.outputs.hardened == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: alpha-promotion-verification

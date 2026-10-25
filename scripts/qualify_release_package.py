@@ -33,11 +33,12 @@ from scripts.release_qualification.sdist_build import prepare_sdist_build
 
 
 def _recovery_binding(args: argparse.Namespace) -> object:
+    from scripts.release_qualification import bundle
     from scripts.release_qualification.alpha3_recovery import (
         FAILED_QUALIFICATION,
-        PUBLISHER,
         checkout_binding,
     )
+    from scripts.release_qualification.release_target import selected_target
 
     if not getattr(args, "alpha3_recovery", False):
         return None
@@ -47,16 +48,27 @@ def _recovery_binding(args: argparse.Namespace) -> object:
         and os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
         and os.environ.get("GITHUB_REF") == "refs/heads/main"
         and os.environ.get("GITHUB_RUN_ATTEMPT") == "1"
-        and os.environ.get("GITHUB_RUN_ID") not in (None, FAILED_QUALIFICATION, PUBLISHER)
+        and os.environ.get("GITHUB_RUN_ID")
+        not in (None, FAILED_QUALIFICATION, os.environ.get("PUBLICATION_RUN"))
         and os.environ.get("GITHUB_SHA") == args.verifier_commit
-        and os.environ.get("PUBLICATION_RUN") == PUBLISHER
+        and re.fullmatch(r"[1-9][0-9]*", os.environ.get("PUBLICATION_RUN", "")) is not None
     ):
         raise ValueError("Recovery requires the exact activated main/verifier/publication session.")
+    target = selected_target(
+        bundle._git_value(args.source_root, "HEAD"),
+        bundle._git_value(args.source_root, "HEAD^{tree}"),
+        os.environ["PUBLICATION_RUN"],
+        os.environ,
+    )
     verifier = args.verifier_root.resolve()
     if Path(__file__).resolve() != verifier / "scripts/qualify_release_package.py":
         raise ValueError("Recovery entry point is not from the selected verifier.")
     return checkout_binding(
-        args.source_root, args.verifier_root, args.verifier_commit, args.verifier_tree
+        args.source_root,
+        args.verifier_root,
+        args.verifier_commit,
+        args.verifier_tree,
+        target=target,
     )
 
 
@@ -102,6 +114,9 @@ def _alpha_build(args: argparse.Namespace) -> None:
             "Alpha build outputs must be outside source; GITHUB_OUTPUT must be outside the bundle."
         )
     root.mkdir(parents=True, exist_ok=True)
+    release_tag = (
+        os.environ["GITHUB_REF_NAME"] if os.environ.get("GITHUB_EVENT_NAME") == "push" else None
+    )
     binding, record = build_alpha(
         args.source_root.resolve(),
         args.dist_dir,
@@ -109,6 +124,7 @@ def _alpha_build(args: argparse.Namespace) -> None:
         args.build_python,
         args.uv,
         args.expected_commit,
+        release_tag=release_tag,
     )
     _write_new_file(
         args.dist_dir / "SHA256SUMS",
@@ -232,7 +248,9 @@ def _alpha_aggregate(args: argparse.Namespace) -> None:
 def _alpha_public_fetch(args: argparse.Namespace) -> None:
     from scripts.release_qualification.alpha1_public import fetch_file
 
-    fetch_file(args.url, args.output, args.size, args.sha256, args.kind)
+    fetch_file(
+        args.url, args.output, args.size, args.sha256, args.kind, release_tag=args.release_tag
+    )
 
 
 def _alpha_public_admit(args: argparse.Namespace) -> None:
@@ -583,6 +601,7 @@ def _parser() -> argparse.ArgumentParser:
     public_fetch.add_argument("--size", type=int, required=True)
     public_fetch.add_argument("--sha256", required=True)
     public_fetch.add_argument("--kind", choices=("github", "pypi", "pypi-metadata"), required=True)
+    public_fetch.add_argument("--release-tag", default="v2.1.0-alpha.3")
     public_fetch.set_defaults(handler=_alpha_public_fetch)
 
     public_admit = commands.add_parser(

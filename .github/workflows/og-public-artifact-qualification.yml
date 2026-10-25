@@ -11,8 +11,23 @@ on:
         description: "Complete successful tag-push publication run R, attempt one"
         type: string
         required: true
+      release_tag:
+        description: "Exact signed public producer tag"
+        type: string
+        required: true
+        default: "v2.1.0-alpha.3"
+      source_tree:
+        description: "Exact public producer source tree, separate from verifier_tree"
+        type: string
+        required: true
+        default: "de80d0473aa281c52d0fed10b4561024dd12d76f"
+      tag_object:
+        description: "Exact signed annotated public producer tag object"
+        type: string
+        required: true
+        default: "c093e9e8aa735b7c37a0c1a56a601a9c31cbdf24"
       alpha3_recovery:
-        description: "Explicit verifier-only recovery of the immutable published alpha.3"
+        description: "Explicit verifier-only recovery of the selected immutable producer (legacy input name)"
         type: boolean
         default: false
       verifier_sha:
@@ -28,6 +43,9 @@ permissions: {}
 
 env:
   SELECTED_SOURCE: ${{ inputs.source_sha }}
+  SELECTED_SOURCE_TREE: ${{ inputs.source_tree }}
+  PUBLIC_RELEASE_TAG: ${{ inputs.release_tag }}
+  PUBLIC_RELEASE_TAG_OBJECT: ${{ inputs.tag_object }}
   PUBLICATION_RUN: ${{ inputs.publication_run }}
   ALPHA3_RECOVERY: ${{ inputs.alpha3_recovery && 'true' || 'false' }}
   SELECTED_VERIFIER: ${{ inputs.verifier_sha }}
@@ -99,6 +117,9 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           [[ "$PUBLICATION_RUN" =~ ^[1-9][0-9]*$ ]]
           test "$SELECTED_WORKFLOW" = "$GITHUB_SHA"
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
@@ -106,12 +127,10 @@ jobs:
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -255,17 +274,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -419,17 +439,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -581,17 +602,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -764,17 +786,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -947,17 +970,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -1130,17 +1154,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"
@@ -1314,17 +1339,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SELECTED_SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PUBLIC_RELEASE_TAG_OBJECT" =~ ^[0-9a-f]{40}$ ]]
+          python -I -B scripts/release_qualification/release_target.py --tag "$PUBLIC_RELEASE_TAG" > /dev/null
           test "$(git rev-parse HEAD)" = "$SELECTED_WORKFLOW"
           test -z "$(git status --porcelain --untracked-files=all)"
           if [ "$ALPHA3_RECOVERY" = true ]; then
             [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
             [[ "$SELECTED_VERIFIER_TREE" =~ ^[0-9a-f]{40}$ ]]
-            test "$SELECTED_SOURCE" = 8c30f70e217722e719c5aedc322219ebccb87e68
-            test "$PUBLICATION_RUN" = 39887297548
             test "$SELECTED_VERIFIER" = "$SELECTED_WORKFLOW"
             test "$(git rev-parse HEAD^{tree})" = "$SELECTED_VERIFIER_TREE"
             test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD)" = "$SELECTED_SOURCE"
-            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = de80d0473aa281c52d0fed10b4561024dd12d76f
+            test "$(git -C "$PRODUCER_ROOT" rev-parse HEAD^{tree})" = "$SELECTED_SOURCE_TREE"
             test -z "$(git -C "$PRODUCER_ROOT" status --porcelain --untracked-files=all)"
           else
             test -z "$SELECTED_VERIFIER"

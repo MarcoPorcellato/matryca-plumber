@@ -34,6 +34,8 @@ from scripts.release_qualification.build_environment import (
     _parse_json_object,
 )
 from scripts.release_qualification.bundle import BundleBinding
+from scripts.release_qualification.release_target import ALPHA3_TARGET, ReleaseRoute
+from scripts.release_qualification.resource_chain import check_resource_chain
 
 POLICY = "og-alpha3"
 VERSION = "2.1.0a3"
@@ -169,6 +171,8 @@ class MatrixContext:
         value = asdict(self)
         if self.recovery is None:
             value.pop("recovery")
+        elif self.recovery.target == ALPHA3_TARGET:
+            value["recovery"].pop("target")
         return digest(value)
 
 
@@ -184,6 +188,7 @@ def source_context(
     )
     _require(type(run_attempt) is int and run_attempt > 0, "Invalid workflow run attempt.")
     root = source / RESOURCE_ROOT
+    check_resource_chain(root)
     descriptor = read_document(root / "descriptor.json")
     manifest = read_document(root / "manifest.json")
     _require(descriptor["qualification"] == "unqualified", "Source profile qualification changed.")
@@ -215,7 +220,7 @@ def source_context(
     cases = read_document(root / "tck-cases.json")
     profile = read_document(root / "dependency-profile.json")
     _require(
-        profile["project"] == {"name": "matryca-plumber", "version": VERSION}
+        profile["project"] == {"name": "matryca-plumber", "version": binding.version}
         and profile["parser"] == {"name": "logseq-matryca-parser", "version": "1.9.0"},
         "Source dependency profile identity mismatch.",
     )
@@ -458,7 +463,7 @@ def verify_row(
         and receipt["operating_system"] == os_name.lower()
         and receipt["architecture"] == machine
         and receipt["python_version"] == runtime["version"]
-        and receipt["version"] == VERSION
+        and receipt["version"] == context.binding.version
         and receipt["location_class"] == "isolated-venv-site-packages"
         and list(receipt["tck_outcomes"]) == _STATIC_TCKS,
         "Installed verification identity or static TCK mismatch.",
@@ -521,7 +526,7 @@ def verify_row(
         and environment.get("operating_system") == os_name
         and environment.get("architecture") == machine
         and environment.get("python_version") == runtime["version"]
-        and environment.get("plumber_version") == VERSION
+        and environment.get("plumber_version") == context.binding.version
         and environment.get("parser_version") == "1.9.0"
         and _digest_value(environment.get("sha256")),
         "Operational environment binding failed.",
@@ -618,7 +623,7 @@ def verify_matrix(
         "schema_version": 1,
         "status": "pass",
         "qualification": "unqualified",
-        "version": VERSION,
+        "version": context.binding.version,
         "source_commit": context.binding.source_commit,
         "source_tree": context.binding.source_tree,
         "run_id": context.run_id,
@@ -683,7 +688,14 @@ def locked_build_selection(
 
 
 def build_alpha(
-    source: Path, dist: Path, ledger: Path, python: Path, uv: Path, expected_commit: str
+    source: Path,
+    dist: Path,
+    ledger: Path,
+    python: Path,
+    uv: Path,
+    expected_commit: str,
+    *,
+    release_tag: str | None = None,
 ) -> tuple[BundleBinding, dict[str, Any]]:
     """Use the canonical frontend/sdist/wheel sequence with enforced locked tools."""
     _require(
@@ -694,10 +706,13 @@ def build_alpha(
         not installed._git_value(source, "status", "--porcelain", "--untracked-files=all"),
         "Alpha build requires a clean source.",
     )
-    _require(
-        tomllib.loads((source / "pyproject.toml").read_text())["project"]["version"] == VERSION,
-        "Alpha build version differs from policy.",
-    )
+    project_version = tomllib.loads((source / "pyproject.toml").read_text())["project"]["version"]
+    bundle._validate_version(project_version, POLICY)
+    if release_tag is not None:
+        _require(
+            ReleaseRoute.from_tag(release_tag).version == project_version,
+            "Alpha build version differs from the signed tag.",
+        )
     selected, record = locked_build_selection(source, python, uv)
     frontend_versions = {}
     for tool, pattern in (("node", r"v22\.[0-9]+\.[0-9]+"), ("npm", r"[0-9]+\.[0-9]+\.[0-9]+")):

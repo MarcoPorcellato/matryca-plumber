@@ -179,7 +179,15 @@ def _public() -> Any:
 
 def _inputs() -> tuple[Any, dict[str, Any]]:
     public = _public()
-    context = public.PublicContext(SOURCE, TREE, "123", "456")
+    from scripts.release_qualification.release_target import ReleaseTarget
+
+    context = public.PublicContext(
+        SOURCE,
+        TREE,
+        "123",
+        "456",
+        target=ReleaseTarget(TAG, "2.1.0a3", SOURCE, TREE, "c" * 40, "123"),
+    )
     release_assets = [
         {
             "id": index + 1,
@@ -916,7 +924,10 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
         path.write_bytes(raw)
         return raw
 
-    def acquire(url: str, path: Path, size: int, sha256: str, kind: str) -> None:
+    def acquire(
+        url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str
+    ) -> None:
+        assert release_tag == TAG
         acquisitions.append(url)
         if kind == "pypi-metadata":
             raw = json.dumps(metadata["pypi"]).encode()
@@ -935,6 +946,9 @@ def test_mocked_public_admission_binds_originals_commands_and_retained_evidence(
         "GITHUB_RUN_ATTEMPT": "1",
         "GITHUB_RUN_ID": "456",
         "GITHUB_SHA": SOURCE,
+        "PUBLIC_RELEASE_TAG": TAG,
+        "PUBLIC_RELEASE_TAG_OBJECT": "c" * 40,
+        "SELECTED_SOURCE_TREE": TREE,
     }.items():
         monkeypatch.setenv(key, value)
     source = tmp_path / "source"
@@ -966,6 +980,9 @@ def test_public_workflow_has_no_rebuild_or_diagnostic_substitution() -> None:
     assert set(value["on"]["workflow_dispatch"]["inputs"]) == {
         "source_sha",
         "publication_run",
+        "release_tag",
+        "source_tree",
+        "tag_object",
         "alpha3_recovery",
         "verifier_sha",
         "verifier_tree",
@@ -1029,7 +1046,7 @@ def test_publisher_stages_six_attested_assets_but_only_two_distributions() -> No
         step for step in publish["steps"] if step.get("name") == "Publish alpha originals to PyPI"
     )
     assert pypi["with"] == {"packages-dir": "pypi-dist/"}
-    assert TAG in text or any(TAG in str(step.get("if", "")) for step in alpha)
+    assert all("outputs.hardened == 'true'" in step.get("if", "") for step in alpha)
 
 
 @pytest.mark.parametrize(
@@ -1060,9 +1077,7 @@ def test_qualified_workflows_authenticate_uv_before_use(
     value = yaml.load((ROOT / ".github/workflows" / workflow).read_text(), Loader=yaml.BaseLoader)
     steps = value["jobs"][job_name]["steps"]
     if workflow == "release.yml":
-        steps = [
-            step for step in steps if step.get("if") == "${{ github.ref_name == 'v2.1.0-alpha.3' }}"
-        ]
+        steps = [step for step in steps if "outputs.hardened == 'true'" in step.get("if", "")]
     acquisitions = [
         (index, step)
         for index, step in enumerate(steps)

@@ -167,10 +167,16 @@ an immutable evidence package to Trama #2. Trama admission remains its own gate.
 No user graph, DB/payload access, write, sync, stable claim or full Tier 3
 dual-profile campaign is authorized by this lane.
 
-#### Exact-alpha publication and public-input bridge
+#### Data-driven hardened publication and public-input bridge
 
-Only the exact tag `v2.1.0-alpha.3` selects the additive publisher branch.
-It reuses `alpha-build`, the canonical Node 22 frontend → normalized original
+The release route is selected once from a strictly validated tag by
+`scripts/release_qualification/release_target.py`. Tags from
+`v2.1.0-alpha.3` onward select the hardened branch, including later prereleases
+and stable versions. Earlier valid tags retain the legacy route; a malformed
+tag fails before either route. Normalized version, original filenames and
+prerelease status come from the same selection, not repeated literals.
+This is tooling policy, not permission to prepare, qualify or publish a release.
+The hardened branch reuses `alpha-build`, the canonical Node 22 frontend → normalized original
 sdist → original wheel sequence, with uv 0.12.19 and an independently locked
 CPython 3.12 build environment. The actual publisher records the original pair
 and its `binding.json`, `content-ledger.json`, `canonical-build.json` and
@@ -178,7 +184,7 @@ canonical `SHA256SUMS`. All six subjects are attested. The Release retains
 those six public assets, and the Actions copy is retained for at least 14 days.
 The PyPI staging directory contains only the two byte-identical original
 distributions; manifests and evidence are never uploaded as Python packages.
-Other release tags retain the existing publisher path.
+The legacy RC4 publisher and its default verification policy remain unchanged.
 
 The exact-alpha publisher and public-input jobs authenticate each fresh
 qualification-tool archive with the shared standard-library acquisition helper,
@@ -196,16 +202,23 @@ The signed alpha.1 tag and failed publisher are preserved in the
 [alpha.2 plan](quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md)
 remain historical authorities for that separately published candidate. Preserve
 alpha.2's tag, public assets and failed verification; no rerun is part of alpha.3
-preparation. The active closed policy is `og-alpha3`; historical internal
-`alpha1_*` filenames and alpha subcommands remain unchanged. Active tooling
-rejects stale alpha.1, alpha.2 and future versions. A main-only repair cannot
+preparation. The historical internal policy name `og-alpha3`, `alpha1_*`
+filenames and alpha subcommands remain for compatibility. The hardened family
+rejects stale alpha.1/alpha.2 selections; each later version must match its
+explicit source, packaged profile and release target. Recognized tag spelling
+does not qualify or admit a future version. A main-only repair cannot
 change an old-tag workflow; do not retarget a tag or manually replace assets.
 The alpha.3 preparation PR performs no publication.
 
 The separate
 [`og-public-artifact-qualification.yml`](../.github/workflows/og-public-artifact-qualification.yml)
-is manual-only. Its inputs are the exact final source commit `S` and the
-successful publication run `R`. The verifier checkout, dispatch `main` and
+is manual-only. Its producer target has exactly six fields:
+`{tag, version, source_commit, source_tree, tag_object, publisher_run}`.
+Inputs provide the exact final source commit/tree, signed tag/object and
+successful publication run `R`; version and filenames derive from the tag.
+Defaults preserve only the original alpha.3 tuple. Another tuple requires
+explicit matching inputs, never values copied from submitted reports.
+The verifier checkout, dispatch `main` and
 artifact source must all be `S`. Public qualification run `Q` is distinct
 from `R`; both must be first attempts. A later main commit, a rerun, incomplete
 publication or a changed asset is a stop, not a fallback or a rebuild request.
@@ -222,6 +235,12 @@ verified certificate's source, tag, workflow, hosted-runner and signed invocatio
 invocation. This uses the official
 [CLI verification policy](https://cli.github.com/manual/gh_attestation_verify)
 and [certificate extension fields](https://github.com/sigstore/sigstore-go/blob/main/pkg/fulcio/certificate/extensions.go).
+
+The deterministic resource-chain check recomputes the raw dependency-profile
+digest, its manifest link and both descriptor links. A changed profile requires
+complete digest propagation; partial regeneration fails. The checker does not
+rewrite resources, resolve dependencies or change qualification labels.
+Source qualification and the offline regression controls run this same check.
 
 Before admission emits a successful handoff, the actual canonical-build record
 must match source-derived lock, package, CPython, uv and frontend-tool
@@ -245,11 +264,13 @@ handoff be offered to Trama #2. No consumer admission, Windows installed support
 DB/payload access, user-graph use, stable claim or full-soak result follows from
 this bridge.
 
-### Explicit verifier-only recovery for immutable alpha.3
+### Explicit verifier-only recovery of an immutable producer
 
 The same-source route above remains the default. A separate, manually selected
-`alpha3_recovery: true` route repairs qualification tooling without changing the
-published producer. It is closed to producer commit
+`alpha3_recovery: true` repairs qualification tooling without changing the
+published producer. Input and command names remain for compatibility; their
+target is now the independently selected six-field producer object.
+The default historical target remains producer commit
 `8c30f70e217722e719c5aedc322219ebccb87e68`, tree
 `de80d0473aa281c52d0fed10b4561024dd12d76f`, tag object
 `c093e9e8aa735b7c37a0c1a56a601a9c31cbdf24`, and publisher run `39887297548/1`.
@@ -258,9 +279,9 @@ The failed public campaign `39888823938/1` remains evidence, not a reusable atte
 Activation requires the exact separately reviewed, signed verifier commit and
 tree through `verifier_sha` and `verifier_tree`. The dispatch, current main,
 actual qualification run and jobs, artifact metadata, imported qualification
-modules and committed tool inventory must all bind to that verifier. The original
+modules and committed tool inventory must all bind to that verifier. The selected
 tag, publisher, signed attestation source/signer digests, source/resource ledger,
-canonical build and public archive inventories remain bound to the producer.
+canonical build and public archive inventories remain bound to the selected producer.
 Both identities are recorded and independently rechecked during aggregation;
 no metadata is rewritten and no report's self-declared success supplies an expectation.
 
