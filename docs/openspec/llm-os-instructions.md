@@ -24,9 +24,17 @@ Tier-2 agents **must not** blind-search the vault without checking index availab
 
 1. `read_graph_data` / `memory`
 2. `read_graph_data` / `bootstrap_status`
-3. `read_graph_data` / `page` / `Matryca Master Index`
+3. When `master_index_present` is true, `read_graph_data` / `page` / `Matryca Master Index`
 
-**When `soft_gate_active` is true:** pause and present three options (Local Daemon / Blind Search / Cloud Indexing). Wait for explicit authorization before B or C.
+**When `soft_gate_active` is true and `read_only=false`:** pause and present three options (Local Daemon / Blind Search / Cloud Indexing). Wait for explicit authorization before B or C.
+
+With `read_only=true`, explain that the semaphore describes the graph-local
+catalog, not external Shadow readiness. The observer cannot create missing
+catalog artifacts; do not offer catalog bootstrap or Cloud Indexing. Read
+`shadow_status` separately, use only authorized targeted reads and obtain
+explicit authorization before uncatalogued discovery. Preserve missing catalog
+fields and the existing write policy; a ready Shadow cache does not satisfy the
+catalog gate or grant permission.
 
 Full prose: `SYSTEM_PROMPT.md` § "LLM OS".
 
@@ -37,11 +45,15 @@ Full prose: `SYSTEM_PROMPT.md` § "LLM OS".
 | Field | Meaning |
 |-------|---------|
 | `bootstrap_complete` | Effective green gate (catalog + daemon checkpoint) |
-| `soft_gate_active` | Agent should pause and offer Soft Gate options |
+| `soft_gate_active` | Agent should pause and follow the mode-aware Soft Gate branch |
 | `phase1_in_progress` | `bootstrap_scanned < bootstrap_total` |
 | `master_index_present` | `pages/Matryca Master Index.md` exists |
 | `catalog_complete` | `is_bootstrap_catalog_complete()` |
 | `catalog_stale` | Daemon marked complete but on-disk catalog drifted |
+| `read_only` | Informational validated graph write policy; not catalog/cache readiness or permission |
+
+`bootstrap_scanned` and `bootstrap_total` come from the graph-local daemon
+checkpoint. A missing checkpoint's 0/0 defaults are not Shadow indexing counts.
 
 **Module:** [`src/graph/bootstrap_status.py`](../../src/graph/bootstrap_status.py)
 

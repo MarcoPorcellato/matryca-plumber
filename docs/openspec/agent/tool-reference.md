@@ -81,7 +81,20 @@ BFS over wikilinks, tags, light `type::` / `domain::` rings. Optional JSON query
 { "target_type": "bootstrap_status", "query": "" }
 ```
 
-Phase 1 semaphore: `bootstrap_complete`, `soft_gate_active`, harvest progress. `query` ignored. Call before the Master Index Soft Gate.
+Graph-local catalog semaphore: `bootstrap_complete`, `soft_gate_active`, checkpoint
+progress and informational `read_only`. `query` ignored. Call before the Master
+Index Soft Gate. In Strict Read Only, the observer cannot create missing catalog
+artifacts; do not suggest graph-local bootstrap or Cloud Indexing. Existing
+complete catalogs remain readable; uncatalogued discovery still needs explicit
+authorization. Missing-checkpoint 0/0 is not a Shadow indexing count.
+
+```json
+{ "target_type": "shadow_status", "query": "" }
+```
+
+Separate content-free external-cache status. It does not initialize, migrate or
+rebuild Shadow. A ready cache does not make the graph-local catalog complete or
+grant additional read/write permission.
 
 ```json
 { "target_type": "dashboard", "query": "" }
@@ -98,6 +111,15 @@ X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the gra
 ---
 
 ### 2. `search_graph`
+
+For graph-search methods other than `recall`, first check `bootstrap_status`
+and read an existing Master Index. With `read_only=true`, the observer cannot
+create a missing graph-local catalog: do not offer catalog bootstrap or Cloud
+Indexing. Read `shadow_status` separately, preserve graph-write restrictions,
+and obtain explicit user authorization before uncatalogued discovery. A ready
+cache does not satisfy the catalog gate or grant discovery permission. Offer
+Local Daemon / Blind Search / Cloud Indexing only in writable mode. Disabled
+`recall` continues to return its feature-gate state before graph setup.
 
 ```json
 { "method": "bm25", "query": "redis cache invalidation" }

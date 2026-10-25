@@ -142,8 +142,9 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         shared tags, and light ``type::`` / ``domain::`` rings (no vectors).
 
         **``target_type=bootstrap_status``** — ``query`` ignored. Phase 1 semaphore JSON
-        (``bootstrap_complete``, progress, ``soft_gate_active``). Call before the Master Index
-        Soft Gate.
+        (``bootstrap_complete``, graph-local checkpoint progress, ``soft_gate_active``,
+        ``read_only``). This is catalog status, not external Shadow readiness; missing-checkpoint
+        0/0 does not mean Shadow indexed zero pages. Call before the Master Index Soft Gate.
 
         **``target_type=shadow_status``** — ``query`` ignored. Content-free, versioned
         read-cache status and compatibility profile. This performs no initialization, mutation,
@@ -160,8 +161,14 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         **Requires:** ``LOGSEQ_GRAPH_PATH`` for every target except ``memory`` (still recommended).
 
         TIER-2 SOFT GATE: Before first wiki read/search, call ``target_type=bootstrap_status``
-        then ``target_type=page`` ``query="Matryca Master Index"``. If missing or Phase 1
-        incomplete, pause and present 3 fallback options to the operator for authorization:
+        then read ``query="Matryca Master Index"`` when present. If ``read_only`` is true,
+        the read-only observer cannot create missing graph-local catalog artifacts. Explain
+        that limit; do not recommend starting catalog bootstrap or Cloud Indexing. Check
+        ``shadow_status`` separately and use only authorized targeted reads. A ready Shadow
+        cache does not complete the catalog or grant discovery permission. Uncatalogued
+        discovery still requires explicit user authorization; graph writes remain blocked.
+        In writable mode only, if the catalog is missing or Phase 1 incomplete, pause and
+        present 3 fallback options to the operator for authorization:
         (A) Local Daemon — recommended, run ``matryca plumber start``;
         (B) Blind Search — proceed without index, less precise;
         (C) Cloud Indexing — agent scans vault now, high token cost.
@@ -211,10 +218,16 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         it returns an explicit structured state and never falls back to another search method.
 
         PREREQUISITE for graph-search methods other than ``recall``: Check ``bootstrap_status``
-        and scan ``[[Matryca Master Index]]`` via ``read_graph_data(page)`` first. If index is
-        unavailable, pause and present fallback options (Local Daemon, Blind Search, Cloud
-        Indexing) to the operator for authorization before blind ``bm25`` discovery. Disabled
-        ``recall`` returns its explicit feature-gate state before graph setup.
+        and scan an existing ``[[Matryca Master Index]]`` via ``read_graph_data(page)`` first.
+        With ``read_only=true``, the observer cannot create missing graph-local catalog artifacts.
+        Do not recommend starting catalog bootstrap or Cloud Indexing. Read ``shadow_status``
+        separately; a ready cache neither completes the catalog nor authorizes discovery.
+        Use only authorized targeted reads and obtain explicit user authorization before
+        uncatalogued discovery. Graph writes remain blocked.
+        In writable mode only, if the index is unavailable, pause and present Local Daemon,
+        Blind Search and Cloud Indexing to the operator for authorization before blind
+        ``bm25`` discovery. Disabled ``recall`` returns its explicit feature-gate state before
+        graph setup.
         """
         if method == "bm25":
             await mcp_tool_info(

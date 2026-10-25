@@ -1,8 +1,8 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: c8d303369a629926098aa80e39cdd29803baab2dbda7ad171b1510383ce08eb4 -->
+<!-- build-hash: 8931413ccfb697cfabef42104733f166c0623ab4d8471c7dc683c8597f2baa10 -->
 
-<!-- package-version: v2.0.0 -->
+<!-- package-version: v2.1.0a3 -->
 
 
 
@@ -75,8 +75,25 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 **Mandatory session open sequence:**
 
 1. **`read_graph_data` / `target_type="memory"`** — L1 deploy rules and operator constraints.
-2. **`read_graph_data` / `target_type="bootstrap_status"`** — deterministic Phase 1 semaphore (`bootstrap_complete`, progress, `bootstrap_failed_reason`). Prefer this over inferring state from index existence alone.
-3. **`read_graph_data` / `target_type="page"` / `query="Matryca Master Index"`** — compiled catalog hub (`pages/Matryca Master Index.md`). Each line is `[[Exact Page Title]] — one-line summary` grouped by MARPA domain.
+2. **`read_graph_data` / `target_type="bootstrap_status"`** — graph-local catalog semaphore (`bootstrap_complete`, checkpoint progress, `bootstrap_failed_reason`, `read_only`). Prefer this over inferring state from index existence alone. It does not report external Shadow readiness.
+3. **When `master_index_present` is true**, read **`target_type="page"` / `query="Matryca Master Index"`** — compiled catalog hub (`pages/Matryca Master Index.md`). Each line is `[[Exact Page Title]] — one-line summary` grouped by MARPA domain.
+
+**Strict Read Only branch (`read_only=true`):**
+
+- The observer maintains only the permitted external derived cache. Graph-local
+  catalog bootstrap is disabled: starting that observer cannot create a missing
+  Master Index/catalog or satisfy its catalog gate.
+- Catalog fields remain truthful. Missing-checkpoint `bootstrap_scanned=0` and
+  `bootstrap_total=0` are not Shadow indexing counts or evidence of cache failure.
+- Use `read_graph_data(target_type="shadow_status")` for separate, content-free
+  cache status; that status call does not initialize or rebuild the cache. A
+  ready cache neither completes the catalog nor authorizes discovery.
+- An existing complete catalog may be read. Otherwise explain its absence and
+  stay within explicitly authorized targeted reads. Pause and obtain explicit
+  authorization before uncatalogued or broad discovery; never guess titles.
+- Do not recommend graph-local bootstrap, index creation or Cloud Indexing.
+  Graph writes remain blocked even if a user chooses a writable-mode option.
+  The fallback table below applies only to writable mode.
 
 **Soft Gate trigger — pause if any true:**
 
@@ -89,7 +106,7 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 
 1. **Halt** the current tool chain.
 2. **Explain** briefly why the index is unavailable.
-3. **Present these 3 options** in natural, conversational language (cost-transparent):
+3. **When `read_only=false`, present these 3 options** in natural, conversational language (cost-transparent). With `read_only=true`, follow the branch above instead:
 
 | Option | Name | What happens | Cost / quality |
 |--------|------|--------------|----------------|
@@ -98,7 +115,7 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 | **C** | **Cloud Indexing** | You sequentially scan vault pages and build summaries/index blocks yourself (Tier-2 impersonating Tier-1). | **High token cost.** Scales with vault size. Warn explicitly before offering. |
 
 4. **WAIT** for the user's **explicit authorization** before executing Option B or C.
-5. **Default recommendation:** Option A unless the user needs an immediate answer and accepts imprecision (B) or cost (C).
+5. **Default recommendation in writable mode:** Option A unless the user needs an immediate answer and accepts imprecision (B) or cost (C).
 
 **On green gate (index ready):**
 
@@ -123,7 +140,7 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 ### Tier-2 default tool sequence
 
 ```
-memory → bootstrap_status → Matryca Master Index (page) → [Soft Gate if needed] → narrow page/subtree/xray_page → dry_run mutate → apply
+memory → bootstrap_status → existing Master Index (page) → [mode-aware Soft Gate] → authorized narrow page/subtree/xray_page → [writable only: dry_run mutate → apply]
 ```
 
 **NEVER without user authorization:** blind `search_graph` on whole vault · `grep pages/` · direct Logseq DB · bulk vault reads · impersonate Tier-1 harvest (Option C) without explicit consent.
@@ -131,12 +148,16 @@ memory → bootstrap_status → Matryca Master Index (page) → [Soft Gate if ne
 ### Soft Gate decision tree
 
 ```text
-session open: memory → bootstrap_status → Master Index page
+session open: memory → bootstrap_status → existing Master Index page
+├─ read_only=true
+│   ├─ explain catalog-only state; query shadow_status separately
+│   ├─ existing catalog or authorized targeted reads only
+│   └─ WAIT authorization for uncatalogued discovery; no graph writes/cloud indexing
 ├─ green gate (bootstrap_complete && index populated)
 │   └─ narrow read (page | subtree | xray_page) → dry_run mutate → apply
 ├─ soft_gate_active OR index missing OR Phase 1 in progress
 │   ├─ HALT tool chain → explain trigger
-│   ├─ offer Option A (daemon) | B (blind search) | C (cloud indexing)
+│   ├─ writable mode: offer Option A (daemon) | B (blind search) | C (cloud indexing)
 │   └─ WAIT explicit user authorization before B or C
 └─ PageLockUnavailableError / OCC drift
     └─ skip file · no tight retry loops · re-read on next cycle
@@ -160,6 +181,26 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 **Requires:** `LOGSEQ_GRAPH_PATH` for every operation except `read_graph_data` with
 `target_type="memory"` and disabled `search_graph(method="recall")`, which returns its
 explicit feature-gate state before graph setup.
+
+`read_graph_data(target_type="bootstrap_status")` reports graph-local catalog and
+checkpoint state, with an informational `read_only` boolean. Existing catalog
+fields are unchanged; missing-checkpoint 0/0 is not Shadow progress. When
+`read_only=true`, the observer cannot create a missing Master Index/catalog:
+do not recommend catalog bootstrap or Cloud Indexing. Use only authorized
+targeted reads and require explicit authorization before uncatalogued discovery.
+Read `target_type="shadow_status"` separately for external-cache readiness; that
+content-free status call performs no initialization or migration. Neither status
+grants permission, proves graph completeness or resolves dashboard failures.
+
+The `search_graph` prerequisite follows the same mode-aware Soft Gate: inspect
+`bootstrap_status` and read the Master Index only when present. With
+`read_only=true`, do not recommend catalog-building daemon bootstrap or Cloud
+Indexing; check `shadow_status` separately and obtain explicit user authorization
+before uncatalogued discovery. A ready cache does not complete the catalog or
+grant permission, and graph writes remain blocked. The three writable-mode
+fallbacks apply only when `read_only=false`. Disabled `recall` still returns its
+feature-gate state before graph setup; this guidance does not enable a search
+method or change search execution.
 
 `read_graph_data(target_type="xray_page")` persists its alias map at graph root in normal mode. Under Strict Read Only, it uses the private per-graph external runtime cache so the read remains graph-immutable while aliases stay available to later operations.
 
@@ -393,7 +434,20 @@ BFS over wikilinks, tags, light `type::` / `domain::` rings. Optional JSON query
 { "target_type": "bootstrap_status", "query": "" }
 ```
 
-Phase 1 semaphore: `bootstrap_complete`, `soft_gate_active`, harvest progress. `query` ignored. Call before the Master Index Soft Gate.
+Graph-local catalog semaphore: `bootstrap_complete`, `soft_gate_active`, checkpoint
+progress and informational `read_only`. `query` ignored. Call before the Master
+Index Soft Gate. In Strict Read Only, the observer cannot create missing catalog
+artifacts; do not suggest graph-local bootstrap or Cloud Indexing. Existing
+complete catalogs remain readable; uncatalogued discovery still needs explicit
+authorization. Missing-checkpoint 0/0 is not a Shadow indexing count.
+
+```json
+{ "target_type": "shadow_status", "query": "" }
+```
+
+Separate content-free external-cache status. It does not initialize, migrate or
+rebuild Shadow. A ready cache does not make the graph-local catalog complete or
+grant additional read/write permission.
 
 ```json
 { "target_type": "dashboard", "query": "" }
@@ -410,6 +464,15 @@ X-Ray outline with `[n]` aliases; persists `.matryca_xray_state.json` at the gra
 ---
 
 ### 2. `search_graph`
+
+For graph-search methods other than `recall`, first check `bootstrap_status`
+and read an existing Master Index. With `read_only=true`, the observer cannot
+create a missing graph-local catalog: do not offer catalog bootstrap or Cloud
+Indexing. Read `shadow_status` separately, preserve graph-write restrictions,
+and obtain explicit user authorization before uncatalogued discovery. A ready
+cache does not satisfy the catalog gate or grant discovery permission. Offer
+Local Daemon / Blind Search / Cloud Indexing only in writable mode. Disabled
+`recall` continues to return its feature-gate state before graph setup.
 
 ```json
 { "method": "bm25", "query": "redis cache invalidation" }

@@ -91,7 +91,8 @@ Use **`read`** with a **positional** `target_type`, then an optional `query` str
 | `page` | Logseq page title | Full spatial page context |
 | `subtree` | `Page Title\|block-uuid` or JSON | Token-efficient block extract |
 | `memory` | (omit) | L1 session memory files |
-| `bootstrap_status` | (omit) | Phase 1 semaphore (`bootstrap_complete`, Soft Gate) |
+| `bootstrap_status` | (omit) | Graph-local catalog semaphore and informational `read_only` policy |
+| `shadow_status` | (omit) | Separate content-free external-cache readiness; no initialization |
 | `dashboard` | (omit) | Vault / daemon overview |
 | `block_ast` | `Page Title\|block-uuid` | Single block AST excerpt |
 | `xray_page` | Page title | X-Ray aliases `[0]`…`[n]` for mutations |
@@ -231,6 +232,13 @@ uvx matryca-plumber --json plumber audit
 ### 2.6 Shadow DB and Strict Read Only (v2.0.0 stable contract)
 
 Shadow DB is a **derived read cache outside `LOGSEQ_GRAPH_PATH`**. It does **not** replace Markdown on disk. In v2.0.0 it is **default-on**; an explicit false value is the emergency opt-out. Strict Read Only permits only validated external derived-cache writes and always protects the graph root.
+
+`read bootstrap_status` describes the graph-local catalog and its checkpoint,
+not Shadow readiness. Its informational `read_only` flag selects read-only
+guidance; missing-checkpoint 0/0 is not a Shadow indexing count. In Strict Read
+Only, starting the observer cannot create a missing Master Index/catalog.
+Use `read shadow_status` separately; it performs no cache initialization.
+Do not recommend graph-local bootstrap or Cloud Indexing under this policy.
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|
@@ -396,9 +404,9 @@ Matryca Plumber implements a **dual-LLM** system. You are almost certainly **Tie
 **Before any `search_graph` or targeted `read_graph_data` on L2 wiki pages:**
 
 1. `read_graph_data` / `target_type=memory` — load L1 session rules.
-2. `read_graph_data` / `target_type=bootstrap_status` — check Phase 1 semaphore.
-3. `read_graph_data` / `target_type=page` / `query=Matryca Master Index` — scan the compiled catalog.
-4. If the index is **missing**, **empty**, or Phase 1 is **in progress** → **pause** and present the user with 3 options (Local Daemon / Blind Search / Cloud Indexing). **WAIT** for explicit authorization before Blind Search or Cloud Indexing. **NEVER** guess page titles or `grep pages/` without authorization.
+2. `read_graph_data` / `target_type=bootstrap_status` — check graph-local catalog state and `read_only`.
+3. When the Master Index is present, use `target_type=page` / `query=Matryca Master Index` to read the compiled catalog.
+4. If the index is **missing**, **empty**, or Phase 1 is **in progress**, explain the state. In writable mode, present Local Daemon / Blind Search / Cloud Indexing and **WAIT** for explicit authorization before Blind Search or Cloud Indexing. With `read_only=true`, do not offer graph-writing bootstrap/indexing; query `shadow_status` separately and stay within authorized targeted reads. Uncatalogued discovery still requires explicit authorization. **NEVER** guess page titles or `grep pages/` without authorization.
 5. When the gate is green (or user authorizes Option B), pinpoint exact `[[Page Title]]` from the index, then call narrow reads (`page`, `subtree`, `xray_page`).
 
 **CLI equivalent:**

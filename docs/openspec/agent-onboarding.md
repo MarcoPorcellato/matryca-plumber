@@ -125,8 +125,15 @@ Section 2.3 of `llms.txt` documents lenient page title normalization and safe `w
 Section 6 of `llms.txt` points to the full cognitive law in [`SYSTEM_PROMPT.md`](../../SYSTEM_PROMPT.md) § "LLM OS":
 
 - Two-tier Gardener vs Cognitive Agent awareness
-- Master Index **Soft Gate** (Local Daemon / Blind Search / Cloud Indexing)
+- Mode-aware Master Index **Soft Gate** (Local Daemon / Blind Search / Cloud Indexing in writable mode only)
 - `read_graph_data` / `bootstrap_status` semaphore before blind search
+
+The bootstrap response's informational `read_only` flag selects the appropriate
+guidance. Read-only observers cannot create missing graph-local catalogs; their
+checkpoint's 0/0 defaults are not external Shadow progress. Query `shadow_status`
+separately, do not suggest graph-writing bootstrap/indexing, and preserve explicit
+authorization before uncatalogued discovery. Existing catalog values remain true
+to disk; neither status grants new permissions or proves dashboard health.
 
 Spec: [`llm-os-instructions.md`](llm-os-instructions.md).
 
