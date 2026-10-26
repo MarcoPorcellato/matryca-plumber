@@ -1896,6 +1896,25 @@
       "missing": false
     },
     {
+      "path": "docs/quality/PLUMBER_WORK_STATUS_AND_PRIORITIES_2026-10-26.md",
+      "type": "Roadmap",
+      "title": "Matryca Plumber: work status and priorities — 26 October 2026",
+      "description": "Dated public work-status and research-priorities snapshot with explicit release, qualification and delivery boundaries.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Dated supporting snapshot; ROADMAP.md provides navigation and existing issues and accepted decisions retain authority. Preserve historical records and publish explicit dated follow-ups."
+    },
+    {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
       "type": "Guide",
       "title": "Public release and soak evidence policy",

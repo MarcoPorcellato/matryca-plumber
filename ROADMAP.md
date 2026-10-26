@@ -1,5 +1,33 @@
 # Matryca Plumber Roadmap
 
+## Current work snapshot — 26 October 2026
+
+- **Stable default:** published `v2.0.0`.
+- **Experimental:** published `v2.1.0-alpha.3`; its bounded synthetic OG evidence
+  does not establish general real-vault or Logseq DB support.
+- **Selected next focus:** predictable large-graph dashboard reads, the corrected
+  Parser dependency and controlled work after cancellation
+  ([#656](https://github.com/MarcoPorcellato/matryca-plumber/issues/656)).
+- **Other candidates, not delivery commitments:** bounded diagnostics, a
+  reproducible memory baseline, governed memory workflows and new bounded read
+  capabilities. Native DB remains subject to its own qualification gates.
+- **Release boundary:** the [RC4-to-2.1.0 supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
+  moves outstanding full-release obligations to 2.1.0; experimental publication
+  is not completion of that programme.
+
+Read the [dated research and priorities snapshot](docs/quality/PLUMBER_WORK_STATUS_AND_PRIORITIES_2026-10-26.md)
+for evidence, dependencies and limitations. Follow
+[GitHub Discussions](https://github.com/MarcoPorcellato/matryca-plumber/discussions)
+for dated public updates. Existing issues remain the implementation backlog.
+
+---
+
+## Historical roadmap records
+
+The sections below retain earlier plans and release context. They are not a
+current candidate selection, delivery promise or compatibility admission.
+Use the dated snapshot above and accepted decision records for current status.
+
 **North star:** [v2.0.0 — Stable Shadow Read Path](https://github.com/MarcoPorcellato/matryca-plumber/milestone/3) ([Epic #20](https://github.com/MarcoPorcellato/matryca-plumber/issues/20))
 
 Matryca Plumber is local data infrastructure for headless AI agents working with Logseq. **v2.0.0** introduces the **Shadow DB**: a daemon-owned SQLite cache (`shadow.sqlite`) for sub-50ms hierarchical reads (FTS5 + recursive CTEs), without touching Logseq's internal indices. A [`GraphRepository`](https://github.com/MarcoPorcellato/matryca-plumber/issues/17) abstraction will let Markdown (Logseq OG) and Logseq DB backends coexist, while [**Safe-Sync**](https://github.com/MarcoPorcellato/matryca-plumber/issues/25) keeps writes on the correct path — append to `.md` with OCC for OG, official CLI only for Logseq DB.
