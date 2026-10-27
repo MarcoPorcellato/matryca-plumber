@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import sys
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
@@ -64,12 +65,22 @@ def guard_mcp_tool[F: Callable[..., Awaitable[Any]]](fn: F) -> F:
     """Catch unhandled domain errors and return LLM-safe tool output."""
 
     returns_text = _tool_returns_text(fn)
+    signature = inspect.signature(fn)
 
     @functools.wraps(fn)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             result = await fn(*args, **kwargs)
             if fn.__name__ == "store_fact":
+                return result
+            if (
+                fn.__name__ == "read_graph_data"
+                and sys.platform != "win32"
+                and signature.bind_partial(*args, **kwargs).arguments.get("target_type")
+                == "dashboard"
+            ):
+                # This target owns identity inside its bounded child. In particular,
+                # appending identity here would corrupt structured failure JSON.
                 return result
             if isinstance(result, (str, dict)):
                 return append_identity_to_mcp_payload(result)

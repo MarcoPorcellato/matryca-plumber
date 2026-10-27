@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -14,6 +15,7 @@ from mcp.server.session import ServerSession
 from ..config import MatrycaWikiConfig
 from ..graph.graph_path_validate import validate_logseq_graph_path
 from ..graph.safety.write_policy import ensure_graph_write_allowed, is_graph_read_only
+from .dashboard_job import dashboard_identity_owned
 from .graph_dispatch import (
     dispatch_lint,
     dispatch_mutate,
@@ -152,6 +154,11 @@ def register_mcp_tools(mcp: FastMCP) -> None:
 
         **``target_type=dashboard``** — ``query`` ignored. Matryca dashboard Markdown:
         page counts, ``id::`` tally, block-ref health under ``pages/``.
+        Linux/macOS: private process group, 1800 seconds execution plus one five-second
+        cleanup deadline, structured JSON failures and no queued dashboards. Identity
+        processing shares that budget. Unverified cleanup requires operator diagnosis
+        or restart. Windows keeps the legacy route without this guarantee. A client
+        timeout without a cancellation notification does not prove server cancellation.
 
         **``target_type=xray_page``** — ``query`` = Logseq **page title**. Ultra-dense
         ``[n]`` outline (X-Ray mode); persists the alias→UUID map at graph root in normal
@@ -176,6 +183,13 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         """
         wiki_config = ctx.request_context.lifespan_context.wiki_config
         if target_type == "dashboard":
+            if sys.platform != "win32":
+                # No unbounded notification await outside the owned calculation.
+                token = dashboard_identity_owned.set(True)
+                try:
+                    return await dispatch_read(wiki_config, target_type, query)
+                finally:
+                    dashboard_identity_owned.reset(token)
             await mcp_tool_info(
                 ctx,
                 "Rendering Matryca dashboard: scanning pages/ and block-reference health…",

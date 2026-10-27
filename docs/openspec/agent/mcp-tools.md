@@ -30,6 +30,18 @@ Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
 
+`read_graph_data(target_type="dashboard")` ignores `query`. On Linux/macOS its
+request-owned calculation, including identity, has a 1800-second execution budget
+and one five-second cleanup deadline. Cancellation uses a bounded finalization
+wait; uncertain cleanup retains poisoned ownership. A client that sends no
+cancellation relies on the server deadline.
+Failures return structured JSON with `code`, `last_phase`, `elapsed_ms` and
+`cleanup_verified`; never present partial counts as a complete dashboard. Busy
+jobs do not queue. Unverified cleanup blocks later dashboards until operator
+diagnosis/restart. Windows retains its legacy behavior without this guarantee.
+See [bounded dashboard reads](../../quality/DASHBOARD_BOUNDED_READ.md). This does
+not qualify a release, real-vault performance, native DB or stable support.
+
 The `search_graph` prerequisite follows the same mode-aware Soft Gate: inspect
 `bootstrap_status` and read the Master Index only when present. With
 `read_only=true`, do not recommend catalog-building daemon bootstrap or Cloud

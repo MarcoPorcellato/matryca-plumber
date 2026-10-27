@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from collections.abc import Awaitable, Callable
 
 from loguru import logger
@@ -15,6 +16,8 @@ from ..graph.journal_read import read_journal_day_markdown
 from ..graph.link_tag_hop import format_hop_report_markdown
 from ..rag.matryca_hooks import get_page_spatial_context
 from ..shadow.state_api import resolve_shadow_db_state_for_api
+from .dashboard_job import run_dashboard_read
+from .dashboard_protocol import DashboardOutcome
 from .graph_tool_helpers import (
     ReadGraphTarget,
     bounded_int_from_options,
@@ -221,12 +224,15 @@ async def handle_read_dashboard(
     graph_path: str,
     _query: str,
 ) -> str:
-    dashboard_md = await asyncio.to_thread(
-        build_dashboard_markdown,
-        graph_path,
-        wiki_config,
-    )
-    logger.bind(graph=graph_path).info("read_graph_data(dashboard) completed")
+    if sys.platform == "win32":
+        dashboard_md = await asyncio.to_thread(build_dashboard_markdown, graph_path, wiki_config)
+        logger.bind(graph=graph_path).info("read_graph_data(dashboard) completed")
+    elif sys.platform in {"linux", "darwin"}:
+        return await run_dashboard_read(graph_path, wiki_config)
+    else:
+        dashboard_md = DashboardOutcome(
+            code="dashboard_platform_unsupported", elapsed_ms=0, cleanup_verified=True
+        ).public_text()
     return cap_llm_payload_chars(dashboard_md)
 
 

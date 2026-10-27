@@ -1,6 +1,6 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: 8931413ccfb697cfabef42104733f166c0623ab4d8471c7dc683c8597f2baa10 -->
+<!-- build-hash: 94e45e68a5f01f5f43e01b99ecc1229df5949714a4f221b976f347d6434177f7 -->
 
 <!-- package-version: v2.1.0a3 -->
 
@@ -191,6 +191,18 @@ targeted reads and require explicit authorization before uncatalogued discovery.
 Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
+
+`read_graph_data(target_type="dashboard")` ignores `query`. On Linux/macOS its
+request-owned calculation, including identity, has a 1800-second execution budget
+and one five-second cleanup deadline. Cancellation uses a bounded finalization
+wait; uncertain cleanup retains poisoned ownership. A client that sends no
+cancellation relies on the server deadline.
+Failures return structured JSON with `code`, `last_phase`, `elapsed_ms` and
+`cleanup_verified`; never present partial counts as a complete dashboard. Busy
+jobs do not queue. Unverified cleanup blocks later dashboards until operator
+diagnosis/restart. Windows retains its legacy behavior without this guarantee.
+See [bounded dashboard reads](../../quality/DASHBOARD_BOUNDED_READ.md). This does
+not qualify a release, real-vault performance, native DB or stable support.
 
 The `search_graph` prerequisite follows the same mode-aware Soft Gate: inspect
 `bootstrap_status` and read the Master Index only when present. With
@@ -454,6 +466,13 @@ grant additional read/write permission.
 ```
 
 Health snapshot: page counts, `id::` tally, block-ref summary. `query` ignored.
+Linux/macOS use a private process group with a 1800-second execution budget and
+one five-second cleanup deadline. Failures return JSON codes, not partial
+statistics. `dashboard_busy` does not queue; `dashboard_cleanup_unverified`
+requires operator diagnosis/restart. Windows remains on the legacy route, with
+no new bounded-cancellation claim. A client timeout without an MCP cancellation
+notification is not evidence of server cancellation. See
+[the dashboard lifecycle contract](../../quality/DASHBOARD_BOUNDED_READ.md).
 
 ```json
 { "target_type": "xray_page", "query": "My Project" }

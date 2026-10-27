@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from src.graph.dashboard import build_dashboard_markdown, collect_dashboard_stats
 
 
@@ -27,3 +28,26 @@ def test_build_dashboard_markdown_includes_headings(tmp_path: Path) -> None:
     md = build_dashboard_markdown(tmp_path)
     assert "Matryca Dashboard" in md
     assert "render_logseq_dashboard" in md
+
+
+def test_dashboard_reports_stage_entry_without_changing_markdown(tmp_path: Path) -> None:
+    (tmp_path / "pages").mkdir()
+    observed: list[str] = []
+    expected = build_dashboard_markdown(tmp_path)
+    try:
+        actual = build_dashboard_markdown(tmp_path, on_phase=observed.append)
+    except TypeError:
+        pytest.fail("dashboard has no phase callback boundary")
+    assert actual == expected
+    assert observed == ["discover", "stat", "load_ast", "ids", "refs", "format", "complete"]
+
+
+@pytest.mark.parametrize("error", [ValueError("phase"), KeyboardInterrupt("phase")])
+def test_dashboard_phase_callback_exception_or_baseexception_prevents_success(
+    tmp_path: Path, error: BaseException
+) -> None:
+    def reject(_phase: str) -> None:
+        raise error
+
+    with pytest.raises(type(error), match="phase"):
+        build_dashboard_markdown(tmp_path, on_phase=reject)

@@ -101,6 +101,13 @@ grant additional read/write permission.
 ```
 
 Health snapshot: page counts, `id::` tally, block-ref summary. `query` ignored.
+Linux/macOS use a private process group with a 1800-second execution budget and
+one five-second cleanup deadline. Failures return JSON codes, not partial
+statistics. `dashboard_busy` does not queue; `dashboard_cleanup_unverified`
+requires operator diagnosis/restart. Windows remains on the legacy route, with
+no new bounded-cancellation claim. A client timeout without an MCP cancellation
+notification is not evidence of server cancellation. See
+[the dashboard lifecycle contract](../../quality/DASHBOARD_BOUNDED_READ.md).
 
 ```json
 { "target_type": "xray_page", "query": "My Project" }
