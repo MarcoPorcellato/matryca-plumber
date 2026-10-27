@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import sys
+import threading
+from contextlib import suppress
 from pathlib import Path
 
 import pytest
@@ -14,6 +18,84 @@ from src.agent.dispatch_read_handlers import (
 from src.agent.graph_dispatch import dispatch_read
 from src.config import MatrycaWikiConfig
 from src.shadow.connection import shadow_db_path
+
+from tests.test_dashboard_job import _until
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(sys.platform not in {"linux", "darwin"}, reason="POSIX lane")
+async def test_dashboard_cancel_never_abandons_parent_computation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cancelled dashboard must not leave an opaque parent thread computing."""
+    from src.agent import dispatch_read_handlers as handlers
+
+    entered = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    owners: list[threading.Thread] = []
+
+    def controlled_compute(*_args: object) -> str:
+        owners.append(threading.current_thread())
+        entered.set()
+        try:
+            if not release.wait(3):
+                raise RuntimeError("synthetic rescue deadline")
+            return "- synthetic dashboard\n"
+        finally:
+            finished.set()
+
+    monkeypatch.setattr(handlers, "build_dashboard_markdown", controlled_compute)
+    (tmp_path / "pages").mkdir()
+    pending = asyncio.create_task(
+        handlers.handle_read_dashboard(MatrycaWikiConfig(), str(tmp_path), "ignored")
+    )
+    try:
+        await _until(lambda: entered.is_set() or pending.done())
+        pending.cancel()
+        with suppress(asyncio.CancelledError):
+            await pending
+        assert not entered.is_set() or finished.is_set(), "cancel abandoned dashboard computation"
+    finally:
+        release.set()
+        await _until(lambda: not owners or finished.is_set())
+        assert not owners or finished.is_set(), "synthetic fixture rescue failed"
+        # The legacy executor owns this thread; its controlled computation has returned.
+
+
+@pytest.mark.asyncio
+async def test_dashboard_windows_legacy_route_is_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.agent import dispatch_read_handlers as handlers
+    from src.agent.llm_context_payload import cap_llm_payload_chars
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    body = "- synthetic" * 3000
+    monkeypatch.setattr(handlers, "build_dashboard_markdown", lambda *_args: body)
+
+    async def forbidden(*_args: object) -> str:
+        pytest.fail("Windows entered POSIX dashboard path")
+
+    monkeypatch.setattr(handlers, "run_dashboard_read", forbidden)
+    assert await handlers.handle_read_dashboard(MatrycaWikiConfig(), "/synthetic", "ignored") == (
+        cap_llm_payload_chars(body)
+    )
+
+
+@pytest.mark.asyncio
+async def test_dashboard_unadmitted_platform_rejects_before_spawn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.agent import dispatch_read_handlers as handlers
+
+    monkeypatch.setattr(sys, "platform", "unadmitted")
+
+    async def forbidden(*_args: object) -> str:
+        pytest.fail("unadmitted platform launched dashboard")
+
+    monkeypatch.setattr(handlers, "run_dashboard_read", forbidden)
+    body = json.loads(await handlers.handle_read_dashboard(MatrycaWikiConfig(), "/synthetic", ""))
+    assert body["code"] == "dashboard_platform_unsupported"
 
 
 @pytest.mark.asyncio

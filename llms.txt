@@ -98,6 +98,13 @@ Use **`read`** with a **positional** `target_type`, then an optional `query` str
 | `xray_page` | Page title | X-Ray aliases `[0]`…`[n]` for mutations |
 | `structural_hops` | hop query | Link/tag neighborhood report |
 
+`dashboard` ignores `query`. Linux/macOS use a request-owned process group:
+1800 seconds execution, then one five-second cleanup deadline. Failure is JSON,
+not a partial dashboard; inspect `code`, `last_phase` and `cleanup_verified`.
+Busy requests do not queue. Unverified cleanup blocks new dashboards until
+operator diagnosis/restart. Windows retains legacy behavior without this
+cancellation guarantee. See [bounded dashboard reads](docs/quality/DASHBOARD_BOUNDED_READ.md).
+
 **Command (canonical):**
 ```bash
 export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"

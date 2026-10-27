@@ -1344,6 +1344,24 @@
       "missing": false
     },
     {
+      "path": "docs/quality/DASHBOARD_BOUNDED_READ.md",
+      "type": "Reference",
+      "title": "Bounded MCP dashboard reads",
+      "description": "Dashboard execution, cancellation, cleanup and platform boundaries.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "Active implementation contract; not release, deployment or real-vault qualification."
+    },
+    {
       "path": "docs/quality/DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md",
       "type": "Audit",
       "title": "Dependency security reconciliation — 2026-08-08",

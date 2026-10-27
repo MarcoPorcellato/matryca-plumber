@@ -1,0 +1,67 @@
+name: Dashboard bounded read qualification
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/dashboard-read-qualification.yml
+      - src/**
+      - matryca_plumber/graph_gateway/consumer.py
+      - tests/test_dashboard*.py
+      - tests/test_graph_dispatch_read.py
+      - pyproject.toml
+      - uv.lock
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/dashboard-read-qualification.yml
+      - src/**
+      - matryca_plumber/graph_gateway/consumer.py
+      - tests/test_dashboard*.py
+      - tests/test_graph_dispatch_read.py
+      - pyproject.toml
+      - uv.lock
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHONDONTWRITEBYTECODE: "1"
+  UV_NO_CONFIG: "1"
+
+concurrency:
+  group: dashboard-read-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dashboard:
+    name: Dashboard ${{ matrix.os }} Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.19"
+          python-version: ${{ matrix.python }}
+          enable-cache: false
+      - name: Provision locked project environment
+        run: uv sync --locked --extra dev
+      - name: Synthetic lifecycle and MCP cancellation controls
+        run: >-
+          uv run --no-sync pytest --no-cov -q --tb=short
+          -k "not synthetic_1115"
+          tests/test_dashboard.py tests/test_dashboard_protocol.py
+          tests/test_dashboard_process.py tests/test_dashboard_job.py
+          tests/test_dashboard_worker.py tests/test_dashboard_mcp.py
+          tests/test_graph_dispatch_read.py
+      # Scale completion remains a separate, explicitly selected slow control.
+      # Its historical failure is not a lifecycle qualification PASS.

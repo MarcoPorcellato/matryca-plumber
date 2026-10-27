@@ -2,6 +2,12 @@
 
 ### Fixed
 
+- **Bounded MCP dashboard reads** — run Linux/macOS dashboard and identity work
+  in a request-owned process group with a 1800-second execution budget, effective
+  cancellation, one five-second cleanup deadline and fail-closed admission after
+  uncertain cleanup. Preserve successful counts, Markdown and legacy Windows
+  behavior; do not substitute partial statistics or claim deployment performance.
+
 - **Read-only bootstrap guidance** — distinguish graph-local catalog progress from external Shadow readiness in bootstrap status and MCP/CLI agent guidance, without changing catalog truth, write policy or writable-mode behavior.
 
 ### Added

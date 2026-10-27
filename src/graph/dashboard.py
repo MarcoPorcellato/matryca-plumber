@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from ..config import MatrycaWikiConfig
 from .block_ref_lint import lint_block_refs_in_graph
+
+DashboardPhase = Literal["discover", "stat", "load_ast", "ids", "refs", "format", "complete"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,11 +31,19 @@ def _iter_page_files(graph_root: Path) -> list[Path]:
     return iter_scannable_pages_markdown(graph_root)
 
 
-def collect_dashboard_stats(graph_root: str | Path) -> DashboardStats:
+def collect_dashboard_stats(
+    graph_root: str | Path,
+    *,
+    on_phase: Callable[[DashboardPhase], None] | None = None,
+) -> DashboardStats:
     """Scan ``pages/**/*.md`` for counts and block-ref lint totals."""
     root = Path(graph_root).expanduser().resolve(strict=False)
+    if on_phase is not None:
+        on_phase("discover")
     paths = _iter_page_files(root)
 
+    if on_phase is not None:
+        on_phase("stat")
     id_tally = 0
     newest: float | None = None
     for path in paths:
@@ -43,11 +55,17 @@ def collect_dashboard_stats(graph_root: str | Path) -> DashboardStats:
 
     from .ast_cache import get_graph_ast_cache
 
+    if on_phase is not None:
+        on_phase("load_ast")
     graph = get_graph_ast_cache(root).get_graph()
+    if on_phase is not None:
+        on_phase("ids")
     id_tally = sum(
         1 for node in graph.query().execute() if node.source_uuid or node.properties.get("id")
     )
 
+    if on_phase is not None:
+        on_phase("refs")
     lint = lint_block_refs_in_graph(root, graph=graph)
     broken = sum(1 for b in lint.broken if b.reason in {"invalid_uuid", "unresolved"})
 
@@ -93,10 +111,17 @@ def format_dashboard_outline(
 def build_dashboard_markdown(
     graph_root: str | Path,
     wiki_config: MatrycaWikiConfig | None = None,
+    *,
+    on_phase: Callable[[DashboardPhase], None] | None = None,
 ) -> str:
     """Convenience: stats + outline in one call."""
-    stats = collect_dashboard_stats(graph_root)
-    return format_dashboard_outline(stats, wiki_config=wiki_config)
+    stats = collect_dashboard_stats(graph_root, on_phase=on_phase)
+    if on_phase is not None:
+        on_phase("format")
+    markdown = format_dashboard_outline(stats, wiki_config=wiki_config)
+    if on_phase is not None:
+        on_phase("complete")
+    return markdown
 
 
 __all__ = [
