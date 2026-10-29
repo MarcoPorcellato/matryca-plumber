@@ -192,13 +192,16 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         method: SearchGraphMethod,
         query: str = "",
     ) -> str | dict[str, Any]:
-        """Lexical and structural discovery on the on-disk graph (no vector DB).
+        """Lexical, semantic and structural discovery on the on-disk graph.
 
         **``method=bm25``** — ``query`` = natural-language keywords (e.g. ``redis cache``), or JSON
         ``{"keyword":"...", "limit":15}``. Ranks ``pages/**/*.md`` by Okapi BM25.
 
-        **``method=semantic``** — Hybrid search over dual block embeddings (content +
-        applicability). Requires ``MATRYCA_DUAL_EMBEDDING_ENABLED=true`` and daemon indexing.
+        **``method=semantic``** — With ``MATRYCA_EXTERNAL_SEMANTIC_ENABLED=true``, query a
+        separately built external content-vector snapshot, including UUID-less blocks and
+        journals. Returns snapshot/freshness status; does not build or modify the index or graph.
+        Otherwise uses legacy dual block embeddings (content + applicability), requiring
+        ``MATRYCA_DUAL_EMBEDDING_ENABLED=true`` and daemon indexing in writable mode.
         ``query`` = natural language or JSON ``{"query":"...", "limit":15}``.
 
         **``method=regex``** — ``query`` = Python regex pattern (line scan in ``pages/``), or JSON
@@ -242,7 +245,7 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         if method == "semantic":
             await mcp_tool_info(
                 ctx,
-                "Embedding query and scoring dual block vectors (content + applicability)…",
+                "Embedding query and searching the configured semantic index…",
             )
             async with mcp_tool_session(ctx):
                 result_md = await dispatch_search(method, query)

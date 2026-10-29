@@ -64,9 +64,18 @@ async def handle_search_recall(graph_path: str, query: str) -> dict[str, Any]:
 
 
 async def handle_search_semantic(graph_path: str, query: str) -> str:
+    from ..semantic.external_config import ExternalSemanticSettings
+
+    external_settings = ExternalSemanticSettings.from_env()
     sem_opts = parse_optional_json_query(query)
     sem_query = str(sem_opts.get("query", sem_opts.get("keyword", query))).strip()
     if not sem_query:
+        if external_settings.enabled:
+            return (
+                "For `method=semantic`, set `query` to natural language or JSON "
+                'with `"query": "..."`. Requires '
+                "MATRYCA_EXTERNAL_SEMANTIC_ENABLED=true and a current external semantic index."
+            )
         return (
             "For `method=semantic`, set `query` to natural language or JSON "
             'with `"query": "..."`. Requires MATRYCA_DUAL_EMBEDDING_ENABLED=true '
@@ -84,6 +93,20 @@ async def handle_search_semantic(graph_path: str, query: str) -> str:
     sem_limit = sem_limit_raw
 
     def _run_semantic() -> str:
+        if external_settings.enabled:
+            from ..semantic.external import format_search_result, search_graph
+            from ..semantic.external_embedding import ExternalEmbeddingClient
+
+            with ExternalEmbeddingClient(external_settings) as external_client:
+                result = search_graph(
+                    graph_path,
+                    sem_query,
+                    external_settings,
+                    external_client,
+                    limit=sem_limit,
+                )
+            return format_search_result(result)
+
         from ..semantic.embedding import get_openai_embedding_client
         from ..semantic.search import format_semantic_search_markdown
 

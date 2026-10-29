@@ -922,6 +922,24 @@
       "missing": false
     },
     {
+      "path": "docs/openspec/external-semantic-read-only.md",
+      "type": "Specification",
+      "title": "External semantic index for read-only graphs",
+      "description": "---",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": "docs/knowledge/specifications/",
+      "action": "migrate",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/openspec/identity-config.md",
       "type": "Specification",
       "title": "In-graph identity (Telos & AI Constraints)",

@@ -125,7 +125,15 @@ Local Daemon / Blind Search / Cloud Indexing only in writable mode. Disabled
 { "method": "bm25", "query": "redis cache invalidation" }
 ```
 
-Okapi BM25 over `pages/**/*.md` remains the default lexical path. Optional **`method=semantic`** uses dual block embeddings when `MATRYCA_DUAL_EMBEDDING_ENABLED=true` (see [`docs/openspec/dual-embedding.md`](docs/openspec/dual-embedding.md)). Optional:
+Okapi BM25 over `pages/**/*.md` remains the default lexical path. Optional
+**`method=semantic`** selects a separately built external content-vector snapshot
+when `MATRYCA_EXTERNAL_SEMANTIC_ENABLED=true`; this read path never writes to the
+graph or builds the index. It includes pages, journals and UUID-less blocks, reports
+snapshot compatibility/freshness, and requires bounded queries. Synthetic citation
+IDs are not usable with `block_ast`. Otherwise semantic search uses legacy dual
+block embeddings when `MATRYCA_DUAL_EMBEDDING_ENABLED=true` (see
+[`docs/openspec/dual-embedding.md`](docs/openspec/dual-embedding.md) and
+[`docs/openspec/external-semantic-read-only.md`](docs/openspec/external-semantic-read-only.md)). Optional:
 
 ```json
 { "method": "bm25", "query": "{\"keyword\":\"redis cache\", \"limit\": 15}" }

@@ -6,6 +6,14 @@
 
 ### Added
 
+- **External semantic retrieval for read-only graphs** — build resumable,
+  content-only SQLite snapshots outside the graph and query them through the
+  existing `search_graph` semantic method. The local embedding transport is
+  independently gated; reads do not create storage, and the legacy dual-vector
+  path remains unchanged when external semantics are disabled. Tokenizer-counted
+  fragments preserve block properties, ancestry, source hashes and exact block
+  spans; short blocks stay whole and long blocks prefer sentence groups.
+
 - **Release target binding** — derive hardened publication routing and artifact
   names from validated tags, keep immutable producer identities separate from
   verifier checkouts, and reject incomplete dependency-profile digest chains.

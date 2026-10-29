@@ -8,7 +8,7 @@ Five **polymorphic mega-tools** plus **`store_fact`**, **`ingest_document`**, an
 | Tool | Discriminator | Purpose |
 |------|---------------|---------|
 | `read_graph_data` | `target_type` | Read pages, exact dated journals, L1 memory, **bootstrap_status**, block excerpts, **subtree** (heading-filtered), structural hops, dashboard, X-Ray aliases |
-| `search_graph` | `method` | BM25, regex, unlinked mentions, journal tasks, entity resolution, gated canonical recall (`recall`) |
+| `search_graph` | `method` | BM25, optional semantic snapshots, regex, unlinked mentions, journal tasks, entity resolution, gated canonical recall (`recall`) |
 | `mutate_graph` | `action` | Write outlines, edit properties, append journal, inject queries |
 | `refactor_blocks` | `action` | Split wall bullets, reparent siblings, generate flashcards |
 | `run_linter` | `linter_name` | Tag unification preview, block-ref integrity, wiki schema scan |
@@ -29,6 +29,19 @@ targeted reads and require explicit authorization before uncatalogued discovery.
 Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
+
+`search_graph(method="semantic")` selects the separate content-vector backend when
+`MATRYCA_EXTERNAL_SEMANTIC_ENABLED=true`. Its maintenance CLI builds an external
+snapshot without changing graph files; querying never builds or migrates it. Follow
+the returned snapshot compatibility and source freshness state. This is independent
+of Shadow and graph-local catalog readiness. External synthetic citation IDs are
+not Logseq UUIDs and must never be passed to `block_ast`; cite their source path,
+title, block/chunk position and source hash. Fragments retain their original block
+properties and parent references. Keep queries within the configured token limit
+(plus the independent byte guard) and split longer questions into focused
+searches. The legacy dual-vector backend remains separate and requires its own
+opt-in. See
+[`external-semantic-read-only.md`](docs/openspec/external-semantic-read-only.md).
 
 The `search_graph` prerequisite follows the same mode-aware Soft Gate: inspect
 `bootstrap_status` and read the Master Index only when present. With
