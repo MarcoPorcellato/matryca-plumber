@@ -327,6 +327,49 @@ See the [architecture trust levels](docs/ARCHITECTURE.md#trust--safety-levels) a
 [Shadow DB operator contract](docs/knowledge/architecture/shadow-db.md) for the exact
 boundaries.
 
+## Index a local vault without changing notes (experimental)
+
+If you want an LLM to navigate your Logseq OG vault while leaving its files
+untouched, evaluate **Strict Read Only with an external semantic index**. This
+is an optional workflow in the
+[`experimental/external-semantic-readonly` branch](https://github.com/MarcoPorcellato/matryca-plumber/tree/experimental/external-semantic-readonly),
+not a feature included in the stable installation above or an automatic UI setup.
+
+The parser reads the block hierarchy in pages and journals. The external index
+keeps source references, properties and ancestry alongside the vectors. A short
+block stays whole; a long block can be split into sentence groups while each
+fragment remains attached to its original block. Indexing does not need to add
+`id::` properties, a Master Index, or a Semantic Index section to your notes.
+
+An agent can search for a concept, receive a bounded set of relevant fragments,
+then read the source page or an addressable subtree when it needs more context.
+It does not have to send the entire vault to the LLM. Blocks without persisted
+UUIDs can still be cited by source page, returned citation and fragment span;
+synthetic references are not Logseq UUIDs. Retrieval narrows the evidence supplied to the
+model; it does not guarantee exhaustive recall or correct answers.
+
+To evaluate this workflow:
+
+1. Use the experimental source in a dedicated environment, enable Strict Read
+   Only, and expose the graph through a read-only filesystem mount or equivalent
+   access restriction. Keep caches and operational artifacts outside the graph.
+2. Qualify the local embedding endpoint, configure the separate external cache,
+   and explicitly build a snapshot. Indexing writes derived data outside the
+   vault; it does not run the graph-writing daemon bootstrap.
+3. Connect your local agent through MCP, use `search_graph(method="semantic")`,
+   and check the returned compatibility and freshness state before following
+   source references. Refresh the derived index explicitly or through a separately
+   configured maintenance job when notes change.
+
+Shadow's lexical/structural cache and this content-vector snapshot are independent
+and can coexist; neither requires enabling graph gardening. Protect the external
+cache like the notes it derives from. To keep retrieved text local as well, use a
+local chat model and host, not only a local embedding endpoint. Configuration,
+supported transport, maintenance commands and current limitations live in the
+[external semantic contract](docs/openspec/external-semantic-read-only.md);
+the [architecture](docs/ARCHITECTURE.md#external-semantic-index-for-read-only-vaults-experimental)
+explains the data boundary.
+
 ## How it works
 
 ```mermaid
@@ -398,6 +441,7 @@ and large-export behavior.
 | --- | --- |
 | Install, configure, and operate v2 | [Shadow DB runtime and operator contract](docs/knowledge/architecture/shadow-db.md) |
 | Understand the system | [Architecture](docs/ARCHITECTURE.md) |
+| Evaluate local semantic retrieval without modifying notes | [Experimental read-only workflow](#index-a-local-vault-without-changing-notes-experimental) and [external semantic contract](docs/openspec/external-semantic-read-only.md) |
 | Integrate an agent | [`llms.txt`](llms.txt) and [agent onboarding](docs/openspec/agent-onboarding.md) |
 | Review features and contracts | [OpenSpec index](docs/openspec/README.md) |
 | Contribute | [First contribution](docs/FIRST_CONTRIBUTION.md) and [contributor guide](CONTRIBUTING.md) |

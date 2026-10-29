@@ -1,5 +1,13 @@
 # Documentation update log
 
+## 2026-10-29
+
+- **Experimental read-only semantic workflow:** added README evaluation guidance
+  and linked architecture explanations for parser-derived block fragments,
+  external metadata/vector snapshots and focused source reads. Kept stable Shadow
+  and legacy graph-writing daemon behavior separate, including journal handling,
+  source authority, synthetic citations and experimental qualification limits.
+
 ## 2026-09-27
 
 - **RC4 Stage A workflow admission correction:** withheld the manual workflow

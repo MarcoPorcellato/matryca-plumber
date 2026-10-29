@@ -28,7 +28,26 @@ legacy_sources:
 
 This maintained concept is the canonical progressive-disclosure overview. [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) remains the detailed architecture contract.
 
-Matryca Plumber is a **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees. Safety on the graph plane — AST parity, OCC, path sandboxing — is documented in [Graph plane](graph-plane.md). Operator Trust & Safety tiers remain in the legacy architecture contract.
+Matryca Plumber provides local-first structured access to Logseq OG Markdown and an optional background maintenance daemon. It can operate as a read-only retrieval layer; when writes are explicitly allowed, humans and the daemon can co-edit the same `.md` trees. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Safety on the graph plane — AST parity, OCC, path sandboxing — is documented in [Graph plane](graph-plane.md). Operator Trust & Safety tiers remain in the detailed architecture contract.
+
+## Read-only retrieval and derived indexes
+
+Markdown remains authoritative even when an external cache accelerates reads.
+The [Shadow operator contract](shadow-db.md) owns current lexical/structural cache
+behavior. The separate
+[experimental external semantic workflow](../../ARCHITECTURE.md#external-semantic-index-for-read-only-vaults-experimental)
+adds content-vector retrieval over parser-derived blocks and sentence-group
+fragments without adding IDs, catalogs or semantic sections to the notes.
+
+This is an optional workflow on the experimental branch, not an addition to the
+stable installation or a requirement to enable graph gardening. With Strict Read
+Only, a read-only graph mount or equivalent access restriction, external cache
+paths and qualified local endpoints, an agent can retrieve focused fragments and
+then read source context as needed. It does not need the whole vault in its
+prompt. Readiness/freshness checks and source citations make retrieval inspectable,
+not infallible; cache contents remain sensitive derived data. Follow the
+[external semantic contract](../../openspec/external-semantic-read-only.md)
+for configuration and maintenance rather than the daemon bootstrap below.
 
 ## Clean Architecture map
 
@@ -151,7 +170,7 @@ flowchart TB
   Client -.->|"token telemetry"| UI
 ```
 
-**Invariant:** one **system of record** — `LOGSEQ_GRAPH_PATH`. No auxiliary database for the default read path, no Logseq Electron dependency, no split-brain HTTP API for background work.
+**Invariant:** one **system of record** — `LOGSEQ_GRAPH_PATH`. External read caches are derived and do not replace Markdown authority. The topology above describes the graph-writing daemon path, not a requirement for read-only retrieval; current Shadow defaults belong to its [operator contract](shadow-db.md). No Logseq Electron dependency or split-brain HTTP API is required for background work.
 
 ### Daemon lifecycle: Phase 1 → Phase 2
 
@@ -190,6 +209,9 @@ stateDiagram-v2
 ### Journal pages — structural-only indexing
 
 Daily fleeting notes under **`journals/`** receive structural indexing only in Phase 2; semantic LLM indexing is skipped for journals. Detail: [`openspec/llm-performance.md`](../../openspec/llm-performance.md).
+
+This daemon rule does not exclude journals from the separate experimental
+external semantic build, which reads them without changing their files.
 
 ## Architecture pilots
 

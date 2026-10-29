@@ -12,7 +12,9 @@
   independently gated; reads do not create storage, and the legacy dual-vector
   path remains unchanged when external semantics are disabled. Tokenizer-counted
   fragments preserve block properties, ancestry, source hashes and exact block
-  spans; short blocks stay whole and long blocks prefer sentence groups.
+  spans; short blocks stay whole and long blocks prefer sentence groups. The
+  [read-only local workflow](README.md#index-a-local-vault-without-changing-notes-experimental)
+  explains evaluation and its experimental status without enabling graph gardening.
 
 - **Release target binding** — derive hardened publication routing and artifact
   names from validated tags, keep immutable producer identities separate from

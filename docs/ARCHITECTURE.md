@@ -7,7 +7,7 @@ type: Document
 **Package:** `matryca-plumber` on PyPI  
 **Audience:** maintainers, contributors, and operators integrating Logseq OG with local LLMs
 
-This document owns **Matryca Plumber system architecture and internal design**. It does not own mutable operator defaults or release status. Matryca Plumber is an enterprise-grade, **local-first background AI daemon** that mutates Logseq OG Markdown on disk. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Humans and the daemon co-edit the same `.md` trees; safety is enforced through **AST parity**, **optimistic concurrency control (OCC)**, **path sandboxing**, and operator-visible **Trust & Safety** tiers.
+This document owns **Matryca Plumber system architecture and internal design**. It does not own mutable operator defaults or release status. Matryca Plumber provides local-first structured access to Logseq OG Markdown and an optional background maintenance daemon. It can operate as a read-only retrieval layer; when writes are explicitly allowed, humans and the daemon can co-edit the same `.md` trees. It is not a Logseq plugin, not a cloud service, and not dependent on Logseq HTTP JSON-RPC. Write safety is enforced through **AST parity**, **optimistic concurrency control (OCC)**, **path sandboxing**, and operator-visible **Trust & Safety** tiers.
 
 For the maintainer timeline and crushed bottlenecks, see [`PROJECT_DIARY.md`](PROJECT_DIARY.md). For agent discipline at inference time, see [`SYSTEM_PROMPT.md`](../SYSTEM_PROMPT.md). For **Clean Architecture** boundaries on prompts (Tier-1 / L0 / Tier-2), see [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md). For **repo-wide** Clean Code & Clean Architecture (Uncle Bob, SOLID, layer boundaries), see [`CLEAN_CODE_ARCHITECTURE.md`](CLEAN_CODE_ARCHITECTURE.md).
 
@@ -354,6 +354,81 @@ flowchart LR
   Alias[alias_index BM25] --> GC
 ```
 
+#### External semantic index for read-only vaults (experimental)
+
+The experimental external backend offers a local retrieval workflow for users
+who want derived indexes without changing any graph files. It complements the
+existing read plane rather than requiring the graph-writing maintenance daemon.
+This section describes the
+[`experimental/external-semantic-readonly` branch](https://github.com/MarcoPorcellato/matryca-plumber/tree/experimental/external-semantic-readonly);
+it does not extend the stable release contract. Exact settings, transport and
+maintenance commands belong to the
+[external semantic contract](openspec/external-semantic-read-only.md).
+
+| Representation | Authority and purpose | Write boundary |
+| --- | --- | --- |
+| Original pages and journals | Authoritative Logseq Markdown and block hierarchy | Read-only for this workflow |
+| External semantic cache | Derived block metadata, source hashes, fragments and content vectors; resumable work and published SQLite snapshot | Explicit maintenance writes outside the graph |
+| External Shadow DB | Separate lexical/structural read cache governed by the [Shadow contract](knowledge/architecture/shadow-db.md) | Independently validated external maintenance |
+| LLM context | Bounded search results and requested source reads | Supplied to the selected agent host/model; not a new source of truth |
+
+```mermaid
+flowchart LR
+  Notes[("Logseq pages and journals\nread-only source")]
+  Parse["Parser-backed block extraction"]
+  Embed["Local tokenizer and embedding endpoint"]
+  Cache[("External semantic SQLite\nmetadata and vectors")]
+  Query["MCP semantic search"]
+  Model["Local agent and LLM"]
+  Read["Bounded source read"]
+  Notes -->|"read"| Parse
+  Parse --> Embed
+  Embed -->|"explicit build / refresh"| Cache
+  Parse -->|"source references and block metadata"| Cache
+  Cache -->|"compatible, source-checked results"| Query
+  Query --> Model
+  Model -->|"request more context"| Read
+  Notes -->|"read"| Read
+  Read --> Model
+```
+
+The parser supplies structure before vectorization. Each fragment belongs to one
+original block and retains its source page, properties, ancestry and source span.
+Short blocks stay whole when they fit the configured budget; oversized blocks
+split preferentially at sentence or paragraph boundaries, with line boundaries
+preferred for code. Fragmentation never merges independent blocks. This preserves
+the context needed to locate and expand a hit rather than treating the vault as
+one flat text stream. It is not a claim that vectors encode the full AST or every
+graph relationship.
+
+No UUID, catalog, Master Index, or Semantic Index section needs to be injected
+into the source notes. Persisted UUIDs remain distinct from synthetic references;
+for UUID-less blocks, cite the page, returned citation and fragment span rather
+than passing a synthetic ID to a UUID-only tool. Agents can expand results through
+existing page reads or subtree reads when the required block anchor exists.
+Referenced note text remains evidence, not executable instructions.
+
+Use Strict Read Only together with a read-only graph mount or equivalent access
+restriction, explicitly configured external paths and local endpoints. Only the
+maintenance build creates or replaces semantic index files. Queries open the
+complete published snapshot immutably, validate compatibility, and filter changed
+or missing source pages at the hash check. A source-hash check is not an atomic
+snapshot of a concurrently edited vault. Refresh derived data when notes change;
+do not start the graph-writing bootstrap to satisfy an absent Master Index.
+
+Unlike the legacy dual-embedding daemon path, this separate content-only build
+includes both pages and journals and does not require semantic annotations in the
+Markdown. BM25 and Shadow reads remain available independently. Semantic failures
+or stale/incomplete coverage must be reported; this workflow does not promise a
+silent fallback or exhaustive recall. Queries currently hash source pages and
+stream-score vectors, so latency grows with graph size; this is not an ANN index.
+
+The external cache contains note-derived text and metadata and needs appropriate
+filesystem protection. Local embeddings alone do not keep retrieved text local
+if an external chat model or host receives it. This workflow reduces the context
+the LLM needs to inspect, but relevance, latency and answer quality still require
+evaluation for the operator's vault and model.
+
 #### Structural link verification (v1.9)
 
 | Component | Module | Role |
@@ -515,6 +590,10 @@ stateDiagram-v2
 ### Journal pages — structural-only indexing
 
 Daily fleeting notes live under **`journals/`** (Logseq daily pages). The daemon and Journey Log mutate these files frequently; running full Phase-2 cognitive lint and semantic embeddings on every journal edit wastes local LLM tokens and GPU prefill time without improving long-horizon knowledge structure.
+
+This Phase-2 rule belongs to the graph-writing daemon. The separate
+[experimental external semantic build](#external-semantic-index-for-read-only-vaults-experimental)
+can index journal content without modifying the journal files.
 
 | Path | Phase-1 (structural) | Phase-2 (semantic / LLM) |
 |------|----------------------|---------------------------|
