@@ -69,7 +69,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -84,7 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "22"
       - name: Provision independent canonical build environment
@@ -99,7 +99,7 @@ jobs:
           "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-build --source-root "$GITHUB_WORKSPACE" --dist-dir "$RUNNER_TEMP/bundle/dist" --expected-commit "$SELECTED_SOURCE" --build-python "$RUNNER_TEMP/canonical-build/bin/python" --uv "$(command -v uv)"
       - name: Preserve build evidence
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-build
           path: ${{ runner.temp }}/bundle
@@ -138,7 +138,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -154,7 +154,7 @@ jobs:
           set -euo pipefail
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -168,7 +168,7 @@ jobs:
       - name: Preserve source-controls evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-source-controls
           path: ${{ runner.temp }}/source-results
@@ -204,7 +204,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -228,7 +228,7 @@ jobs:
       - name: Preserve windows-refusal evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-windows-refusal
           path: ${{ runner.temp }}/windows-results
@@ -268,7 +268,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -284,7 +284,7 @@ jobs:
           set -euo pipefail
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -309,7 +309,7 @@ jobs:
       - name: Preserve linux312 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-linux312
           path: ${{ runner.temp }}/row-results
@@ -349,7 +349,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -365,7 +365,7 @@ jobs:
           set -euo pipefail
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -390,7 +390,7 @@ jobs:
       - name: Preserve linux313 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-linux313
           path: ${{ runner.temp }}/row-results
@@ -430,7 +430,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -446,7 +446,7 @@ jobs:
           set -euo pipefail
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -476,7 +476,7 @@ jobs:
           "$RUNNER_TEMP/runtime-wheel/bin/python" -I -B -c 'import importlib,pathlib,sys; root=pathlib.Path.cwd().resolve(); sys.path.insert(0,str(root)); names=("src","matryca_plumber"); modules=[importlib.import_module(name) for name in names]; assert all(pathlib.Path(module.__file__).resolve()==root/module.__name__/"__init__.py" and module.__spec__.origin==str(root/module.__name__/"__init__.py") for module in modules); from tests.test_og_macos_cleanup_stress import main; raise SystemExit(main())' --work "$RUNNER_TEMP/cleanup-stress-work" --output "$RUNNER_TEMP/cleanup-stress-results/report.json" --iterations 200
       - name: Preserve cleanup stress evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-cleanup-stress-${{ github.run_id }}-${{ github.run_attempt }}-macos312
           path: ${{ runner.temp }}/cleanup-stress-results
@@ -486,7 +486,7 @@ jobs:
       - name: Preserve macos312 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-macos312
           path: ${{ runner.temp }}/row-results
@@ -526,7 +526,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -542,7 +542,7 @@ jobs:
           set -euo pipefail
           UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/tools" uv sync --locked --extra dev --no-install-project --no-config --no-python-downloads --link-mode copy
       - name: Download independently bound canonical artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/bundle
@@ -572,7 +572,7 @@ jobs:
           "$RUNNER_TEMP/runtime-wheel/bin/python" -I -B -c 'import importlib,pathlib,sys; root=pathlib.Path.cwd().resolve(); sys.path.insert(0,str(root)); names=("src","matryca_plumber"); modules=[importlib.import_module(name) for name in names]; assert all(pathlib.Path(module.__file__).resolve()==root/module.__name__/"__init__.py" and module.__spec__.origin==str(root/module.__name__/"__init__.py") for module in modules); from tests.test_og_macos_cleanup_stress import main; raise SystemExit(main())' --work "$RUNNER_TEMP/cleanup-stress-work" --output "$RUNNER_TEMP/cleanup-stress-results/report.json" --iterations 200
       - name: Preserve cleanup stress evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-cleanup-stress-${{ github.run_id }}-${{ github.run_attempt }}-macos313
           path: ${{ runner.temp }}/cleanup-stress-results
@@ -582,7 +582,7 @@ jobs:
       - name: Preserve macos313 evidence
         if: always()
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-macos313
           path: ${{ runner.temp }}/row-results
@@ -622,7 +622,7 @@ jobs:
             test "$SELECTED_SOURCE" = "$GITHUB_SHA"
             git merge-base --is-ancestor HEAD origin/main
           fi
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
           version: "0.12.19"
           python-version: "3.12"
@@ -648,7 +648,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
       - name: Download only the seven independently carried artifact IDs
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: "${{ needs.build.outputs.artifact-id }},${{ needs.source-controls.outputs.artifact-id }},${{ needs.windows-refusal.outputs.artifact-id }},${{ needs.linux312.outputs.artifact-id }},${{ needs.linux313.outputs.artifact-id }},${{ needs.macos312.outputs.artifact-id }},${{ needs.macos313.outputs.artifact-id }}"
           path: ${{ runner.temp }}/downloaded
@@ -659,7 +659,7 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py alpha-aggregate --source-root "$GITHUB_WORKSPACE" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json"
       - name: Preserve aggregate (not a release or consumer admission)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: og-alpha-${{ github.run_id }}-${{ github.run_attempt }}-aggregate
           path: ${{ runner.temp }}/alpha-aggregate.json
