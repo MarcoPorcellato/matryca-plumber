@@ -12,6 +12,11 @@
 
 ### Added
 
+- **Public work-status snapshot** — add a dated research and priorities record
+  and a current roadmap entry that distinguish available releases, the selected
+  reliability focus and proposed work while preserving historical plans and
+  qualification boundaries.
+
 - **Release target binding** — derive hardened publication routing and artifact
   names from validated tags, keep immutable producer identities separate from
   verifier checkouts, and reject incomplete dependency-profile digest chains.
