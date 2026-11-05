@@ -150,12 +150,17 @@ def _forbid_shadow_and_parser(monkeypatch: pytest.MonkeyPatch) -> None:
         raise AssertionError("bootstrap_status must not touch Shadow or the AST parser")
 
     import logseq_matryca_parser
+    import src.agent.dispatch_read_handlers as read_handlers
+    import src.agent.shadow_graph_repository as shadow_graph_repository
     import src.graph.bounded_page_parse as bounded_parse
     import src.shadow.bootstrap as shadow_bootstrap
     import src.shadow.connection as shadow_connection
     import src.shadow.state_api as shadow_state_api
 
     monkeypatch.setattr(shadow_state_api, "resolve_shadow_db_state_for_api", _boom)
+    # Direct ``from ... import`` bindings bypass the origin-module patch above.
+    monkeypatch.setattr(read_handlers, "resolve_shadow_db_state_for_api", _boom)
+    monkeypatch.setattr(shadow_graph_repository, "open_shadow_db_query_only", _boom)
     monkeypatch.setattr(shadow_bootstrap, "rebuild_shadow_from_graph", _boom)
     monkeypatch.setattr(shadow_connection, "open_shadow_db", _boom)
     monkeypatch.setattr(shadow_connection, "open_shadow_db_query_only", _boom)
