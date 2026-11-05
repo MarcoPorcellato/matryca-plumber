@@ -88,6 +88,15 @@ artifacts; do not suggest graph-local bootstrap or Cloud Indexing. Existing
 complete catalogs remain readable; uncatalogued discovery still needs explicit
 authorization. Missing-checkpoint 0/0 is not a Shadow indexing count.
 
+Illustrative excerpt (new fields only, not a complete response) for a Strict Read Only
+missing-catalog case:
+
+```json
+{"status_scope": "graph_local_catalog", "bootstrap_progress_source": "graph_local_daemon_checkpoint", "catalog_gate_reasons": ["master_index_missing"], "catalog_bootstrap_action": "not_permitted_read_only"}
+```
+
+The writable-mode equivalent reports `"catalog_bootstrap_action": "requires_explicit_authorization"`.
+
 ```json
 { "target_type": "shadow_status", "query": "" }
 ```

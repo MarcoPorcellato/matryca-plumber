@@ -10,6 +10,22 @@ from typing import Any, Literal
 from .master_catalog import is_bootstrap_catalog_complete, master_index_page_path
 from .safety.write_policy import is_graph_read_only
 
+CatalogGateReason = Literal[
+    "master_index_missing",
+    "catalog_stale",
+    "catalog_incomplete",
+    "bootstrap_failed",
+    "phase1_in_progress",
+]
+CatalogBootstrapAction = Literal[
+    "not_required",
+    "not_permitted_read_only",
+    "requires_explicit_authorization",
+]
+
+STATUS_SCOPE_GRAPH_LOCAL_CATALOG = "graph_local_catalog"
+BOOTSTRAP_PROGRESS_SOURCE_DAEMON_CHECKPOINT = "graph_local_daemon_checkpoint"
+
 
 @dataclass(frozen=True, slots=True)
 class BootstrapStatusSnapshot:
@@ -92,12 +108,46 @@ def collect_bootstrap_status(graph_root: str | Path) -> BootstrapStatusSnapshot:
     )
 
 
+def _catalog_gate_reasons(snapshot: BootstrapStatusSnapshot) -> tuple[CatalogGateReason, ...]:
+    """Ordered reason codes derived purely from the snapshot (no I/O)."""
+    reasons: list[CatalogGateReason] = []
+    if not snapshot.master_index_present:
+        reasons.append("master_index_missing")
+    elif not snapshot.catalog_complete:
+        reasons.append("catalog_stale" if snapshot.catalog_stale else "catalog_incomplete")
+    if snapshot.bootstrap_failed:
+        reasons.append("bootstrap_failed")
+    if snapshot.phase1_in_progress:
+        reasons.append("phase1_in_progress")
+    return tuple(reasons)
+
+
+def _catalog_bootstrap_action(snapshot: BootstrapStatusSnapshot) -> CatalogBootstrapAction:
+    """Catalog-bootstrap policy only; never a repair step, permission grant, or probe."""
+    if not snapshot.soft_gate_active:
+        return "not_required"
+    if snapshot.read_only:
+        return "not_permitted_read_only"
+    return "requires_explicit_authorization"
+
+
+def _explanatory_fields(snapshot: BootstrapStatusSnapshot) -> dict[str, object]:
+    """Additive JSON fields that disambiguate scope and source of the legacy counters."""
+    return {
+        "status_scope": STATUS_SCOPE_GRAPH_LOCAL_CATALOG,
+        "bootstrap_progress_source": BOOTSTRAP_PROGRESS_SOURCE_DAEMON_CHECKPOINT,
+        "catalog_gate_reasons": list(_catalog_gate_reasons(snapshot)),
+        "catalog_bootstrap_action": _catalog_bootstrap_action(snapshot),
+    }
+
+
 def format_bootstrap_status_markdown(graph_root: str | Path) -> str:
     """Return JSON envelope plus a one-line agent hint for MCP/CLI reads."""
     snapshot = collect_bootstrap_status(graph_root)
     payload = snapshot.to_dict()
     payload["ok"] = True
     payload["graph_root"] = str(Path(graph_root).expanduser().resolve(strict=False))
+    payload.update(_explanatory_fields(snapshot))
 
     if snapshot.read_only:
         hint = (

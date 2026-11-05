@@ -29,6 +29,11 @@ targeted reads and require explicit authorization before uncatalogued discovery.
 Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
+The response also carries `status_scope` (`graph_local_catalog`),
+`bootstrap_progress_source` (`graph_local_daemon_checkpoint`), `catalog_gate_reasons`
+(ordered fixed codes, empty when the Soft Gate is inactive) and `catalog_bootstrap_action`
+(`not_required`, `not_permitted_read_only` or `requires_explicit_authorization`).
+The action is graph-local catalog-bootstrap policy only, not a repair instruction or permission grant.
 
 `read_graph_data(target_type="dashboard")` ignores `query`. On Linux/macOS its
 request-owned calculation, including identity, has a 1800-second execution budget

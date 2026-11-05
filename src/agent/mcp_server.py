@@ -146,7 +146,11 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         **``target_type=bootstrap_status``** — ``query`` ignored. Phase 1 semaphore JSON
         (``bootstrap_complete``, graph-local checkpoint progress, ``soft_gate_active``,
         ``read_only``). This is catalog status, not external Shadow readiness; missing-checkpoint
-        0/0 does not mean Shadow indexed zero pages. Call before the Master Index Soft Gate.
+        0/0 does not mean Shadow indexed zero pages. Additive fields: ``status_scope``
+        (graph-local catalog), ``bootstrap_progress_source`` (graph-local daemon checkpoint),
+        ``catalog_gate_reasons`` (ordered fixed reason codes), ``catalog_bootstrap_action``
+        (catalog-bootstrap policy only; grants no permission). Call before the Master Index
+        Soft Gate.
 
         **``target_type=shadow_status``** — ``query`` ignored. Content-free, versioned
         read-cache status and compatibility profile. This performs no initialization, mutation,
@@ -236,6 +240,8 @@ def register_mcp_tools(mcp: FastMCP) -> None:
         With ``read_only=true``, the observer cannot create missing graph-local catalog artifacts.
         Do not recommend starting catalog bootstrap or Cloud Indexing. Read ``shadow_status``
         separately; a ready cache neither completes the catalog nor authorizes discovery.
+        ``catalog_gate_reasons`` explain the graph-local gate; ``catalog_bootstrap_action``
+        grants no permission.
         Use only authorized targeted reads and obtain explicit user authorization before
         uncatalogued discovery. Graph writes remain blocked.
         In writable mode only, if the index is unavailable, pause and present Local Daemon,
