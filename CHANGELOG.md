@@ -10,6 +10,11 @@
 
 - **Read-only bootstrap guidance** — distinguish graph-local catalog progress from external Shadow readiness in bootstrap status and MCP/CLI agent guidance, without changing catalog truth, write policy or writable-mode behavior.
 
+- **Bootstrap status provenance** — add graph-local scope, checkpoint progress
+  source, ordered catalog gate reasons and a policy-only catalog bootstrap action
+  to bootstrap status JSON, without changing existing fields, Soft Gate semantics,
+  write policy or Shadow status.
+
 ### Added
 
 - **Release target binding** — derive hardened publication routing and artifact

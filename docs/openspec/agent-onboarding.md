@@ -135,6 +135,11 @@ separately, do not suggest graph-writing bootstrap/indexing, and preserve explic
 authorization before uncatalogued discovery. Existing catalog values remain true
 to disk; neither status grants new permissions or proves dashboard health.
 
+The two sources are separate: `bootstrap_status` (with `catalog_gate_reasons` and
+`catalog_bootstrap_action`) describes the graph-local catalog and checkpoint, while external
+Shadow readiness comes only from `shadow_status`. `catalog_bootstrap_action` states
+graph-local catalog-bootstrap policy; it is not a repair instruction or permission grant.
+
 Spec: [`llm-os-instructions.md`](llm-os-instructions.md).
 
 ---
