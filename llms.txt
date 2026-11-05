@@ -246,6 +246,10 @@ guidance; missing-checkpoint 0/0 is not a Shadow indexing count. In Strict Read
 Only, starting the observer cannot create a missing Master Index/catalog.
 Use `read shadow_status` separately; it performs no cache initialization.
 Do not recommend graph-local bootstrap or Cloud Indexing under this policy.
+Additive fields `status_scope`, `bootstrap_progress_source`, `catalog_gate_reasons`
+(ordered codes, empty when the Soft Gate is inactive) and `catalog_bootstrap_action`
+(`not_required`, `not_permitted_read_only`, `requires_explicit_authorization`) explain
+the catalog gate; `catalog_bootstrap_action` is policy, not permission to act.
 
 | Env var | Default | When `true` |
 |---------|---------|-------------|

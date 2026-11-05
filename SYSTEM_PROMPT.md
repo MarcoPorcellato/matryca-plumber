@@ -1,6 +1,6 @@
 <!-- GENERATED — do not edit -->
 
-<!-- build-hash: 94e45e68a5f01f5f43e01b99ecc1229df5949714a4f221b976f347d6434177f7 -->
+<!-- build-hash: c8f87d4c23e638f76401a0acd96b180856a92e25304028e97395b0055b5f477c -->
 
 <!-- package-version: v2.1.0a3 -->
 
@@ -78,6 +78,19 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 2. **`read_graph_data` / `target_type="bootstrap_status"`** — graph-local catalog semaphore (`bootstrap_complete`, checkpoint progress, `bootstrap_failed_reason`, `read_only`). Prefer this over inferring state from index existence alone. It does not report external Shadow readiness.
 3. **When `master_index_present` is true**, read **`target_type="page"` / `query="Matryca Master Index"`** — compiled catalog hub (`pages/Matryca Master Index.md`). Each line is `[[Exact Page Title]] — one-line summary` grouped by MARPA domain.
 
+`bootstrap_status` also returns four additive explanatory fields. Existing fields, values and the Soft Gate formula are unchanged.
+
+| Field | Value |
+|-------|-------|
+| `status_scope` | Always `"graph_local_catalog"`. |
+| `bootstrap_progress_source` | Always `"graph_local_daemon_checkpoint"`. `checkpoint_recovery_source` (`missing`/`primary`/`backup`/`reset`) still qualifies where the legacy `bootstrap_scanned`/`bootstrap_total` values came from. |
+| `catalog_gate_reasons` | Ordered fixed codes: `master_index_missing`, or if the page exists but the catalog is incomplete, `catalog_stale` or `catalog_incomplete`; then `bootstrap_failed`; then `phase1_in_progress`. Empty exactly when the Soft Gate is inactive. |
+| `catalog_bootstrap_action` | `not_required` (gate inactive) · `not_permitted_read_only` (gate active, `read_only=true`) · `requires_explicit_authorization` (gate active, writable mode). |
+
+- A missing checkpoint is not a gate reason by itself. A complete catalog without a checkpoint stays complete.
+- `catalog_bootstrap_action` describes graph-local catalog-bootstrap policy only. It is not a repair instruction, a permission grant or a filesystem capability probe. `not_permitted_read_only`: do not recommend catalog bootstrap or Cloud Indexing; explain and use only authorized targeted reads. `requires_explicit_authorization`: present the writable-mode Local Daemon / Blind Search / Cloud Indexing options and wait for the user's explicit choice.
+- Reading these fields performs no extra reads, scans, cache probes or initialization. `bootstrap_status` and `shadow_status` are separate reads, not an atomic snapshot; a ready Shadow cache can coexist with `master_index_missing`.
+
 **Strict Read Only branch (`read_only=true`):**
 
 - The observer maintains only the permitted external derived cache. Graph-local
@@ -98,6 +111,7 @@ Tier-2 agents **MUST** check index availability before blind vault discovery. Th
 **Soft Gate trigger — pause if any true:**
 
 - `bootstrap_complete` is `false` or `soft_gate_active` is `true`.
+- `catalog_gate_reasons` is non-empty.
 - Master Index page missing or body has no indexed entries.
 - Daemon Phase 1 in progress (`bootstrap_scanned < bootstrap_total`, or Sovereign UI shows "Phase 1: Cataloging Graph").
 - You would otherwise guess filenames, `grep pages/`, or run blind `bm25` on the whole vault.
@@ -191,6 +205,11 @@ targeted reads and require explicit authorization before uncatalogued discovery.
 Read `target_type="shadow_status"` separately for external-cache readiness; that
 content-free status call performs no initialization or migration. Neither status
 grants permission, proves graph completeness or resolves dashboard failures.
+The response also carries `status_scope` (`graph_local_catalog`),
+`bootstrap_progress_source` (`graph_local_daemon_checkpoint`), `catalog_gate_reasons`
+(ordered fixed codes, empty when the Soft Gate is inactive) and `catalog_bootstrap_action`
+(`not_required`, `not_permitted_read_only` or `requires_explicit_authorization`).
+The action is graph-local catalog-bootstrap policy only, not a repair instruction or permission grant.
 
 `read_graph_data(target_type="dashboard")` ignores `query`. On Linux/macOS its
 request-owned calculation, including identity, has a 1800-second execution budget
@@ -452,6 +471,15 @@ Index Soft Gate. In Strict Read Only, the observer cannot create missing catalog
 artifacts; do not suggest graph-local bootstrap or Cloud Indexing. Existing
 complete catalogs remain readable; uncatalogued discovery still needs explicit
 authorization. Missing-checkpoint 0/0 is not a Shadow indexing count.
+
+Illustrative excerpt (new fields only, not a complete response) for a Strict Read Only
+missing-catalog case:
+
+```json
+{"status_scope": "graph_local_catalog", "bootstrap_progress_source": "graph_local_daemon_checkpoint", "catalog_gate_reasons": ["master_index_missing"], "catalog_bootstrap_action": "not_permitted_read_only"}
+```
+
+The writable-mode equivalent reports `"catalog_bootstrap_action": "requires_explicit_authorization"`.
 
 ```json
 { "target_type": "shadow_status", "query": "" }
