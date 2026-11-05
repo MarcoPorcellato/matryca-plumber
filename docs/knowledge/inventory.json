@@ -4613,6 +4613,24 @@
       "missing": false
     },
     {
+      "path": "docs/superpowers/plans/2026-11-05-bootstrap-shadow-status-656-handoff.md",
+      "type": "Roadmap",
+      "title": "Issue #656: Bootstrap and Shadow status handoff",
+      "description": "Status: reviewed proposal; implementation and runtime qualification have not started.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "core-runtime",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": ""
+    },
+    {
       "path": "docs/superpowers/specs/2026-08-22-graph-native-derived-projection-design.md",
       "type": "Specification",
       "title": "Graph-native derived projection qualification design",
