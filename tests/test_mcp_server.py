@@ -52,6 +52,14 @@ async def test_read_tool_metadata_explains_read_only_bootstrap_limits() -> None:
     assert "writable mode" in read.description
     assert "shadow_status" in read.description
     assert "cannot create" in read.description
+    for field in (
+        "status_scope",
+        "bootstrap_progress_source",
+        "catalog_gate_reasons",
+        "catalog_bootstrap_action",
+    ):
+        assert f"``{field}``" in read.description
+    assert "grants no permission" in read.description
 
 
 @pytest.mark.asyncio
@@ -68,6 +76,8 @@ async def test_search_tool_metadata_explains_read_only_bootstrap_limits() -> Non
     assert "In writable mode only" in guidance
     assert "observer cannot create missing graph-local catalog artifacts" in guidance
     assert "``shadow_status``" in guidance
+    assert "``catalog_gate_reasons``" in guidance
+    assert "``catalog_bootstrap_action``" in guidance
     assert "explicit user authorization before uncatalogued discovery" in guidance
     assert "Graph writes remain blocked" in guidance
     assert (
