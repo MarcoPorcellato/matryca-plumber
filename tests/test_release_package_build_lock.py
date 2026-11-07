@@ -56,7 +56,7 @@ def test_qualification_build_lock_contains_reviewed_static_closure() -> None:
 
     reviewed_versions = {
         "packaging": "26.3",
-        "setuptools": "84.0.0",
+        "setuptools": "84.1.0",
         "wheel": "0.48.0",
     }
     for name, version in reviewed_versions.items():
