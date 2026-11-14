@@ -1359,7 +1359,8 @@
       "destination": null,
       "action": "keep",
       "supersedes": [],
-      "notes": "Active implementation contract; not release, deployment or real-vault qualification."
+      "notes": "Active implementation contract; not release, deployment or real-vault qualification.",
+      "missing": false
     },
     {
       "path": "docs/quality/DEPENDENCY_SECURITY_RECONCILIATION_2026-08-08.md",
@@ -2336,7 +2337,29 @@
       "path": "docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md",
       "type": "Roadmap",
       "title": "Experimental 2.1.0a3 release qualification plan",
-      "description": "Active eight-row POSIX alpha.3 recovery policy after the macOS cleanup repair; fresh source, explicit publication and actual-public-byte verification precede independent Trama evaluation.",
+      "description": "Historical eight-row POSIX alpha.3 recovery policy; original source, publication and consumer evidence remain bound to their exact producer tuple.",
+      "classification": "historical",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "archive",
+      "supersedes": [
+        "docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md"
+      ],
+      "notes": "Superseded as active guidance by docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md. Preserve the original alpha.3 plan and evidence without transferring qualification or admission to alpha.4.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md",
+      "type": "Roadmap",
+      "title": "Experimental 2.1.0a4 release qualification plan",
+      "description": "Active alpha.4 preparation and eight-row POSIX qualification policy, with separate exact-source, verifier rehearsal, publication and actual-public-byte gates.",
       "classification": "active",
       "audience": [
         "maintainer",
@@ -2349,9 +2372,9 @@
       "destination": null,
       "action": "keep",
       "supersedes": [
-        "docs/quality/V2_1_0A2_RELEASE_QUALIFICATION_PLAN_2026-10-19.md"
+        "docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md"
       ],
-      "notes": "Tier 3 preparation only. Closed og-alpha3 policy; dependencies, producer behavior, fixtures, TCK and RC4 defaults stay frozen. Preserve older releases and failures. No tag, publication, runtime or Trama admission is granted.",
+      "notes": "Preparation does not select a final candidate or qualify public bytes. Preserve the alpha.3 tuple, packaged qualification labels and legacy RC4 obligations. No tag/publication or Trama change without its separate owner gate.",
       "missing": false
     },
     {

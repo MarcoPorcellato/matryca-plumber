@@ -15,17 +15,14 @@ on:
         description: "Exact signed public producer tag"
         type: string
         required: true
-        default: "v2.1.0-alpha.3"
       source_tree:
         description: "Exact public producer source tree, separate from verifier_tree"
         type: string
         required: true
-        default: "de80d0473aa281c52d0fed10b4561024dd12d76f"
       tag_object:
         description: "Exact signed annotated public producer tag object"
         type: string
         required: true
-        default: "c093e9e8aa735b7c37a0c1a56a601a9c31cbdf24"
       alpha3_recovery:
         description: "Explicit verifier-only recovery of the selected immutable producer (legacy input name)"
         type: boolean

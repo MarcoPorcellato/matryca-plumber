@@ -1,7 +1,7 @@
 ---
 type: Document
 ---
-# Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a3 preparation, and prerelease history
+# Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a4 preparation, and prerelease history
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
@@ -18,27 +18,30 @@ public wheel resolved parser 1.8.0 during the independent 2026-08-24 package che
 therefore retained incomplete Tier 2 dependency gates. That result is historical and
 does not qualify a later source revision. `v2.0.1-rc.2` is immutable terminal
 failed-publication history: no GitHub Release or PyPI package exists. `v2.0.1-rc.3` is
-a published historical prerelease. Unpublished RC4 preparation is superseded by
-the experimental `v2.1.0-alpha.3` / `2.1.0a3` path. Historical RC4 source
-selections remain preserved; none is the current final alpha candidate.
-The signed alpha.1 tag and failed publisher, plus alpha.2's published assets and
-failed public verification, remain unchanged. Alpha.3 requires fresh exact-source
-and actual-public-byte qualification.
-Preparation establishes no alpha public artifact, installed-runtime result,
-Gate B result, Trama admission or stable-promotion decision. Keep `v2.0.0` as
-the default; `2.0.1rc3` remains solely an evaluation candidate.
-The proposed OG process profile is offline and content-free, with separately
-planned POSIX qualification; Windows and full release obligations remain
-unfinished. Current operator behavior belongs to the [canonical Shadow operator
+a published historical prerelease. Unpublished RC4 preparation was superseded by the
+2.1.0 alpha line; historical RC4 source selections and unfinished obligations remain
+preserved. The signed alpha.1 tag and failed publisher, plus alpha.2's published assets
+and failed public verification, remain unchanged. The published
+[alpha.3 OG producer handoff](../quality/OG_OPERATIONAL_V1_ALPHA3_PUBLIC_HANDOFF.md)
+and its synthetic Trama acceptance remain historical and unchanged; they do not
+qualify alpha.4 or establish new real-vault admission.
+
+The active [alpha.4 preparation](../quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
+adds bounded, cancellable `dashboard` reads and four explanatory `bootstrap_status`
+fields. Dashboard execution has an 1800-second Linux/macOS budget and a five-second
+cleanup deadline; it is containment, not a performance claim, and Windows retains its
+legacy route. Bootstrap catalog progress is distinct from external Shadow readiness.
+Preparation establishes no alpha.4 tag, public artifact, installed-runtime result,
+stable-support decision or network-isolation claim. Keep `v2.0.0` as the default;
+`2.0.1rc3` remains solely an evaluation candidate. Current operator behavior belongs
+to the [canonical Shadow operator
 contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the
 [readiness record](../quality/issue-bodies/v2-rc-stable-readiness.md), the
 [historical RC1 qualification plan](../quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md),
 the [RC2 failed-publication record](../releases/v2.0.1-rc.2-FAILED-PUBLICATION.md),
 the [RC3 publication record](../releases/v2.0.1-rc.3-GITHUB.md), and the
 [historical RC4 preparation](../quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md).
-The active route is the
-[experimental alpha plan](../quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md);
-the [supersession record](../quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
+The [RC4 supersession record](../quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
 preserves the unfinished Windows, full Stage A and dual-profile Gate B gates.
 
 ---
