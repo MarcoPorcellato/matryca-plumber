@@ -702,7 +702,7 @@ jobs:
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
             uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$PRODUCER_ROOT/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
@@ -886,7 +886,7 @@ jobs:
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
             uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$PRODUCER_ROOT/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
@@ -1070,7 +1070,7 @@ jobs:
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
             uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$PRODUCER_ROOT/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
@@ -1254,7 +1254,7 @@ jobs:
             uv venv --no-config --no-python-downloads --python "$runtime" "$RUNNER_TEMP/runtime-$kind"
             uv pip install --no-config --no-python-downloads --python "$RUNNER_TEMP/runtime-$kind/bin/python" --require-hashes --only-binary :all: --link-mode copy -r "$PRODUCER_ROOT/matryca_plumber/graph_gateway/resources/og-v1/requirements-og-v1-parser-1.9.0.txt"
           done
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project release-qualification-build --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/sdist-build" uv sync --project "$PRODUCER_ROOT/release-qualification-build" --locked --no-install-project --python "$(uv python find --no-python-downloads 3.12)" --no-config --no-python-downloads --link-mode copy
       - name: Verify original wheel and original-sdist installation paths
         timeout-minutes: 25
         working-directory: ${{ env.QUALIFICATION_TOOL_ROOT }}
