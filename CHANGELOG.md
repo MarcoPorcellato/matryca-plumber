@@ -1,13 +1,5 @@
 ## [Unreleased]
 
-### Fixed
-
-- **Producer-bound qualification builds** — provision public-artifact sdist build
-  environments from the selected producer's locked project, not a separate
-  verifier checkout. Preserve exact package checks, original published bytes and
-  independent verifier identity; historical builder execution still requires its
-  own security decision.
-
 ## [2.1.0-alpha.4] - 2026-11-14
 
 ### Security
@@ -23,6 +15,12 @@
   schemas, fixtures and topology golden remain unchanged.
 
 ### Fixed
+
+- **Producer-bound qualification builds** — provision public-artifact sdist build
+  environments from the selected producer's locked project, not a separate
+  verifier checkout. Preserve exact package checks, original published bytes and
+  independent verifier identity; historical builder execution still requires its
+  own security decision.
 
 - **Bounded MCP dashboard reads** — run Linux/macOS dashboard and identity work
   in a request-owned process group with a 1800-second execution budget, effective
