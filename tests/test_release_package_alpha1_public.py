@@ -610,9 +610,50 @@ def test_attestation_uses_signed_certificate_invocation_not_predicate(field: str
 )
 def test_public_urls_reject_unsafe_origins(url: str) -> None:
     public = _public()
-    public.validate_url("https://files.pythonhosted.org/packages/a.whl", "pypi")
+    public.validate_url("https://files.pythonhosted.org/packages/a.whl", "pypi", release_tag=TAG)
     with pytest.raises(ValueError):
-        public.validate_url(url, "pypi")
+        public.validate_url(url, "pypi", release_tag=TAG)
+
+
+def test_public_acquisition_requires_explicit_release_tag(tmp_path: Path) -> None:
+    public = _public()
+    with pytest.raises(TypeError, match="release_tag"):
+        public.validate_url("https://files.pythonhosted.org/packages/a.whl", "pypi")
+    with pytest.raises(TypeError, match="release_tag"):
+        public.fetch_file(
+            "https://files.pythonhosted.org/packages/a.whl", tmp_path / "a", 1, "a" * 64, "pypi"
+        )
+
+
+def test_public_fetch_cli_requires_explicit_release_tag() -> None:
+    from scripts.qualify_release_package import _parser
+
+    with pytest.raises(SystemExit) as exc:
+        _parser().parse_args(
+            [
+                "alpha-public-fetch",
+                "--url",
+                "https://example.invalid",
+                "--output",
+                "out",
+                "--size",
+                "1",
+                "--sha256",
+                "a" * 64,
+                "--kind",
+                "pypi",
+            ]
+        )
+    assert exc.value.code == 2
+
+
+def test_public_workflow_requires_explicit_producer_identity() -> None:
+    path = ROOT / ".github/workflows/og-public-artifact-qualification.yml"
+    workflow = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
+    inputs = workflow["on"]["workflow_dispatch"]["inputs"]
+    for name in ("release_tag", "source_tree", "tag_object"):
+        assert inputs[name]["required"] == "true"
+        assert "default" not in inputs[name]
 
 
 @pytest.mark.parametrize("failure", [None, "size", "hash", "redirect-host", "redirect-loop"])
@@ -655,6 +696,7 @@ def test_download_enforces_byte_and_redirect_limits_without_network(
                 size,
                 sha,
                 "github",
+                release_tag=TAG,
             )
     else:
         public.fetch_file(
@@ -663,6 +705,7 @@ def test_download_enforces_byte_and_redirect_limits_without_network(
             size,
             sha,
             "github",
+            release_tag=TAG,
         )
         assert path.read_bytes() == payload
 
@@ -709,7 +752,7 @@ def test_acquisition_digest_reaches_real_process_guard_and_cli_parser(
     monkeypatch.setattr(public.sdist_build.process_module.subprocess, "Popen", intercept_launch)
     path = tmp_path / "download"
     with pytest.raises(ChildLaunchIntercepted):
-        public._acquire(url, path, size, sha256, kind)
+        public._acquire(url, path, size, sha256, kind, release_tag=TAG)
     assert len(commands) == 1
     command = commands[0]
     assert all(isinstance(argument, str) and argument for argument in command)
@@ -765,6 +808,7 @@ def test_metadata_acquisition_preserves_empty_digest_and_zero_size_contract(
             size,
             sha256,
             "pypi-metadata",
+            release_tag=TAG,
         )
     assert not path.exists()
 

@@ -1,8 +1,18 @@
 ## [Unreleased]
 
+## [2.1.0-alpha.4] - 2026-11-14
+
 ### Security
 
-- **Frontend lint dependencies** — update affected glob-matching and validation dependencies to address security advisories.
+- **Frontend lint dependencies** — update `minimatch` to `11.0.1`, its required
+  non-recursive `1.1.0` dependency, and `Zod` to `4.6.6` for the merged security
+  correction. These security updates leave Vite `8.3.3`, Vitest `5.0.3`,
+  Python/runtime dependencies and packaged OG requirements unchanged.
+
+- **Build and test tooling security fixes** — update `setuptools` to `84.1.0`
+  and `Vitest` to `5.0.3` for the three scoped alerts; fix rather than dismiss
+  them. The Python runtime dependency set, Vite, packaged OG requirements,
+  schemas, fixtures and topology golden remain unchanged.
 
 ### Fixed
 

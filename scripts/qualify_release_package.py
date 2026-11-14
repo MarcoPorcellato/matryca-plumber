@@ -601,7 +601,7 @@ def _parser() -> argparse.ArgumentParser:
     public_fetch.add_argument("--size", type=int, required=True)
     public_fetch.add_argument("--sha256", required=True)
     public_fetch.add_argument("--kind", choices=("github", "pypi", "pypi-metadata"), required=True)
-    public_fetch.add_argument("--release-tag", default="v2.1.0-alpha.3")
+    public_fetch.add_argument("--release-tag", required=True)
     public_fetch.set_defaults(handler=_alpha_public_fetch)
 
     public_admit = commands.add_parser(

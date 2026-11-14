@@ -59,12 +59,12 @@ The canonical rationale and escalation rules are in the
 
 ## Active candidate-plan registry
 
-Registry routing was reconciled on 2026-10-16. This does not refresh the evidence
+Registry routing was reconciled on 2026-11-14. This does not refresh the evidence
 dates of unrelated gate-map rows or turn preparation into a qualification result.
 
 | Candidate plan | Risk tier | Coordination | State | Boundary |
 | --- | --- | --- | --- | --- |
-| [Experimental 2.1.0a3 qualification plan](V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md) | Tier 3; limited experimental POSIX envelope, not full or stable qualification | #582; version/policy, operational resources and reviewed workflow must land before final selection | `active preparation; unqualified` | Eight required installed rows: Linux x86_64/macOS arm64, CPython 3.12/3.13, wheel/sdist. Pre-publication diagnostic bytes do not replace actual public-artifact verification. Windows refusal is a negative control only; publication and Trama admission are separate decisions. Full Windows/Stage A and dual-profile Gate B obligations remain on the later full qualification track. |
+| [Experimental 2.1.0a4 qualification plan](V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md) | Tier 3; bounded experimental preparation, not stable qualification | M0 replacement and security baseline; M1 preparation; M2 pre-tag checks; M3 exact user-authorized tag; M4 public bytes; M5 handoff | `active preparation; unqualified` | Eight required installed rows: Linux x86_64/macOS arm64, CPython 3.12/3.13, original wheel/sdist. Source controls and Windows refusal remain required; refusal is not Windows package support. Bounded dashboard work and explanatory bootstrap fields do not establish a performance fix or Shadow readiness. No new Trama admission, DB/stable support or network-isolation claim; full RC4 obligations remain separate. |
 | [Historical v2.0.1-rc.4 qualification plan](V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) | Tier 3: Parser/graph I/O, lifecycle and topology boundaries | Historical selected candidate `74884c38edb9cae445fa465969aa2c9cee5ecd1c`; #579/#582; [supersession record](RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) | `historical; superseded` | Preserve exact-source hosted CI, build, installed-resource and TCK history without transferring it to a new candidate. RC4 was not published. L, native Windows, three-platform Stage A and 259,200 valid seconds per required dual-profile Gate B remain unfinished obligations, not waived or passed gates. No RC4 tag, public bundle, stable decision or DB support exists. |
 
 Historical RC1 and RC3 records remain bound to their own artifacts. This registry does not

@@ -65,8 +65,8 @@ is historical, not a proposal for the next candidate.
 
 ### Active experimental 2.1.0 alpha track
 
-The active [2.1.0a3 qualification plan](quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md)
-prioritizes the offline OG identity/topology producer on Linux x86_64 and macOS
+The active [2.1.0a4 qualification plan](quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
+retains the content-free OG identity/topology producer on Linux x86_64 and macOS
 arm64, with CPython 3.12 and 3.13 and both wheel and sdist installation paths.
 These eight rows are planned, not qualified. Windows gateway refusal is a
 negative control, not Windows installed-package qualification.
@@ -78,8 +78,8 @@ three-platform Stage A or the separately governed dual-profile Gate B. The
 experimental POSIX publication decision is distinct from that full qualification
 and from Trama's independent admission.
 
-For this preparation, package metadata uses `2.1.0a3`, the signed tag is
-prospective `v2.1.0-alpha.3`, and the changelog section is `[2.1.0-alpha.3]`. The release
+For this preparation, package metadata uses `2.1.0a4`, the signed tag is
+prospective `v2.1.0-alpha.4`, and the changelog section is `[2.1.0-alpha.4]`. The release
 workflow compares the metadata version with both byte-identical llms surfaces;
 its changelog extractor requires the literal tag spelling without `v`. Do not
 substitute a PEP 440-normalized changelog heading.
@@ -89,11 +89,30 @@ version in `uv.lock` for the version bump and verify the locked graph without
 refreshing dependency selections. An actual security/gate failure requires an
 explicit scoped correction; do not opportunistically update the closure.
 
+Regenerate the three version-derived operational resources with
+`python -m scripts.regenerate_og_resource_chain`, then verify the resulting
+dependency-profile, manifest and descriptor digests. This does not resolve
+dependencies, change schemas or golden output, or promote qualification labels.
+The scoped security baseline includes PR #666's builder/test corrections and
+PR #668's signed squash `4fdee5d30006f70caa8a0645101d6b14e70a47c7` (tree
+`c378b160ad3d3de230c0288dfb1316433c4738e8`) for `minimatch` 11.0.1, its
+required non-recursive dependency 1.1.0, and `Zod` 4.6.6. It did not change
+parent package versions, Python/runtime or resource inputs; Vite 8.3.3 and Vitest
+5.0.3 remain unchanged. Seven compiled frontend assets matched by path, mode
+and bytes, but that comparison is not wheel or sdist evidence. The recorded
+audit returned zero findings; alert #107 was fixed, not dismissed, at
+2026-11-14T07:00:45Z, and the complete open-alert query was empty on
+2026-11-14. Recheck alert state before tag selection. Post-merge CI run
+`43569039183`, CodeQL run `43569039198`, and Windows run `43569039293` succeeded
+for that exact source; they are not final alpha.4 qualification. These scoped
+corrections do not authorize a general dependency refresh or qualify alpha.4
+artifacts.
+
 The operational resources and additive
 [`og-profile-qualification.yml`](../.github/workflows/og-profile-qualification.yml)
 workflow must land before selecting the final source. The migration milestone
-records the macOS cleanup repair and version preparation in `[2.1.0-alpha.3]`,
-preserves the entire alpha.1 and alpha.2 changelog sections rather than
+records bounded dashboard cancellation, bootstrap explanations and the security
+fixes in `[2.1.0-alpha.4]`, preserves the entire alpha.1, alpha.2 and alpha.3 sections rather than
 rewriting their history, and leaves an empty
 `[Unreleased]` section. Verify the exact extracted notes again before final
 candidate selection; later changes are not automatically included.
@@ -105,8 +124,9 @@ checks for every required row. A green preparation PR is not this evidence.
 
 Signed tag creation, GitHub Releases and PyPI publication are maintainer actions
 outside the approved preparation milestones. Stop with an exact handoff before
-those actions. Trama receives only the independently verified public-artifact
-bundle; recording acceptance policy is not compatibility admission.
+those actions. Trama receives an independently verified public-artifact
+bundle only under separate consumer authority. Existing synthetic Trama alpha.3
+acceptance remains unchanged; alpha.4 does not authorize a re-pin or new admission.
 
 #### Alpha qualification entrypoints and evidence
 
@@ -131,8 +151,11 @@ Use the explicit `scripts/qualify_release_package.py` alpha subcommands:
 | `alpha-aggregate` | Requires all eight rows, the source controls, Windows refusal, actual completed upstream job conclusions and exact upstream artifact IDs/digests for the same run and attempt. |
 
 The legacy `build-handoff`, `verify-handoff`, `verify-installed` and
-`prepare-sdist-build` commands retain their RC-only defaults. Alpha policy is a
-closed opt-in for exactly `2.1.0a3`, not a caller-defined version expression.
+`prepare-sdist-build` commands retain their RC-only defaults. Alpha policy retains
+the historical internal `og-alpha3` policy identifier, with the producer version
+derived from its authenticated binding and the validated hardened release route.
+This identifier does not pin every new candidate to alpha.3. Legacy RC4 defaults
+remain unchanged; arbitrary or mismatched version expressions are rejected.
 
 Provision qualification tools with the unchanged project lock and no project
 installation. Explicit interpreter provisioning uses the manual download policy
@@ -161,9 +184,10 @@ NO-GO even when a receipt claims PASS. Passing operational results retain
 Retain the workflow URL, selected source/tree, seven upstream artifact IDs and
 archive digests, complete row/source/refusal evidence and aggregate. The final
 aggregate is a preparation record, not a public producer handoff. Publication
-rebuilds its own artifacts: after the maintainer confirms M5, repeat full
+rebuilds its own artifacts: after separately authorized publication, repeat full
 verification against the actual public wheel and original sdist before offering
-an immutable evidence package to Trama #2. Trama admission remains its own gate.
+an immutable producer handoff. Do not post alpha.4 to Trama #2 or change its
+existing admission under this preparation. Trama admission remains its own gate.
 No user graph, DB/payload access, write, sync, stable claim or full Tier 3
 dual-profile campaign is authorized by this lane.
 

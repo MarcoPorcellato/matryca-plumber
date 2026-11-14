@@ -22,7 +22,6 @@ from scripts.release_qualification import alpha1_matrix as matrix
 from scripts.release_qualification import bundle, installed, sdist_build
 from scripts.release_qualification.alpha3_recovery import RecoveryBinding
 from scripts.release_qualification.release_target import (
-    ALPHA3_TARGET,
     ReleaseRoute,
     ReleaseTarget,
     selected_target,
@@ -30,12 +29,8 @@ from scripts.release_qualification.release_target import (
 
 REPO = "MarcoPorcellato/matryca-plumber"
 REPOSITORY_ID = 1241185104
-TAG = ALPHA3_TARGET.tag
-VERSION = ALPHA3_TARGET.version
 PUBLISHER = ".github/workflows/release.yml"
 VERIFIER = ".github/workflows/og-public-artifact-qualification.yml"
-ORIGINALS = ALPHA3_TARGET.route.originals
-ASSETS = ALPHA3_TARGET.route.assets
 METADATA_LIMIT = 2_097_152
 DISTRIBUTION_LIMIT = 33_554_432
 
@@ -103,7 +98,7 @@ class PublicContext:
         return self.source_commit if self.recovery is None else self.recovery.verifier_commit
 
 
-def validate_url(url: str, kind: str, *, initial: bool = False, release_tag: str = TAG) -> None:
+def validate_url(url: str, kind: str, *, release_tag: str, initial: bool = False) -> None:
     """Allow HTTPS only; never forward authentication or accept foreign redirects."""
     route = ReleaseRoute.from_tag(release_tag)
     parts = urlsplit(url)
@@ -145,7 +140,7 @@ def validate_url(url: str, kind: str, *, initial: bool = False, release_tag: str
         raise ValueError("Unknown public acquisition kind.")
 
 
-def _redirect_url(url: str, kind: str, *, release_tag: str = TAG) -> None:
+def _redirect_url(url: str, kind: str, *, release_tag: str) -> None:
     # GitHub's signed asset-service URL has a query. Only those exact hosts may
     # carry it, and neither userinfo, fragments nor a different port is accepted.
     parts = urlsplit(url)
@@ -172,7 +167,7 @@ def _open(request: Request) -> Any:
 
 
 def fetch_file(
-    url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str = TAG
+    url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str
 ) -> None:
     """Stream one bounded acquisition; the caller owns its 120-second process deadline."""
     route = ReleaseRoute.from_tag(release_tag)
@@ -388,7 +383,7 @@ def verify_metadata(context: PublicContext, metadata: dict[str, Any]) -> dict[st
             and isinstance(item.get("url"), str),
             "PyPI original differs from its GitHub counterpart.",
         )
-        validate_url(item["url"], "pypi", initial=True)
+        validate_url(item["url"], "pypi", initial=True, release_tag=route.tag)
         _require(urlsplit(item["url"]).path.endswith("/" + name), "PyPI URL filename mismatch.")
         expected["pypi_url"] = item["url"]
     return assets
@@ -453,9 +448,7 @@ def _command(command: list[str], output: Path, timeout: int = 30) -> bytes:
     return result.stdout
 
 
-def _acquire(
-    url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str = TAG
-) -> None:
+def _acquire(url: str, path: Path, size: int, sha256: str, kind: str, *, release_tag: str) -> None:
     # Reuse the reviewed process-tree owner for the *entire* streaming deadline.
     result = sdist_build._run_bounded(
         [

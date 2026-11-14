@@ -17,17 +17,43 @@
     "native_sha256": "6d138edc0b82853752d22f1f118b5a13d5b6517ef12677c00360e4a98de35ff0",
     "package_prefix": "--require-hashes\n"
   },
-  "lock_sha256": "8b06d5c4d76a613f2b7d151106f9fec9cc08c28437f34c6546f9d5de9db6ac84",
+  "lock_sha256": "a6e2ebf2d4ded2e04d95effa772a1ae9e7f96e12d5620bbf006a63176b8ea9ec",
   "lock_source": "uv.lock",
   "matrix": [
-    {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
-    {"system": "Linux", "machine": "x86_64", "python": "3.13", "state": "planned"},
-    {"system": "Darwin", "machine": "arm64", "python": "3.12", "state": "planned"},
-    {"system": "Darwin", "machine": "arm64", "python": "3.13", "state": "planned"}
+    {
+      "system": "Linux",
+      "machine": "x86_64",
+      "python": "3.12",
+      "state": "planned"
+    },
+    {
+      "system": "Linux",
+      "machine": "x86_64",
+      "python": "3.13",
+      "state": "planned"
+    },
+    {
+      "system": "Darwin",
+      "machine": "arm64",
+      "python": "3.12",
+      "state": "planned"
+    },
+    {
+      "system": "Darwin",
+      "machine": "arm64",
+      "python": "3.13",
+      "state": "planned"
+    }
   ],
-  "parser": {"name": "logseq-matryca-parser", "version": "1.9.0"},
+  "parser": {
+    "name": "logseq-matryca-parser",
+    "version": "1.9.0"
+  },
   "profile_id": "og-v1-parser-1.9.0",
-  "project": {"name": "matryca-plumber", "version": "2.1.0a3"},
+  "project": {
+    "name": "matryca-plumber",
+    "version": "2.1.0a4"
+  },
   "qualification": "unqualified",
   "requirements": {
     "path": "requirements-og-v1-parser-1.9.0.txt",

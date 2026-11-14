@@ -298,7 +298,16 @@ def test_source_context_rejects_lock_profile_mismatch_after_source_authenticatio
 
     subprocess.run(["git", "init", "-q", str(source)], check=True)
     commit, tree = commit_source()
-    binding = replace(_inputs()[0].binding, source_commit=commit, source_tree=tree)
+    profile = json.loads((source / resource_path / "dependency-profile.json").read_bytes())
+    version = profile["project"]["version"]
+    binding = replace(
+        _inputs()[0].binding,
+        source_commit=commit,
+        source_tree=tree,
+        version=version,
+        wheel_name=f"matryca_plumber-{version}-py3-none-any.whl",
+        sdist_name=f"matryca_plumber-{version}.tar.gz",
+    )
     assert alpha.source_context(source, binding, "123", 1).binding == binding
 
     if mutation == "root-lock":
