@@ -63,18 +63,23 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > [historical RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
 > and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md).
 
-> **Current development: experimental `2.1.0a3` preparation.** Alpha.1's
-> [failed publication](docs/releases/v2.1.0-alpha.1-FAILED-PUBLICATION.md)
-> and alpha.2's published assets and failed public verification remain unchanged;
-> their evidence does not qualify alpha.3. The
-> [active qualification plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md)
-> prioritizes an offline OG graph-identity and complete content-free topology
-> producer. Linux x86_64 and macOS arm64, CPython 3.12/3.13, and wheel/sdist paths
-> form eight planned rows; none is qualified by this preparation. The
+> **Current development: proposed experimental `2.1.0a4` preparation.** The
+> [active qualification plan](docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
+> covers bounded, cancellable dashboard reads and explanatory read-only bootstrap
+> status. On Linux/macOS, dashboard work has a request-owned process group, an
+> 1800-second execution budget and one five-second cleanup deadline; this is
+> containment, not a performance fix, and legacy Windows behavior remains unchanged.
+> The four additive bootstrap fields describe graph-local catalog progress, not
+> external Shadow readiness. The published alpha.3 OG producer handoff and its
+> synthetic Trama acceptance remain historical and unchanged; alpha.4 establishes
+> no new real-vault or consumer admission, database
+> support, stable support, or network-isolation claim. No alpha.4 tag, public
+> artifact or installed-runtime qualification is recorded. `v2.0.0` remains the
+> default recommendation. The
 > [supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
-> preserves RC4 history and transfers unfinished Windows, full Stage A and
-> dual-profile Gate B obligations. No alpha publication, installed-runtime,
-> Trama-admission or stable-support result is claimed; `v2.0.0` remains the default.
+> preserves RC4 history and its unfinished full-qualification obligations. The
+> [alpha.3 public producer handoff](docs/quality/OG_OPERATIONAL_V1_ALPHA3_PUBLIC_HANDOFF.md)
+> remains historical evidence only.
 
 **Local-first human/agentic memory inspired from Logseq OG and maintenance for Logseq.** 
 Matryca Plumber gives humans and agents one safe, structured interface to a Markdown knowledge graph—without turning an opaque database or a model provider into the owner of that knowledge.
@@ -138,17 +143,18 @@ published historical prerelease and may be installed only for evaluation:
 uv tool install matryca-plumber==2.0.1rc3
 ```
 
-`2.0.1rc4` is not published and must not be installed. The experimental
-`2.1.0a3` track is preparation, not an installation recommendation or publication
-record. Neither RC3 availability nor alpha preparation proves Gate B or stable
-qualification.
+`2.0.1rc4` is not published and must not be installed. The proposed
+`2.1.0a4` track is preparation, not an installation recommendation or publication
+record; do not install it from an unverified source. Existing synthetic Trama
+alpha.3 acceptance does not qualify alpha.4. Neither RC3 availability nor alpha
+preparation proves Gate B or stable qualification.
 
 The ordinary quick start above is not the experimental OG gateway bootstrap.
 That gateway requires a dedicated environment with the complete hash-locked
 Parser 1.9.0 dependency profile, followed by installation of the verified public
 wheel with `--no-deps`. The broad application dependency range and an ordinary
 `uvx` resolution do not qualify this exact profile. Follow the
-[alpha plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md)
+[alpha plan](docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
 only after its public artifacts and profile pass the declared gates.
 
 ## What v2.0.0 changes
@@ -173,16 +179,25 @@ Biological memory, native Logseq DB Safe-Sync writes, content-aware Tana merge, 
 proactive adaptive runtime remain future work; they are not silently included in the
 v2.0.0 contract.
 
-## Experimental OG producer direction
+## Experimental 2.1.0 alpha scope
 
-The active 2.1.0 alpha programme adds an isolated, offline process boundary for
-graph identification and complete ordered, content-free OG topology. Its planned
-installed matrix, exact dependency profile and public-artifact handoff are defined
-in the [alpha qualification plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md).
-Preparation and static contracts do not prove installed support or a usable Trama
-adapter. Text/properties, Logseq DB, writes, events, sync and active-desktop
-coexistence are not included. Windows gateway refusal is a negative control,
-not Windows qualification; full qualification obligations remain separate.
+The proposed `2.1.0a4` candidate retains the existing content-free OG identity
+and topology profile while adding bounded dashboard execution and read-only
+bootstrap explanations. The only changed read targets are `dashboard` and
+`bootstrap_status`, available through the corresponding explicit CLI and MCP
+selectors. Dashboard execution is bounded and cancellable on Linux/macOS; it is
+not a performance claim, and Windows keeps the legacy route. Bootstrap metadata
+does not change catalog truth, write policy or Shadow status. The new resource
+generator refreshes only version/root-lock-derived link digests; schemas, fixtures,
+topology golden and packaged Parser requirements remain unchanged. The published
+alpha.3 producer handoff is not transferred to alpha.4.
+
+The existing synthetic Trama alpha.3 acceptance is not extended or revised by
+this candidate. Alpha.4 does not establish real-vault compatibility, new Trama
+admission, Logseq database support, stable support or network isolation. The
+[alpha.4 qualification plan](docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
+keeps its preparation, pre-tag runs, tag, public-byte verification and final
+inventory as separate gates.
 
 <a id="what-the-proposed-v201-rc4-candidate-adds"></a>
 
@@ -404,7 +419,7 @@ and large-export behavior.
 | Follow releases | [Changelog](CHANGELOG.md) and [release process](docs/RELEASE_PROCESS.md) |
 | Review the stable v2.0.0 outcome | [Release record](docs/releases/v2.0.0-GITHUB.md) and [readiness decision](docs/quality/issue-bodies/v2-rc-stable-readiness.md) |
 | Review v2.0.1-rc.1 evidence | [Historical prerelease record](docs/releases/v2.0.1-rc.1-GITHUB.md) and [artifact-bound qualification plan](docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md) |
-| Track experimental 2.1.0a3 preparation | [Active alpha qualification plan](docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md) and [RC4 supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) |
+| Track proposed experimental 2.1.0a4 preparation | [Active alpha.4 qualification plan](docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md) and [RC4 supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) |
 | Review the superseded v2.0.1-rc.4 path | [Historical RC4 release preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md) and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) |
 | Navigate the documentation system | [Knowledge index](docs/knowledge/index.md) |
 | Review the 34-PR excellence milestone | [Repository excellence milestone](docs/quality/REPOSITORY_EXCELLENCE_MILESTONE_2026-08-08.md) |

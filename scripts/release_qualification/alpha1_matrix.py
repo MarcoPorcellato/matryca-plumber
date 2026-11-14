@@ -38,7 +38,6 @@ from scripts.release_qualification.release_target import ALPHA3_TARGET, ReleaseR
 from scripts.release_qualification.resource_chain import check_resource_chain
 
 POLICY = "og-alpha3"
-VERSION = "2.1.0a3"
 RESOURCE_ROOT = Path("matryca_plumber/graph_gateway/resources/og-v1")
 ROWS = tuple(
     (system, architecture, minor, kind)

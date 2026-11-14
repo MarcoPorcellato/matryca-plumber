@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.1.0-alpha.4] - 2026-11-14
+
 ### Fixed
 
 - **Bounded MCP dashboard reads** — run Linux/macOS dashboard and identity work
@@ -40,6 +42,13 @@
   Stage the authenticated checksum manifest separately until the strict
   two-archive inventory check completes, then verify the unchanged three-file
   handoff without weakening either directory boundary.
+
+### Security
+
+- **Build and test tooling security fixes** — update `setuptools` to `84.1.0`
+  and `Vitest` to `5.0.3` for the three confirmed-live alerts; fix rather than
+  dismiss those alerts. Python runtime dependencies, Vite (`8.3.3`), packaged
+  OG requirements, schemas, fixtures and topology golden remain unchanged.
 
 ## [2.1.0-alpha.3] - 2026-10-22
 

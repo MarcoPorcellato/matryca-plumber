@@ -2,7 +2,10 @@
   "profile": "plumber.og.operational/v1",
   "qualification": "unqualified",
   "source_mode": "og_markdown",
-  "operations": ["graph.identify", "graph.topology.snapshot.complete"],
+  "operations": [
+    "graph.identify",
+    "graph.topology.snapshot.complete"
+  ],
   "wire": {
     "read": {
       "id": "read-1",
@@ -29,10 +32,30 @@
     "max_stderr_bytes": 512
   },
   "matrix": [
-    {"system": "Linux", "machine": "x86_64", "python": "3.12", "state": "planned"},
-    {"system": "Linux", "machine": "x86_64", "python": "3.13", "state": "planned"},
-    {"system": "Darwin", "machine": "arm64", "python": "3.12", "state": "planned"},
-    {"system": "Darwin", "machine": "arm64", "python": "3.13", "state": "planned"}
+    {
+      "system": "Linux",
+      "machine": "x86_64",
+      "python": "3.12",
+      "state": "planned"
+    },
+    {
+      "system": "Linux",
+      "machine": "x86_64",
+      "python": "3.13",
+      "state": "planned"
+    },
+    {
+      "system": "Darwin",
+      "machine": "arm64",
+      "python": "3.12",
+      "state": "planned"
+    },
+    {
+      "system": "Darwin",
+      "machine": "arm64",
+      "python": "3.13",
+      "state": "planned"
+    }
   ],
   "dependencies": {
     "profile_id": "og-v1-parser-1.9.0",
@@ -43,8 +66,8 @@
     "topology": "613f765376f2091b3dad2569ce19d9931f455b026f5ed495178526e87da1397a"
   },
   "resource_digests": {
-    "manifest": "a630e5cb3c70eaa8441e63916b6b0e31e2b8f1f7a6457d5c2c8c1a04b1da9ef9",
-    "dependency_profile": "9064e339a2fa5e58ce2d49e64b896865dd3a80615b8f5dbd5391c404cde83e92",
+    "manifest": "c625268cc015f1d15016077a7161d8e09ab2eeabe40bf1a4354e56ad5b171d59",
+    "dependency_profile": "03c4e684a4dae32c244fe3c25beba8504d66a91ccd71d5fc857a9a0cfb23ebde",
     "requirements": "e4c1c4dd33f0a7220a2d8148bf4d6aeb159a7fa104ec26133961e7955a66ff4a",
     "fixture_manifest": "1638e7c0ed96a177438a31d7cc584c1d1ea36d5c76f34d835dc45b896a423cb4",
     "golden": "0e8a6dbb108f0bc5047ba5f3ad9bb48a4a4550f9e6f69c25fcba683c0fdd20d3",
