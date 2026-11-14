@@ -246,11 +246,17 @@ def _alpha_aggregate(args: argparse.Namespace) -> None:
 
 
 def _alpha_public_fetch(args: argparse.Namespace) -> None:
-    from scripts.release_qualification.alpha1_public import fetch_file
+    from scripts.release_qualification.alpha1_public import fetch_failure_diagnostic, fetch_file
 
-    fetch_file(
-        args.url, args.output, args.size, args.sha256, args.kind, release_tag=args.release_tag
-    )
+    try:
+        fetch_file(
+            args.url, args.output, args.size, args.sha256, args.kind, release_tag=args.release_tag
+        )
+    except (OSError, ValueError) as error:
+        # The existing owner captures stdout only. Preserve a closed diagnostic
+        # there before the unchanged parser failure path, never raw error text.
+        print(json.dumps(fetch_failure_diagnostic(error), sort_keys=True))
+        raise
 
 
 def _alpha_public_admit(args: argparse.Namespace) -> None:
