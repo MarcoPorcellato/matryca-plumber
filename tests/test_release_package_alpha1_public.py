@@ -8,7 +8,10 @@ import importlib
 import importlib.util
 import io
 import json
+import os
 import shutil
+import subprocess
+import sys
 import threading
 from collections.abc import Iterator
 from dataclasses import asdict
@@ -1151,3 +1154,124 @@ def test_qualified_workflows_authenticate_uv_before_use(
     assert acquire["env"]["UV_PYTHON_BIN_DIR"] == "${{ runner.temp }}/matryca-uv/python-bin"
     assert int(steps[provision]["timeout-minutes"]) <= 5
     assert steps[provision]["env"]["UV_PYTHON_DOWNLOADS"] == "manual"
+
+
+@pytest.mark.parametrize("job_name", ["linux312", "linux313", "macos312", "macos313"])
+@pytest.mark.parametrize("recovery", [False, True], ids=["ordinary", "recovery"])
+def test_public_runtime_sync_uses_producer_build_lock_in_all_routes_and_lanes(
+    tmp_path: Path, job_name: str, recovery: bool
+) -> None:
+    workflow_path = ROOT / ".github/workflows/og-public-artifact-qualification.yml"
+    workflow = yaml.load(workflow_path.read_text(), Loader=yaml.BaseLoader)
+    step = next(
+        step
+        for step in workflow["jobs"][job_name]["steps"]
+        if step.get("name") == "Provision separate locked runtime and build environments"
+    )
+    sync_commands = [line.strip() for line in step["run"].splitlines() if "uv sync " in line]
+    assert len(sync_commands) == 1
+
+    workspace = tmp_path / "workspace"
+    if recovery:
+        producer_root = workspace / "producer"
+        qualification_tool_root = workspace / "verifier"
+        verifier_root = qualification_tool_root
+    else:
+        producer_root = workspace
+        qualification_tool_root = workspace
+        verifier_root = tmp_path / "verifier"
+    producer_project = producer_root / "release-qualification-build"
+    verifier_project = verifier_root / "release-qualification-build"
+    for project, name, version in (
+        (producer_project, "producer-build-fixture", "17.4.2"),
+        (verifier_project, "verifier-build-fixture", "88.6.5"),
+    ):
+        project.mkdir(parents=True)
+        (project / "pyproject.toml").write_text(
+            f'[project]\nname = "{name}"\nversion = "{version}"\nrequires-python = ">=3.12"\n'
+        )
+        (project / "uv.lock").write_text(
+            'version = 1\nrevision = 0\nrequires-python = ">=3.12"\n'
+            f'[[package]]\nname = "{name}"\nversion = "{version}"\n'
+            'source = { virtual = "." }\n'
+        )
+
+    capture = tmp_path / "uv-sync.json"
+    implementation = tmp_path / "fake-uv.py"
+    implementation.write_text(
+        """import json, os, sys, tomllib
+from pathlib import Path
+
+args = sys.argv[1:]
+if args[:2] == ["python", "find"]:
+    print("/synthetic/python-3.12")
+    raise SystemExit(0)
+if not args or args[0] != "sync":
+    raise SystemExit(91)
+project = Path.cwd()
+if "--project" in args:
+    project = Path(args[args.index("--project") + 1])
+    if not project.is_absolute():
+        project = Path.cwd() / project
+project = project.resolve()
+pyproject = tomllib.loads((project / "pyproject.toml").read_text())
+lock = tomllib.loads((project / "uv.lock").read_text())
+Path(os.environ["TEST_UV_CAPTURE"]).write_text(
+    json.dumps({
+        "args": args,
+        "cwd": str(Path.cwd().resolve()),
+        "project": str(project),
+        "project_name": pyproject["project"]["name"],
+        "project_version": pyproject["project"]["version"],
+        "lock_name": lock["package"][0]["name"],
+        "lock_version": lock["package"][0]["version"],
+    })
+)
+"""
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text('#!/bin/sh\nexec "$TEST_PYTHON" -I -B "$TEST_UV_IMPLEMENTATION" "$@"\n')
+    fake_uv.chmod(0o755)
+
+    working_directory = step["working-directory"]
+    if working_directory == "${{ env.QUALIFICATION_TOOL_ROOT }}":
+        cwd = qualification_tool_root
+    elif working_directory == "${{ env.PRODUCER_ROOT }}":
+        cwd = producer_root
+    else:
+        pytest.fail(f"Unexpected workflow working directory: {working_directory!r}")
+    env = os.environ.copy()
+    env.pop("BASH_ENV", None)
+    env.pop("ENV", None)
+    env.update(
+        {
+            "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            "PRODUCER_ROOT": str(producer_root),
+            "QUALIFICATION_TOOL_ROOT": str(qualification_tool_root),
+            "RUNNER_TEMP": str(tmp_path / "runner"),
+            "TEST_PYTHON": sys.executable,
+            "TEST_UV_IMPLEMENTATION": str(implementation),
+            "TEST_UV_CAPTURE": str(capture),
+        }
+    )
+    result = subprocess.run(
+        ["bash", "-euo", "pipefail", "-c", sync_commands[0]],
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    assert len(result.stdout) <= 4096 and len(result.stderr) <= 4096
+    assert result.returncode == 0, result.stderr
+    observed = json.loads(capture.read_text())
+    assert observed["project"] == str(producer_project.resolve())
+    assert observed["project_name"] == "producer-build-fixture"
+    assert observed["project_version"] == "17.4.2"
+    assert observed["lock_name"] == "producer-build-fixture"
+    assert observed["lock_version"] == "17.4.2"
+    assert "--locked" in observed["args"]
+    assert "--no-install-project" in observed["args"]
