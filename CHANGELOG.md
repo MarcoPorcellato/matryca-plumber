@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Security
+
+- **Frontend lint dependencies** — update affected glob-matching and validation dependencies to address security advisories.
+
 ### Fixed
 
 - **Bounded MCP dashboard reads** — run Linux/macOS dashboard and identity work

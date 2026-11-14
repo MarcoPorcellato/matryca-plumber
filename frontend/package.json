@@ -36,6 +36,7 @@
   },
   "overrides": {
     "browserslist": "4.28.7",
+    "minimatch": "11.0.1",
     "nanoid": "3.3.18"
   }
 }

@@ -17,11 +17,20 @@ def test_frontend_manifest_and_lock_hold_the_first_fixed_audit_versions() -> Non
     manifest = _json(FRONTEND / "package.json")
     lock = _json(FRONTEND / "package-lock.json")
 
-    assert manifest["overrides"] == {"browserslist": "4.28.7", "nanoid": "3.3.18"}
+    assert manifest["overrides"] == {
+        "browserslist": "4.28.7",
+        "minimatch": "11.0.1",
+        "nanoid": "3.3.18",
+    }
 
     packages = lock["packages"]
     assert isinstance(packages, dict)
-    for package, version in (("browserslist", "4.28.7"), ("nanoid", "3.3.18")):
+    for package, version in (
+        ("browserslist", "4.28.7"),
+        ("minimatch", "11.0.1"),
+        ("nanoid", "3.3.18"),
+        ("zod", "4.6.6"),
+    ):
         resolved = packages[f"node_modules/{package}"]
         assert isinstance(resolved, dict)
         assert resolved["version"] == version
