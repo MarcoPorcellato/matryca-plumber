@@ -14,7 +14,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
@@ -33,6 +33,124 @@ PUBLISHER = ".github/workflows/release.yml"
 VERIFIER = ".github/workflows/og-public-artifact-qualification.yml"
 METADATA_LIMIT = 2_097_152
 DISTRIBUTION_LIMIT = 33_554_432
+
+_ERROR_TYPES = frozenset(
+    {
+        "ValueError",
+        "OSError",
+        "HTTPError",
+        "URLError",
+        "TimeoutError",
+        "SSLError",
+        "SSLCertVerificationError",
+        "ConnectionResetError",
+        "ConnectionRefusedError",
+        "FileNotFoundError",
+        "PermissionError",
+        "OtherError",
+    }
+)
+_ERROR_MESSAGES = frozenset(
+    {
+        "Error details redacted.",
+        "Public redirect limit or HTTP failure.",
+        "Missing public redirect location.",
+        "No public response.",
+        "Public response did not succeed.",
+        "Public output exceeds its bound.",
+        "Public size or SHA-256 mismatch.",
+        "Unsafe public URL.",
+        "Foreign GitHub asset origin.",
+        "Foreign PyPI distribution origin.",
+        "Foreign PyPI metadata.",
+        "Invalid redirect characters.",
+        "Invalid acquisition expectations.",
+        "Acquisition destination is not fresh and task-owned.",
+        "Unknown public acquisition kind.",
+    }
+)
+
+
+def fetch_failure_diagnostic(error: OSError | ValueError) -> dict[str, Any]:
+    """Expose closed error categories/codes, never arbitrary exception text."""
+    result: dict[str, Any] = {
+        "schema_version": 1,
+        "error_type": type(error).__name__
+        if type(error).__name__ in _ERROR_TYPES
+        else "OtherError",
+        "cause_type": None,
+        "message": "Error details redacted.",
+        "http_status": None,
+        "errno": None,
+    }
+    if type(error) is ValueError and len(error.args) == 1:
+        message = error.args[0]
+        if isinstance(message, str) and message in _ERROR_MESSAGES:
+            result["message"] = message
+    current: BaseException | None = error
+    seen: set[int] = set()
+    for _ in range(8):
+        if current is None or id(current) in seen:
+            break
+        seen.add(id(current))
+        if current is not error:
+            name = type(current).__name__
+            result["cause_type"] = name if name in _ERROR_TYPES else "OtherError"
+        if (
+            isinstance(current, HTTPError)
+            and type(current.code) is int
+            and 100 <= current.code <= 599
+        ):
+            result["http_status"] = current.code
+        if (
+            isinstance(current, OSError)
+            and type(current.errno) is int
+            and -(2**31) <= current.errno < 2**31
+        ):
+            result["errno"] = current.errno
+        reason = current.reason if isinstance(current, URLError) else None
+        current = (
+            current.__cause__
+            or (reason if isinstance(reason, BaseException) else None)
+            or current.__context__
+        )
+    return result
+
+
+def _read_fetch_failure(raw: bytes) -> dict[str, Any] | None:
+    """Accept only the bounded closed child record; otherwise retain a digest."""
+    if len(raw) > 4096:
+        return None
+    try:
+        value = matrix.document(raw)
+    except ValueError:
+        return None
+    if (
+        set(value)
+        != {"schema_version", "error_type", "cause_type", "message", "http_status", "errno"}
+        or type(value["schema_version"]) is not int
+        or value["schema_version"] != 1
+        or not isinstance(value["error_type"], str)
+        or value["error_type"] not in _ERROR_TYPES
+        or (
+            value["cause_type"] is not None
+            and (
+                not isinstance(value["cause_type"], str) or value["cause_type"] not in _ERROR_TYPES
+            )
+        )
+        or not isinstance(value["message"], str)
+        or value["message"] not in _ERROR_MESSAGES
+        or (
+            value["http_status"] is not None
+            and (type(value["http_status"]) is not int or not 100 <= value["http_status"] <= 599)
+        )
+        or (
+            value["errno"] is not None
+            and (type(value["errno"]) is not int or not -(2**31) <= value["errno"] < 2**31)
+        )
+    ):
+        return None
+    return value
 
 
 def _require(condition: bool, message: str) -> None:
@@ -471,7 +589,22 @@ def _acquire(url: str, path: Path, size: int, sha256: str, kind: str, *, release
         timeout=120,
         capture=True,
     )
-    _require(result.returncode == 0, "One-shot public acquisition failed.")
+    if result.returncode != 0:
+        try:
+            assets = (*ReleaseRoute.from_tag(release_tag).assets, "pypi.json")
+        except ValueError:
+            assets = ()
+        diagnostic = {
+            "kind": kind if kind in ("github", "pypi", "pypi-metadata") else "unrecognized",
+            "asset": path.name if path.name in assets else "unrecognized",
+            "returncode": result.returncode,
+            "failure": _read_fetch_failure(result.stdout),
+            "child_stdout_bytes": len(result.stdout),
+            "child_stdout_sha256": hashlib.sha256(result.stdout).hexdigest(),
+        }
+        raise ValueError(
+            "One-shot public acquisition failed: " + matrix.canonical(diagnostic).decode().strip()
+        )
 
 
 def _inventory(root: Path) -> dict[str, str]:
