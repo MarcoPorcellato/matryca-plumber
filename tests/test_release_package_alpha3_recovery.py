@@ -7,9 +7,11 @@ import hashlib
 import importlib
 import importlib.util
 import io
+import json
 import os
 import shutil
 import subprocess
+import sys
 import tarfile
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -31,6 +33,202 @@ TOOL_FILES = (
     ("scripts/release_qualification/alpha3_recovery.py", "3" * 64),
 )
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize(
+    "job",
+    [
+        "admission",
+        "source-controls",
+        "windows-refusal",
+        "linux312",
+        "linux313",
+        "macos312",
+        "macos313",
+        "aggregate",
+    ],
+)
+@pytest.mark.parametrize("recovery", [False, True])
+def test_public_qualification_invocation_preserves_optional_argument_boundaries(
+    tmp_path: Path, job: str, recovery: bool
+) -> None:
+    """Empty optional arguments must not abort nounset or split recovery paths."""
+    workflow = yaml.load(
+        (ROOT / ".github/workflows/og-public-artifact-qualification.yml").read_text(),
+        Loader=yaml.BaseLoader,
+    )
+    scripts = [
+        step["run"]
+        for step in workflow["jobs"][job]["steps"]
+        if 'qualification_command="alpha3-recovery-' in step.get("run", "")
+    ]
+    assert len(scripts) == 1
+    script = scripts[0]
+    interpreter = (
+        '"$RUNNER_TEMP/tools/Scripts/python.exe"'
+        if job == "windows-refusal"
+        else '"$RUNNER_TEMP/tools/bin/python"'
+    )
+    invocation = interpreter + " -B scripts/qualify_release_package.py"
+    assert script.count(invocation) == 1
+    script = script.replace(invocation, '"$ARGV_PYTHON" -B scripts/qualify_release_package.py')
+
+    workspace = tmp_path / "workspace with spaces"
+    (workspace / "scripts/release_qualification").mkdir(parents=True)
+    (workspace / "scripts/release_qualification/uv_acquisition.py").write_text(
+        "# Synthetic acquisition verifier: no network or executable inputs.\n"
+    )
+    (workspace / "scripts/qualify_release_package.py").write_text(
+        "import json, os, sys\n"
+        "with open(os.environ['ARGV_OUTPUT'], 'a', encoding='utf-8') as output:\n"
+        "    output.write(json.dumps(sys.argv[1:]) + '\\n')\n"
+    )
+    output = tmp_path / "arguments.jsonl"
+    environment = dict(os.environ)
+    environment.pop("BASH_ENV", None)
+    environment.pop("ENV", None)
+    environment.update(
+        {
+            "ALPHA3_RECOVERY": str(recovery).lower(),
+            "ARGV_PYTHON": Path(sys.executable).as_posix(),
+            "ARGV_OUTPUT": str(output),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "QUALIFICATION_TOOL_ROOT": "verifier root *",
+            "PRODUCER_ROOT": "producer root",
+            "RUNNER_TEMP": "runner root",
+            "RUNNER_OS": "Windows" if job == "windows-refusal" else "Linux",
+            "SELECTED_SOURCE": "1" * 40,
+            "SELECTED_VERIFIER": VERIFIER,
+            "SELECTED_VERIFIER_TREE": VERIFIER_TREE,
+            "PUBLICATION_RUN": "321",
+            "RUNTIME_MINOR": "3.12" if job.endswith("312") else "3.13",
+            "MATRYCA_UV_ROOT": "uv root",
+            "MATRYCA_UV_PLATFORM": "synthetic",
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "synthetic.marker",
+            "GIT_CONFIG_VALUE_0": "keep",
+        }
+    )
+    bash = "/bin/bash" if sys.platform == "darwin" else shutil.which("bash")
+    assert bash is not None
+    version = subprocess.run(
+        [bash, "--noprofile", "--norc", "--version"],
+        env=environment,
+        capture_output=True,
+        timeout=5,
+        check=False,
+    )
+    assert version.returncode == 0
+    assert len(version.stdout) <= 4096 and len(version.stderr) <= 4096
+    major = int(version.stdout.decode().split("version ", 1)[1].split(".", 1)[0])
+    if sys.platform == "darwin":
+        assert major == 3, "The macOS regression must exercise the legacy system shell."
+    elif sys.platform.startswith("linux"):
+        assert major >= 4, "The Linux regression must exercise a modern shell."
+    result = subprocess.run(
+        [
+            bash,
+            "--noprofile",
+            "--norc",
+            "-c",
+            'python() { "$ARGV_PYTHON" "$@"; }\nuv() { :; }\n' + script,
+        ],
+        cwd=workspace,
+        env=environment,
+        capture_output=True,
+        timeout=5,
+        check=False,
+    )
+    assert len(result.stdout) <= 4096 and len(result.stderr) <= 4096
+    assert result.returncode == 0, (version.stdout, result.stderr)
+    observed = [json.loads(line) for line in output.read_text().splitlines()]
+
+    common = ["--source-root", "producer root"]
+    if job == "admission":
+        command = "public-admit"
+        arguments = [[*common, "--publication-run", "321", "--output", "runner root/bundle"]]
+    elif job == "source-controls":
+        command = "source-controls"
+        arguments = [
+            [
+                *common,
+                "--dist-dir",
+                "runner root/bundle/dist",
+                "--python",
+                "runner root/tools/bin/python",
+                "--work",
+                "runner root/source-controls-work",
+                "--output",
+                "runner root/source-results/source.json",
+            ]
+        ]
+    elif job == "windows-refusal":
+        command = "windows-refusal"
+        arguments = [
+            [
+                *common,
+                "--expected-commit",
+                "1" * 40,
+                "--python",
+                "runner root/tools/Scripts/python.exe",
+                "--output",
+                "runner root/windows-results/windows.json",
+            ]
+        ]
+    elif job == "aggregate":
+        command = "public-aggregate"
+        arguments = [
+            [
+                *common,
+                "--receipt-dir",
+                "runner root/downloaded",
+                "--jobs",
+                "runner root/jobs.json",
+                "--artifacts",
+                "runner root/artifacts.json",
+                "--output",
+                "runner root/alpha-aggregate.json",
+            ]
+        ]
+    else:
+        command = "row"
+        minor = "3.12" if job in ("linux312", "macos312") else "3.13"
+        arguments = [
+            [
+                *common,
+                "--dist-dir",
+                "runner root/bundle/dist",
+                "--python",
+                f"runner root/runtime-{kind}/bin/python",
+                "--build-python",
+                "runner root/sdist-build/bin/python",
+                "--uv",
+                "uv",
+                "--minor",
+                minor,
+                "--kind",
+                kind,
+                "--work",
+                f"runner root/row-work-{kind}",
+                "--output",
+                f"runner root/row-results/{kind}.json",
+            ]
+            for kind in ("wheel", "sdist")
+        ]
+    prefix = "alpha3-recovery-" if recovery else "alpha-"
+    optional = (
+        [
+            "--verifier-root",
+            "verifier root *",
+            "--verifier-commit",
+            VERIFIER,
+            "--verifier-tree",
+            VERIFIER_TREE,
+        ]
+        if recovery
+        else []
+    )
+    assert observed == [[prefix + command, *items, *optional] for items in arguments]
 
 
 @pytest.fixture

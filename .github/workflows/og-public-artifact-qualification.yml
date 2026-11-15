@@ -212,7 +212,7 @@ jobs:
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle" "${recovery_args[@]}"
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --publication-run "$PUBLICATION_RUN" --output "$RUNNER_TEMP/bundle" ${recovery_args[@]+"${recovery_args[@]}"}
       - name: Preserve public admission evidence
         if: always()
         id: upload
@@ -379,7 +379,7 @@ jobs:
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json" "${recovery_args[@]}"
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/tools/bin/python" --work "$RUNNER_TEMP/source-controls-work" --output "$RUNNER_TEMP/source-results/source.json" ${recovery_args[@]+"${recovery_args[@]}"}
       - name: Preserve source-controls evidence
         if: always()
         id: upload
@@ -538,7 +538,7 @@ jobs:
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
-          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json" "${recovery_args[@]}"
+          "$RUNNER_TEMP/tools/Scripts/python.exe" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --expected-commit "$SELECTED_SOURCE" --python "$RUNNER_TEMP/tools/Scripts/python.exe" --output "$RUNNER_TEMP/windows-results/windows.json" ${recovery_args[@]+"${recovery_args[@]}"}
       - name: Preserve windows-refusal evidence
         if: always()
         id: upload
@@ -721,7 +721,7 @@ jobs:
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" ${recovery_args[@]+"${recovery_args[@]}"}
           done
       - name: Preserve linux312 evidence
         if: always()
@@ -905,7 +905,7 @@ jobs:
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" ${recovery_args[@]+"${recovery_args[@]}"}
           done
       - name: Preserve linux313 evidence
         if: always()
@@ -1089,7 +1089,7 @@ jobs:
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" ${recovery_args[@]+"${recovery_args[@]}"}
           done
       - name: Preserve macos312 evidence
         if: always()
@@ -1273,7 +1273,7 @@ jobs:
               qualification_command="alpha3-recovery-${qualification_command#alpha-}"
               recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
             fi
-            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" "${recovery_args[@]}"
+            "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --dist-dir "$RUNNER_TEMP/bundle/dist" --python "$RUNNER_TEMP/runtime-$kind/bin/python" --build-python "$RUNNER_TEMP/sdist-build/bin/python" --uv "$(command -v uv)" --minor "$RUNTIME_MINOR" --kind "$kind" --work "$RUNNER_TEMP/row-work-$kind" --output "$RUNNER_TEMP/row-results/$kind.json" ${recovery_args[@]+"${recovery_args[@]}"}
           done
       - name: Preserve macos313 evidence
         if: always()
@@ -1456,7 +1456,7 @@ jobs:
             qualification_command="alpha3-recovery-${qualification_command#alpha-}"
             recovery_args=(--verifier-root "$QUALIFICATION_TOOL_ROOT" --verifier-commit "$SELECTED_VERIFIER" --verifier-tree "$SELECTED_VERIFIER_TREE")
           fi
-          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json" "${recovery_args[@]}"
+          "$RUNNER_TEMP/tools/bin/python" -B scripts/qualify_release_package.py "$qualification_command" --source-root "$PRODUCER_ROOT" --receipt-dir "$RUNNER_TEMP/downloaded" --jobs "$RUNNER_TEMP/jobs.json" --artifacts "$RUNNER_TEMP/artifacts.json" --output "$RUNNER_TEMP/alpha-aggregate.json" ${recovery_args[@]+"${recovery_args[@]}"}
       - name: Preserve public aggregate (not consumer admission)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
