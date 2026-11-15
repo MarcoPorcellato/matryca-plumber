@@ -2,8 +2,8 @@
 type: qualification-gate-map
 title: Release qualification gate map
 description: Risk-selected local, CI, package, operational, security, and publication gates with independent evidence boundaries.
-last_verified: 2026-08-24
-stale_after: 2027-02-20
+last_verified: 2026-11-15
+stale_after: 2027-05-14
 status: draft
 classification: active
 owner: release
@@ -17,12 +17,17 @@ it is not, by itself, release qualification. Every release decision requires
 an exact source commit, artifact identity, runner/platform, terminal result,
 and review of the applicable limitations.
 
+Review scope (2026-11-15): the active-candidate registry and Python 3.13 CI row
+below were reconciled against the selected alpha.4 source and current workflow.
+Other gate rows and external branch-protection settings were not revalidated;
+their existing review dates and qualification limits remain controlling.
+
 | Gate | Authoritative command/workflow/evidence | State represented | Boundary |
 | --- | --- | --- | --- |
 | Fast/local | `make format-check`; `make lint`; `make typecheck`; targeted `uv run pytest ...`; `make docs-check` | Local development evidence | Does not substitute for protected CI, package, soak, security, or publication gates. |
 | PR CI | `.github/workflows/ci.yml`; `make ci`; frontend lint/test/build; dependency review on pull requests | PR check result | Must be tied to the exact PR head and required checks; a local pass is not a PR result. |
 | Full CI | `make ci` (`format-check`, lint, types, sandbox, version, agents, public-metrics, docs, prompt, tests) | Repository CI gate | Does not include package installation, durable soak, benchmark disposition, or release publication. |
-| Python 3.13 evidence | CI job `python-313-evidence`; `uv run pytest -n auto -q -o addopts=` | Non-blocking Python 3.13 evidence | `continue-on-error: true`; evidence-only, not a blocking support or release gate. |
+| Python 3.13 compatibility | CI job `python-313-compatibility`; `uv run pytest -n auto -q -o addopts=` | Workflow job result; `continue-on-error` is not set | Runs the full test suite on Python 3.13. Whether branch protection requires this job was not checked; this is not full product or platform qualification. |
 | Cross-platform Shadow | CI job `shadow-cross-platform` on `macos-latest` and `windows-latest`, Python 3.12, bounded named tests | Platform contract evidence | Covers the supported Shadow read contract only; it is not full Windows/macOS product qualification. |
 | Package verification | `make release-build`; install and verify the produced sdist/wheel against the exact source and digest | Package/artifact evidence | Build success does not prove runtime soak, security review, or publication. |
 | Benchmark | `V2_STABLE_PERFORMANCE_DISPOSITION_2026-08-18.md` and pinned benchmark result files | Bounded performance disposition | Results are workload/environment-specific and are not universal benchmarks or a substitute for correctness/fallback evidence. |
@@ -59,12 +64,14 @@ The canonical rationale and escalation rules are in the
 
 ## Active candidate-plan registry
 
-Registry routing was reconciled on 2026-11-14. This does not refresh the evidence
-dates of unrelated gate-map rows or turn preparation into a qualification result.
+Registry routing and alpha.4 source-checkpoint status were reconciled on
+2026-11-15. This update covers the candidate row below only; it does not refresh
+evidence dates of unrelated gate-map rows or turn pre-tag source evidence into
+public release qualification.
 
 | Candidate plan | Risk tier | Coordination | State | Boundary |
 | --- | --- | --- | --- | --- |
-| [Experimental 2.1.0a4 qualification plan](V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md) | Tier 3; bounded experimental preparation, not stable qualification | M0 replacement and security baseline; M1 preparation; M2 pre-tag checks; M3 exact user-authorized tag; M4 public bytes; M5 handoff | `active preparation; unqualified` | Eight required installed rows: Linux x86_64/macOS arm64, CPython 3.12/3.13, original wheel/sdist. Source controls and Windows refusal remain required; refusal is not Windows package support. Bounded dashboard work and explanatory bootstrap fields do not establish a performance fix or Shadow readiness. No new Trama admission, DB/stable support or network-isolation claim; full RC4 obligations remain separate. |
+| [Experimental 2.1.0a4 qualification plan](V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md) | Tier 3; bounded experimental preparation, not stable qualification | M0 replacement and security baseline; M1 preparation; M2 pre-tag checks; M3 exact user-authorized tag; M4 public bytes; M5 handoff | `source Q-v1 PASS; pre-tag; public alpha.4 qualification pending at 2026-11-15 checkpoint` | [Source run 43678299031](https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/43678299031) passed eight installed rows, 38 source cases, and 800 native macOS stress controls with zero failures for exact source `6b86b02b17d37abcc68eec4af546c483280b7f3e` / tree `2fca9ac1e7608b415cc28c3b02f0b15664f3ee25`. This pre-tag source evidence does not qualify public alpha.4 bytes or a public installed package and does not transfer to this changed documentation source. As of 2026-11-15, no public alpha.4 byte verification or public installed-package qualification is recorded. Source controls and Windows refusal remain required; refusal is not Windows package support. Bounded dashboard work and explanatory bootstrap fields do not establish a performance fix or Shadow readiness. No new Trama admission, DB/stable support or network-isolation claim; full RC4 obligations remain separate. |
 | [Historical v2.0.1-rc.4 qualification plan](V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md) | Tier 3: Parser/graph I/O, lifecycle and topology boundaries | Historical selected candidate `74884c38edb9cae445fa465969aa2c9cee5ecd1c`; #579/#582; [supersession record](RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md) | `historical; superseded` | Preserve exact-source hosted CI, build, installed-resource and TCK history without transferring it to a new candidate. RC4 was not published. L, native Windows, three-platform Stage A and 259,200 valid seconds per required dual-profile Gate B remain unfinished obligations, not waived or passed gates. No RC4 tag, public bundle, stable decision or DB support exists. |
 
 Historical RC1 and RC3 records remain bound to their own artifacts. This registry does not

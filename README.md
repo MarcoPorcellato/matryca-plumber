@@ -63,7 +63,7 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > [historical RC4 preparation](docs/quality/V2_0_1_RC4_RELEASE_PREPARATION_2026-09-06.md)
 > and [qualification plan](docs/quality/V2_0_1_RC4_RELEASE_QUALIFICATION_PLAN_2026-09-06.md).
 
-> **Current development: proposed experimental `2.1.0a4` preparation.** The
+> **Experimental `2.1.0a4` release track — pre-publication checkpoint, 2026-11-15.** The
 > [active qualification plan](docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
 > covers bounded, cancellable dashboard reads and explanatory read-only bootstrap
 > status. On Linux/macOS, dashboard work has a request-owned process group, an
@@ -73,9 +73,12 @@ Matryca Plumber does not define or require a graph database, vector database, em
 > external Shadow readiness. The published alpha.3 OG producer handoff and its
 > synthetic Trama acceptance remain historical and unchanged; alpha.4 establishes
 > no new real-vault or consumer admission, database
-> support, stable support, or network-isolation claim. No alpha.4 tag, public
-> artifact or installed-runtime qualification is recorded. `v2.0.0` remains the
-> default recommendation. The
+> support, stable support, or network-isolation claim. The qualification plan
+> records pre-tag installed-runtime evidence for source commit
+> `6b86b02b17d37abcc68eec4af546c483280b7f3e`; that evidence does not qualify later
+> documentation changes or future public bytes. At this checkpoint no alpha.4 tag
+> or public artifact existed; consult the [release page](https://github.com/MarcoPorcellato/matryca-plumber/releases)
+> for subsequent publication status. `v2.0.0` remains the default recommendation. The
 > [supersession record](docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
 > preserves RC4 history and its unfinished full-qualification obligations. The
 > [alpha.3 public producer handoff](docs/quality/OG_OPERATIONAL_V1_ALPHA3_PUBLIC_HANDOFF.md)
@@ -143,9 +146,10 @@ published historical prerelease and may be installed only for evaluation:
 uv tool install matryca-plumber==2.0.1rc3
 ```
 
-`2.0.1rc4` is not published and must not be installed. The proposed
-`2.1.0a4` track is preparation, not an installation recommendation or publication
-record; do not install it from an unverified source. Existing synthetic Trama
+`2.0.1rc4` is not published and must not be installed. Alpha.4 is in release
+preparation, not an installation recommendation or publication record; do not
+install it unless and until public qualification and publication are recorded.
+Existing synthetic Trama
 alpha.3 acceptance does not qualify alpha.4. Neither RC3 availability nor alpha
 preparation proves Gate B or stable qualification.
 
@@ -377,8 +381,8 @@ Current defaults and exact fallback semantics live in the
 ### Give an agent structured graph access
 
 ```bash
-uvx matryca-plumber --json read page "My Project"
-uvx matryca-plumber context load "My Project"
+uvx --from matryca-plumber matryca --json read page "My Project"
+uvx --from matryca-plumber matryca context load "My Project"
 ```
 
 Agent hosts should start with [`llms.txt`](llms.txt). MCP is disabled until explicitly

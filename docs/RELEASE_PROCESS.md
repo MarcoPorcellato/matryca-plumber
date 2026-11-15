@@ -68,8 +68,12 @@ is historical, not a proposal for the next candidate.
 The active [2.1.0a4 qualification plan](quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
 retains the content-free OG identity/topology producer on Linux x86_64 and macOS
 arm64, with CPython 3.12 and 3.13 and both wheel and sdist installation paths.
-These eight rows are planned, not qualified. Windows gateway refusal is a
-negative control, not Windows installed-package qualification.
+The eight rows were exercised in the source-bound checkpoint recorded in the
+plan. Packaged descriptor rows remain `planned` and operational results remain
+`unqualified`. At the 2026-11-15 pre-publication checkpoint, alpha.4 had not been
+published or qualified on public bytes; subsequent results require their own
+source/artifact-bound record.
+Windows gateway refusal is a negative control, not Windows installed-package qualification.
 
 The [RC4 supersession record](quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
 preserves historical evidence and transfers unfinished obligations to the later
@@ -232,7 +236,9 @@ rejects stale alpha.1/alpha.2 selections; each later version must match its
 explicit source, packaged profile and release target. Recognized tag spelling
 does not qualify or admit a future version. A main-only repair cannot
 change an old-tag workflow; do not retarget a tag or manually replace assets.
-The alpha.3 preparation PR performs no publication.
+The historical alpha.3 preparation PR itself performed no publication; its later
+publication and accepted public-byte evidence are recorded separately in the
+[alpha.3 producer handoff](quality/OG_OPERATIONAL_V1_ALPHA3_PUBLIC_HANDOFF.md).
 
 The separate
 [`og-public-artifact-qualification.yml`](../.github/workflows/og-public-artifact-qualification.yml)
@@ -240,8 +246,10 @@ is manual-only. Its producer target has exactly six fields:
 `{tag, version, source_commit, source_tree, tag_object, publisher_run}`.
 Inputs provide the exact final source commit/tree, signed tag/object and
 successful publication run `R`; version and filenames derive from the tag.
-Defaults preserve only the original alpha.3 tuple. Another tuple requires
-explicit matching inputs, never values copied from submitted reports.
+The source commit/tree, tag, tag object and publication run are required explicit
+inputs without defaults; version and filenames are derived. The original alpha.3
+tuple is historical, not a dispatch default. Inputs must match independent
+evidence, never values copied from submitted reports.
 The verifier checkout, dispatch `main` and
 artifact source must all be `S`. Public qualification run `Q` is distinct
 from `R`; both must be first attempts. A later main commit, a rerun, incomplete
@@ -294,7 +302,7 @@ The same-source route above remains the default. A separate, manually selected
 `alpha3_recovery: true` repairs qualification tooling without changing the
 published producer. Input and command names remain for compatibility; their
 target is now the independently selected six-field producer object.
-The default historical target remains producer commit
+The historical alpha.3 target is producer commit
 `8c30f70e217722e719c5aedc322219ebccb87e68`, tree
 `de80d0473aa281c52d0fed10b4561024dd12d76f`, tag object
 `c093e9e8aa735b7c37a0c1a56a601a9c31cbdf24`, and publisher run `39887297548/1`.
@@ -488,15 +496,13 @@ python scripts/extract_changelog.py vX.Y.Z | less
 
 You should see exactly the section that will appear on GitHub.
 
-### 3. Commit, tag, push
+### 3. Integrate, tag, push
 
-```bash
-git add CHANGELOG.md pyproject.toml uv.lock
-git commit -m "chore: release X.Y.Z"
-git tag -s -a vX.Y.Z -m "Release X.Y.Z"
-git push origin main
-git push origin vX.Y.Z
-```
+Integrate preparation through a reviewed pull request and the protected-main
+process, with explicit authorization for each merge. Select and qualify the
+resulting exact main commit. With separate authorization for that source and
+tag, create and verify the signed annotated `vX.Y.Z` tag, then push only that
+tag. Its push triggers GitHub Releases and PyPI publication.
 
 ### 4. CI does the rest
 
@@ -506,13 +512,14 @@ On tag push, [`.github/workflows/release.yml`](../.github/workflows/release.yml)
    reachability, the isolated-keyring fingerprint, and the required CI context.
 2. `destination-preflight` stops if GitHub Releases or PyPI already contains the
    version.
-3. `build-release` builds exactly one wheel and one sdist, writes a two-line
-   SHA-256 manifest, attests both distributions, and uploads that release bundle.
-4. `publish-release` downloads the bundle, verifies the exact two-file set and
-   manifest, verifies the attestations against the downloaded subjects, then
-   promotes only those downloaded bytes to GitHub Releases and PyPI. GitHub Release
-   creation binds `gh` explicitly to `GITHUB_REPOSITORY`; the checkout-free promotion
-   job must not rely on local Git repository discovery.
+3. The hardened route builds the original wheel and sdist and attests six subjects:
+   those distributions, `SHA256SUMS`, `binding.json`, `content-ledger.json`, and
+   `canonical-build.json`. The legacy route attests the two distributions.
+4. `publish-release` verifies the selected route's bundle and attestations. The
+   hardened route publishes all six subjects as GitHub Release assets and only
+   the two original distributions to PyPI. The legacy route verifies its two-file
+   distribution set and manifest. GitHub Release creation binds `gh` explicitly
+   to `GITHUB_REPOSITORY`.
 
 The workflow is fail-closed on existing destinations: do not rerun a release
 after GitHub or PyPI already contains the version. Partial publication requires

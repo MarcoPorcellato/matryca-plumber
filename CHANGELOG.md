@@ -16,6 +16,11 @@
 
 ### Fixed
 
+- **Release and agent guidance** — distinguish exact-source pre-tag evidence
+  from public-package qualification, document explicit publication inputs and
+  route structured CLI examples through the `matryca` console entrypoint.
+  Preserve the MCP launcher, historical evidence and separate admission gates.
+
 - **Public-acquisition failure diagnostics** — retain bounded, sanitized error
   categories, status and acquisition identity instead of hiding the failed child
   behind a generic message. Download, provenance, timeout and cleanup gates remain
