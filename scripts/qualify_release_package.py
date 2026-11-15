@@ -30,6 +30,9 @@ from scripts.release_qualification.focused import run_focused
 from scripts.release_qualification.installed import verify_installed
 from scripts.release_qualification.receipts import verify_receipts
 from scripts.release_qualification.sdist_build import prepare_sdist_build
+from scripts.release_qualification.windows_installation import (
+    load_expected_windows_installation_bindings,
+)
 
 
 def _recovery_binding(args: argparse.Namespace) -> object:
@@ -406,7 +409,15 @@ def _verify_installed(args: argparse.Namespace) -> None:
         raise ValueError("EXPECTED_BINDING_JSON is required for verify-installed.")
     binding = BundleBinding.from_json(value)
     receipt = verify_installed(
-        args.python, binding, args.source_root, args.kind, artifact=args.artifact
+        args.python,
+        binding,
+        args.source_root,
+        args.kind,
+        artifact=args.artifact,
+        windows_installation_descriptor=args.windows_installation_descriptor,
+        expected_windows_installation_sha256=args.expected_windows_installation_sha256,
+        windows_template=args.windows_template,
+        installer=args.installer,
     )
     print(receipt.to_json())
 
@@ -425,12 +436,17 @@ def _verify_receipts(args: argparse.Namespace) -> None:
     expected_build_environments = load_expected_build_environment_bindings(
         args.expected_build_environments
     )
+    expected_windows_installations = load_expected_windows_installation_bindings(
+        args.expected_windows_installations,
+        expected_sha256=args.expected_windows_installations_sha256,
+    )
     receipt = verify_receipts(
         args.receipt_dir,
         expected_commit=args.expected_commit,
         expected_tree=args.expected_tree,
         expected_binding=binding,
         expected_build_environments=expected_build_environments,
+        expected_windows_installations=expected_windows_installations,
         artifact_id=args.artifact_id,
         artifact_digest=args.artifact_digest,
         run_id=args.run_id,
@@ -481,6 +497,10 @@ def _parser() -> argparse.ArgumentParser:
     installed.add_argument("--source-root", type=Path, required=True)
     installed.add_argument("--artifact", type=Path, required=True)
     installed.add_argument("--kind", choices=("wheel", "sdist"), required=True)
+    installed.add_argument("--windows-installation-descriptor", type=Path)
+    installed.add_argument("--expected-windows-installation-sha256")
+    installed.add_argument("--windows-template", type=Path)
+    installed.add_argument("--installer", type=Path)
     installed.set_defaults(handler=_verify_installed)
 
     focused = commands.add_parser(
@@ -509,6 +529,8 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     receipts.add_argument("--artifact-id", required=True)
+    receipts.add_argument("--expected-windows-installations", type=Path, required=True)
+    receipts.add_argument("--expected-windows-installations-sha256", required=True)
     receipts.add_argument("--artifact-digest", required=True)
     receipts.add_argument("--run-id", required=True)
     receipts.add_argument("--expected-platform-count", type=int, default=3)

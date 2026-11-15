@@ -22,6 +22,10 @@ from scripts.release_qualification.build_environment import (
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.focused import focused_nodes
 from scripts.release_qualification.sdist_build import BuildRequirementRecord
+from scripts.release_qualification.windows_installation import (
+    ExpectedWindowsInstallationBindings,
+    WindowsLauncherProof,
+)
 
 _SOURCE_ID = re.compile(r"[0-9a-f]{40}\Z")
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -42,6 +46,7 @@ _MAX_SOURCE_METADATA_BYTES = 1024 * 1024
 _PLATFORMS = (("linux", "x64"), ("macos", "arm64"), ("windows", "x64"))
 _RECEIPT_FIELDS = frozenset(
     {
+        "schema_version",
         "run_id",
         "source_sha",
         "source_tree",
@@ -60,6 +65,8 @@ _RECEIPT_FIELDS = frozenset(
 _ARCHIVE_FIELDS = frozenset({"name", "size", "sha256", "inventory_sha256", "installed"})
 _INSTALLED_FIELDS = frozenset(
     {
+        "schema_version",
+        "windows_launcher",
         "kind",
         "operating_system",
         "architecture",
@@ -303,6 +310,12 @@ def _validate_installed(
     binding: BundleBinding,
 ) -> tuple[str, tuple[tuple[str, str], ...], str, str]:
     installed = _check_fields(value, _INSTALLED_FIELDS, f"{kind} installed")
+    if type(installed["schema_version"]) is not int or installed["schema_version"] != 2:
+        _fail("Installed receipt schema version must be integer 2.")
+    if platform == "windows":
+        WindowsLauncherProof.from_dict(installed["windows_launcher"])
+    elif installed["windows_launcher"] is not None:
+        _fail("Windows launcher proof is invalid on a non-Windows installed receipt.")
     expected_os = {"linux": "linux", "macos": "darwin", "windows": "windows"}[platform]
     if installed["kind"] != kind or installed["operating_system"] != expected_os:
         _fail(f"{kind} install receipt does not match its platform row.")
@@ -649,6 +662,7 @@ def verify_receipts(
     expected_tree: str,
     expected_binding: BundleBinding,
     expected_build_environments: ExpectedBuildEnvironmentBindings,
+    expected_windows_installations: ExpectedWindowsInstallationBindings,
     artifact_id: str,
     artifact_digest: str,
     run_id: str,
@@ -678,6 +692,9 @@ def verify_receipts(
     expected_build_lock_sha256, expected_recipe_sha256, expected_targets = (
         _validate_expected_build_environment_bindings(expected_build_environments)
     )
+    if not isinstance(expected_windows_installations, ExpectedWindowsInstallationBindings):
+        _fail("Independent Windows installation bindings are required.")
+    expected_windows_installations.verify_binding(expected_binding)
     _check_positive_id(run_id, "Expected run ID")
     _check_positive_id(artifact_id, "Expected artifact ID")
     if not isinstance(artifact_digest, str) or _ARTIFACT_DIGEST.fullmatch(artifact_digest) is None:
@@ -689,6 +706,8 @@ def verify_receipts(
     observed: dict[tuple[str, str], dict[str, Any]] = {}
     for receipt in receipts:
         row = _check_fields(receipt, _RECEIPT_FIELDS, "platform")
+        if type(row["schema_version"]) is not int or row["schema_version"] != 2:
+            _fail("Platform receipt schema version must be integer 2.")
         platform = row["os"]
         architecture = row["architecture"]
         if not isinstance(platform, str) or not isinstance(architecture, str):
@@ -741,6 +760,23 @@ def verify_receipts(
             or wheel_dependencies != sdist_dependencies
         ):
             _fail("Installed dependency digest differs between wheel and sdist environments.")
+        if platform == "windows":
+            for kind in ("wheel", "sdist"):
+                expected = expected_windows_installations.for_kind(kind)
+                installed = row[kind]["installed"]
+                observed_proof = WindowsLauncherProof.from_dict(installed["windows_launcher"])
+                if observed_proof.to_dict() != expected.to_dict():
+                    _fail(
+                        "Windows installed launcher proof differs from independent "
+                        "expected bindings."
+                    )
+                if (
+                    uv["version"] != expected.installer.version
+                    or uv["sha256"] != expected.installer.executable_sha256
+                ):
+                    _fail("Windows platform installer differs from independent authority.")
+                if installed["python_version"] != expected.interpreter.version:
+                    _fail("Windows installed Python version differs from independent authority.")
         backend_version = _validate_sdist_build(
             row["sdist_build"],
             binding=expected_binding,

@@ -13,6 +13,9 @@ from scripts.release_qualification.build_environment import ExpectedBuildEnviron
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.focused import FocusedPlatform, focused_nodes
 from scripts.release_qualification.receipts import ReceiptVerification, verify_receipts
+from scripts.release_qualification.windows_installation import ExpectedWindowsInstallationBindings
+
+from tests.test_release_package_windows_installation import _expected_document
 
 SOURCE_COMMIT = "a" * 40
 SOURCE_TREE = "b" * 40
@@ -82,6 +85,10 @@ def _installed(kind: str, platform: str) -> dict[str, Any]:
     operating_system = {"linux": "linux", "macos": "darwin", "windows": "windows"}[platform]
     architecture = "arm64" if platform == "macos" else "x86_64"
     return {
+        "schema_version": 2,
+        "windows_launcher": _independent_windows_document()["targets"][f"windows-x64/{kind}"]
+        if platform == "windows"
+        else None,
         "kind": kind,
         "operating_system": operating_system,
         "architecture": architecture,
@@ -100,7 +107,13 @@ def _installed(kind: str, platform: str) -> dict[str, Any]:
 def _platform_receipt(platform: FocusedPlatform, architecture: str) -> dict[str, Any]:
     binding = _binding()
     selected_nodes = focused_nodes(platform)
+    uv_hash = (
+        "f94eddb81f3addca6ef8f2361a70c3edde31adcbd1000a55fc6674306ae0b1e7"
+        if platform == "windows"
+        else "7" * 64
+    )
     return {
+        "schema_version": 2,
         "run_id": "77",
         "source_sha": SOURCE_COMMIT,
         "source_tree": SOURCE_TREE,
@@ -109,7 +122,7 @@ def _platform_receipt(platform: FocusedPlatform, architecture: str) -> dict[str,
         "os": platform,
         "architecture": architecture,
         "lock_sha256": LOCK_DIGEST,
-        "uv": {"version": "0.12.16", "sha256": "7" * 64},
+        "uv": {"version": "0.12.19", "sha256": uv_hash},
         "wheel": {
             "name": binding.wheel_name,
             "size": binding.wheel_size,
@@ -144,8 +157,8 @@ def _platform_receipt(platform: FocusedPlatform, architecture: str) -> dict[str,
             "python_implementation": "CPython",
             "python_version": "3.12.8",
             "python_executable_sha256": "3" * 64,
-            "uv_version": "0.12.16",
-            "uv_sha256": "7" * 64,
+            "uv_version": "0.12.19",
+            "uv_sha256": uv_hash,
             "backend": "setuptools.build_meta",
             "backend_version": "84.0.0",
             "static_requirement_records": [
@@ -246,9 +259,19 @@ def _verify(receipt_dir: Path, **overrides: Any) -> ReceiptVerification:
         "run_id": "77",
         "expected_platform_count": 3,
         "expected_build_environments": _expected_build_environments(),
+        "expected_windows_installations": ExpectedWindowsInstallationBindings.from_bytes(
+            json.dumps(_independent_windows_document()).encode()
+        ),
     }
     options.update(overrides)
     return verify_receipts(receipt_dir, **options)
+
+
+def _independent_windows_document() -> dict[str, Any]:
+    value = _expected_document()
+    for proof in value["targets"].values():
+        proof["interpreter"]["version"] = "3.12.8"
+    return value
 
 
 def test_three_complete_canonical_rows_are_accepted(tmp_path: Path) -> None:
@@ -266,6 +289,86 @@ def test_three_complete_canonical_rows_are_accepted(tmp_path: Path) -> None:
         "build_lock_sha256": BUILD_LOCK_DIGEST,
         "platforms": ("linux/x64", "macos/arm64", "windows/x64"),
     }
+
+
+def test_aggregate_requires_independent_windows_expectations() -> None:
+    import inspect
+
+    parameter = inspect.signature(verify_receipts).parameters.get("expected_windows_installations")
+    assert parameter is not None, "Independent Windows aggregate authority is missing."
+    assert parameter.default is inspect.Parameter.empty
+
+
+@pytest.mark.parametrize("schema", [None, 1, True])
+def test_platform_receipt_rejects_legacy_or_boolean_schema(tmp_path: Path, schema: object) -> None:
+    receipt_dir = _write_receipts(tmp_path)
+    path = receipt_dir / "row-0.json"
+    row = json.loads(path.read_bytes())
+    if schema is None:
+        row.pop("schema_version", None)
+    else:
+        row["schema_version"] = schema
+    path.write_text(json.dumps(row))
+    with pytest.raises(ValueError, match="schema|fields"):
+        _verify(receipt_dir)
+
+
+@pytest.mark.parametrize("kind", ["wheel", "sdist"])
+@pytest.mark.parametrize(
+    "mutation", ["missing", "descriptor", "payload", "size", "bool-schema", "python", "installer"]
+)
+def test_windows_receipt_proof_is_independently_bound(
+    tmp_path: Path, kind: str, mutation: str
+) -> None:
+    receipt_dir = _write_receipts(tmp_path)
+
+    def change(row: dict[str, Any]) -> None:
+        installed = row[kind]["installed"]
+        proof = installed["windows_launcher"]
+        if mutation == "missing":
+            installed["windows_launcher"] = None
+        elif mutation == "descriptor":
+            proof["descriptor_sha256"] = "e" * 64
+        elif mutation == "payload":
+            proof["scripts"][0]["payload_sha256"] = "e" * 64
+        elif mutation == "size":
+            proof["scripts"][0]["launcher_size"] = True
+        elif mutation == "bool-schema":
+            installed["schema_version"] = True
+        elif mutation == "python":
+            proof["interpreter"]["version"] = "3.12.99"
+        else:
+            row["uv"]["sha256"] = "e" * 64
+
+    _mutate(receipt_dir, 2, change)
+    with pytest.raises(ValueError):
+        _verify(receipt_dir)
+
+
+def test_non_windows_receipt_rejects_a_windows_proof(tmp_path: Path) -> None:
+    receipt_dir = _write_receipts(tmp_path)
+    _mutate(
+        receipt_dir,
+        0,
+        lambda row: row["wheel"]["installed"].update(
+            windows_launcher=_independent_windows_document()["targets"]["windows-x64/wheel"]
+        ),
+    )
+    with pytest.raises(ValueError, match="non-Windows"):
+        _verify(receipt_dir)
+
+
+def test_independent_windows_source_binding_is_not_taken_from_receipts(tmp_path: Path) -> None:
+    receipt_dir = _write_receipts(tmp_path)
+    expected = _independent_windows_document()
+    expected["source_tree"] = "c" * 40
+    with pytest.raises(ValueError, match="bound source"):
+        _verify(
+            receipt_dir,
+            expected_windows_installations=ExpectedWindowsInstallationBindings.from_bytes(
+                json.dumps(expected).encode()
+            ),
+        )
 
 
 def test_missing_platform_receipt_is_rejected(tmp_path: Path) -> None:
@@ -890,6 +993,9 @@ def test_cli_verify_receipts_emits_only_sanitized_summary(
     expected_environments.write_text(
         json.dumps(_expected_build_environment_document()), encoding="utf-8"
     )
+    windows_expected = tmp_path / "expected-windows.json"
+    windows_raw = json.dumps(_independent_windows_document()).encode()
+    windows_expected.write_bytes(windows_raw)
 
     result = release_cli.main(
         [
@@ -910,6 +1016,10 @@ def test_cli_verify_receipts_emits_only_sanitized_summary(
             "77",
             "--expected-build-environments",
             str(expected_environments),
+            "--expected-windows-installations",
+            str(windows_expected),
+            "--expected-windows-installations-sha256",
+            hashlib.sha256(windows_raw).hexdigest(),
             "--expected-platform-count",
             "3",
         ]

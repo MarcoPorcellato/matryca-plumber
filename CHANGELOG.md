@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Security
+
+- **Windows package qualification tooling** — require independently authenticated
+  installation descriptors and complete launcher-byte proofs, validate qualification
+  receipts with strict schema v2, and recheck interpreter startup state around probes.
+  Native installed-Windows qualification remains pending; no support claim is added.
+
 ### Fixed
 
 - **Public qualification shell compatibility** — preserve zero optional arguments

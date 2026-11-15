@@ -12,12 +12,13 @@ import math
 import os
 import re
 import shlex
+import stat
 import subprocess
 import tempfile
 import threading
 import time
 import tomllib
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import IO, Literal, NoReturn, cast
 from urllib.parse import urlparse
@@ -25,7 +26,12 @@ from urllib.parse import urlparse
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
 from scripts.release_qualification import bundle as bundle_module
 from scripts.release_qualification import process as process_module
+from scripts.release_qualification import windows_installation as windows_authority
 from scripts.release_qualification.bundle import BundleBinding
+from scripts.release_qualification.windows_launcher import (
+    expected_windows_console_launcher,
+    verify_windows_console_launcher,
+)
 
 _MAX_RECORD_BYTES = 8 * 1024 * 1024
 _MAX_RECORD_ROWS = 20_000
@@ -71,14 +77,28 @@ class InstalledReceipt:
     dependencies: tuple[tuple[str, str], ...]
     build_generator: BuildGenerator
     tck_outcomes: tuple[str, str, str]
+    schema_version: int = 2
+    windows_launcher: windows_authority.WindowsLauncherProof | None = None
 
     def to_dict(self) -> dict[str, object]:
         """Return stable JSON-compatible receipt data without local paths."""
+        if type(self.schema_version) is not int or self.schema_version != 2:
+            _fail("Installed receipt schema version must be integer 2.")
+        if self.operating_system == "windows":
+            if not isinstance(self.windows_launcher, windows_authority.WindowsLauncherProof):
+                _fail("Windows installed receipt requires an independent launcher proof.")
+            if self.python_version != self.windows_launcher.interpreter.version:
+                _fail("Windows installed receipt and launcher proof Python versions differ.")
+        elif self.windows_launcher is not None:
+            _fail("Windows launcher proof is invalid on a non-Windows installed receipt.")
         value = asdict(self)
         value["dependencies"] = [
             {"name": name, "version": version} for name, version in self.dependencies
         ]
         value["build_generator"] = asdict(self.build_generator)
+        value["windows_launcher"] = (
+            self.windows_launcher.to_dict() if self.windows_launcher is not None else None
+        )
         return value
 
     def to_json(self) -> str:
@@ -223,6 +243,8 @@ def _within(path: Path, root: Path) -> bool:
 
 
 def _read_bounded(path: Path) -> bytes:
+    if _IS_WINDOWS and path.parent.name == "Scripts" and path.suffix.lower() == ".exe":
+        return windows_authority.read_authority_file(path, limit=windows_authority.LAUNCHER_LIMIT)
     size = path.stat().st_size
     if size < 0 or size > _MAX_INSTALLED_FILE_BYTES:
         _fail("Installed distribution file exceeds the size limit.")
@@ -270,6 +292,14 @@ def _parse_record(record: Path, site: Path, env_root: Path) -> dict[str, tuple[P
             _fail("Installed distribution RECORD contains a duplicate path.")
         script_root = env_root / ("Scripts" if os.name == "nt" else "bin")
         candidate = site.joinpath(*relative.parts)
+        if _IS_WINDOWS:
+            # Inspect the owned components before resolving RECORD's allowed traversal.
+            lexical = Path(os.path.abspath(candidate)) if ".." in relative.parts else candidate
+            if not _within(lexical, env_root):
+                _fail("Installed Windows RECORD path escapes the selected environment.")
+            windows_authority.reject_path_redirection(site)
+            windows_authority.reject_path_redirection(env_root / "Scripts")
+            windows_authority.reject_path_redirection(lexical)
         if ".." in relative.parts:
             candidate = candidate.resolve(strict=False)
             expected_scripts = {
@@ -499,12 +529,13 @@ def _verify_entry_point_scripts(
     site: Path,
     env_root: Path,
     scripts: dict[str, str],
-) -> None:
+    *,
+    windows_context: _WindowsInstallationContext | None = None,
+) -> windows_authority.WindowsLauncherProof | None:
     if _IS_WINDOWS:
-        _fail(
-            "Windows installed-package qualification is NO-GO until generated launcher bytes "
-            "have independent installer-template authority."
-        )
+        if windows_context is None:
+            _fail("Windows installed-package qualification is NO-GO without independent authority.")
+        return windows_context.observe_launchers(entries, site, env_root, scripts)
     script_dir_name = "Scripts" if os.name == "nt" else "bin"
     script_root = (env_root / script_dir_name).resolve(strict=True)
     expected_names = {
@@ -558,6 +589,213 @@ def _verify_entry_point_scripts(
         )
         if not separator_bytes or not ((direct_wrapper and body == expected_body) or shell_wrapper):
             _fail("Installed console-script wrapper differs from its authenticated entry point.")
+    return None
+
+
+def _windows_startup_inventory(site: Path) -> tuple[tuple[int, int, int], tuple[str, ...]]:
+    windows_authority.reject_path_redirection(site)
+    before = site.lstat()
+    if not stat.S_ISDIR(before.st_mode):
+        _fail("Windows site startup root is not a directory.")
+    identity = (before.st_dev, before.st_ino, before.st_mode)
+    names: list[str] = []
+    for count, entry in enumerate(site.iterdir(), 1):
+        if count > 20_000:
+            _fail("Windows site inventory exceeds its startup-inspection bound.")
+        name = entry.name.lower()
+        if name.endswith(".pth") or name.split(".")[0] in {"sitecustomize", "usercustomize"}:
+            _fail("Windows selected environment contains an executable site startup hook.")
+        names.append(entry.name)
+    windows_authority.reject_path_redirection(site)
+    after = site.lstat()
+    if (after.st_dev, after.st_ino, after.st_mode) != identity:
+        _fail("Windows site startup root identity changed during inspection.")
+    return identity, tuple(sorted(names))
+
+
+def _windows_startup_config(config: Path) -> tuple[tuple[int, int, int, int, int], str]:
+    identity = windows_authority.authority_file_identity(config)
+    raw = windows_authority.read_authority_file(config, limit=65_536)
+    fields: dict[str, str] = {}
+    for line in raw.decode("utf-8").splitlines():
+        if "=" not in line:
+            continue
+        key, value = (part.strip().lower() for part in line.split("=", 1))
+        if key in fields:
+            _fail("Windows selected environment has duplicate configuration keys.")
+        fields[key] = value
+    if fields.get("include-system-site-packages") != "false":
+        _fail("Windows selected environment permits unqualified system site packages.")
+    if windows_authority.authority_file_identity(config) != identity:
+        _fail("Windows startup configuration identity changed during inspection.")
+    return identity, hashlib.sha256(raw).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class _WindowsStartupState:
+    config: Path
+    site: Path
+    config_identity: tuple[int, int, int, int, int]
+    config_sha256: str
+    site_identity: tuple[int, int, int]
+    site_inventory: tuple[str, ...]
+
+    def revalidate(self) -> None:
+        if _windows_startup_config(self.config) != (self.config_identity, self.config_sha256):
+            _fail("Windows startup configuration changed during verification.")
+        if _windows_startup_inventory(self.site) != (self.site_identity, self.site_inventory):
+            _fail("Windows site startup inventory changed during verification.")
+
+
+def _capture_windows_startup(env_root: Path) -> _WindowsStartupState:
+    config, site = env_root / "pyvenv.cfg", env_root / "Lib/site-packages"
+    config_identity, config_sha256 = _windows_startup_config(config)
+    site_identity, site_inventory = _windows_startup_inventory(site)
+    return _WindowsStartupState(
+        config, site, config_identity, config_sha256, site_identity, site_inventory
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _WindowsInstallationContext:
+    descriptor: windows_authority.WindowsInstallationDescriptor
+    template: bytes
+    inputs: tuple[tuple[Path, str, int, int | None], ...]
+    startup: _WindowsStartupState | None = None
+    identities: tuple[tuple[int, int, int, int, int], ...] = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "identities",
+            tuple(windows_authority.authority_file_identity(path) for path, _, _, _ in self.inputs),
+        )
+
+    def revalidate(self) -> None:
+        if self.startup is not None:
+            self.startup.revalidate()
+        for (path, digest, limit, size), identity in zip(self.inputs, self.identities, strict=True):
+            if windows_authority.authority_file_identity(path) != identity:
+                _fail("Windows independent installation input identity changed.")
+            if (
+                windows_authority.hash_authority_file(path, limit=limit, expected_size=size)
+                != digest
+            ):
+                _fail("Windows independent installation input changed during verification.")
+            if windows_authority.authority_file_identity(path) != identity:
+                _fail("Windows independent installation input identity changed during reading.")
+
+    def observe_launchers(
+        self,
+        entries: dict[str, tuple[Path, str, str]],
+        site: Path,
+        env_root: Path,
+        scripts: dict[str, str],
+    ) -> windows_authority.WindowsLauncherProof:
+        descriptor = self.descriptor
+        if scripts != dict(windows_authority.SCRIPT_PAIRS):
+            _fail("Windows console-script metadata differs from the independent recipe.")
+        script_root = env_root / "Scripts"
+        windows_authority.reject_path_redirection(script_root)
+        expected_names = {
+            os.path.relpath(script_root / f"{name}.exe", site).replace(os.sep, "/")
+            for name, _ in windows_authority.SCRIPT_PAIRS
+        }
+        observed_names = {
+            name for name, (path, _, _) in entries.items() if _within(path, script_root)
+        }
+        if observed_names != expected_names:
+            _fail("Windows installed console-script inventory differs from independent authority.")
+        proofs: list[windows_authority.LauncherIdentity] = []
+        for script in descriptor.scripts:
+            path = script_root / f"{script.name}.exe"
+            raw = windows_authority.read_authority_file(
+                path, limit=windows_authority.LAUNCHER_LIMIT
+            )
+            payload = windows_authority.console_script_payload(
+                script.name, script.target, interpreter_display_path=descriptor.interpreter_path
+            )
+            expected = expected_windows_console_launcher(
+                self.template, descriptor.interpreter_path, payload
+            )
+            verify_windows_console_launcher(
+                raw, self.template, descriptor.interpreter_path, payload
+            )
+            proofs.append(
+                windows_authority.LauncherIdentity(
+                    script.name,
+                    script.target,
+                    script.payload_sha256,
+                    len(expected),
+                    hashlib.sha256(expected).hexdigest(),
+                )
+            )
+        return windows_authority.WindowsLauncherProof.from_dict(
+            {
+                "schema_version": 1,
+                "profile": windows_authority.PROFILE,
+                "descriptor_sha256": descriptor.descriptor_sha256,
+                "installation_evidence_sha256": descriptor.installation_evidence_sha256,
+                "installer": asdict(descriptor.installer),
+                "template": asdict(descriptor.template),
+                "recipe_sha256": descriptor.recipe_sha256,
+                "interpreter": asdict(descriptor.interpreter),
+                "scripts": [asdict(proof) for proof in proofs],
+            }
+        )
+
+
+def _windows_inputs(
+    python: Path,
+    binding: BundleBinding,
+    source_root: Path,
+    kind: Literal["wheel", "sdist"],
+    descriptor_path: Path,
+    descriptor_sha256: str,
+    template_path: Path,
+    installer: Path,
+) -> _WindowsInstallationContext:
+    descriptor = windows_authority.load_windows_installation_descriptor(
+        descriptor_path, expected_sha256=descriptor_sha256
+    )
+    descriptor.verify_binding(binding, kind)
+    if (
+        windows_authority.canonical_windows_interpreter_path(str(python.absolute()))
+        != descriptor.interpreter_path
+    ):
+        _fail("Selected Windows interpreter differs from its independent display path.")
+    recipe = source_root / "scripts/release_qualification/windows_installation.py"
+    inputs = (
+        (descriptor_path, descriptor_sha256, windows_authority.JSON_LIMIT, None),
+        (recipe, descriptor.recipe_sha256, windows_authority.RECIPE_LIMIT, None),
+        (
+            python,
+            descriptor.interpreter.executable_sha256,
+            windows_authority.EXECUTABLE_LIMIT,
+            None,
+        ),
+        (
+            installer,
+            descriptor.installer.executable_sha256,
+            windows_authority.EXECUTABLE_LIMIT,
+            windows_authority.INSTALLER_SIZE,
+        ),
+        (
+            template_path,
+            descriptor.template.sha256,
+            descriptor.template.size,
+            descriptor.template.size,
+        ),
+    )
+    template = windows_authority.read_authority_file(
+        template_path, limit=descriptor.template.size, expected_size=descriptor.template.size
+    )
+    # Normal site startup is needed for CPython 3.12 venv identity. Reject
+    # hooks and retain the execution-affecting state for every later launch.
+    startup = _capture_windows_startup(python.absolute().parent.parent)
+    context = _WindowsInstallationContext(descriptor, template, inputs, startup=startup)
+    context.revalidate()
+    return context
 
 
 def _run_bounded(
@@ -806,16 +1044,26 @@ def _selected_environment(python: Path) -> tuple[Path, Path, str, str, str]:
     code = (
         "import json, platform, sys\n"
         "print(json.dumps({'python': platform.python_version(), "
-        "'os': platform.system().lower(), 'machine': platform.machine().lower()}))\n"
+        "'os': platform.system().lower(), 'machine': platform.machine().lower(), "
+        "'implementation': platform.python_implementation(), 'prefix': sys.prefix, "
+        "'base_prefix': sys.base_prefix}))\n"
     )
     code_result, stdout, _stderr = _run_bounded(
-        [str(python), "-I", "-S", "-c", code], cwd=python.parent, timeout=_MAX_TCK_SECONDS
+        [str(python), "-I", *([] if _IS_WINDOWS else ["-S"]), "-c", code],
+        cwd=python.parent,
+        timeout=_MAX_TCK_SECONDS,
     )
     if code_result != 0:
         _fail("Selected interpreter environment could not be resolved.")
     try:
         result = json.loads(stdout)
         version, operating_system, architecture = result["python"], result["os"], result["machine"]
+        if _IS_WINDOWS and (
+            result.get("implementation") != "CPython"
+            or operating_system != "windows"
+            or architecture not in {"amd64", "x86_64"}
+        ):
+            _fail("Windows interpreter implementation or native architecture is unsupported.")
     except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError) as error:
         raise ValueError("Selected interpreter environment response is malformed.") from error
     if not all(
@@ -823,6 +1071,12 @@ def _selected_environment(python: Path) -> tuple[Path, Path, str, str, str]:
     ):
         _fail("Selected interpreter identity is malformed.")
     environment_root = python.parent.parent.resolve(strict=True)
+    if _IS_WINDOWS and (
+        not isinstance(result.get("prefix"), str)
+        or Path(result["prefix"]).resolve(strict=True) != environment_root
+        or result.get("prefix") == result.get("base_prefix")
+    ):
+        _fail("Windows selected interpreter is not using its bound virtual environment.")
     config = environment_root / "pyvenv.cfg"
     if config.is_symlink() or not config.is_file():
         _fail("Selected interpreter is not inside a virtual environment.")
@@ -866,7 +1120,9 @@ def _verify_inventory(
     archive_metadata: dict[str, bytes],
     kind: Literal["wheel", "sdist"],
     record_entries: dict[str, tuple[Path, str, str]],
-) -> tuple[str, str, BuildGenerator]:
+    *,
+    windows_context: _WindowsInstallationContext | None = None,
+) -> tuple[str, str, BuildGenerator, windows_authority.WindowsLauncherProof | None]:
     src_root = site / "src"
     frontend_root = site / "frontend"
     actual_payload = (
@@ -932,10 +1188,12 @@ def _verify_inventory(
         total_recorded_bytes += size
         if size > _MAX_INSTALLED_FILE_BYTES or total_recorded_bytes > _MAX_INSTALLED_TOTAL_BYTES:
             _fail("Installed distribution RECORD paths exceed the total size limit.")
+    windows_proof = _verify_entry_point_scripts(
+        record_entries, site, env_root, scripts, windows_context=windows_context
+    )
     for name, entry in record_entries.items():
         _verify_record_entry(name, entry, record_name)
     listed = set(record_entries)
-    _verify_entry_point_scripts(record_entries, site, env_root, scripts)
     payload_record_names = expected_names | {
         path.relative_to(site).as_posix() for path in dist_info.rglob("*") if path.is_file()
     }
@@ -1002,6 +1260,7 @@ def _verify_inventory(
         hashlib.sha256(inventory).hexdigest(),
         hashlib.sha256("\n".join(resource_rows).encode()).hexdigest(),
         build_generator,
+        windows_proof,
     )
 
 
@@ -1036,7 +1295,7 @@ def _isolated_probe(
             [
                 str(python),
                 "-I",
-                "-S",
+                *([] if _IS_WINDOWS else ["-S"]),
                 "-X",
                 f"pycache_prefix={cache_prefix}",
                 "-c",
@@ -1137,7 +1396,13 @@ def _isolated_probe(
     )
 
 
-def _run_tcks(python: Path, site: Path, source_root: Path) -> tuple[str, str, str]:
+def _run_tcks(
+    python: Path,
+    site: Path,
+    source_root: Path,
+    *,
+    windows_context: _WindowsInstallationContext | None = None,
+) -> tuple[str, str, str]:
     outcomes: list[str] = []
     with tempfile.TemporaryDirectory(prefix="matryca-installed-tck-") as working_name:
         working = Path(working_name)
@@ -1153,6 +1418,8 @@ def _run_tcks(python: Path, site: Path, source_root: Path) -> tuple[str, str, st
             with tempfile.TemporaryDirectory(
                 prefix="matryca-tck-pycache-", dir=working
             ) as cache_prefix:
+                if windows_context is not None:
+                    windows_context.revalidate()
                 returncode, stdout, _stderr = _run_bounded(
                     [
                         str(python),
@@ -1168,6 +1435,8 @@ def _run_tcks(python: Path, site: Path, source_root: Path) -> tuple[str, str, st
                     cwd=working,
                     timeout=_MAX_TCK_SECONDS,
                 )
+                if windows_context is not None:
+                    windows_context.revalidate()
             if returncode != 0:
                 _fail("Installed TCK failed or exceeded output bounds.")
             try:
@@ -1190,32 +1459,76 @@ def verify_installed(
     *,
     artifact: Path,
     policy: str = "rc4",
+    windows_installation_descriptor: Path | None = None,
+    expected_windows_installation_sha256: str | None = None,
+    windows_template: Path | None = None,
+    installer: Path | None = None,
 ) -> InstalledReceipt:
     """Verify installed files, import origin, resources, RECORD, and static TCKs."""
     if kind not in {"wheel", "sdist"}:
         _fail("Installed distribution kind must be wheel or sdist.")
+    inputs = (
+        windows_installation_descriptor,
+        expected_windows_installation_sha256,
+        windows_template,
+        installer,
+    )
+    if _IS_WINDOWS and any(value is None for value in inputs):
+        _fail(
+            "Windows installed-package qualification is NO-GO without all "
+            "independent authority inputs."
+        )
+    if not _IS_WINDOWS and any(value is not None for value in inputs):
+        _fail("Windows installation inputs are invalid on a non-Windows verifier.")
     archive_payload, archive_metadata = _authenticated_archive(
         artifact, binding, kind, policy=policy
     )
-    if _IS_WINDOWS:
-        _fail(
-            "Windows installed-package qualification is NO-GO until generated launcher bytes "
-            "have independent installer-template authority."
-        )
     _safe_root(source_root, "Source root")
     interpreter = python.absolute()
     if not interpreter.is_file():
         _fail("Selected interpreter does not exist or is not a file.")
     tracked = _verify_source(source_root, binding)
+    windows_context = None
+    if _IS_WINDOWS:
+        assert (
+            windows_installation_descriptor is not None
+            and expected_windows_installation_sha256 is not None
+            and windows_template is not None
+            and installer is not None
+        )
+        if "scripts/release_qualification/windows_installation.py" not in tracked:
+            _fail("Windows payload recipe is not bound by the selected source tree.")
+        windows_context = _windows_inputs(
+            interpreter,
+            binding,
+            source_root,
+            kind,
+            windows_installation_descriptor,
+            expected_windows_installation_sha256,
+            windows_template,
+            installer,
+        )
     expected_payload = _payload_map(source_root, tracked)
     source_root = source_root.resolve(strict=True)
-    probe_env_root, site, _python_version, _operating_system, _architecture = _selected_environment(
-        interpreter
+    if windows_context is not None:
+        windows_context.revalidate()
+    probe_env_root, site, selected_python_version, _operating_system, _architecture = (
+        _selected_environment(interpreter)
     )
+    if (
+        windows_context is not None
+        and selected_python_version != windows_context.descriptor.interpreter.version
+    ):
+        _fail("Windows interpreter version differs from its independent identity.")
     dist_info, version = _distribution(site, binding.version)
     record = dist_info / "RECORD"
     record_entries = _parse_record(record, site, probe_env_root)
-    record_sha256, resource_sha256, build_generator = _verify_inventory(
+    launcher_identities = {
+        path: windows_authority.authority_file_identity(path)
+        for path, _, _ in record_entries.values()
+        if windows_context is not None and _within(path, probe_env_root / "Scripts")
+    }
+    record_sha256, resource_sha256, build_generator, windows_proof = _verify_inventory(
         site,
         probe_env_root,
         source_root,
@@ -1225,7 +1538,10 @@ def verify_installed(
         archive_metadata,
         kind,
         record_entries,
+        windows_context=windows_context,
     )
+    if windows_context is not None:
+        windows_context.revalidate()
     (
         site,
         _origin,
@@ -1235,7 +1551,33 @@ def verify_installed(
         architecture,
         dependencies,
     ) = _isolated_probe(interpreter, probe_env_root, site, source_root)
-    tck_outcomes = _run_tcks(interpreter, site, source_root)
+    if windows_context is None:
+        tck_outcomes = _run_tcks(interpreter, site, source_root)
+    else:
+        windows_context.revalidate()
+        tck_outcomes = _run_tcks(interpreter, site, source_root, windows_context=windows_context)
+    if windows_context is not None:
+        if (
+            python_version != windows_context.descriptor.interpreter.version
+            or operating_system != "windows"
+            or architecture not in {"amd64", "x86_64"}
+        ):
+            _fail("Windows installed observation differs from its independent interpreter profile.")
+        windows_context.revalidate()
+        if any(
+            windows_authority.authority_file_identity(path) != identity
+            for path, identity in launcher_identities.items()
+        ):
+            _fail("Windows installed launcher identity changed during qualification.")
+        final_proof = _verify_entry_point_scripts(
+            record_entries,
+            site,
+            probe_env_root,
+            _expected_scripts(source_root),
+            windows_context=windows_context,
+        )
+        if windows_proof != final_proof:
+            _fail("Windows launchers changed during installed qualification.")
     return InstalledReceipt(
         kind=kind,
         operating_system=operating_system,
@@ -1249,4 +1591,5 @@ def verify_installed(
         dependencies=dependencies,
         build_generator=build_generator,
         tck_outcomes=tck_outcomes,
+        windows_launcher=windows_proof,
     )

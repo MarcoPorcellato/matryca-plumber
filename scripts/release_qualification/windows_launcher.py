@@ -763,20 +763,17 @@ def _validate_pinned_template(template: bytes) -> None:
         _fail("Pinned PE manifest data metadata is unexpected.")
 
 
-def verify_windows_console_launcher(
-    candidate: bytes,
+def expected_windows_console_launcher(
     template: bytes,
     expected_interpreter: str,
     expected_script: bytes,
-) -> None:
-    """Verify an x64 console launcher by exact, non-executing reconstruction.
+) -> bytes:
+    """Reconstruct complete launcher bytes from independently authenticated inputs.
 
     The supplied template must be the exact pinned console trampoline. The
     interpreter display path and complete ``__main__.py`` payload are supplied
     independently by the caller. No semantic-only byte matching is accepted.
     """
-    if not isinstance(candidate, bytes) or len(candidate) > _MAX_IMAGE_BYTES:
-        _fail("Candidate PE is not bytes or exceeds the image bound.")
     if not isinstance(template, bytes):
         _fail("Template PE must be bytes.")
     if not isinstance(expected_interpreter, str):
@@ -784,5 +781,17 @@ def verify_windows_console_launcher(
     if not isinstance(expected_script, bytes):
         _fail("Expected script payload must be bytes.")
     _validate_pinned_template(template)
-    expected = _reconstruct_launcher(template, expected_interpreter, expected_script)
+    return _reconstruct_launcher(template, expected_interpreter, expected_script)
+
+
+def verify_windows_console_launcher(
+    candidate: bytes,
+    template: bytes,
+    expected_interpreter: str,
+    expected_script: bytes,
+) -> None:
+    """Compare every candidate byte with the sole pinned reconstruction engine."""
+    if not isinstance(candidate, bytes) or len(candidate) > _MAX_IMAGE_BYTES:
+        _fail("Candidate PE is not bytes or exceeds the image bound.")
+    expected = expected_windows_console_launcher(template, expected_interpreter, expected_script)
     _verify_candidate_bytes(candidate, expected)

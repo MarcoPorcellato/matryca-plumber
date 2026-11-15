@@ -957,8 +957,6 @@ def prepare_sdist_build(
     This consumer never creates or repairs an environment. It records an output
     wheel only after exact identity, requirement, and package-manifest checks.
     """
-    if os.name == "nt":
-        _fail("Windows build-process containment is not qualified for this helper.")
     bundle_module._validate_binding(binding, policy=policy)
     descriptor = load_build_environment_descriptor(
         environment_descriptor, expected_sha256=expected_build_environment_sha256

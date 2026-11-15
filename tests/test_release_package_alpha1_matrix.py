@@ -362,6 +362,23 @@ def test_alpha_matrix_requires_eight_rows_and_keeps_unqualified_status() -> None
     assert len(result["rows"]) == 8
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("schema_version", True),
+        ("schema_version", 1),
+        ("schema_version", "2"),
+        ("windows_launcher", {"unexpected": "proof"}),
+    ],
+)
+def test_alpha_rejects_invalid_installed_v2_fields(field: str, value: object) -> None:
+    alpha = importlib.import_module("scripts.release_qualification.alpha1_matrix")
+    context, rows, *_rest = _inputs()
+    rows[0]["installed"][field] = value
+    with pytest.raises(ValueError, match="schema|Windows"):
+        alpha.verify_row(context, rows[0], alpha.ROWS[0])
+
+
 def test_alpha_accepts_the_existing_installed_probe_receipt(tmp_path: Path) -> None:
     """The actual probe uses lowercase OS and excludes the project and pip."""
     alpha = importlib.import_module("scripts.release_qualification.alpha1_matrix")
