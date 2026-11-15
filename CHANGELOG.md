@@ -1,12 +1,5 @@
 ## [Unreleased]
 
-### Fixed
-
-- **Public-acquisition failure diagnostics** — retain bounded, sanitized error
-  categories, status and acquisition identity instead of hiding the failed child
-  behind a generic message. Download, provenance, timeout and cleanup gates remain
-  unchanged; this does not qualify a failed campaign or add retries.
-
 ## [2.1.0-alpha.4] - 2026-11-14
 
 ### Security
@@ -22,6 +15,11 @@
   schemas, fixtures and topology golden remain unchanged.
 
 ### Fixed
+
+- **Public-acquisition failure diagnostics** — retain bounded, sanitized error
+  categories, status and acquisition identity instead of hiding the failed child
+  behind a generic message. Download, provenance, timeout and cleanup gates remain
+  unchanged; this does not qualify a failed campaign or add retries.
 
 - **Producer-bound qualification builds** — provision public-artifact sdist build
   environments from the selected producer's locked project, not a separate
