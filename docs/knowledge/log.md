@@ -1,5 +1,17 @@
 # Documentation update log
 
+## 2026-11-15
+
+- **Alpha.4 release guidance:** distinguish exact-source pre-tag installed-row
+  evidence from future public-package acceptance, retain historical candidate
+  records, and align release inputs and protected-main integration guidance with
+  the committed workflows. Changed source still requires fresh applicable gates.
+- **Agent and architecture navigation:** route structured CLI examples through
+  the explicit `matryca` console entrypoint, preserve the separate MCP launcher,
+  and correct the system overview's obsolete default-off/no-cache language by
+  linking to the canonical default-on external Shadow contract. Runtime,
+  dependency versions, schemas, qualification labels and Trama policy are unchanged.
+
 ## 2026-09-27
 
 - **RC4 Stage A workflow admission correction:** withheld the manual workflow

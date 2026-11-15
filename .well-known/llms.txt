@@ -1,15 +1,20 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.1.0a4 preparation)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.1.0a4 prepublication)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
 
+Alpha.4 publication-status statements below describe the **2026-11-15
+pre-publication checkpoint**, not permanent registry state. Consult the
+[release page](https://github.com/MarcoPorcellato/matryca-plumber/releases) and
+the active qualification plan for subsequent source/public-byte results.
+
 > **v2.0.0 stable contract:** the external Shadow read cache is default-on; `MATRYCA_SHADOW_DB_ENABLED=false` remains the emergency Markdown/BM25 opt-out, and Logseq Markdown remains authoritative. v2.0.0 was qualified with `logseq-matryca-parser` 1.7.1, while package metadata accepts `>=1.7.1,<2.0.0`; always record the exact parser resolved by a fresh installation. The stable contract includes Strict Read Only with an external derived cache and fail-closed health/fallback behavior. Current operator behavior: `docs/knowledge/architecture/shadow-db.md`. Release evidence: `docs/quality/issue-bodies/v2-rc-stable-readiness.md`.
 > **Historical v2.0.1rc1 artifact scope:** the published RC1 `read_graph_data` handler adds the bounded `journal_day` target for one ISO-dated canonical journal. It returns source-digest provenance, reads Markdown without querying or initializing Shadow, and never mutates the graph. Its exact-artifact qualification record does not qualify later source revisions: `docs/quality/V2_0_1_RELEASE_QUALIFICATION_PLAN_2026-08-23.md`.
-> **Experimental v2.1.0a4 preparation:** the proposal adds bounded, cancellable `dashboard` reads and explanatory `bootstrap_status` fields. Linux/macOS dashboard work has a request-owned process group, an 1800-second execution budget and one five-second cleanup deadline; this is containment, not a performance fix, and Windows keeps its legacy route. The four additive bootstrap fields describe graph-local catalog progress, not external Shadow readiness. The published alpha.3 OG producer handoff and its synthetic Trama acceptance remain historical and unchanged; neither qualifies alpha.4 or establishes new real-vault admission. No alpha.4 tag, public artifact or installed-runtime qualification is recorded. Alpha.4 makes no database, stable-support or network-isolation claim. Do not install it from an unverified source; stable `v2.0.0` remains the default. Active plan: `docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md`.
+> **Experimental v2.1.0-alpha.4 prepublication status:** the selected source implements bounded, cancellable `dashboard` reads and four explanatory `bootstrap_status` fields. Linux/macOS dashboard work has a request-owned process group, an 1800-second execution budget and one five-second cleanup deadline; this is containment, not a performance fix, and Windows keeps its legacy route. The four fields describe graph-local catalog progress, not external Shadow readiness. The published alpha.3 OG producer handoff and its synthetic Trama acceptance remain historical and unchanged; neither qualifies alpha.4 or establishes new real-vault admission. Pre-tag source checkpoint [43678299031, attempt 1](https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/43678299031) passed all eight installed rows, source controls and Windows refusal for commit [`6b86b02b17d37abcc68eec4af546c483280b7f3e`](https://github.com/MarcoPorcellato/matryca-plumber/commit/6b86b02b17d37abcc68eec4af546c483280b7f3e), tree `2fca9ac1e7608b415cc28c3b02f0b15664f3ee25`. This source-bound checkpoint does not qualify later source or documentation changes, public alpha.4 bytes, or public-byte qualification; packaged descriptor rows remain planned and operational results remain unqualified. No alpha.4 tag or public artifact exists. Alpha.4 makes no database, stable-support or network-isolation claim. Do not install it from an unverified source; stable `v2.0.0` remains the default. Active plan: `docs/quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md`.
 > **Historical v2.0.1 prereleases:** RC3 is published; its exact artifact record is `docs/releases/v2.0.1-rc.3-GITHUB.md`. The signed RC2 tag and failed publication run remain historical and published neither destination. RC4 preparation was not published; its historical candidates and unfinished Windows, full Stage A and dual-profile Gate B obligations are preserved, not qualified or discarded. Supersession record: `docs/quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md`. Windows gateway refusal is not Windows package qualification; no DB compatibility is claimed.
-> **v2.0.0-alpha.5 headline:** **Shadow hardening campaign closed** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) — CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)); state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)); Axes 5–7 audit probes green; `MATRYCA_SHADOW_DB_ENABLED=false` by default. **Not an RC** — post-publish soak before beta/RC. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
+> **Historical v2.0.0-alpha.5 headline:** **Shadow hardening campaign closed** ([#261](https://github.com/MarcoPorcellato/matryca-plumber/issues/261)) — CTE depth-truncation status ([#289](https://github.com/MarcoPorcellato/matryca-plumber/issues/289) / [#291](https://github.com/MarcoPorcellato/matryca-plumber/pull/291)); state API absolute-path redaction ([#293](https://github.com/MarcoPorcellato/matryca-plumber/issues/293) / [#294](https://github.com/MarcoPorcellato/matryca-plumber/pull/294)); Axes 5–7 audit probes green; `MATRYCA_SHADOW_DB_ENABLED=false` by default in that historical alpha. **Not an RC** — post-publish soak before beta/RC. Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md`.
 > **v2.0.0-alpha.4 headline:** **Shadow FTS query length bound** — keywords over **512 Unicode characters** (post-`strip`) are rejected before FTS preparation or SQLite `MATCH` ([#279](https://github.com/MarcoPorcellato/matryca-plumber/issues/279) / [#286](https://github.com/MarcoPorcellato/matryca-plumber/pull/286)); Axis 4 FTS5 gate **fully green** — **52 pass, 0 xfail**.
 > **v2.0.0-alpha.3 headline:** **Shadow FTS hyphenated queries** — natural compounds like `state-of-the-art` route through shadow FTS5 without spurious generational fallback ([#277](https://github.com/MarcoPorcellato/matryca-plumber/issues/277) / [#282](https://github.com/MarcoPorcellato/matryca-plumber/pull/282)).
 > **v1.13.1 headline:** **Logseq Matryca Parser 1.6.0 alignment** — minimum dependency `logseq-matryca-parser>=1.6.0`; inherits **1.4.2** newline splice safety, resilient X-Ray reload, SYNAPSE cyclic-embed truncation; `_headless_append_child` mirrors parser newline normalization. Architecture: `docs/ARCHITECTURE.md`.
@@ -30,7 +35,7 @@ export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
 
 **One-shot (inline env for a single command):**
 ```bash
-LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph" uvx matryca-plumber --help
+LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph" uvx --from matryca-plumber matryca --help
 ```
 
 If `LOGSEQ_GRAPH_PATH` is unset or invalid, graph commands return an error — fix the path before retrying.
@@ -39,22 +44,22 @@ If `LOGSEQ_GRAPH_PATH` is unset or invalid, graph commands return an error — f
 
 ## 1. Execution & Installation (PyPI / uvx)
 
-Matryca Plumber is on PyPI as **`matryca-plumber`**. Use **`uvx`** (uv tool runner); no permanent install required.
+Matryca Plumber is on PyPI as **`matryca-plumber`**. Use **`uvx`** (uv tool runner); no permanent install required. The package exposes two entrypoints: **`matryca`** is the full agent CLI, invoked as `uvx --from matryca-plumber matryca …`; **`matryca-plumber`** is the MCP stdio launcher when MCP is enabled and also retains the documented `status`/`start` shortcuts.
 
 **Entrypoint (console script):**
 ```bash
-uvx matryca-plumber <subcommand> ...
+uvx --from matryca-plumber matryca <subcommand> ...
 ```
 
 **Discover commands:**
 ```bash
-uvx matryca-plumber --help
-uvx matryca-plumber read --help
+uvx --from matryca-plumber matryca --help
+uvx --from matryca-plumber matryca read --help
 ```
 
 **Machine-readable JSON:** Global flag **`--json`** must appear **before** the subcommand:
 ```bash
-uvx matryca-plumber --json read page "My Project"
+uvx --from matryca-plumber matryca --json read page "My Project"
 ```
 
 ---
@@ -108,19 +113,19 @@ cancellation guarantee. See [bounded dashboard reads](docs/quality/DASHBOARD_BOU
 **Command (canonical):**
 ```bash
 export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
-uvx matryca-plumber --json read page "My Project"
+uvx --from matryca-plumber matryca --json read page "My Project"
 ```
 
 **Semantic macro (bundled context):**
 ```bash
-uvx matryca-plumber context load "My Project"
-uvx matryca-plumber context load "My Project|aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+uvx --from matryca-plumber matryca context load "My Project"
+uvx --from matryca-plumber matryca context load "My Project|aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 ```
 
 **Search (examples):**
 ```bash
-uvx matryca-plumber --json search bm25 "redis cache"
-uvx matryca-plumber --json search journal_tasks "7"
+uvx --from matryca-plumber matryca --json search bm25 "redis cache"
+uvx --from matryca-plumber matryca --json search journal_tasks "7"
 ```
 
 Always **parse JSON from stdout** when using `--json`. Never hand-parse raw `pages/*.md` or `journals/*.md`.
@@ -224,16 +229,16 @@ There is **no** `doctor` subcommand. Use these instead:
 
 | Goal | Command |
 |------|---------|
-| Bootstrap / graph insights dashboard | `uvx matryca-plumber plumber audit` or `uvx matryca-plumber audit` |
-| Semantic cluster neighborhoods | `uvx matryca-plumber plumber cluster` or `uvx matryca-plumber cluster` |
+| Bootstrap / graph insights dashboard | `uvx --from matryca-plumber matryca plumber audit` or `uvx matryca-plumber audit` |
+| Semantic cluster neighborhoods | `uvx --from matryca-plumber matryca plumber cluster` or `uvx matryca-plumber cluster` |
 | Sovereign UI + pre-flight checks | `uvx matryca-plumber status` → UI on `http://127.0.0.1:8500` (no daemon until **Start Engine** or `plumber start`) |
-| Block-reference lint | `uvx matryca-plumber lint block_refs` |
-| Maintenance daemon (headless) | `uvx matryca-plumber plumber start` / `plumber stop` (no browser; pair with `status` for the cockpit) |
+| Block-reference lint | `uvx --from matryca-plumber matryca lint block_refs` |
+| Maintenance daemon (headless) | `uvx --from matryca-plumber matryca plumber start` / `uvx --from matryca-plumber matryca plumber stop` (no browser; pair with `status` for the cockpit) |
 
 **JSON audit output:**
 ```bash
 export LOGSEQ_GRAPH_PATH="/absolute/path/to/your/logseq/graph"
-uvx matryca-plumber --json plumber audit
+uvx --from matryca-plumber matryca --json plumber audit
 ```
 
 ### 2.6 Shadow DB and Strict Read Only (v2.0.0 stable contract)
@@ -288,37 +293,37 @@ Roadmap: `docs/roadmaps/ROADMAP_V2_PREPARATION.md` · Epic [#20](https://github.
 **A. Help + env check**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --help
+uvx --from matryca-plumber matryca --help
 ```
 
 **B. Read one page as JSON**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json read page "My Project"
+uvx --from matryca-plumber matryca --json read page "My Project"
 ```
 
 **C. Recent journal tasks (last 7 days) as JSON**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json search journal_tasks "7"
+uvx --from matryca-plumber matryca --json search journal_tasks "7"
 ```
 
 **D. Run graph audit after user reports errors**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json plumber audit
+uvx --from matryca-plumber matryca --json plumber audit
 ```
 
 **E. Load bundled agent context (markdown stdout)**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber context load "My Project"
+uvx --from matryca-plumber matryca context load "My Project"
 ```
 
 **F. Write outline with page context (safe fallback if UUID wrong)**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json mutate write_outline \
+uvx --from matryca-plumber matryca --json mutate write_outline \
   --target "My Project|aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" \
   --payload '{"text":"New bullet","children":[]}'
 ```
@@ -326,14 +331,14 @@ uvx matryca-plumber --json mutate write_outline \
 **G. Tana workspace JSON import (dry-run default — add `--apply` to commit)**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json import tana --file "$HOME/Downloads/tana-workspace.json"
-uvx matryca-plumber import tana --file "$HOME/Downloads/tana-workspace.json" --apply
+uvx --from matryca-plumber matryca --json import tana --file "$HOME/Downloads/tana-workspace.json"
+uvx --from matryca-plumber matryca import tana --file "$HOME/Downloads/tana-workspace.json" --apply
 ```
 
 **H. Inject a native Logseq advanced-query block (open TODO/LATER/WAITING dashboard)**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json mutate inject_query \
+uvx --from matryca-plumber matryca --json mutate inject_query \
   --target "My Project|parent-block-uuid" \
   --payload '{"query_preset": "open_markers", "dry_run": true}'
 ```
@@ -342,14 +347,14 @@ Presets: `open_markers` (open TODO/LATER/WAITING), `pages_tagged` (needs a `"tag
 **I. Preview hashtag/tag-variant unification (e.g. `#AI` vs `#ai`)**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json lint unify_tags
+uvx --from matryca-plumber matryca --json lint unify_tags
 ```
 Preview-only: returns clustered tag variants and suggested canonical form. Applying rewrites vault-wide requires explicit operator consent — this command never writes.
 
 **J. Generate a Map-of-Content index page for a namespace**
 ```bash
 export LOGSEQ_GRAPH_PATH="$HOME/Logseq/graphs/MyGraph"
-uvx matryca-plumber --json mutate generate_moc \
+uvx --from matryca-plumber matryca --json mutate generate_moc \
   --target "Project/Sub" \
   --payload '{"dry_run": true}'
 ```
@@ -361,8 +366,8 @@ For **today's journal page** as `read page`, use the **exact Logseq page title**
 
 ## 4. Anti-patterns (DO NOT DO THIS)
 
-* **DO NOT** `grep`, `find`, or write Python to parse `pages/` / `journals/` — use `uvx matryca-plumber read` / `search` / `context load`.
-* **DO NOT** `git clone https://github.com/MarcoPorcellato/matryca-plumber` to "use" the tool — use **`uvx matryca-plumber`** from PyPI.
+* **DO NOT** `grep`, `find`, or write Python to parse `pages/` / `journals/` — use `uvx --from matryca-plumber matryca read` / `search` / `context load`.
+* **DO NOT** `git clone https://github.com/MarcoPorcellato/matryca-plumber` to "use" the tool — use **`uvx --from matryca-plumber matryca`** for CLI work or **`uvx matryca-plumber`** as the MCP launcher.
 * **DO NOT** `pip install matryca-plumber` unless the user explicitly asked for a global install.
 * **DO NOT** invent flags: no `--graph`, no `doctor`, no `mcp --port 8080`.
 * **DO NOT** ask the user to install Python dependencies manually — **`uvx`** resolves the wheel.
@@ -422,8 +427,8 @@ Matryca Plumber implements a **dual-LLM** system. You are almost certainly **Tie
 
 **CLI equivalent:**
 ```bash
-uvx matryca-plumber --json read bootstrap_status
-uvx matryca-plumber --json read page "Matryca Master Index"
+uvx --from matryca-plumber matryca --json read bootstrap_status
+uvx --from matryca-plumber matryca --json read page "Matryca Master Index"
 ```
 
 **Safe-Sync (summary):** READ only via Matryca tools on `pages/` + `journals/` under `LOGSEQ_GRAPH_PATH`. **NEVER** open Logseq's internal app database. WRITE only via `mutate_graph`, `refactor_blocks`, `ingest_document`, `import_tana`, `store_fact` (atomic `.md` + OCC). **`import_tana` dry-run default.** Full contract: `SYSTEM_PROMPT.md`.

@@ -3,7 +3,7 @@ type: Roadmap
 ---
 # Experimental 2.1.0a4 release qualification plan
 
-Date: 2026-11-14. Status: **preparation only; no final source selected or publication authorized**.
+Date: 2026-11-14. Pre-publication checkpoint: **2026-11-15; active release preparation, with no alpha.4 publication or public-byte qualification at that checkpoint**. Later publication and acceptance require a separately bound result, not an assumed update to this observation.
 
 ## Authority and outcome
 
@@ -100,6 +100,20 @@ The resource digests change as follows; verify them again on the final candidate
 | descriptor | `bcc6ac607706e934e5df4e044802aa74c7d7455e7711220df116080f1ab0cc70` | `d13becfdabb2de790bef1d06c01017d34c941254bdbdd62741b2330f9a41965b` |
 
 ## M2 — two non-publishing pre-tag checks
+
+**Source checkpoint, 2026-11-15:** [run `43678299031`](https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/43678299031) attempt 1 passed the
+eight installed rows and associated source controls, Windows refusal and
+aggregate for commit `6b86b02b17d37abcc68eec4af546c483280b7f3e`, tree
+`2fca9ac1e7608b415cc28c3b02f0b15664f3ee25`. These are source-campaign
+artifacts, not public alpha.4 bytes. Packaged descriptor rows remain `planned`
+and operational results remain `unqualified`.
+
+The maintainer explicitly accepted the notes-only M2 exception for that exact
+tree: verifier rehearsal `43636413133` attempt 1 ran at verifier commit
+`3b4d14f06c84d527d44c7a8d460c4f6c8f94790b` against the original alpha.3
+producer, not at the checkpoint commit. This exception does not apply to a
+source changed by this documentation update. Integration selects a new source
+and requires fresh applicable gates; neither checkpoint nor exception transfers.
 
 After the preparation PR's explicit merge, select the clean, signed current main
 commit/tree, and preserve its CI and independent review evidence. Keep main fixed

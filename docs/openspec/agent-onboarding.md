@@ -1,7 +1,7 @@
 ---
 type: Document
 ---
-# Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a4 preparation, and prerelease history
+# Agent onboarding (`llms.txt`) — v2.0 stable, v2.1.0a4 prepublication, and prerelease history
 
 **Milestone:** v1.9.2 — Agent-zero-friction distribution · v1.9.5 — LLM OS / `bootstrap_status` · v1.9.6 — Hermes lazy AST · v1.9.7 — AX robustness · v1.9.8 — doc harmonization · v1.9.9 — Security & Sandbox · v1.9.10 — Sovereign UI fast startup + `status` vs `start` docs · v1.9.11 — Sovereign UI reliability (lazy bootstrap on save/start/L1) · v1.11.x — Tana import, graph layer boundary refactor  
 **Artifacts:** [`llms.txt`](../../llms.txt) (repo root), [`.well-known/llms.txt`](../../.well-known/llms.txt) (canonical URL path)  
@@ -26,13 +26,22 @@ and failed public verification, remain unchanged. The published
 and its synthetic Trama acceptance remain historical and unchanged; they do not
 qualify alpha.4 or establish new real-vault admission.
 
-The active [alpha.4 preparation](../quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
-adds bounded, cancellable `dashboard` reads and four explanatory `bootstrap_status`
+The active [alpha.4 qualification plan](../quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
+covers bounded, cancellable `dashboard` reads and four explanatory `bootstrap_status`
 fields. Dashboard execution has an 1800-second Linux/macOS budget and a five-second
 cleanup deadline; it is containment, not a performance claim, and Windows retains its
 legacy route. Bootstrap catalog progress is distinct from external Shadow readiness.
-Preparation establishes no alpha.4 tag, public artifact, installed-runtime result,
-stable-support decision or network-isolation claim. Keep `v2.0.0` as the default;
+Pre-tag source checkpoint [43678299031, attempt 1](https://github.com/MarcoPorcellato/matryca-plumber/actions/runs/43678299031)
+passed all eight installed rows, source controls and Windows refusal for commit
+[`6b86b02b17d37abcc68eec4af546c483280b7f3e`](https://github.com/MarcoPorcellato/matryca-plumber/commit/6b86b02b17d37abcc68eec4af546c483280b7f3e),
+tree `2fca9ac1e7608b415cc28c3b02f0b15664f3ee25`. This source-bound checkpoint does
+not qualify later source or documentation changes, public alpha.4 bytes, or public-byte
+qualification; packaged descriptor rows remain planned and operational results remain
+unqualified. At the 2026-11-15 pre-publication checkpoint no alpha.4 tag or public
+artifact existed and public-byte qualification had not occurred. Consult the
+[release page](https://github.com/MarcoPorcellato/matryca-plumber/releases) and
+active plan for later results. Alpha.4 establishes no stable-support or network-isolation claim. Keep
+`v2.0.0` as the default;
 `2.0.1rc3` remains solely an evaluation candidate. Current operator behavior belongs
 to the [canonical Shadow operator
 contract](../knowledge/architecture/shadow-db.md); release evidence belongs to the
@@ -61,7 +70,7 @@ Both files must stay **byte-identical**; edit one and mirror the other in the sa
 ## Execution contract (non-negotiable)
 
 1. **`LOGSEQ_GRAPH_PATH`** — Absolute path to the Logseq OG vault root (`pages/`, usually `journals/`). There is **no** `--graph` CLI flag in the v1.9 line.
-2. **`uvx matryca-plumber …`** — Default entry for agents. Resolves the latest compatible wheel from PyPI without polluting the user environment.
+2. **Full CLI:** invoke `matryca` with `uvx --from matryca-plumber matryca …`. The separate `uvx matryca-plumber` entrypoint starts the MCP stdio server when MCP is enabled; selected `status` and `start` shortcuts remain available as documented in `llms.txt` §2.0. Both resolve the PyPI package without a permanent install.
 3. **`--json` before subcommand** — Machine-readable stdout; secrets redacted in-place (`redact_secrets_in_text`).
 4. **No raw Markdown scraping** — Use `read`, `search`, `context load`, or MCP tools on the shared `graph_dispatch` plane.
 
@@ -78,8 +87,8 @@ Invalid, missing, empty, or out-of-range requests return explicit bounded status
 
 | Do not | Do instead |
 |--------|------------|
-| `git clone` + `pip install -e .` to “use” the tool | `uvx matryca-plumber` |
-| `grep` / `find` on `pages/` | `uvx matryca-plumber --json read page "…"` |
+| `git clone` + `pip install -e .` to “use” the tool | `uvx --from matryca-plumber matryca …` |
+| `grep` / `find` on `pages/` | `uvx --from matryca-plumber matryca --json read page "…"` |
 | Invent `doctor`, `--graph`, `mcp --port 8080` | Commands listed in section 2 of `llms.txt` |
 | Run `plumber start` expecting the browser dashboard | `status` / `ui` for `:8500`; `start` is daemon-only (see `llms.txt` §2.0) |
 

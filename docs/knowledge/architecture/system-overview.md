@@ -5,9 +5,9 @@ description: Three-surface runtime, shared mutation plane, vault topology, and d
 resource: src/
 tags: [architecture, daemon, mcp, sovereign-ui, graph-dispatch]
 generated: { by: human:marco-porcellato, at: '2026-07-18T00:00:00Z' }
-verified: { by: human:marco-porcellato, at: '2026-08-07T00:00:00Z' }
-last_verified: 2026-08-07
-stale_after: 2027-02-02
+verified: { by: human:marco-porcellato, at: '2026-11-15T00:00:00Z' }
+last_verified: 2026-11-15
+stale_after: 2027-05-14
 status: stable
 classification: canonical
 canonical_for: architecture.summary
@@ -61,7 +61,7 @@ flowchart TB
     UI[Sovereign UI React plus FastAPI]
     Daemon[MaintenanceDaemon background]
     MCP[MCP host Claude Cursor etc]
-    CLI[matryca CLI uvx matryca-plumber]
+    CLI[matryca CLI]
   end
 
   subgraph plane [Shared headless mutation plane]
@@ -151,7 +151,12 @@ flowchart TB
   Client -.->|"token telemetry"| UI
 ```
 
-**Invariant:** one **system of record** — `LOGSEQ_GRAPH_PATH`. No auxiliary database for the default read path, no Logseq Electron dependency, no split-brain HTTP API for background work.
+**Invariant:** Logseq Markdown under `LOGSEQ_GRAPH_PATH` remains the only
+**system of record**. The default-on external Shadow DB is a disposable derived
+read cache, not another authority; unhealthy or unavailable cache reads fall back
+to Markdown-backed paths. The [Shadow operator contract](shadow-db.md) owns
+activation, external placement and fallback details. Background work does not
+require Logseq Electron or a separate authoritative HTTP API.
 
 ### Daemon lifecycle: Phase 1 → Phase 2
 
@@ -196,7 +201,7 @@ Daily fleeting notes under **`journals/`** receive structural indexing only in P
 | Topic | Pilot document |
 | --- | --- |
 | Graph plane (parser, OCC, sandbox) | [Graph plane](graph-plane.md) |
-| Shadow DB read cache (opt-in) | [Shadow DB](shadow-db.md) |
+| Shadow DB read cache (default-on, explicit opt-out) | [Shadow DB](shadow-db.md) |
 
 ## Legacy deep dives
 
