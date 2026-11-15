@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+
+- **Public qualification shell compatibility** — preserve zero optional arguments
+  under nounset and intact recovery paths across legacy and modern Bash, without
+  changing published packages, provenance, timeouts or cleanup gates.
+
 ## [2.1.0-alpha.4] - 2026-11-14
 
 ### Security
