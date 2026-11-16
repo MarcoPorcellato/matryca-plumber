@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Security
+
+- **Windows package qualification tooling** — require independently authenticated
+  installation descriptors and complete launcher-byte proofs, validate qualification
+  receipts with strict schema v2, and refuse schema-v1 descriptors before any target
+  probe because they do not bind every CPython executable/DLL `._pth` lookup location.
+  Native installed-Windows qualification remains pending; no support claim is added.
+
 ### Fixed
 
 - **Public qualification shell compatibility** — preserve zero optional arguments

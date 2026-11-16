@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 import csv
 import hashlib
+import inspect
 import io
+import json
 import os
 import platform
 import shlex
@@ -14,9 +16,11 @@ import subprocess
 import sys
 import tarfile
 import zipfile
+from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Literal, cast
 
 import pytest
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
@@ -24,6 +28,7 @@ from scripts.qualify_release_package import main as qualify_main
 from scripts.release_qualification import bundle as bundle_module
 from scripts.release_qualification import installed as installed_module
 from scripts.release_qualification import process as process_module
+from scripts.release_qualification import windows_installation as windows_authority
 from scripts.release_qualification.bundle import BundleBinding
 from scripts.release_qualification.installed import InstalledReceipt, _run_bounded, verify_installed
 
@@ -34,6 +39,523 @@ TCKS = (
     "run_plumber_graph_read_v1_tck.py",
     "run_plumber_graph_topology_v1_tck.py",
 )
+
+
+def test_windows_authority_inputs_are_explicit_and_keyword_only() -> None:
+    parameters = inspect.signature(verify_installed).parameters
+    required = {
+        "windows_installation_descriptor",
+        "expected_windows_installation_sha256",
+        "windows_template",
+        "installer",
+    }
+    assert required <= set(parameters), (
+        "Independent Windows installed authority inputs are missing."
+    )
+    assert all(parameters[name].kind is inspect.Parameter.KEYWORD_ONLY for name in required)
+
+
+def test_installed_receipt_declares_schema_and_absent_posix_windows_proof() -> None:
+    receipt = InstalledReceipt(
+        "wheel",
+        "linux",
+        "x86_64",
+        "3.12.14",
+        VERSION,
+        "isolated-venv-site-packages",
+        "a" * 64,
+        "b" * 64,
+        "c" * 64,
+        (),
+        installed_module.BuildGenerator("setuptools", "84.1.0"),
+        ("PASS", "PASS", "PASS"),
+    )
+    value = receipt.to_dict()
+    assert value.get("schema_version") == 2, "Installed receipt schema v2 is missing."
+    assert "windows_launcher" in value and value["windows_launcher"] is None
+
+
+@pytest.mark.parametrize("mutation", ["schema", "posix-proof", "windows-no-proof"])
+def test_installed_receipt_serializer_rejects_invalid_new_fields(mutation: str) -> None:
+    from tests.test_release_package_windows_installation import _proof_document
+
+    receipt = InstalledReceipt(
+        "wheel",
+        "linux",
+        "x86_64",
+        "3.12.14",
+        VERSION,
+        "isolated-venv-site-packages",
+        "a" * 64,
+        "b" * 64,
+        "c" * 64,
+        (),
+        installed_module.BuildGenerator("setuptools", "84.1.0"),
+        ("PASS", "PASS", "PASS"),
+    )
+    if mutation == "schema":
+        receipt = replace(receipt, schema_version=True)
+    elif mutation == "posix-proof":
+        receipt = replace(
+            receipt,
+            windows_launcher=windows_authority.WindowsLauncherProof.from_dict(_proof_document()),
+        )
+    else:
+        receipt = replace(receipt, operating_system="windows")
+    with pytest.raises(ValueError, match="Windows|schema"):
+        receipt.to_dict()
+
+
+@pytest.mark.parametrize("windows", [True, False])
+def test_windows_authority_arguments_reject_before_archive_or_probe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    windows: bool,
+) -> None:
+    from tests.test_release_package_windows_installation import _binding
+
+    monkeypatch.setattr(installed_module, "_IS_WINDOWS", windows)
+    monkeypatch.setattr(
+        installed_module,
+        "_authenticated_archive",
+        lambda *_a, **_k: pytest.fail("invalid authority read the archive"),
+    )
+    monkeypatch.setattr(
+        installed_module,
+        "_selected_environment",
+        lambda *_a: pytest.fail("invalid authority launched a probe"),
+    )
+    with pytest.raises(ValueError, match="Windows"):
+        verify_installed(
+            tmp_path / "python.exe",
+            _binding(),
+            tmp_path,
+            "wheel",
+            artifact=tmp_path / "archive",
+            windows_template=tmp_path / "template",
+        )
+
+
+def test_windows_unbound_descriptor_never_launches_selected_interpreter(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tests.test_release_package_windows_installation import _binding, _descriptor_document
+
+    descriptor = tmp_path / "descriptor.json"
+    descriptor.write_text(__import__("json").dumps(_descriptor_document()))
+    (tmp_path / "python.exe").write_bytes(b"synthetic identity, never executed")
+    monkeypatch.setattr(installed_module, "_IS_WINDOWS", True)
+    monkeypatch.setattr(installed_module, "_authenticated_archive", lambda *_a, **_k: ({}, {}))
+    monkeypatch.setattr(
+        installed_module,
+        "_verify_source",
+        lambda *_a: {"scripts/release_qualification/windows_installation.py"},
+    )
+    monkeypatch.setattr(
+        installed_module,
+        "_selected_environment",
+        lambda *_a: pytest.fail("unbound descriptor launched a probe"),
+    )
+    with pytest.raises(ValueError, match="external authenticated digest"):
+        verify_installed(
+            tmp_path / "python.exe",
+            _binding(),
+            tmp_path,
+            "wheel",
+            artifact=tmp_path / "archive",
+            windows_installation_descriptor=descriptor,
+            expected_windows_installation_sha256="0" * 64,
+            windows_template=tmp_path / "template",
+            installer=tmp_path / "uv.exe",
+        )
+
+
+@pytest.mark.parametrize("kind", ["wheel", "sdist"])
+@pytest.mark.parametrize("executable_pth", [False, True])
+def test_schema_v1_refuses_unbound_windows_startup_authority_before_probe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    kind: Literal["wheel", "sdist"],
+    executable_pth: bool,
+) -> None:
+    """A synthetic schema-v1 descriptor must never authorize target startup."""
+    from tests.test_release_package_windows_installation import _binding, _descriptor_document
+
+    descriptor_bytes = json.dumps(_descriptor_document(kind)).encode()
+    descriptor = tmp_path / "descriptor.json"
+    descriptor.write_bytes(descriptor_bytes)
+    python = tmp_path / "python.exe"
+    python.write_bytes(b"synthetic target; never executed")
+    if executable_pth:
+        python.with_name("python._pth").write_bytes(b"inert synthetic startup override")
+
+    monkeypatch.setattr(installed_module, "_IS_WINDOWS", True)
+    load_descriptor = windows_authority.load_windows_installation_descriptor
+
+    def load_descriptor_then_spy(
+        path: Path, *, expected_sha256: str
+    ) -> windows_authority.WindowsInstallationDescriptor:
+        parsed = load_descriptor(path, expected_sha256=expected_sha256)
+        monkeypatch.setattr(
+            windows_authority,
+            "canonical_windows_interpreter_path",
+            lambda *_a: pytest.fail("schema-v1 gate ran after interpreter-path authority use"),
+        )
+        return parsed
+
+    monkeypatch.setattr(
+        windows_authority, "load_windows_installation_descriptor", load_descriptor_then_spy
+    )
+    monkeypatch.setattr(installed_module, "_authenticated_archive", lambda *_a, **_k: ({}, {}))
+    monkeypatch.setattr(
+        installed_module,
+        "_verify_source",
+        lambda *_a: {"scripts/release_qualification/windows_installation.py"},
+    )
+    monkeypatch.setattr(
+        installed_module,
+        "_selected_environment",
+        lambda *_a: pytest.fail("schema-v1 startup authority reached the selected interpreter"),
+    )
+    monkeypatch.setattr(
+        installed_module,
+        "_isolated_probe",
+        lambda *_a: pytest.fail("schema-v1 startup authority reached the isolated probe"),
+    )
+
+    with pytest.raises(ValueError, match=r"Windows.*NO-GO.*startup authority"):
+        verify_installed(
+            python,
+            _binding(),
+            tmp_path,
+            kind,
+            artifact=tmp_path / "archive",
+            windows_installation_descriptor=descriptor,
+            expected_windows_installation_sha256=hashlib.sha256(descriptor_bytes).hexdigest(),
+            windows_template=tmp_path / "template.exe",
+            installer=tmp_path / "uv.exe",
+        )
+
+
+def test_windows_context_rejects_replaced_same_byte_authority(tmp_path: Path) -> None:
+    from tests.test_release_package_windows_installation import _descriptor_document
+
+    descriptor = windows_authority.WindowsInstallationDescriptor.from_bytes(
+        json.dumps(_descriptor_document()).encode()
+    )
+    path = tmp_path / "authority"
+    path.write_bytes(b"same bytes")
+    context = installed_module._WindowsInstallationContext(
+        descriptor,
+        b"not an admitted template",
+        ((path, hashlib.sha256(b"same bytes").hexdigest(), 100, None),),
+    )
+    context.revalidate()
+    replacement = tmp_path / "replacement"
+    replacement.write_bytes(b"same bytes")
+    replacement.replace(path)
+    with pytest.raises(ValueError, match="identity|changed"):
+        context.revalidate()
+
+
+def _startup_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
+    env_root = tmp_path / "owned-environment"
+    site = env_root / "Lib/site-packages"
+    site.mkdir(parents=True)
+    config = env_root / "pyvenv.cfg"
+    config.write_bytes(b"include-system-site-packages = false\nversion = 3.12.14\n")
+    return env_root, site, config
+
+
+@pytest.mark.parametrize(
+    "mutation", ["config", "replace", "pth", "sitecustomize", "usercustomize", "inventory"]
+)
+def test_windows_startup_state_rejects_later_mutation(tmp_path: Path, mutation: str) -> None:
+    env_root, site, config = _startup_fixture(tmp_path)
+    capture = getattr(installed_module, "_capture_windows_startup", None)
+    assert callable(capture), "Retained Windows startup authority is missing."
+    startup = capture(env_root)
+    startup.revalidate()
+    if mutation == "config":
+        config.write_bytes(b"include-system-site-packages = true\n")
+    elif mutation == "replace":
+        replacement = env_root / "replacement"
+        replacement.write_bytes(config.read_bytes())
+        replacement.replace(config)
+    else:
+        name = {
+            "pth": "unsafe.pth",
+            "sitecustomize": "sitecustomize.py",
+            "usercustomize": "usercustomize.pyd",
+            "inventory": "new-installed-package",
+        }[mutation]
+        (site / name).write_bytes(b"inert synthetic bytes, never imported")
+    with pytest.raises(ValueError, match="Windows"):
+        startup.revalidate()
+
+
+@pytest.mark.parametrize(
+    "hook", ["unsafe.pth", "sitecustomize.py", "sitecustomize", "USERCUSTOMIZE.PYD"]
+)
+def test_windows_startup_state_rejects_preexisting_hooks(tmp_path: Path, hook: str) -> None:
+    env_root, site, _config = _startup_fixture(tmp_path)
+    (site / hook).write_bytes(b"inert synthetic bytes, never imported")
+    capture = getattr(installed_module, "_capture_windows_startup", None)
+    assert callable(capture), "Retained Windows startup authority is missing."
+    with pytest.raises(ValueError, match="startup hook"):
+        capture(env_root)
+
+
+def _mocked_windows_installation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutate: Callable[[str, dict[str, Path]], None],
+) -> tuple[Callable[[], InstalledReceipt], dict[str, Path], list[str]]:
+    """Real orchestration/revalidation; artifact/native observations are explicit stubs.
+
+    No official template is admitted or patched. The inert launchers and the
+    independently specified proof are not represented as a native installation.
+    """
+    from tests.test_release_package_windows_installation import (
+        _binding,
+        _descriptor_document,
+        _proof_document,
+    )
+
+    authority = windows_authority
+    env_root, site, config = _startup_fixture(tmp_path)
+    scripts = env_root / "Scripts"
+    scripts.mkdir()
+    python = scripts / "python.exe"
+    python.write_bytes(b"inert interpreter; never executed")
+    launchers = []
+    for name in ENTRY_POINTS:
+        path = scripts / f"{name}.exe"
+        path.write_bytes(b"inert launcher; never executed")
+        launchers.append(path)
+    evidence = tmp_path / "independent-authority"
+    evidence.write_bytes(b"fixed independent synthetic authority")
+    descriptor = authority.WindowsInstallationDescriptor.from_bytes(
+        json.dumps(_descriptor_document()).encode()
+    )
+    proof = authority.WindowsLauncherProof.from_dict(_proof_document())
+    context = installed_module._WindowsInstallationContext(
+        descriptor,
+        b"not an admitted template",
+        ((evidence, hashlib.sha256(evidence.read_bytes()).hexdigest(), 1024, None),),
+        startup=installed_module._capture_windows_startup(env_root),
+    )
+    source = tmp_path / "source"
+    source.mkdir()
+    artifact = tmp_path / "original.whl"
+    paths = {
+        "env": env_root,
+        "site": site,
+        "config": config,
+        "authority": evidence,
+        "launcher": launchers[0],
+        "artifact": artifact,
+    }
+    phases: list[str] = []
+
+    def phase(name: str) -> None:
+        phases.append(name)
+        mutate(name, paths)
+
+    def authenticated_archive(
+        selected: Path, binding: BundleBinding, kind: str, **kwargs: object
+    ) -> tuple[dict[str, object], dict[str, bytes]]:
+        assert selected == artifact and binding == _binding() and kind == "wheel"
+        return {}, {}
+
+    def inputs(*args: object) -> installed_module._WindowsInstallationContext:
+        assert args == (
+            python,
+            _binding(),
+            source,
+            "wheel",
+            tmp_path / "descriptor.json",
+            "a" * 64,
+            tmp_path / "template",
+            tmp_path / "installer",
+        )
+        context.revalidate()
+        phase("admission")
+        return context
+
+    def selected_environment(selected: Path) -> tuple[Path, Path, str, str, str]:
+        assert selected == python
+        phase("identity")
+        return env_root, site, "3.12.14", "windows", "amd64"
+
+    records = {
+        os.path.relpath(path, site).replace(os.sep, "/"): (path, "", "") for path in launchers
+    }
+
+    def inventory(
+        *args: object, **kwargs: object
+    ) -> tuple[str, str, installed_module.BuildGenerator, object]:
+        assert args[-1] == records and kwargs["windows_context"] is context
+        phase("inventory")
+        return "b" * 64, "c" * 64, installed_module.BuildGenerator("setuptools", "84.1.0"), proof
+
+    def probe(*args: object) -> tuple[Path, Path, str, str, str, str, tuple[tuple[str, str], ...]]:
+        assert args == (python, env_root, site, source)
+        phase("probe")
+        return (
+            site,
+            site / "src/__init__.py",
+            hashlib.sha256(b"[]").hexdigest(),
+            "3.12.14",
+            "windows",
+            "amd64",
+            (),
+        )
+
+    tck_ids = {
+        "run_plumber_consumer_package_v1_tck.py": "plumber.consumer.package/v1",
+        "run_plumber_graph_read_v1_tck.py": "plumber.graph.read/v1",
+        "run_plumber_graph_topology_v1_tck.py": "plumber.graph.topology/v1",
+    }
+    calls = 0
+
+    def bounded(argv: list[str], **kwargs: object) -> tuple[int, bytes, bytes]:
+        nonlocal calls
+        assert argv[0:3] == [str(python), "-I", "-S"]
+        assert kwargs["timeout"] == 30 and argv[-2] == str(site)
+        calls += 1
+        assert calls <= 3
+        script = Path(argv[-1]).name
+        phase(f"tck-{calls}")
+        return 0, json.dumps({"contract_id": tck_ids[script]}).encode(), b""
+
+    def final_scripts(*args: object, **kwargs: object) -> object:
+        assert args == (records, site, env_root, dict(authority.SCRIPT_PAIRS))
+        assert kwargs["windows_context"] is context
+        phase("final-proof")
+        return proof
+
+    monkeypatch.setattr(installed_module, "_IS_WINDOWS", True)
+    monkeypatch.setattr(installed_module, "_authenticated_archive", authenticated_archive)
+    monkeypatch.setattr(
+        installed_module,
+        "_verify_source",
+        lambda *_a: {"scripts/release_qualification/windows_installation.py"},
+    )
+    monkeypatch.setattr(installed_module, "_windows_inputs", inputs)
+    monkeypatch.setattr(installed_module, "_payload_map", lambda *_a: {})
+    monkeypatch.setattr(installed_module, "_selected_environment", selected_environment)
+    monkeypatch.setattr(
+        installed_module, "_distribution", lambda *_a: (site / "project.dist-info", VERSION)
+    )
+    monkeypatch.setattr(installed_module, "_parse_record", lambda *_a: records)
+    monkeypatch.setattr(installed_module, "_verify_inventory", inventory)
+    monkeypatch.setattr(installed_module, "_isolated_probe", probe)
+    monkeypatch.setattr(installed_module, "_run_bounded", bounded)
+    monkeypatch.setattr(
+        installed_module, "_expected_scripts", lambda *_a: dict(authority.SCRIPT_PAIRS)
+    )
+    monkeypatch.setattr(installed_module, "_verify_entry_point_scripts", final_scripts)
+
+    def run() -> InstalledReceipt:
+        return verify_installed(
+            python,
+            _binding(),
+            source,
+            "wheel",
+            artifact=artifact,
+            windows_installation_descriptor=tmp_path / "descriptor.json",
+            expected_windows_installation_sha256="a" * 64,
+            windows_template=tmp_path / "template",
+            installer=tmp_path / "installer",
+        )
+
+    return run, paths, phases
+
+
+def test_mocked_windows_verification_completes_all_observations_and_rechecks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run, _paths, phases = _mocked_windows_installation(tmp_path, monkeypatch, lambda *_a: None)
+    receipt = run()
+    assert phases == [
+        "admission",
+        "identity",
+        "inventory",
+        "probe",
+        "tck-1",
+        "tck-2",
+        "tck-3",
+        "final-proof",
+    ]
+    assert receipt.windows_launcher is not None
+    serialized = receipt.to_dict()["windows_launcher"]
+    assert isinstance(serialized, dict)
+    assert serialized["profile"] == "windows-x64-console-nonrelocatable/v1"
+    assert receipt.schema_version == 2 and receipt.tck_outcomes == ("PASS", "PASS", "PASS")
+
+
+@pytest.mark.parametrize(
+    "phase", ["admission", "identity", "inventory", "probe", "tck-1", "tck-2", "tck-3"]
+)
+@pytest.mark.parametrize("mutation", ["config", "hook", "authority-replace"])
+def test_windows_orchestration_stops_after_execution_authority_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    phase: str,
+    mutation: str,
+) -> None:
+    def mutate(current: str, paths: dict[str, Path]) -> None:
+        if current != phase:
+            return
+        if mutation == "config":
+            paths["config"].write_bytes(b"include-system-site-packages = true\n")
+        elif mutation == "hook":
+            (paths["site"] / "injected.pth").write_bytes(b"inert hook; never imported")
+        else:
+            replacement = tmp_path / "replacement-authority"
+            replacement.write_bytes(paths["authority"].read_bytes())
+            replacement.replace(paths["authority"])
+
+    run, _paths, phases = _mocked_windows_installation(tmp_path, monkeypatch, mutate)
+    with pytest.raises(ValueError, match="Windows"):
+        run()
+    assert "final-proof" not in phases
+    if phase == "admission":
+        assert phases == ["admission"]
+    elif phase in {"identity", "inventory"}:
+        assert "probe" not in phases
+    elif phase == "probe":
+        assert "tck-1" not in phases
+    else:
+        assert phases[-1] == phase
+
+
+@pytest.mark.parametrize("phase", ["inventory", "probe", "tck-3"])
+@pytest.mark.parametrize("mutation", ["bytes", "same-byte-replace"])
+def test_windows_orchestration_rejects_launcher_change_before_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    phase: str,
+    mutation: str,
+) -> None:
+    def mutate(current: str, paths: dict[str, Path]) -> None:
+        if current != phase:
+            return
+        launcher = paths["launcher"]
+        if mutation == "bytes":
+            launcher.write_bytes(b"changed inert launcher")
+        else:
+            replacement = tmp_path / "replacement-launcher"
+            replacement.write_bytes(launcher.read_bytes())
+            replacement.replace(launcher)
+
+    run, _paths, phases = _mocked_windows_installation(tmp_path, monkeypatch, mutate)
+    with pytest.raises(ValueError, match="launcher identity changed"):
+        run()
+    assert "final-proof" not in phases
 
 
 def test_windows_bounded_runner_uses_shared_gate_and_raw_readers(
@@ -463,6 +985,8 @@ def test_installed_receipt_is_sanitized_and_runs_all_installed_tcks(tmp_path: Pa
         if isinstance(value, str)
     )
     assert set(receipt.to_dict()) == {
+        "schema_version",
+        "windows_launcher",
         "kind",
         "operating_system",
         "architecture",

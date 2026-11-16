@@ -398,7 +398,19 @@ def _record_inventory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[
     entries["synthetic.dist-info/RECORD"] = (dist_info / "RECORD", "", "")
     generator = installed.BuildGenerator(name="setuptools", version="80.9.0")
     monkeypatch.setattr(installed, "_verify_generated_metadata", lambda *args: ({}, generator))
-    monkeypatch.setattr(installed, "_verify_entry_point_scripts", lambda *args: None)
+
+    def skip_entry_point_scripts(
+        _entries: dict[str, tuple[Path, str, str]],
+        _site: Path,
+        _env_root: Path,
+        _scripts: dict[str, str],
+        *,
+        windows_context: object | None = None,
+    ) -> None:
+        assert windows_context is None
+        return None
+
+    monkeypatch.setattr(installed, "_verify_entry_point_scripts", skip_entry_point_scripts)
     monkeypatch.setattr(installed, "_RESOURCE_FILES", ())
     return (
         site,
@@ -425,7 +437,8 @@ def test_namespace_inventory_requires_ownership_before_acceptance(
         ):
             raise
         pytest.fail("the authenticated namespace is not included in installed ownership")
-    assert len(result) == 3
+    assert len(result) == 4
+    assert result[3] is None
 
 
 @pytest.mark.parametrize("fault", ["missing-record", "unowned", "rewritten-record", "bytes-only"])

@@ -439,3 +439,38 @@ def test_synthetic_candidate_rejects_changed_expected_content(
 
     with pytest.raises(ValueError, match="exactly match"):
         _verify_candidate_bytes(candidate, expected)
+
+
+@pytest.mark.parametrize(
+    ("template", "interpreter", "script", "message"),
+    [
+        (None, "python.exe", b"script", "Template PE must be bytes"),
+        (b"template", None, b"script", "interpreter path must be text"),
+        (b"template", "python.exe", None, "script payload must be bytes"),
+        (b"MZ", "python.exe", b"script", "pinned x64 console launcher source"),
+        (bytes(45_056), "python.exe", b"script", "pinned x64 console launcher source"),
+    ],
+    ids=["template-type", "interpreter-type", "script-type", "wrong-size", "wrong-digest"],
+)
+def test_expected_launcher_rejects_unauthenticated_inputs(
+    template: object,
+    interpreter: object,
+    script: object,
+    message: str,
+) -> None:
+    """The independent reconstruction entry point must retain every admission gate."""
+    from scripts.release_qualification import windows_launcher as launcher
+
+    reconstruct = getattr(launcher, "expected_windows_console_launcher", None)
+    assert callable(reconstruct), "Accepted L reconstruction entry point is missing."
+    with pytest.raises(ValueError, match=message):
+        reconstruct(template, interpreter, script)
+
+
+def test_expected_launcher_rejects_synthetic_template_without_admitting_it() -> None:
+    from scripts.release_qualification import windows_launcher as launcher
+
+    reconstruct = getattr(launcher, "expected_windows_console_launcher", None)
+    assert callable(reconstruct), "Accepted L reconstruction entry point is missing."
+    with pytest.raises(ValueError, match="pinned x64 console launcher source"):
+        reconstruct(_synthetic_pe(), r"C:\Venv\python.exe", b"synthetic script\n")

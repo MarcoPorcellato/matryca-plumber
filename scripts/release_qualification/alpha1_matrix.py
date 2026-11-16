@@ -456,6 +456,14 @@ def verify_row(
         and set(receipt) == set(installed.InstalledReceipt.__dataclass_fields__),
         "Missing full installed verification.",
     )
+    _require(
+        type(receipt["schema_version"]) is int and receipt["schema_version"] == 2,
+        "Installed receipt schema version must be integer 2.",
+    )
+    _require(
+        receipt["windows_launcher"] is None,
+        "Windows launcher proof is invalid on the alpha POSIX matrix.",
+    )
     os_name, machine = ("Linux", "x86_64") if system == "linux" else ("Darwin", "arm64")
     _require(
         receipt["kind"] == kind
