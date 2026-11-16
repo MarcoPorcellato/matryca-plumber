@@ -759,6 +759,12 @@ def _windows_inputs(
         descriptor_path, expected_sha256=descriptor_sha256
     )
     descriptor.verify_binding(binding, kind)
+    # Schema v1 cannot bind every executable/DLL ._pth lookup location; refuse rather than guess.
+    if descriptor.schema_version == 1:
+        _fail(
+            "Windows installed-package qualification is NO-GO: "
+            "independent executable/DLL startup authority is unavailable."
+        )
     if (
         windows_authority.canonical_windows_interpreter_path(str(python.absolute()))
         != descriptor.interpreter_path

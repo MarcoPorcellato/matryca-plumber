@@ -20,7 +20,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Literal, cast
 
 import pytest
 from scripts.build_release_artifacts import _PUBLIC_CONTRACT_RESOURCE_MEMBERS
@@ -167,6 +167,73 @@ def test_windows_unbound_descriptor_never_launches_selected_interpreter(
             windows_installation_descriptor=descriptor,
             expected_windows_installation_sha256="0" * 64,
             windows_template=tmp_path / "template",
+            installer=tmp_path / "uv.exe",
+        )
+
+
+@pytest.mark.parametrize("kind", ["wheel", "sdist"])
+@pytest.mark.parametrize("executable_pth", [False, True])
+def test_schema_v1_refuses_unbound_windows_startup_authority_before_probe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    kind: Literal["wheel", "sdist"],
+    executable_pth: bool,
+) -> None:
+    """A synthetic schema-v1 descriptor must never authorize target startup."""
+    from tests.test_release_package_windows_installation import _binding, _descriptor_document
+
+    descriptor_bytes = json.dumps(_descriptor_document(kind)).encode()
+    descriptor = tmp_path / "descriptor.json"
+    descriptor.write_bytes(descriptor_bytes)
+    python = tmp_path / "python.exe"
+    python.write_bytes(b"synthetic target; never executed")
+    if executable_pth:
+        python.with_name("python._pth").write_bytes(b"inert synthetic startup override")
+
+    monkeypatch.setattr(installed_module, "_IS_WINDOWS", True)
+    load_descriptor = windows_authority.load_windows_installation_descriptor
+
+    def load_descriptor_then_spy(
+        path: Path, *, expected_sha256: str
+    ) -> windows_authority.WindowsInstallationDescriptor:
+        parsed = load_descriptor(path, expected_sha256=expected_sha256)
+        monkeypatch.setattr(
+            windows_authority,
+            "canonical_windows_interpreter_path",
+            lambda *_a: pytest.fail("schema-v1 gate ran after interpreter-path authority use"),
+        )
+        return parsed
+
+    monkeypatch.setattr(
+        windows_authority, "load_windows_installation_descriptor", load_descriptor_then_spy
+    )
+    monkeypatch.setattr(installed_module, "_authenticated_archive", lambda *_a, **_k: ({}, {}))
+    monkeypatch.setattr(
+        installed_module,
+        "_verify_source",
+        lambda *_a: {"scripts/release_qualification/windows_installation.py"},
+    )
+    monkeypatch.setattr(
+        installed_module,
+        "_selected_environment",
+        lambda *_a: pytest.fail("schema-v1 startup authority reached the selected interpreter"),
+    )
+    monkeypatch.setattr(
+        installed_module,
+        "_isolated_probe",
+        lambda *_a: pytest.fail("schema-v1 startup authority reached the isolated probe"),
+    )
+
+    with pytest.raises(ValueError, match=r"Windows.*NO-GO.*startup authority"):
+        verify_installed(
+            python,
+            _binding(),
+            tmp_path,
+            kind,
+            artifact=tmp_path / "archive",
+            windows_installation_descriptor=descriptor,
+            expected_windows_installation_sha256=hashlib.sha256(descriptor_bytes).hexdigest(),
+            windows_template=tmp_path / "template.exe",
             installer=tmp_path / "uv.exe",
         )
 
