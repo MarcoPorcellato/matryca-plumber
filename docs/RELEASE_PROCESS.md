@@ -63,16 +63,25 @@ historical prerelease; its source, artifacts, and qualification evidence do not 
 to RC4 or stable `v2.0.1`. Its [qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
 is historical, not a proposal for the next candidate.
 
-### Active experimental 2.1.0 alpha track
+### Full 2.1.0 stable successor
 
-The active [2.1.0a4 qualification plan](quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
+The [stable qualification plan](quality/V2_1_0_STABLE_RELEASE_QUALIFICATION_PLAN_2026-11-15.md)
+records the Tier 3 scope, proposed support targets and exact public RC
+observation requirements. No full RC candidate is selected. Native Windows,
+full Stage A, public RC verification, upgrade/fallback and dual-profile
+durability remain separate gates. The experimental alpha result does not
+start the RC observation window or qualify the stable package.
+
+### Experimental 2.1.0 alpha track
+
+The [2.1.0a4 qualification plan](quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
 retains the content-free OG identity/topology producer on Linux x86_64 and macOS
 arm64, with CPython 3.12 and 3.13 and both wheel and sdist installation paths.
 The eight rows were exercised in the source-bound checkpoint recorded in the
-plan. Packaged descriptor rows remain `planned` and operational results remain
-`unqualified`. At the 2026-11-15 pre-publication checkpoint, alpha.4 had not been
-published or qualified on public bytes; subsequent results require their own
-source/artifact-bound record.
+plan. The separate [alpha.4 public-byte handoff](quality/OG_OPERATIONAL_V1_ALPHA4_PUBLIC_HANDOFF.md)
+binds the original producer, public artifacts and later verification run.
+Packaged descriptor rows remain `planned` and operational results remain
+`unqualified`; external experimental evidence does not change those labels.
 Windows gateway refusal is a negative control, not Windows installed-package qualification.
 
 The [RC4 supersession record](quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
@@ -82,8 +91,8 @@ three-platform Stage A or the separately governed dual-profile Gate B. The
 experimental POSIX publication decision is distinct from that full qualification
 and from Trama's independent admission.
 
-For this preparation, package metadata uses `2.1.0a4`, the signed tag is
-prospective `v2.1.0-alpha.4`, and the changelog section is `[2.1.0-alpha.4]`. The release
+For this alpha release, package metadata uses `2.1.0a4`, the signed tag is
+`v2.1.0-alpha.4`, and the changelog section is `[2.1.0-alpha.4]`. The release
 workflow compares the metadata version with both byte-identical llms surfaces;
 its changelog extractor requires the literal tag spelling without `v`. Do not
 substitute a PEP 440-normalized changelog heading.

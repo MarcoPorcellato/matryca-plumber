@@ -1915,6 +1915,27 @@
       "missing": false
     },
     {
+      "path": "docs/quality/OG_OPERATIONAL_V1_ALPHA4_PUBLIC_HANDOFF.md",
+      "type": "Audit",
+      "title": "Alpha.4 public OG producer handoff",
+      "description": "Original alpha.4 public package identities and independently verified bounded OG experiment receipts.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator",
+        "agent"
+      ],
+      "surface_class": "artifact",
+      "canonical_for": null,
+      "owner": "quality",
+      "destination": "docs/artifacts/quality/",
+      "action": "artifact",
+      "supersedes": [],
+      "notes": "Bounded original public bytes only; packaged labels and Trama admission remain unchanged.",
+      "missing": false
+    },
+    {
       "path": "docs/quality/PUBLIC_RELEASE_AND_SOAK_EVIDENCE_POLICY.md",
       "type": "Guide",
       "title": "Public release and soak evidence policy",
@@ -2375,6 +2396,26 @@
         "docs/quality/V2_1_0A3_RELEASE_QUALIFICATION_PLAN_2026-10-22.md"
       ],
       "notes": "Preparation does not select a final candidate or qualify public bytes. Preserve the alpha.3 tuple, packaged qualification labels and legacy RC4 obligations. No tag/publication or Trama change without its separate owner gate.",
+      "missing": false
+    },
+    {
+      "path": "docs/quality/V2_1_0_STABLE_RELEASE_QUALIFICATION_PLAN_2026-11-15.md",
+      "type": "Roadmap",
+      "title": "2.1.0 stable release qualification plan",
+      "description": "Tier 3 stable planning baseline, qualification targets and separate RC observation and publication gates.",
+      "classification": "active",
+      "audience": [
+        "maintainer",
+        "contributor",
+        "operator"
+      ],
+      "surface_class": "concept-candidate",
+      "canonical_for": null,
+      "owner": "release",
+      "destination": null,
+      "action": "keep",
+      "supersedes": [],
+      "notes": "No candidate selected or support admitted; preserves the experimental alpha track and unfinished full-release obligations.",
       "missing": false
     },
     {
