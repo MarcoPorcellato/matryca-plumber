@@ -17,7 +17,7 @@
     "native_sha256": "6d138edc0b82853752d22f1f118b5a13d5b6517ef12677c00360e4a98de35ff0",
     "package_prefix": "--require-hashes\n"
   },
-  "lock_sha256": "a6e2ebf2d4ded2e04d95effa772a1ae9e7f96e12d5620bbf006a63176b8ea9ec",
+  "lock_sha256": "6e1c90bf9f6d41303c6952f8278307770904bbe9c8f18b888e825cad81f2cd87",
   "lock_source": "uv.lock",
   "matrix": [
     {
@@ -52,7 +52,7 @@
   "profile_id": "og-v1-parser-1.9.0",
   "project": {
     "name": "matryca-plumber",
-    "version": "2.1.0a4"
+    "version": "2.1.0rc1"
   },
   "qualification": "unqualified",
   "requirements": {
