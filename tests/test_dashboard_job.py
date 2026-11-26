@@ -352,6 +352,7 @@ async def test_dashboard_descendant_is_gone_before_admission_reopens(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     marker = tmp_path / "synthetic-child.pid"
+    marker_pending = marker.with_suffix(".pid.tmp")
     program = "\n".join(
         [
             "import subprocess,sys,time,os,signal",
@@ -361,7 +362,9 @@ async def test_dashboard_descendant_is_gone_before_admission_reopens(
             "    child.wait(timeout=1)",
             "    raise SystemExit(0)",
             "signal.signal(signal.SIGTERM,stop)",
-            f"open({str(marker)!r},'w').write(str(child.pid))",
+            f"with open({str(marker_pending)!r},'x') as pid_file:",
+            "    pid_file.write(str(child.pid))",
+            f"os.replace({str(marker_pending)!r},{str(marker)!r})",
             "time.sleep(20)",
         ]
     )

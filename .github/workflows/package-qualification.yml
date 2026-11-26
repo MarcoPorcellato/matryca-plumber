@@ -1,0 +1,607 @@
+name: First-stable package qualification
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - .github/workflows/package-qualification.yml
+      - scripts/release_qualification/first_stable_host.py
+      - scripts/release_qualification/first_stable_runtime.py
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full, separately selected main source commit
+        required: true
+        type: string
+      source_tree:
+        description: Full tree of the selected commit
+        required: true
+        type: string
+      mode:
+        description: Startup diagnostics or ordinary candidate qualification
+        required: true
+        type: choice
+        options: [startup, qualification]
+      candidate_tag:
+        description: Expected RC/final tag spelling (never created by this workflow)
+        required: false
+        type: string
+      runtime_admission_sha256:
+        description: Maintainer-selected digest of reviewed runtime admission
+        required: false
+        type: string
+
+permissions: {}
+
+env:
+  SELECTED_SOURCE: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+  SELECTED_TREE: ${{ inputs.source_tree }}
+  CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+  FIRST_STABLE_MODE: ${{ github.event_name == 'pull_request' && 'startup' || inputs.mode }}
+  PYTHONDONTWRITEBYTECODE: "1"
+  UV_NO_CONFIG: "1"
+  UV_PYTHON_DOWNLOADS: never
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: first-stable-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  admit:
+    if: ${{ github.repository == 'MarcoPorcellato/matryca-plumber' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    name: Admit first-stable selection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.admit.outputs.version }}
+      mode: ${{ steps.admit.outputs.mode }}
+    steps:
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.source_sha }}
+          persist-credentials: false
+      - name: Enforce exact source and qualification admission
+        id: admit
+        shell: bash
+        env:
+          ADMISSION_SHA256: ${{ inputs.runtime_admission_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$GITHUB_REF_PROTECTED" = true
+            test "$GITHUB_SHA" = "$SELECTED_SOURCE"
+            [[ "$SELECTED_TREE" =~ ^[0-9a-f]{40}$ ]]
+            test "$(git rev-parse 'HEAD^{tree}')" = "$SELECTED_TREE"
+          fi
+          case "$FIRST_STABLE_MODE" in
+            startup) ;;
+            qualification)
+              test "$GITHUB_EVENT_NAME" = workflow_dispatch
+              python3 -B -m scripts.release_qualification.first_stable_admission "$CANDIDATE_TAG" "$ADMISSION_SHA256"
+              ;;
+            *) exit 2 ;;
+          esac
+          version="$(python3 -I -B -S -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          [[ "$version" =~ ^[0-9A-Za-z.]+$ ]]
+          printf 'version=%s\nmode=%s\n' "$version" "$FIRST_STABLE_MODE" >> "$GITHUB_OUTPUT"
+
+  linux-startup:
+    name: Native Linux runtime startup (diagnostic)
+    needs: [admit]
+    if: ${{ needs.admit.outputs.mode == 'startup' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - *checkout
+      - name: Run both exact runtimes in fresh native roots
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(uname -sm)" = "Linux x86_64"
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          root="$(cd -P "$RUNNER_TEMP" && pwd)"
+          python3 -B -m scripts.release_qualification.first_stable_host linux-x86_64 3.12.16 "$root/first-stable-startup312"
+          python3 -B -m scripts.release_qualification.first_stable_host linux-x86_64 3.13.18 "$root/first-stable-startup313"
+      - name: Preserve both native startup receipts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: first-stable-native-linux-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/first-stable-startup312/startup.json
+            ${{ runner.temp }}/first-stable-startup313/startup.json
+          if-no-files-found: error
+          retention-days: 14
+
+  build:
+    name: Build original first-stable artifacts
+    needs: [admit]
+    if: ${{ needs.admit.outputs.mode == 'qualification' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      TARGET: linux-x86_64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "yes"
+      SELECTED_VERSION: ${{ needs.admit.outputs.version }}
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+      binding: ${{ steps.build.outputs.binding }}
+      export-sha256: ${{ steps.build.outputs.export-sha256 }}
+    steps:
+      - *checkout
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Provision the pinned qualification tool and native CPython
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          root="$(cd -P "$RUNNER_TEMP" && pwd)"
+          uv_root="$root/first-stable-uv"
+          python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          uv="$uv_root/bin/uv"
+          export UV_CACHE_DIR="$root/first-stable-cache"
+          base="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" "$PATCH" "$root/first-stable-native")"
+          UV_PROJECT_ENVIRONMENT="$root/first-stable-tools" "$uv" sync --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$base"
+          if [ "$NEED_BUILDER" = yes ]; then
+            build_base="$base"
+            if [ "$PATCH" != 3.12.16 ]; then
+              build_base="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" 3.12.16 "$root/first-stable-build-native")"
+            fi
+            UV_PROJECT_ENVIRONMENT="$root/first-stable-builder" "$uv" sync --project release-qualification-build --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$build_base"
+          fi
+          printf 'TASK_ROOT=%s\nUV_CACHE_DIR=%s\nUV_BIN=%s\nBASE_PYTHON=%s\nTOOLS_PYTHON=%s\n' "$root" "$UV_CACHE_DIR" "$uv" "$base" "$root/first-stable-tools/bin/python" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+      - name: Produce one original wheel and sdist
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$TOOLS_PYTHON" -B -m scripts.release_qualification.first_stable_job build --uv "$UV_BIN" --builder "$TASK_ROOT/first-stable-builder/bin/python" --output "$TASK_ROOT/first-stable-inputs"
+      - name: Preserve original pair and independent build input export
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: first-stable-inputs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/first-stable-inputs
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  minimum-linux-312-wheel:
+    name: Install first-stable (minimum-linux-x86_64-cpython-3.12.16-wheel)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-linux-x86_64-cpython-3.12.16-wheel
+      TARGET: linux-x86_64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: &row_outputs
+      row-key: ${{ steps.identity.outputs.row-key }}
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
+    steps: &row_steps
+      - *checkout
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Provision the pinned qualification tool and native CPython
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          root="$(cd -P "$RUNNER_TEMP" && pwd)"
+          uv_root="$root/first-stable-uv"
+          python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          uv="$uv_root/bin/uv"
+          export UV_CACHE_DIR="$root/first-stable-cache"
+          base="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" "$PATCH" "$root/first-stable-native")"
+          UV_PROJECT_ENVIRONMENT="$root/first-stable-tools" "$uv" sync --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$base"
+          if [ "$NEED_BUILDER" = yes ]; then
+            build_base="$base"
+            if [ "$PATCH" != 3.12.16 ]; then
+              build_base="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" 3.12.16 "$root/first-stable-build-native")"
+            fi
+            UV_PROJECT_ENVIRONMENT="$root/first-stable-builder" "$uv" sync --project release-qualification-build --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$build_base"
+          fi
+          printf 'TASK_ROOT=%s\nUV_CACHE_DIR=%s\nUV_BIN=%s\nBASE_PYTHON=%s\nTOOLS_PYTHON=%s\n' "$root" "$UV_CACHE_DIR" "$uv" "$base" "$root/first-stable-tools/bin/python" >> "$GITHUB_ENV"
+      - name: Download independent original pair and runtime lock export
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/first-stable-inputs
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Install and verify exact row
+        id: identity
+        timeout-minutes: 19
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_args=()
+          if [ "$NEED_BUILDER" = yes ]; then
+            build_args=(--builder "$TASK_ROOT/first-stable-builder/bin/python")
+          fi
+          "$TOOLS_PYTHON" -B -m scripts.release_qualification.first_stable_job row \
+            --uv "$UV_BIN" --runtime "$BASE_PYTHON" --inputs "$TASK_ROOT/first-stable-inputs" \
+            --work "$TASK_ROOT/first-stable-row-work" --output "$TASK_ROOT/first-stable-row-report" \
+            "${build_args[@]}"
+          printf 'row-key=%s\n' "$ROW_KEY" >> "$GITHUB_OUTPUT"
+      - name: Preserve exact original and installed row receipt
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: first-stable-row-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.ROW_KEY }}
+          path: ${{ runner.temp }}/first-stable-row-report/row.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  minimum-linux-312-sdist:
+    name: Install first-stable (minimum-linux-x86_64-cpython-3.12.16-sdist)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-linux-x86_64-cpython-3.12.16-sdist
+      TARGET: linux-x86_64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  minimum-linux-313-wheel:
+    name: Install first-stable (minimum-linux-x86_64-cpython-3.13.18-wheel)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-linux-x86_64-cpython-3.13.18-wheel
+      TARGET: linux-x86_64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  minimum-linux-313-sdist:
+    name: Install first-stable (minimum-linux-x86_64-cpython-3.13.18-sdist)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-linux-x86_64-cpython-3.13.18-sdist
+      TARGET: linux-x86_64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  minimum-mac-312-wheel:
+    name: Install first-stable (minimum-macos-arm64-cpython-3.12.16-wheel)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-macos-arm64-cpython-3.12.16-wheel
+      TARGET: macos-arm64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  minimum-mac-312-sdist:
+    name: Install first-stable (minimum-macos-arm64-cpython-3.12.16-sdist)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-macos-arm64-cpython-3.12.16-sdist
+      TARGET: macos-arm64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  minimum-mac-313-wheel:
+    name: Install first-stable (minimum-macos-arm64-cpython-3.13.18-wheel)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-macos-arm64-cpython-3.13.18-wheel
+      TARGET: macos-arm64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  minimum-mac-313-sdist:
+    name: Install first-stable (minimum-macos-arm64-cpython-3.13.18-sdist)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: minimum-macos-arm64-cpython-3.13.18-sdist
+      TARGET: macos-arm64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-linux-312-wheel:
+    name: Install first-stable (current-linux-x86_64-cpython-3.12.16-wheel)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-linux-x86_64-cpython-3.12.16-wheel
+      TARGET: linux-x86_64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-linux-312-sdist:
+    name: Install first-stable (current-linux-x86_64-cpython-3.12.16-sdist)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-linux-x86_64-cpython-3.12.16-sdist
+      TARGET: linux-x86_64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-linux-313-wheel:
+    name: Install first-stable (current-linux-x86_64-cpython-3.13.18-wheel)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-linux-x86_64-cpython-3.13.18-wheel
+      TARGET: linux-x86_64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-linux-313-sdist:
+    name: Install first-stable (current-linux-x86_64-cpython-3.13.18-sdist)
+    needs: [admit, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-linux-x86_64-cpython-3.13.18-sdist
+      TARGET: linux-x86_64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-mac-312-wheel:
+    name: Install first-stable (current-macos-arm64-cpython-3.12.16-wheel)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-macos-arm64-cpython-3.12.16-wheel
+      TARGET: macos-arm64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-mac-312-sdist:
+    name: Install first-stable (current-macos-arm64-cpython-3.12.16-sdist)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-macos-arm64-cpython-3.12.16-sdist
+      TARGET: macos-arm64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-mac-313-wheel:
+    name: Install first-stable (current-macos-arm64-cpython-3.13.18-wheel)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-macos-arm64-cpython-3.13.18-wheel
+      TARGET: macos-arm64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+  current-mac-313-sdist:
+    name: Install first-stable (current-macos-arm64-cpython-3.13.18-sdist)
+    needs: [admit, build]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ROW_KEY: current-macos-arm64-cpython-3.13.18-sdist
+      TARGET: macos-arm64
+      PATCH: "3.13.18"
+      NEED_BUILDER: "yes"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    outputs: *row_outputs
+    steps: *row_steps
+
+
+  aggregate:
+    name: Verify first-stable exact-attempt receipts
+    needs: [admit, build, minimum-linux-312-wheel, minimum-linux-312-sdist, minimum-linux-313-wheel, minimum-linux-313-sdist, minimum-mac-312-wheel, minimum-mac-312-sdist, minimum-mac-313-wheel, minimum-mac-313-sdist, current-linux-312-wheel, current-linux-312-sdist, current-linux-313-wheel, current-linux-313-sdist, current-mac-312-wheel, current-mac-312-sdist, current-mac-313-wheel, current-mac-313-sdist]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      TARGET: linux-x86_64
+      PATCH: "3.12.16"
+      NEED_BUILDER: "no"
+      EXPECTED_BINDING_JSON: ${{ needs.build.outputs.binding }}
+      EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
+    steps:
+      - *checkout
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Provision the pinned qualification tool and native CPython
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          root="$(cd -P "$RUNNER_TEMP" && pwd)"
+          uv_root="$root/first-stable-uv"
+          python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          uv="$uv_root/bin/uv"
+          export UV_CACHE_DIR="$root/first-stable-cache"
+          base="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" "$PATCH" "$root/first-stable-native")"
+          UV_PROJECT_ENVIRONMENT="$root/first-stable-tools" "$uv" sync --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$base"
+          if [ "$NEED_BUILDER" = yes ]; then
+            build_base="$base"
+            if [ "$PATCH" != 3.12.16 ]; then
+              build_base="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" 3.12.16 "$root/first-stable-build-native")"
+            fi
+            UV_PROJECT_ENVIRONMENT="$root/first-stable-builder" "$uv" sync --project release-qualification-build --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$build_base"
+          fi
+          printf 'TASK_ROOT=%s\nUV_CACHE_DIR=%s\nUV_BIN=%s\nBASE_PYTHON=%s\nTOOLS_PYTHON=%s\n' "$root" "$UV_CACHE_DIR" "$uv" "$base" "$root/first-stable-tools/bin/python" >> "$GITHUB_ENV"
+      - name: Obtain exact-attempt GitHub metadata
+        timeout-minutes: 2
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$TASK_ROOT/first-stable-evidence"
+          cd "$TASK_ROOT/first-stable-evidence"
+          ulimit -f 512
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/package-qualification.yml" > workflow.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" > run.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" > jobs.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" > artifacts.json
+      - name: Download the independently carried original pair
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/first-stable-evidence/inputs
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Download the sixteen independently carried row artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: "${{ needs.minimum-linux-312-wheel.outputs.artifact-id }},${{ needs.minimum-linux-312-sdist.outputs.artifact-id }},${{ needs.minimum-linux-313-wheel.outputs.artifact-id }},${{ needs.minimum-linux-313-sdist.outputs.artifact-id }},${{ needs.minimum-mac-312-wheel.outputs.artifact-id }},${{ needs.minimum-mac-312-sdist.outputs.artifact-id }},${{ needs.minimum-mac-313-wheel.outputs.artifact-id }},${{ needs.minimum-mac-313-sdist.outputs.artifact-id }},${{ needs.current-linux-312-wheel.outputs.artifact-id }},${{ needs.current-linux-312-sdist.outputs.artifact-id }},${{ needs.current-linux-313-wheel.outputs.artifact-id }},${{ needs.current-linux-313-sdist.outputs.artifact-id }},${{ needs.current-mac-312-wheel.outputs.artifact-id }},${{ needs.current-mac-312-sdist.outputs.artifact-id }},${{ needs.current-mac-313-wheel.outputs.artifact-id }},${{ needs.current-mac-313-sdist.outputs.artifact-id }}"
+          path: ${{ runner.temp }}/first-stable-evidence/rows
+          merge-multiple: false
+          digest-mismatch: error
+      - name: Cross-check all sixteen receipts and retained job identity
+        shell: bash
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          "$TOOLS_PYTHON" -B -m scripts.release_qualification.first_stable_aggregate "$TASK_ROOT/first-stable-evidence"
+      - name: Preserve aggregate (not release authorization)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: first-stable-aggregate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/first-stable-evidence/aggregate.json
+          if-no-files-found: error
+          retention-days: 14
+

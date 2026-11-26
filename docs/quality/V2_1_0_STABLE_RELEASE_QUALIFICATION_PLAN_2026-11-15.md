@@ -49,11 +49,12 @@ No other OS, architecture, runtime or Parser version is qualified by implication
 The universal `py3-none-any` wheel may be selected by an installer on an
 unsupported platform; installation does not establish support.
 
-Parser 1.11.3 remains the prior upper-profile target. Parser 1.11.4 is a current
-metadata-only upper-profile candidate, pending an explicit choice and exact
-compatibility and provenance evidence. Neither is selected by this amendment;
-no dependency change follows. A current unpinned installation is not qualified
-by an exact-profile result.
+The first-stable scope selects exact Parser **1.9.0** and **1.11.4**
+qualification profiles, replacing the prior first-stable upper target of
+1.11.3. This selects evidence targets only. Compatibility, artifact provenance
+and the complete dependency closures are still to be verified. No product
+dependency change follows, and an exact-profile result does not qualify an
+unpinned installation. The historical all-platform target above is unchanged.
 
 Each ordinary profile needs an exact, hash-locked dependency closure and
 installed-origin checks. The declared Parser interval is not an empirical
