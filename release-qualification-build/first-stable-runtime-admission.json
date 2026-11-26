@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "runtime_inputs": [
+    {
+      "platform": "linux-x86_64",
+      "python": "3.12.16",
+      "archive_sha256": "c2f87d4b4e8db3abddb0f116c6ccfc503d0cbdbb9ee8faacddad1b679ec12e99",
+      "build_evidence_sha256": "200e3bb49d8dfdff199723588728234031cf29926df4e96281099bbf5149f585",
+      "notices_sha256": "485135b97c65f5cbb6e91b49a6d84e427b35b52a868c368bff953d74cea3e3e8"
+    },
+    {
+      "platform": "linux-x86_64",
+      "python": "3.13.18",
+      "archive_sha256": "50c774f6674740739f791c05a9177ed03e2fe02abebda9bca3512eb7309b37cc",
+      "build_evidence_sha256": "557ff10c6207e9a8b3a6335e11bbf9c523a6fe2363a3076cf6a0fb00ac42406d",
+      "notices_sha256": "c52fc8cbf4261fd9b4c0e67302d75c67162513e503d3cbddf3f68401c1941fc2"
+    },
+    {
+      "platform": "macos-arm64",
+      "python": "3.12.16",
+      "archive_sha256": "e956e60bc9465d577ef8062059aa05cd3a2665b4b8678a2ed24e432368330b8f",
+      "build_evidence_sha256": "8db328fca2a12abab28f7e863595a0dffab9125679079c212f1469cd45362967",
+      "notices_sha256": "ad4a969cf775d8fca1b874e498bdeb00bed98341766d5e68fc68edde91c3dd61"
+    },
+    {
+      "platform": "macos-arm64",
+      "python": "3.13.18",
+      "archive_sha256": "1afd3983237c2a10277345f235be730e9cb49a123e0574ed252dbf3a841a24e4",
+      "build_evidence_sha256": "ca9bffbddbc77735743e890736f1e6c367b716c2c26eda3879a47ba1365a9c71",
+      "notices_sha256": "fd0d527a4bdb2a2a9a8f8759d7e69de6dc9c4a973cef6bac921cc5375697d4e2"
+    }
+  ]
+}

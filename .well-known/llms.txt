@@ -1,9 +1,13 @@
-# Matryca Plumber - AI Agent Context & Execution Guide (v2.1.0a4 prepublication)
+# Matryca Plumber - AI Agent Context & Execution Guide (v2.1.0rc1 prepublication)
 
 > **SYSTEM DIRECTIVE FOR AI AGENTS:** You operate on the user's **local Logseq OG vault** via Matryca Plumber.  
 > **CRITICAL RULE:** DO NOT `git clone` this repository. DO NOT `pip install`. Run the **PyPI** release with **`uvx`** so you use a real, versioned wheel — not a guessed dev tree.
 
 Canonical copy (2026 standard path): `.well-known/llms.txt` (same content as this file).
+
+The v2.1.0rc1 source prepares an ordinary Linux x86_64/macOS arm64 candidate.
+It is not an installation recommendation or a support claim. The 16-row
+package qualification, release decision and public-byte checks remain separate.
 
 Alpha.4 publication-status statements below describe the **2026-11-15
 pre-publication checkpoint**, not permanent registry state. Consult the
