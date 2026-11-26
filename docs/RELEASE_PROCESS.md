@@ -63,14 +63,23 @@ historical prerelease; its source, artifacts, and qualification evidence do not 
 to RC4 or stable `v2.0.1`. Its [qualification plan](quality/V2_0_1_RC3_RELEASE_QUALIFICATION_PLAN_2026-08-31.md)
 is historical, not a proposal for the next candidate.
 
-### Full 2.1.0 stable successor
+### 2.1.0 stable successor
 
 The [stable qualification plan](quality/V2_1_0_STABLE_RELEASE_QUALIFICATION_PLAN_2026-11-15.md)
-records the Tier 3 scope, proposed support targets and exact public RC
-observation requirements. No full RC candidate is selected. Native Windows,
-full Stage A, public RC verification, upgrade/fallback and dual-profile
-durability remain separate gates. The experimental alpha result does not
-start the RC observation window or qualify the stable package.
+records the Tier 3 scope and exact public RC observation requirements. The
+first-stable target is a separate 16-row ordinary Linux x86_64/macOS arm64
+lane; the original 24-row all-platform target retains its eight deferred Windows
+rows. Windows native qualification remains required for the all-platform claim.
+No RC or final candidate is selected; v2.0.0 remains the latest qualified stable
+baseline. A universal wheel being installable does not imply platform support.
+The ordinary lane must independently verify the complete exact row set and
+must explicitly amend workflow admission rather than bypass a Windows guard
+through a new filename. The release workflow must reject an ordinary RC or final
+candidate unless the accepted aggregate binds its exact source commit, tree and
+version. Public original wheel and sdist verification, upgrade and rollback,
+seven-day eligible public RC observation and 259,200 valid seconds for each of
+the two durability profiles remain separate gates. The experimental alpha result
+does not start the RC observation window or qualify the stable package.
 
 ### Experimental 2.1.0 alpha track
 
@@ -86,8 +95,9 @@ Windows gateway refusal is a negative control, not Windows installed-package qua
 
 The [RC4 supersession record](quality/RC4_TO_V2_1_0_SUPERSESSION_2026-10-16.md)
 preserves historical evidence and transfers unfinished obligations to the later
-full 2.1.0 qualification track. It does not waive native Windows, full
-three-platform Stage A or the separately governed dual-profile Gate B. The
+full 2.1.0 qualification track. Native Windows and full three-platform Stage A
+remain required for the all-platform claim; the separately named first-stable
+scope does not waive the dual-profile Gate B. The
 experimental POSIX publication decision is distinct from that full qualification
 and from Trama's independent admission.
 
