@@ -253,7 +253,7 @@ jobs:
           "$TOOLS_PYTHON" -B -m scripts.release_qualification.first_stable_job row \
             --uv "$UV_BIN" --runtime "$BASE_PYTHON" --inputs "$TASK_ROOT/first-stable-inputs" \
             --work "$TASK_ROOT/first-stable-row-work" --output "$TASK_ROOT/first-stable-row-report" \
-            "${build_args[@]}"
+            ${build_args[@]+"${build_args[@]}"}
           printf 'row-key=%s\n' "$ROW_KEY" >> "$GITHUB_OUTPUT"
       - name: Preserve exact original and installed row receipt
         id: upload
