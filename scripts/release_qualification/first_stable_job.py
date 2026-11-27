@@ -38,8 +38,8 @@ def _write(path: Path, data: bytes) -> None:
         stream.write(data)
 
 
-def _owned_command(command: list[str], work: Path, label: str) -> None:
-    result = sdist_build._run_bounded(command, cwd=work, timeout=180, capture=True)
+def _owned_command(command: list[str], work: Path, label: str, *, capture: bool = True) -> None:
+    result = sdist_build._run_bounded(command, cwd=work, timeout=180, capture=capture)
     if result.returncode != 0:
         raise ValueError(f"{label} failed.")
 
@@ -121,6 +121,7 @@ def build(source: Path, uv: Path, python: Path, output: Path) -> None:
         ],
         source,
         "Locked runtime export",
+        capture=False,
     )
     closure = read_export(exported)
     for row in FIRST_STABLE_ROWS:
