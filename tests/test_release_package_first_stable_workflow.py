@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -50,6 +51,61 @@ def test_ordinary_matrix_uses_distinct_uploads_and_never_publishes() -> None:
             if "uses" in step:
                 assert re.fullmatch(r"actions/[a-z-]+@[0-9a-f]{40}", step["uses"])
     assert not (ROOT / ".github/workflows/release-package-qualification.yml").exists()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Ordinary qualification uses POSIX shells.")
+@pytest.mark.parametrize("need_builder", ["no", "yes"])
+def test_row_shell_preserves_optional_builder_arguments(tmp_path: Path, need_builder: str) -> None:
+    path = ROOT / ".github/workflows/package-qualification.yml"
+    workflow = cast(dict[str, Any], yaml.load(path.read_text(), Loader=yaml.BaseLoader))
+    steps = workflow["jobs"]["minimum-linux-312-wheel"]["steps"]
+    (step,) = (step for step in steps if step.get("name") == "Install and verify exact row")
+    assert step["shell"] == "bash"
+
+    fake_python = tmp_path / "synthetic python"
+    fake_python.write_text("#!/bin/sh\nprintf '%s\\000' \"$@\"\n", encoding="ascii")
+    fake_python.chmod(0o700)
+    task_root = tmp_path / "runner root with spaces *"
+    output = tmp_path / "github-output"
+    env = {
+        "NEED_BUILDER": need_builder,
+        "TASK_ROOT": str(task_root),
+        "TOOLS_PYTHON": str(fake_python),
+        "UV_BIN": "synthetic uv",
+        "BASE_PYTHON": "synthetic runtime",
+        "GITHUB_OUTPUT": str(output),
+        "ROW_KEY": "synthetic-row",
+    }
+    result = subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-e", "-o", "pipefail", "-c", step["run"]],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        timeout=5,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr.decode()
+    assert result.stderr == b""
+    expected = [
+        "-B",
+        "-m",
+        "scripts.release_qualification.first_stable_job",
+        "row",
+        "--uv",
+        "synthetic uv",
+        "--runtime",
+        "synthetic runtime",
+        "--inputs",
+        str(task_root / "first-stable-inputs"),
+        "--work",
+        str(task_root / "first-stable-row-work"),
+        "--output",
+        str(task_root / "first-stable-row-report"),
+    ]
+    if need_builder == "yes":
+        expected.extend(["--builder", str(task_root / "first-stable-builder/bin/python")])
+    assert result.stdout.decode().split("\0") == [*expected, ""]
+    assert output.read_text(encoding="ascii") == "row-key=synthetic-row\n"
 
 
 def test_locked_install_plan_has_separate_authenticated_local_candidate(tmp_path: Path) -> None:

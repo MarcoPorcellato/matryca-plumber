@@ -4,6 +4,8 @@
 
 - **First-stable package qualification** — discard unused dependency export stdout
   and validate the exported file without changing process timeout or cleanup.
+  Keep strict shell checks when the optional sdist builder argument is absent
+  in wheel jobs.
 
 ## [2.1.0-rc.1] - 2026-11-26
 
