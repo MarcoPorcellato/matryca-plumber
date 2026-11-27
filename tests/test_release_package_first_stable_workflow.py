@@ -69,6 +69,68 @@ def test_locked_install_plan_has_separate_authenticated_local_candidate(tmp_path
     assert str(wheel) not in dependencies and str(profile) not in candidate
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Ordinary package builds use POSIX ownership.")
+@pytest.mark.parametrize(
+    ("mode", "expected"),
+    [
+        ("valid", "Reached canonical build"),
+        ("missing", "Locked export must be a bounded regular file"),
+        ("oversized", "Locked export must be a bounded regular file"),
+        ("failed", "Locked runtime export failed"),
+    ],
+)
+def test_noisy_locked_export_still_requires_valid_file_and_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str, expected: str
+) -> None:
+    from scripts.release_qualification import first_stable_job, sdist_build
+
+    uv = tmp_path / "uv"
+    output = tmp_path / "build"
+    requirements = f"pydantic==2.13.4 --hash=sha256:{'a' * 64}\n"
+    run_bounded = sdist_build._run_bounded
+
+    def run_fake_export(
+        command: list[str], *, cwd: Path, timeout: float, capture: bool
+    ) -> sdist_build._CommandResult:
+        assert command[:2] == [str(uv), "export"]
+        assert command[-2:] == ["--output-file", str(output / "runtime-lock.txt")]
+        return run_bounded(
+            [
+                sys.executable,
+                "-I",
+                "-B",
+                "-S",
+                "-c",
+                "from pathlib import Path\n"
+                "import sys\n"
+                "path, mode, requirements = sys.argv[1:]\n"
+                "if mode != 'missing':\n"
+                "    data = b'x' * 1_048_577 if mode == 'oversized' else requirements.encode()\n"
+                "    Path(path).write_bytes(data)\n"
+                "sys.stdout.buffer.write(b'x' * 65_537)\n"
+                "raise SystemExit(7 if mode == 'failed' else 0)\n",
+                command[-1],
+                mode,
+                requirements,
+            ],
+            cwd=cwd,
+            timeout=timeout,
+            capture=capture,
+        )
+
+    def stop_before_build(*_args: object, **_kwargs: object) -> None:
+        assert (output / "runtime-lock.txt").read_bytes() == requirements.encode("ascii")
+        raise ValueError("Reached canonical build")
+
+    monkeypatch.setenv("SELECTED_SOURCE", "a" * 40)
+    monkeypatch.setenv("CANDIDATE_TAG", "v2.1.0-rc.1")
+    monkeypatch.setenv("SELECTED_VERSION", "2.1.0rc1")
+    monkeypatch.setattr(sdist_build, "_run_bounded", run_fake_export)
+    monkeypatch.setattr(first_stable_job, "build_alpha", stop_before_build)
+    with pytest.raises(ValueError, match=expected):
+        first_stable_job.build(tmp_path, uv, Path(sys.executable), output)
+
+
 def test_admission_cannot_silently_select_alpha_or_skip_missing_material() -> None:
     from scripts.release_qualification.first_stable_job import require_ordinary_admission
 

@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Fixed
+
+- **First-stable package qualification** — discard unused dependency export stdout
+  and validate the exported file without changing process timeout or cleanup.
+
 ## [2.1.0-rc.1] - 2026-11-26
 
 Release candidate preparation for the ordinary Linux x86_64 and macOS arm64
