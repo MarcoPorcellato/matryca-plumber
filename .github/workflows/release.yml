@@ -17,6 +17,7 @@ jobs:
     name: Verify before publish
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       checks: read
       contents: read
     outputs:
@@ -64,6 +65,15 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?check_name=Ironclad%20Gatekeeper&filter=latest" \
             --jq ".check_runs | map(select(.name == \"Ironclad Gatekeeper\" and .app.id == 15368 and .head_sha == \"${GITHUB_SHA}\" and .status == \"completed\" and .conclusion == \"success\")) | length")"
           test "$REQUIRED_CHECK_COUNT" -ge 1
+
+      - name: Read qualification reference from the verified tag
+        id: qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git cat-file tag "refs/tags/$GITHUB_REF_NAME" |
+            python3 -B -m scripts.release_qualification.first_stable_release_selection "$GITHUB_REF_NAME" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -151,6 +161,30 @@ jobs:
           set -euo pipefail
           if [ '${{ steps.release-target.outputs.hardened }}' = true ]; then python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$MATRYCA_UV_ROOT" --runner-temp "$RUNNER_TEMP" --platform "$MATRYCA_UV_PLATFORM" > /dev/null; fi
           uv run python scripts/check_version_consistency.py
+
+      - name: Require the exact first-stable 16-row aggregate
+        if: ${{ steps.qualification.outputs.required != 'false' }}
+        timeout-minutes: 2
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUAL_RUN: ${{ steps.qualification.outputs.run_id }}
+          QUAL_ATTEMPT: ${{ steps.qualification.outputs.attempt }}
+          QUAL_ARTIFACT: ${{ steps.qualification.outputs.artifact_id }}
+          QUAL_DIGEST: ${{ steps.qualification.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          ulimit -f 512
+          : "${QUAL_RUN:?}" "${QUAL_ATTEMPT:?}" "${QUAL_ARTIFACT:?}" "${QUAL_DIGEST:?}"
+          evidence="$(mktemp -d "$RUNNER_TEMP/first-stable-release.XXXXXXXX")"
+          api="repos/$GITHUB_REPOSITORY/actions"
+          gh api "$api/workflows/package-qualification.yml" > "$evidence/workflow.json"
+          gh api "$api/runs/$QUAL_RUN" > "$evidence/run.json"
+          gh api "$api/runs/$QUAL_RUN/attempts/$QUAL_ATTEMPT/jobs?per_page=100" > "$evidence/jobs.json"
+          gh api "$api/runs/$QUAL_RUN/artifacts?per_page=100" > "$evidence/artifacts.json"
+          gh api "$api/artifacts/$QUAL_ARTIFACT/zip" > "$evidence/aggregate.zip"
+          .venv/bin/python -B -m scripts.release_qualification.first_stable_release_gate "$evidence" "$(git rev-parse 'HEAD^{tree}')"
 
       - name: Frontend quality gate
         working-directory: frontend
