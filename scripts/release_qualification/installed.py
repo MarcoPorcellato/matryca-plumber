@@ -577,17 +577,16 @@ def _verify_entry_point_scripts(
             "        sys.argv[0] = sys.argv[0][:-4]\n"
             f"    sys.exit({function}())\n"
         ).encode()
-        first_line, separator_bytes, body = payload.partition(b"\n")
-        direct_wrapper = first_line == f"#!{env_root / 'bin/python'}".encode()
-        shell_prefix = (
-            "#!/bin/sh\n"
-            f"'''exec' {shlex.quote(str(env_root / 'bin/python'))} \"$0\" \"$@\"\n"
-            "' '''\n"
-        ).encode()
-        shell_wrapper = (
-            payload.startswith(shell_prefix) and payload[len(shell_prefix) :] == expected_body
-        )
-        if not separator_bytes or not ((direct_wrapper and body == expected_body) or shell_wrapper):
+        interpreter = str(env_root / "bin/python")
+        if payload == f"#!{interpreter}\n".encode() + expected_body:
+            continue
+        quoted = shlex.quote(interpreter)
+        # uv may retain single quotes around an otherwise shell-safe interpreter path.
+        tokens = (quoted, f"'{interpreter}'") if quoted == interpreter else (quoted,)
+        shell_prefix = "#!/bin/sh\n'''exec' {} \"$0\" \"$@\"\n' '''\n"
+        if not any(
+            payload == shell_prefix.format(token).encode() + expected_body for token in tokens
+        ):
             _fail("Installed console-script wrapper differs from its authenticated entry point.")
     return None
 

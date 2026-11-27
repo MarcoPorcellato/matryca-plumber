@@ -1203,6 +1203,53 @@ def test_uv_shell_entry_point_wrapper_is_bound_when_venv_path_has_spaces(
     assert receipt.tck_outcomes == ("PASS", "PASS", "PASS")
 
 
+@pytest.mark.skipif(os.name != "posix", reason="This shell launcher is POSIX-specific.")
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "exact",
+        "canonical-shell",
+        "escaped-apostrophe",
+        "other-interpreter",
+        "missing-arguments",
+        "different-body",
+        "raw-apostrophe",
+    ],
+)
+def test_posix_installed_wrapper_with_quoted_interpreter(tmp_path: Path, variant: str) -> None:
+    # uv uses a shell wrapper for long paths even when the interpreter needs no escaping.
+    component = "owner's-env" if "apostrophe" in variant else "ordinary-env"
+    python, source, site, artifact, binding = _install_fixture(tmp_path / ("a" * 120) / component)
+    script = python.parent / "matryca"
+    _, _, body = script.read_bytes().partition(b"\n")
+    path = str(python) + ("3" if variant == "other-interpreter" else "")
+    token = "'" + (path if variant == "raw-apostrophe" else path.replace("'", "'\"'\"'")) + "'"
+    if variant == "canonical-shell":
+        token = shlex.quote(path)
+    arguments = '"$0"' if variant == "missing-arguments" else '"$0" "$@"'
+    if variant == "different-body":
+        body += b"# additional line\n"
+    payload = f"#!/bin/sh\n'''exec' {token} {arguments}\n' '''\n".encode() + body
+    script.write_bytes(payload)
+
+    # Bind the actual bytes in RECORD so a negative case reaches the launcher check.
+    record = site / DIST_NAME / "RECORD"
+    with record.open(encoding="utf-8", newline="") as stream:
+        rows = list(csv.reader(stream))
+    relative = os.path.relpath(script, site).replace(os.sep, "/")
+    row = next(row for row in rows if row[0] == relative)
+    row[1:] = [_hash(payload), str(len(payload))]
+    with record.open("w", encoding="utf-8", newline="") as stream:
+        csv.writer(stream, lineterminator="\n").writerows(rows)
+
+    if variant in {"exact", "canonical-shell", "escaped-apostrophe"}:
+        receipt = verify_installed(python, binding, source, "wheel", artifact=artifact)
+        assert receipt.tck_outcomes == ("PASS", "PASS", "PASS")
+    else:
+        with pytest.raises(ValueError, match="console-script wrapper"):
+            verify_installed(python, binding, source, "wheel", artifact=artifact)
+
+
 @pytest.mark.skipif(os.name == "nt", reason="Process-group descendant cleanup is POSIX-specific.")
 def test_bounded_runner_kills_descendant_that_inherits_output_pipes(tmp_path: Path) -> None:
     code = (
