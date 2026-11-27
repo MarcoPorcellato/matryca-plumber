@@ -115,7 +115,7 @@ jobs:
           python3 -B -m scripts.release_qualification.first_stable_host linux-x86_64 3.12.16 "$root/first-stable-startup312"
           python3 -B -m scripts.release_qualification.first_stable_host linux-x86_64 3.13.18 "$root/first-stable-startup313"
       - name: Preserve both native startup receipts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: first-stable-native-linux-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -144,7 +144,7 @@ jobs:
       export-sha256: ${{ steps.build.outputs.export-sha256 }}
     steps:
       - *checkout
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
       - name: Provision the pinned qualification tool and native CPython
@@ -169,7 +169,7 @@ jobs:
             UV_PROJECT_ENVIRONMENT="$root/first-stable-builder" "$uv" sync --project release-qualification-build --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$build_base"
           fi
           printf 'TASK_ROOT=%s\nUV_CACHE_DIR=%s\nUV_BIN=%s\nBASE_PYTHON=%s\nTOOLS_PYTHON=%s\n' "$root" "$UV_CACHE_DIR" "$uv" "$base" "$root/first-stable-tools/bin/python" >> "$GITHUB_ENV"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "22"
       - name: Produce one original wheel and sdist
@@ -180,7 +180,7 @@ jobs:
           "$TOOLS_PYTHON" -B -m scripts.release_qualification.first_stable_job build --uv "$UV_BIN" --builder "$TASK_ROOT/first-stable-builder/bin/python" --output "$TASK_ROOT/first-stable-inputs"
       - name: Preserve original pair and independent build input export
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: first-stable-inputs-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/first-stable-inputs
@@ -208,7 +208,7 @@ jobs:
       artifact-sha256: ${{ steps.upload.outputs.artifact-digest }}
     steps: &row_steps
       - *checkout
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
       - name: Provision the pinned qualification tool and native CPython
@@ -234,7 +234,7 @@ jobs:
           fi
           printf 'TASK_ROOT=%s\nUV_CACHE_DIR=%s\nUV_BIN=%s\nBASE_PYTHON=%s\nTOOLS_PYTHON=%s\n' "$root" "$UV_CACHE_DIR" "$uv" "$base" "$root/first-stable-tools/bin/python" >> "$GITHUB_ENV"
       - name: Download independent original pair and runtime lock export
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/first-stable-inputs
@@ -257,7 +257,7 @@ jobs:
           printf 'row-key=%s\n' "$ROW_KEY" >> "$GITHUB_OUTPUT"
       - name: Preserve exact original and installed row receipt
         id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: first-stable-row-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.ROW_KEY }}
           path: ${{ runner.temp }}/first-stable-row-report/row.json
@@ -537,7 +537,7 @@ jobs:
       EXPECTED_EXPORT_SHA256: ${{ needs.build.outputs.export-sha256 }}
     steps:
       - *checkout
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
       - name: Provision the pinned qualification tool and native CPython
@@ -577,14 +577,14 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" > jobs.json
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" > artifacts.json
       - name: Download the independently carried original pair
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
           path: ${{ runner.temp }}/first-stable-evidence/inputs
           merge-multiple: true
           digest-mismatch: error
       - name: Download the sixteen independently carried row artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: "${{ needs.minimum-linux-312-wheel.outputs.artifact-id }},${{ needs.minimum-linux-312-sdist.outputs.artifact-id }},${{ needs.minimum-linux-313-wheel.outputs.artifact-id }},${{ needs.minimum-linux-313-sdist.outputs.artifact-id }},${{ needs.minimum-mac-312-wheel.outputs.artifact-id }},${{ needs.minimum-mac-312-sdist.outputs.artifact-id }},${{ needs.minimum-mac-313-wheel.outputs.artifact-id }},${{ needs.minimum-mac-313-sdist.outputs.artifact-id }},${{ needs.current-linux-312-wheel.outputs.artifact-id }},${{ needs.current-linux-312-sdist.outputs.artifact-id }},${{ needs.current-linux-313-wheel.outputs.artifact-id }},${{ needs.current-linux-313-sdist.outputs.artifact-id }},${{ needs.current-mac-312-wheel.outputs.artifact-id }},${{ needs.current-mac-312-sdist.outputs.artifact-id }},${{ needs.current-mac-313-wheel.outputs.artifact-id }},${{ needs.current-mac-313-sdist.outputs.artifact-id }}"
           path: ${{ runner.temp }}/first-stable-evidence/rows
@@ -598,7 +598,7 @@ jobs:
           set -euo pipefail
           "$TOOLS_PYTHON" -B -m scripts.release_qualification.first_stable_aggregate "$TASK_ROOT/first-stable-evidence"
       - name: Preserve aggregate (not release authorization)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: first-stable-aggregate-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/first-stable-evidence/aggregate.json
