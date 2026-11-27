@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+## [2.1.0-rc.1] - 2026-11-26
+
+Release candidate preparation for the ordinary Linux x86_64 and macOS arm64
+qualification lane. Native Windows installed-package qualification and the
+experimental gateway remain separate. This section records no publication
+or stable compatibility claim.
+
+### Changed
+
+- **First-stable package qualification** — bind four exact CPython archives
+  and their reviewed build and notice evidence as inputs to the 16-row
+  Linux/macOS wheel and sdist qualification workflow.
+
 ### Security
 
 - **Windows package qualification tooling** — require independently authenticated
