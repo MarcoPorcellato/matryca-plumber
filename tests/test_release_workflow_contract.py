@@ -51,7 +51,11 @@ def test_release_job_graph_builds_once_then_promotes() -> None:
 
 def test_tag_identity_and_empty_destinations_are_blocking() -> None:
     jobs = _load_release()["jobs"]
-    assert jobs["verify"]["permissions"] == {"checks": "read", "contents": "read"}
+    assert jobs["verify"]["permissions"] == {
+        "actions": "read",
+        "checks": "read",
+        "contents": "read",
+    }
     verify_script = _step(jobs["verify"], "Verify signed tag and protected-main reachability")[
         "run"
     ]

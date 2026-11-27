@@ -6,6 +6,9 @@
   and validate the exported file without changing process timeout or cleanup.
   Keep strict shell checks when the optional sdist builder argument is absent
   in wheel jobs.
+- **First-stable release gate** — block an ordinary 2.1.0 RC or final release
+  unless its signed tag selects the successful 16-row Linux/macOS aggregate
+  for the exact commit, tree and package version.
 
 ## [2.1.0-rc.1] - 2026-11-26
 

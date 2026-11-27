@@ -81,6 +81,24 @@ seven-day eligible public RC observation and 259,200 valid seconds for each of
 the two durability profiles remain separate gates. The experimental alpha result
 does not start the RC observation window or qualify the stable package.
 
+For an ordinary `v2.1.0-rc.N` or `v2.1.0` release, include exactly one line
+in the signed tag annotation, using the approved qualification run's numeric
+ID and attempt, the aggregate artifact ID and the SHA-256 of its **ZIP**
+(not the digest of `aggregate.json`):
+
+```text
+Qualification-Aggregate: <run-id>/<attempt>/<artifact-id>@sha256:<64-lowercase-hex>
+```
+
+The release workflow reads that reference after signature verification. It
+checks the current terminal attempt of the protected-main qualification
+workflow, the original package binding, and all 16 receipt links against
+GitHub's jobs and artifacts before any release build or publication. It
+does not select the latest green run by name. Missing, expired, ambiguous or
+mismatched evidence blocks release. A change to the selected source requires
+fresh qualification and separate authorization; do not reuse a predecessor's
+receipt. Experimental alpha and historical release routes are unchanged.
+
 ### Experimental 2.1.0 alpha track
 
 The [2.1.0a4 qualification plan](quality/V2_1_0A4_RELEASE_QUALIFICATION_PLAN_2026-11-14.md)
