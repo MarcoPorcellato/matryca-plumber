@@ -1,0 +1,169 @@
+name: S3 public RC1 installations
+
+on:
+  workflow_dispatch:
+    inputs:
+      verifier_sha:
+        description: Full main commit containing this workflow
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  SELECTED_VERIFIER: ${{ inputs.verifier_sha }}
+  PYTHONDONTWRITEBYTECODE: "1"
+  UV_NO_CONFIG: "1"
+  UV_HTTP_RETRIES: "0"
+  UV_PYTHON_DOWNLOADS: never
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  linux:
+    name: Public RC1 Linux installations
+    if: ${{ github.repository == 'MarcoPorcellato/matryca-plumber' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    env:
+      TARGET: linux-x86_64
+    steps: &steps
+      - name: Check out verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Admit verifier and native host
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SELECTED_VERIFIER" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REF_PROTECTED" = true
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$GITHUB_SHA" = "$SELECTED_VERIFIER"
+          test "$GITHUB_WORKFLOW_SHA" = "$SELECTED_VERIFIER"
+          test "$(git rev-parse HEAD)" = "$SELECTED_VERIFIER"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          case "$TARGET:$(uname -sm)" in
+            'linux-x86_64:Linux x86_64'|'macos-arm64:Darwin arm64') ;;
+            *) exit 1 ;;
+          esac
+          # A disposable hosted runner, not the maintainer's workstation.
+          test "$(df -Pk "$RUNNER_TEMP" | awk 'NR == 2 {print $4}')" -ge 8388608
+      - name: Check out immutable RC1 producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 4080f69ffc7d69edda27886530ce2932a6ee3fed
+          path: s3-producer
+          persist-credentials: false
+      - name: Check out stable baseline source
+        if: ${{ runner.os == 'Linux' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 987446b8337f7abd308a9efe4abb834ce1acdc1b
+          path: s3-stable-source
+          persist-credentials: false
+      - name: Check out alpha baseline source
+        if: ${{ runner.os == 'Linux' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 1d884ddcbdb37ecdd0d4ad3ccb3e9a6d406e1bdd
+          path: s3-alpha-source
+          persist-credentials: false
+      - name: Verify frozen source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C s3-producer rev-parse HEAD)" = 4080f69ffc7d69edda27886530ce2932a6ee3fed
+          test "$(git -C s3-producer rev-parse 'HEAD^{tree}')" = d9d2ed439e8be446ff4ec1604807f788935060c4
+          test -z "$(git -C s3-producer status --porcelain --untracked-files=all)"
+          if [ "$TARGET" = linux-x86_64 ]; then
+            test "$(git -C s3-stable-source rev-parse HEAD)" = 987446b8337f7abd308a9efe4abb834ce1acdc1b
+            test "$(git -C s3-stable-source rev-parse 'HEAD^{tree}')" = d164f054f84e7d6eb33a60efbaa6181403edf312
+            test -z "$(git -C s3-stable-source status --porcelain --untracked-files=all)"
+            test "$(git -C s3-alpha-source rev-parse HEAD)" = 1d884ddcbdb37ecdd0d4ad3ccb3e9a6d406e1bdd
+            test "$(git -C s3-alpha-source rev-parse 'HEAD^{tree}')" = 22bced0e8eef57595acdfed12933e53905f22a95
+            test -z "$(git -C s3-alpha-source status --porcelain --untracked-files=all)"
+          fi
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Provision pinned native tools and independent builder
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$(cd -P "$RUNNER_TEMP" && pwd)"
+          uv_root="$root/s3-uv"
+          python -I -B scripts/release_qualification/uv_acquisition.py acquire --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > /dev/null
+          python -I -B scripts/release_qualification/uv_acquisition.py verify --root "$uv_root" --runner-temp "$root" --platform "$TARGET" > "$root/s3-uv-verified.json"
+          uv_sha="$(python -I -B -S -c 'import json,sys; print(json.load(open(sys.argv[1]))["executable_sha256"])' "$root/s3-uv-verified.json")"
+          [[ "$uv_sha" =~ ^[0-9a-f]{64}$ ]]
+          uv="$uv_root/bin/uv"
+          export UV_CACHE_DIR="$root/s3-cache"
+          runtime="$(python -B -m scripts.release_qualification.first_stable_host "$TARGET" 3.12.16 "$root/s3-native")"
+          UV_PROJECT_ENVIRONMENT="$root/s3-tools" "$uv" sync --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$runtime"
+          UV_PROJECT_ENVIRONMENT="$root/s3-builder" "$uv" sync --project "$GITHUB_WORKSPACE/s3-producer/release-qualification-build" --locked --no-dev --no-install-project --no-build --no-config --no-python-downloads --link-mode copy --python "$runtime"
+          mkdir -m 700 "$root/s3-reports"
+          printf 'S3_ROOT=%s\nUV_CACHE_DIR=%s\nS3_UV=%s\nS3_UV_SHA256=%s\nS3_RUNTIME=%s\nS3_TOOLS=%s\nS3_BUILDER=%s\n' "$root" "$UV_CACHE_DIR" "$uv" "$uv_sha" "$runtime" "$root/s3-tools/bin/python" "$root/s3-builder/bin/python" >> "$GITHUB_ENV"
+      - name: Run requested native installation cases
+        id: cases
+        timeout-minutes: 70
+        shell: bash
+        run: |
+          set -euo pipefail
+          producer="$GITHUB_WORKSPACE/s3-producer"
+          test "$(git rev-parse HEAD)" = "$SELECTED_VERIFIER"
+          git diff --exit-code
+          git diff --cached --exit-code
+          cases=(clean-sdist)
+          if [ "$TARGET" = linux-x86_64 ]; then
+            cases=(clean-wheel clean-sdist from-stable from-alpha)
+          fi
+          for case in "${cases[@]}"; do
+            extra=()
+            case "$case" in
+              clean-sdist) extra=(--builder "$S3_BUILDER") ;;
+              from-stable) extra=(--baseline-source "$GITHUB_WORKSPACE/s3-stable-source") ;;
+              from-alpha) extra=(--baseline-source "$GITHUB_WORKSPACE/s3-alpha-source") ;;
+              clean-wheel) ;;
+              *) exit 1 ;;
+            esac
+            "$S3_TOOLS" -B -m scripts.release_qualification.first_stable_s3 --target "$TARGET" --case "$case" --source "$producer" --uv "$S3_UV" --runtime "$S3_RUNTIME" --work "$S3_ROOT/s3-work-$case" --output "$S3_ROOT/s3-reports/$case.json" ${extra[@]+"${extra[@]}"}
+          done
+      - name: Validate bounded case reports before upload
+        id: reports
+        if: ${{ always() && (steps.cases.outcome == 'success' || steps.cases.outcome == 'failure') }}
+        env:
+          CASES_OUTCOME: ${{ steps.cases.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$S3_TOOLS" -B -m scripts.release_qualification.first_stable_s3 verify-reports --target "$TARGET" --reports "$S3_ROOT/s3-reports" --outcome "$CASES_OUTCOME"
+      - name: Preserve sanitized case reports
+        if: ${{ always() && steps.reports.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: s3-public-rc1-${{ env.TARGET }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/s3-reports/clean-wheel.json
+            ${{ runner.temp }}/s3-reports/clean-sdist.json
+            ${{ runner.temp }}/s3-reports/from-stable.json
+            ${{ runner.temp }}/s3-reports/from-alpha.json
+          if-no-files-found: error
+          retention-days: 14
+
+  macos:
+    name: Public RC1 macOS sdist installation
+    if: ${{ github.repository == 'MarcoPorcellato/matryca-plumber' }}
+    runs-on: macos-15
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    env:
+      TARGET: macos-arm64
+    steps: *steps
