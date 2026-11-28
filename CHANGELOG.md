@@ -2,6 +2,8 @@
 
 ### Fixed
 
+- **Public RC1 qualification** — retain bounded, sanitized acquisition diagnostics
+  in failed S3 receipts so maintainers can identify the failed asset or check.
 - **First-stable package qualification** — discard unused dependency export stdout
   and validate the exported file without changing process timeout or cleanup.
   Keep strict shell checks when the optional sdist builder argument is absent

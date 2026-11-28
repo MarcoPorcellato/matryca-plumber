@@ -5,8 +5,11 @@ import json
 import os
 import subprocess
 import sys
+from argparse import Namespace
 from copy import deepcopy
+from errno import ENOENT
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -135,6 +138,114 @@ def test_hosted_workflow_cannot_run_automatically_or_publish() -> None:
                 assert step["with"]["persist-credentials"] == "false"
 
 
+@pytest.mark.parametrize("failure", ["safe-child", "unsafe-child", "os-error"])
+def test_case_persists_filtered_public_fetch_diagnostic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    from scripts.release_qualification import first_stable_s3 as s3
+    from scripts.release_qualification import sdist_build
+    from scripts.release_qualification.first_stable_host import PINS
+
+    root = tmp_path.resolve()
+    uv = root / "uv"
+    uv.write_bytes(b"installer")
+    monkeypatch.setattr(
+        os,
+        "environ",
+        {
+            "RUNNER_TEMP": str(root),
+            "GITHUB_SHA": "a" * 40,
+            "GITHUB_RUN_ID": "10",
+            "GITHUB_RUN_ATTEMPT": "1",
+            "S3_UV_SHA256": hashlib.sha256(b"installer").hexdigest(),
+        },
+    )
+    monkeypatch.setattr(os, "umask", lambda _mode: 0)
+    monkeypatch.setattr(s3, "_disk", lambda _root: None)
+    monkeypatch.setattr(
+        s3,
+        "_admit_host",
+        lambda target, _runtime: {
+            "archive_sha256": PINS[target, "3.12.16"].sha256,
+            "implementation": "CPython",
+            "platform": target,
+            "version": "3.12.16",
+            "executable_sha256": "b" * 64,
+            "cleanup": "verified",
+        },
+    )
+    monkeypatch.setattr(s3, "require_source", lambda *_args: None)
+    calls = []
+
+    def stopped(command: list[str], **_options: object) -> SimpleNamespace:
+        if command == [str(uv), "--version"]:
+            return SimpleNamespace(returncode=0, stdout=b"uv 0.12.19")
+        calls.append(command)
+        assert "alpha-public-fetch" in command
+        if failure == "os-error":
+            raise FileNotFoundError(ENOENT, "token=do-not-keep", "/private/host-path")
+        child = _fetch_failure()
+        if failure == "unsafe-child":
+            child["message"] = "token=do-not-keep"
+        return SimpleNamespace(returncode=1, stdout=json.dumps(child).encode())
+
+    monkeypatch.setattr(sdist_build, "_run_bounded", stopped)
+    reports = root / "reports"
+    reports.mkdir()
+    output = reports / "clean-wheel.json"
+    with pytest.raises((ValueError, OSError)):
+        s3.qualify(
+            Namespace(
+                target="linux-x86_64",
+                case="clean-wheel",
+                source=root / "producer",
+                builder=None,
+                baseline_source=None,
+                uv=uv,
+                runtime=root / "python",
+                work=root / "work",
+                output=output,
+            )
+        )
+    row = json.loads(output.read_bytes())
+    assert len(calls) == 1
+    assert row["result"] == "FAIL"
+    assert row["stage"] == "public-acquisition"
+    expected_failure = (
+        _fetch_failure()
+        if failure == "safe-child"
+        else {
+            **_fetch_failure(),
+            "cause_type": None,
+            "http_status": None,
+            "message": "Error details redacted.",
+        }
+    )
+    if failure == "os-error":
+        expected_failure.update(error_type="FileNotFoundError", errno=ENOENT)
+    assert row["acquisition_diagnostic"] == {
+        "step": "github-fetch",
+        "asset": "binding.json",
+        "returncode": None if failure == "os-error" else 1,
+        "failure": expected_failure,
+    }
+    assert row["stages"] == {}
+    assert b"do-not-keep" not in output.read_bytes()
+    assert b"/private/host-path" not in output.read_bytes()
+    s3.verify_reports(reports, "linux-x86_64", "failure", "a" * 40, 10)
+
+
+def _fetch_failure() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "error_type": "ValueError",
+        "cause_type": "HTTPError",
+        "message": "Public redirect limit or HTTP failure.",
+        "http_status": 403,
+        "errno": None,
+    }
+
+
 @pytest.mark.skipif(os.name == "nt", reason="Hosted S3 report shell runs only on POSIX")
 @pytest.mark.parametrize(
     ("outcome", "mutation", "allowed"),
@@ -152,6 +263,12 @@ def test_hosted_workflow_cannot_run_automatically_or_publish() -> None:
         ("success", "incomplete-builder-descriptor", False),
         ("success", "wrong-builder-python", False),
         ("success", "sensitive-field", False),
+        ("failure", "acquisition-diagnostic", True),
+        ("failure", "acquisition-unsafe-message", False),
+        ("failure", "acquisition-wrong-asset", False),
+        ("failure", "acquisition-wrong-stage", False),
+        ("failure", "acquisition-wrong-code", False),
+        ("success", "acquisition-spoofed-success", False),
     ],
 )
 def test_workflow_checks_real_report_before_upload(
@@ -196,6 +313,28 @@ def test_workflow_checks_real_report_before_upload(
             row["sdist_build"]["provisioning"]["environment"]["python_executable_sha256"] = "a" * 64
         if mutation == "sensitive-field":
             row["stages"]["rc1"]["stderr"] = "/Users/fixture/secret"
+        if mutation and mutation.startswith("acquisition-"):
+            row["result"] = "FAIL"
+            row["stage"] = "public-acquisition"
+            row["failure_class"] = "ValueError"
+            row["acquisition_diagnostic"] = {
+                "step": "github-fetch",
+                "asset": "binding.json",
+                "returncode": 1,
+                "failure": _fetch_failure(),
+            }
+            if mutation == "acquisition-unsafe-message":
+                row["acquisition_diagnostic"]["failure"]["message"] = "token=do-not-keep"
+            if mutation == "acquisition-wrong-asset":
+                row["acquisition_diagnostic"]["asset"] = "arbitrary.txt"
+            if mutation == "acquisition-wrong-stage":
+                row["stage"] = "rc-export"
+            if mutation == "acquisition-wrong-code":
+                row["acquisition_diagnostic"]["returncode"] = True
+            if mutation == "acquisition-spoofed-success":
+                row["result"] = "PASS"
+                row["stage"] = "final-integrity"
+                del row["failure_class"]
         report.write_text(json.dumps(row), encoding="ascii")
     completed = subprocess.run(
         ["/bin/bash", "--noprofile", "--norc", "-c", script],

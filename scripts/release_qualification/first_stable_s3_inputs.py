@@ -12,13 +12,19 @@ import os
 import re
 import shutil
 import stat
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any
 
+from scripts.release_qualification.alpha1_matrix import canonical, document
 from scripts.release_qualification.alpha1_public import (
     _acquire as _acquire_public,
+)
+from scripts.release_qualification.alpha1_public import (
+    _read_fetch_failure,
+    fetch_failure_diagnostic,
 )
 from scripts.release_qualification.alpha1_public import (
     installed_status as _installed_status,
@@ -122,6 +128,74 @@ _PYPI_URLS: Mapping[str, str] = MappingProxyType(
     }
 )
 
+_FETCH_STEPS = frozenset({"github-fetch", "pypi-fetch", "baseline-fetch"})
+_FETCH_ERROR_PREFIX = "One-shot public acquisition failed: "
+
+
+@dataclass(slots=True)
+class AcquisitionCheckpoint:
+    """Remember the last acquisition boundary without retaining paths or URLs."""
+
+    step: str = "prepare"
+    asset: str | None = None
+
+    def mark(self, step: str, asset: str | None = None) -> None:
+        self.step, self.asset = step, asset
+
+    def diagnostic(self, error: ValueError | OSError) -> dict[str, Any]:
+        """Keep the downloader's bounded failure details, not its exception text."""
+        failure = fetch_failure_diagnostic(error)
+        code = None
+        # The shared downloader attaches structured child evidence to a fixed
+        # error envelope. Parse only a bounded matching envelope; never relay it.
+        message = error.args[0] if type(error) is ValueError and len(error.args) == 1 else None
+        if (
+            self.step in _FETCH_STEPS
+            and isinstance(message, str)
+            and len(message) <= 4096
+            and message.isascii()
+            and message.startswith(_FETCH_ERROR_PREFIX)
+        ):
+            try:
+                child = document(message.removeprefix(_FETCH_ERROR_PREFIX).encode("ascii"))
+            except (ValueError, RecursionError):
+                child = {}
+            origin = "github" if self.step == "github-fetch" else "pypi"
+            if child.get("kind") == origin and child.get("asset") == self.asset:
+                result = child.get("returncode")
+                if type(result) is int and -255 <= result <= 255 and result != 0:
+                    code = result
+                    failure = _read_fetch_failure(canonical(child.get("failure"))) or failure
+        return {"step": self.step, "asset": self.asset, "returncode": code, "failure": failure}
+
+
+def valid_acquisition_diagnostic(value: object, baseline: str | None) -> bool:
+    """Accept only the monitored step/asset pairs and closed downloader fields."""
+    if not isinstance(value, dict) or set(value) != {"step", "asset", "returncode", "failure"}:
+        return False
+    step, asset, code = value["step"], value["asset"], value["returncode"]
+    if step in ("github-fetch", "github-verify"):
+        allowed: Collection[str | None] = _RC_URLS.keys()
+    elif step in ("pypi-fetch", "pypi-verify"):
+        allowed = _PYPI_URLS.keys()
+    elif step in ("baseline-fetch", "baseline-verify", "baseline-copy"):
+        allowed = (BASELINES[baseline].wheel_name,) if baseline is not None else ()
+    elif step == "binding-verify":
+        allowed = ("binding.json",)
+    elif step in ("prepare", "bundle-verify"):
+        allowed = (None,)
+    else:
+        return False
+    return (
+        (asset is None or isinstance(asset, str))
+        and asset in allowed
+        and (
+            code is None
+            or (step in _FETCH_STEPS and type(code) is int and -255 <= code <= 255 and code != 0)
+        )
+        and _read_fetch_failure(canonical(value["failure"])) is not None
+    )
+
 
 def _require(condition: bool, message: str) -> None:
     if not condition:
@@ -187,13 +261,17 @@ def _fresh_root(root: Path) -> Path:
     return root
 
 
-def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
+def acquire_public(
+    root: Path, baseline: str | None, *, checkpoint: AcquisitionCheckpoint | None = None
+) -> BundleBinding:
     """Acquire admitted RC1 bytes and, optionally, one exact public baseline wheel.
 
     GitHub and PyPI originals are independently fetched through the bounded,
     host-pinned acquisition owner. Each copy is checked against its retained
     size and digest, then their identities are compared before handoff checks.
     """
+    trace = checkpoint if checkpoint is not None else AcquisitionCheckpoint()
+    trace.mark("prepare")
     _require(
         baseline is None or (isinstance(baseline, str) and baseline in BASELINES),
         "Unknown S3 baseline selection.",
@@ -210,6 +288,7 @@ def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
 
     binding_path = root / "binding.json"
     manifest_path = dist / "SHA256SUMS"
+    trace.mark("github-fetch", binding_path.name)
     _acquire_public(
         _RC_URLS["binding.json"],
         binding_path,
@@ -218,6 +297,7 @@ def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
         "github",
         release_tag=TAG,
     )
+    trace.mark("github-fetch", manifest_path.name)
     _acquire_public(
         _RC_URLS["SHA256SUMS"],
         manifest_path,
@@ -231,10 +311,15 @@ def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
         (_RC_BINDING.sdist_name, _RC_BINDING.sdist_size, _RC_BINDING.sdist_sha256),
     ):
         target = dist / name
+        trace.mark("github-fetch", name)
         _acquire_public(_RC_URLS[name], target, size, sha256, "github", release_tag=TAG)
+        trace.mark("github-verify", name)
         _require_identity(target, size, sha256)
+    trace.mark("github-verify", binding_path.name)
     _require_identity(binding_path, _RC_BINDING_SIZE, _RC_BINDING_SHA256)
+    trace.mark("github-verify", manifest_path.name)
     _require_identity(manifest_path, _RC_MANIFEST_SIZE, _RC_MANIFEST_SHA256)
+    trace.mark("binding-verify", binding_path.name)
     try:
         observed = BundleBinding.from_json(binding_path.read_text(encoding="ascii"), policy=_POLICY)
     except (OSError, UnicodeError, ValueError) as error:
@@ -244,14 +329,17 @@ def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
         "Retained RC1 binding differs from admitted publication metadata.",
     )
 
+    trace.mark("prepare")
     pypi_root = root / "pypi"
     pypi_root.mkdir(mode=0o700)
     for name, size, sha256 in (
         (_RC_BINDING.wheel_name, _RC_BINDING.wheel_size, _RC_BINDING.wheel_sha256),
         (_RC_BINDING.sdist_name, _RC_BINDING.sdist_size, _RC_BINDING.sdist_sha256),
     ):
+        trace.mark("github-verify", name)
         github_identity = _file_identity(dist / name)
         pypi_path = pypi_root / name
+        trace.mark("pypi-fetch", name)
         _acquire_public(
             _PYPI_URLS[name],
             pypi_path,
@@ -260,16 +348,19 @@ def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
             "pypi",
             release_tag=TAG,
         )
+        trace.mark("pypi-verify", name)
         _require_identity(pypi_path, size, sha256)
         _require(
             _file_identity(pypi_path) == github_identity,
             "PyPI and GitHub public input bytes differ.",
         )
 
+    trace.mark("bundle-verify")
     verify_handoff(dist, manifest_path, observed, policy=_POLICY)
     if baseline is not None:
         selected = BASELINES[baseline]
         baseline_pypi = pypi_root / selected.wheel_name
+        trace.mark("baseline-fetch", selected.wheel_name)
         _acquire_public(
             selected.pypi_url,
             baseline_pypi,
@@ -278,10 +369,13 @@ def acquire_public(root: Path, baseline: str | None) -> BundleBinding:
             "pypi",
             release_tag=_BASELINE_TAGS[baseline],
         )
+        trace.mark("baseline-verify", selected.wheel_name)
         _require_identity(baseline_pypi, selected.wheel_size, selected.wheel_sha256)
         target = root / selected.wheel_name
+        trace.mark("baseline-copy", selected.wheel_name)
         with baseline_pypi.open("rb") as source, target.open("xb") as output:
             shutil.copyfileobj(source, output, length=65_536)
+        trace.mark("baseline-verify", selected.wheel_name)
         _require_identity(
             target,
             selected.wheel_size,

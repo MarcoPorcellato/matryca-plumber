@@ -36,8 +36,10 @@ from scripts.release_qualification.first_stable_s3_inputs import (
     RC_TAG_OBJECT,
     RC_TREE,
     TAG,
+    AcquisitionCheckpoint,
     acquire_public,
     require_source,
+    valid_acquisition_diagnostic,
 )
 from scripts.release_qualification.first_stable_s3_probe import FIXTURE
 from scripts.release_qualification.installed import InstalledReceipt
@@ -446,6 +448,7 @@ def qualify(args: argparse.Namespace) -> None:
         UV_NO_PROGRESS="1",
         UV_SYSTEM_CERTS="true",
     )
+    acquisition = AcquisitionCheckpoint()
     try:
         if case.run("installer-version", [str(args.uv), "--version"], capture=True).split()[:2] != [
             b"uv",
@@ -454,7 +457,7 @@ def qualify(args: argparse.Namespace) -> None:
             raise ValueError("Unexpected installer version.")
         result["stage"] = "public-acquisition"
         originals = work / "public"
-        binding = acquire_public(originals, version)
+        binding = acquire_public(originals, version, checkpoint=acquisition)
         result["binding"] = json.loads(binding.to_json())
         rc_export = case.export(source, work / "runtime-lock.txt", rc=True)
         profile = resolve_profile(rc_export, "current", target, _PYTHON)
@@ -544,6 +547,8 @@ def qualify(args: argparse.Namespace) -> None:
         result["result"] = "PASS"
     except BaseException as error:
         result["failure_class"] = type(error).__name__
+        if result["stage"] == "public-acquisition" and isinstance(error, (OSError, ValueError)):
+            result["acquisition_diagnostic"] = acquisition.diagnostic(error)
         raise
     finally:
         _write_json(output, result)
@@ -865,7 +870,7 @@ def _check_report(
         and _safe_report_value(row)
         and all(type(row.get(key)) is type(val) and row[key] == val for key, val in common.items())
         and required.issubset(row)
-        and set(row).issubset(required | evidence | {"failure_class"})
+        and set(row).issubset(required | evidence | {"failure_class", "acquisition_diagnostic"})
         and _hash_field(row["uv_sha256"]),
         "closed identity and path-free schema",
     )
@@ -894,6 +899,13 @@ def _check_report(
         passing or (fail_allowed and row["result"] == "FAIL" and "failure_class" in row),
         "terminal outcome",
     )
+    if "acquisition_diagnostic" in row:
+        _need(
+            not passing
+            and row["stage"] == "public-acquisition"
+            and valid_acquisition_diagnostic(row["acquisition_diagnostic"], baseline),
+            "closed public acquisition diagnostic",
+        )
     names = _case_operations(baseline)
     _need(
         [event["name"] for event in statuses] == names[: len(statuses)]
